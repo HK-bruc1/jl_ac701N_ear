@@ -1,0 +1,451 @@
+#include "app_config.h"
+
+#if TCFG_AUTOMUTE_NODE_ENABLE
+automute_node_adapter
+#endif
+
+source_node_adapter
+
+#if TCFG_MIXER_NODE_ENABLE
+mixer_node_adapter
+#endif
+
+#if TCFG_DAC_NODE_ENABLE
+dac_node_adapter
+#endif
+
+#if TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
+clk_sync_node_adapter
+#endif
+decoder_node_adapter
+resample_node_adapter
+bt_audio_sync_node_adapter
+
+#if TCFG_ADC_NODE_ENABLE
+adc_file_plug
+#endif
+
+tone_file_plug
+ring_file_plug
+key_tone_file_plug
+sbc_hwaccel
+sbc_decoder_plug
+msbc_decoder_plug
+
+#if TCFG_PDM_NODE_ENABLE
+pdm_mic_file_plug
+#endif
+
+#if TCFG_BT_DONGLE_ENABLE
+msbc_encoder_soft_plug
+#else
+msbc_encoder_hw_plug
+#endif
+
+#if TCFG_BT_SUPPORT_AAC
+aac_dec_plug
+#endif
+
+#if TCFG_BT_SUPPORT_LHDC
+lhdc_dec_plug
+#endif
+
+#if TCFG_BT_SUPPORT_LHDC_V5
+lhdc_v5_dec_plug
+#endif
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN||BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+lc3_encoder_plug
+lc3_dec_plug
+capture_sync_adapter
+le_audio_file_plug
+#endif
+
+#if TCFG_BT_SUPPORT_LDAC
+ldac_dec_plug
+#endif
+
+sine_dec_plug
+cvsd_encoder_plug
+cvsd_decoder_plug
+#if TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
+pcm_dec_plug
+#endif
+
+#if TCFG_3BAND_MERGE_ENABLE
+three_band_merge_node_adapter
+#endif
+
+#if TCFG_2BAND_MERGE_ENABLE
+two_band_merge_node_adapter
+#endif
+
+
+#if TCFG_CROSSOVER_NODE_ENABLE
+crossover_node_adapter
+crossover_2band_node_adapter
+#endif
+
+
+#if TCFG_WDRC_NODE_ENABLE
+wdrc_node_adapter
+#endif
+
+#if TCFG_WDRC_DETECTOR_NODE_ENABLE
+wdrc_detector_node_adapter
+#endif
+
+#if TCFG_WDRC_ADVANCE_NODE_ENABLE
+wdrc_advance_node_adapter
+#endif
+
+#if TCFG_PCM_DELAY_NODE_ENABLE
+pcm_delay_node_adapter
+#endif
+
+#if TCFG_STEREO_WIDENER_NODE_ENABLE
+stereo_widener_node_adapter
+#endif
+
+#if TCFG_AUDIO_LINEIN_ENABLE
+linein_file_plug
+#endif
+
+
+#if TCFG_ENERGY_DETECT_NODE_ENABLE
+energy_detect_node_adapter
+#endif
+
+
+#if TCFG_CONVERT_NODE_ENABLE
+convert_node_adapter
+convert_data_round_node_adapter
+#endif
+
+#if TCFG_BASS_TREBLE_NODE_ENABLE
+bass_treble_eq_node_adapter
+#endif
+
+#if TCFG_VOICE_CHANGER_NODE_ENABLE
+voice_changer_node_adapter
+#endif
+
+
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+spk_eq_node_adapter
+#endif
+
+#if TCFG_EQ_ENABLE
+eq_node_adapter
+#endif
+
+#if TCFG_GAIN_NODE_ENABLE
+gain_node_adapter
+#endif
+
+#if TCFG_STEROMIX_NODE_ENABLE
+steromix_node_adapter
+#endif
+
+
+#if TCFG_VBASS_NODE_ENABLE
+vbass_node_adapter
+#endif
+
+#if  TCFG_NOISEGATE_NODE_ENABLE
+noisegate_node_adapter
+#endif
+
+#if TCFG_NS_NODE_ENABLE
+ns_node_adapter
+#endif
+
+#if TCFG_DNS_NODE_ENABLE
+dns_node_adapter
+#endif
+
+#if TCFG_DEC_WTG_ENABLE
+g729_dec_plug
+#endif
+
+#if TCFG_DEC_F2A_ENABLE
+f2a_dec_plug
+#endif
+
+#if TCFG_DEC_MTY_ENABLE
+mty_dec_plug
+#endif
+
+#if TCFG_DEC_WAV_ENABLE
+wav_dec_plug
+#endif
+
+#if TCFG_DEC_OPUS_ENABLE
+opus_dec_plug
+#endif
+#if TCFG_ENC_OPUS_ENABLE
+opus_encoder_plug
+#endif
+
+#if TCFG_DEC_WTS_ENABLE
+wts_dec_plug
+#endif
+
+#if TCFG_DEC_MP3_ENABLE
+mp3_dec_plug
+#endif
+
+#if CONFIG_FATFS_ENABLE
+fat_vfs_ops
+#endif
+
+#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+sdfile_vfs_ops
+#endif
+
+#if TCFG_NORFLASH_DEV_ENABLE && VFS_ENABLE
+nor_fs_vfs_ops
+nor_sdfile_vfs_ops
+#endif
+
+#if FLASH_INSIDE_REC_ENABLE
+inside_nor_fs_vfs_ops
+#endif
+
+
+#if TCFG_EFFECT_DEV0_NODE_ENABLE
+effect_dev0_node_adapter
+#endif
+
+#if TCFG_EFFECT_DEV1_NODE_ENABLE
+effect_dev1_node_adapter
+#endif
+
+#if TCFG_EFFECT_DEV2_NODE_ENABLE
+effect_dev2_node_adapter
+#endif
+#if TCFG_EFFECT_DEV3_NODE_ENABLE
+effect_dev3_node_adapter
+#endif
+#if TCFG_EFFECT_DEV4_NODE_ENABLE
+effect_dev4_node_adapter
+#endif
+
+#if TCFG_DYNAMIC_EQ_NODE_ENABLE
+dynamic_eq_node_adapter
+#endif
+
+#ifdef TCFG_DYNAMIC_EQ_EXT_DETECTOR_NODE_ENABLE
+dynamic_eq_ext_detector_node_adapter
+#endif
+
+
+#ifdef TCFG_DYNAMIC_EQ_PRO_NODE_ENABLE
+dynamic_eq_pro_node_adapter
+#endif
+
+#ifdef TCFG_DYNAMIC_EQ_PRO_EXT_DETECTOR_NODE_ENABLE
+dynamic_eq_pro_ext_detector_node_adapter
+#endif
+
+#if TCFG_SOUND_SPLITTER_NODE_ENABLE
+sound_splitter_node_adapter
+#endif
+
+#if TCFG_SOURCE_DEV0_NODE_ENABLE
+source_dev0_file_plug
+#endif
+
+#if TCFG_SOURCE_DEV1_NODE_ENABLE
+source_dev1_file_plug
+#endif
+
+#if TCFG_SOURCE_DEV2_NODE_ENABLE
+source_dev2_file_plug
+#endif
+
+#if TCFG_SOURCE_DEV3_NODE_ENABLE
+source_dev3_file_plug
+#endif
+
+#if TCFG_SOURCE_DEV4_NODE_ENABLE
+source_dev4_file_plug
+#endif
+
+#if TCFG_SINK_DEV0_NODE_ENABLE
+sink_dev0_adapter
+#endif
+
+#if TCFG_SINK_DEV1_NODE_ENABLE
+sink_dev1_adapter
+#endif
+
+#if TCFG_SINK_DEV2_NODE_ENABLE
+sink_dev2_adapter
+#endif
+
+#if TCFG_SINK_DEV3_NODE_ENABLE
+sink_dev3_adapter
+#endif
+
+#if TCFG_SINK_DEV4_NODE_ENABLE
+sink_dev4_adapter
+#endif
+
+#if TCFG_AGC_NODE_ENABLE
+agc_node_adapter
+#endif
+
+#if TCFG_PLATE_REVERB_NODE_ENABLE
+plate_reverb_node_adapter
+#endif
+
+#if TCFG_PLATE_REVERB_ADVANCE_NODE_ENABLE
+plate_reverb_advance_node_adapter
+#endif
+
+#if TCFG_ECHO_NODE_ENABLE
+echo_node_adapter
+#endif
+
+#if TCFG_AUTOTUNE_NODE_ENABLE
+autotune_node_adapter
+#endif
+
+#if TCFG_AUTO_WAH_NODE_ENABLE
+autowah_node_adapter
+#endif
+
+#if TCFG_CHORUS_NODE_ENABLE
+chorus_node_adapter
+#endif
+
+#if TCFG_CHANNEL_EXPANDER_NODE_ENABLE
+channel_expander_node_adapter
+#endif
+
+#if TCFG_CHANNEL_MERGE_NODE_ENABLE
+channel_merge_node_adapter
+#endif
+
+#if TCFG_FREQUENCY_SHIFT_HOWLING_NODE_ENABLE
+frequency_shift_node_adapter
+#endif
+
+#if TCFG_NOTCH_HOWLING_NODE_ENABLE
+howling_suppress_node_adapter
+#endif
+
+#if TCFG_HARMONIC_EXCITER_NODE_ENABLE
+harmonic_exciter_node_adapter
+#endif
+
+#if TCFG_INDICATOR_NODE_ENABLE
+indicator_node_adapter
+#endif
+
+#if TCFG_LLNS_NODE_ENABLE
+llns_node_adapter
+#endif
+
+#if TCFG_VOICE_CHANGER_ADV_NODE_ENABLE
+voice_changer_adv_node_adapter
+#endif
+
+#if TCFG_SPATIAL_AUDIO_ENABLE
+spatial_effects_node_adapter
+#endif
+
+#if TCFG_VOCAL_TRACK_SYNTHESIS_NODE_ENABLE
+vocal_track_synthesis_node_adapter
+#endif
+
+#if TCFG_VOCAL_TRACK_SEPARATION_NODE_ENBALE
+vocal_track_separation_node_adapter
+#endif
+
+#if TCFG_SWITCH_NODE_ENABLE
+switch_node_adapter
+#endif
+
+#if TCFG_SURROUND_NODE_ENABLE
+surround_node_adapter
+#endif
+
+#if TCFG_THREE_D_EFFECT_NODE_ENABLE
+three_d_node_adapter
+#endif
+
+#if TCFG_FADE_NODE_ENABLE
+fade_node_adapter
+#endif
+
+#if TCFG_AUTODUCK_NODE_ENABLE
+autoduck_node_adapter
+autoduck_trigger_node_adapter
+#endif
+
+#if TCFG_MULTI_BAND_DRC_NODE_ENABLE
+multiband_drc_node_adapter
+#endif
+
+#if TCFG_MULTI_BAND_LIMITER_NODE_ENABLE
+multiband_limiter_node_adapter
+#endif
+#if TCFG_LIMITER_NODE_ENABLE
+limiter_node_adapter
+#endif
+
+
+#if TCFG_DATA_EXPORT_NODE_ENABLE
+data_export_node_adapter
+#endif
+
+a2dp_1sbc_codec_private
+
+#if TCFG_BT_SUPPORT_AAC
+a2dp_2aac_sink_codec
+#endif
+
+#if TCFG_BT_SUPPORT_LDAC
+a2dp_4ldac_sink_codec
+#endif
+
+#if TCFG_BT_SUPPORT_LC3
+a2dp_5lc3_sink_codec
+#endif
+
+#if TCFG_BT_SUPPORT_LHDC
+a2dp_6lhdc_sink_codec
+#endif
+
+#if TCFG_BT_SUPPORT_LHDC_V5
+a2dp_7lhdc_v5_sink_codec
+#endif
+
+
+#if	TCFG_CONFIG_DEBUG_RECORD_ENABLE
+debug_driver_record
+debug_p11_record
+debug_ret_instruction_record
+debug_sys_stack_record
+debug_system_record
+debug_task_record
+#endif
+
+#ifdef TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
+mulit_ch_iis0_file_plug
+mulit_ch_iis1_file_plug
+#endif
+
+#ifdef TCFG_MULTI_CH_IIS_NODE_ENABLE
+multi_ch_iis0_node_adapter
+multi_ch_iis1_node_adapter
+#endif
+
+#ifdef TCFG_IIS_NODE_ENABLE
+iis_node_adapter
+iis1_node_adapter
+iis_file_plug
+iis1_file_plug
+#endif
+
