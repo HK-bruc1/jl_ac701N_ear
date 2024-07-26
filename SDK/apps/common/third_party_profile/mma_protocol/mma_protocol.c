@@ -140,7 +140,7 @@ void xm_before_pair_new_device(u8 *seeker_addr)
     msg[0] = (int)xm_before_pair_new_device_in_task;
     msg[1] = 1;
     msg[2] = (int)tmp_addr;
-    err = os_taskq_post_type("app_core", Q_CALLBACK, ARRAY_SIZE(msg), msg);
+    int err = os_taskq_post_type("app_core", Q_CALLBACK, ARRAY_SIZE(msg), msg);
     if (err) {
         printf("%s post fail\n", __func__);
     }

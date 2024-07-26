@@ -149,7 +149,7 @@ int get_eff_default_param(int arg)
         ret = 1;
     }
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
     if (!strncmp(name->name, "MusicEq", strlen("MusicEq"))) { //音乐eq命名默认： MusicEq + 类型，例如蓝牙音乐eq：MusicEqBt
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         /*
@@ -175,7 +175,7 @@ int get_eff_default_param(int arg)
         }
     }
 
-#ifdef TCFG_WDRC_NODE_ENABLE
+#if TCFG_WDRC_NODE_ENABLE
     if (!strncmp(name->name, "MusicDrc", strlen("MusicDrc"))) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;//目标配置项
@@ -183,19 +183,19 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_BASS_TREBLE_NODE_ENABLE
+#if TCFG_BASS_TREBLE_NODE_ENABLE
     if (!strncmp(name->name, "MusicBassTre", strlen("MusicBassTre")) || (!effect_strcmp(name->name, "BassMedia"))) {
         ret = get_music_bass_treble_parm(arg);
     }
 #endif
 
-#ifdef TCFG_BASS_TREBLE_NODE_ENABLE
+#if TCFG_BASS_TREBLE_NODE_ENABLE
     if (!strncmp(name->name, "MicBassTre", strlen("MicBassTre")) || (!effect_strcmp(name->name, "BassTreEff"))) {
         ret = get_mic_bass_treble_parm(arg);
     }
 #endif
 
-#ifdef TCFG_SURROUND_NODE_ENABLE
+#if TCFG_SURROUND_NODE_ENABLE
     if (!effect_strcmp(name->name, "SurMedia")) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;
@@ -204,7 +204,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_CROSSOVER_NODE_ENABLE
+#if TCFG_CROSSOVER_NODE_ENABLE
     if (!effect_strcmp(name->name, "CrossMedia")) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;
@@ -213,7 +213,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#if (defined(TCFG_3BAND_MERGE_ENABLE) || defined(TCFG_2BAND_MERGE_ENABLE))
+#if (TCFG_3BAND_MERGE_ENABLE || TCFG_2BAND_MERGE_ENABLE)
     if (!effect_strcmp(name->name, "BandMedia")) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;
@@ -222,7 +222,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_BASS_TREBLE_NODE_ENABLE
+#if TCFG_BASS_TREBLE_NODE_ENABLE
     if (!effect_strcmp(name->name, "BassMedia")) {
         struct bass_treble_default_parm *get_bass_parm = (struct bass_treble_default_parm *)arg;
         get_bass_parm->cfg_index = 0;
@@ -231,7 +231,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_STEROMIX_NODE_ENABLE
+#if TCFG_STEROMIX_NODE_ENABLE
     if (!effect_strcmp(name->name, "Smix*Media")) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;
@@ -240,7 +240,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_WDRC_NODE_ENABLE
+#if TCFG_WDRC_NODE_ENABLE
     if (!effect_strcmp(name->name, "Drc*Media")) {
         struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
         get_parm->cfg_index = 0;
@@ -249,7 +249,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
     if (!effect_strcmp(name->name, "Eq*Media")) {
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         if (!effect_strcmp(name->name, "Eq0Media")) {
@@ -262,12 +262,12 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_VOCAL_REMOVER_NODE_ENABLE
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
     if (!effect_strcmp(name->name, "VocalRemovMedia")) {
     }
 #endif
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
     if (!effect_strcmp(name->name, "EscoDlEq") || !effect_strcmp(name->name, "EscoUlEq")) {
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         int type = lmp_private_get_esco_packet_type();
@@ -281,7 +281,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_SPECTRUM_ADVANCE_NODE_ENABLE
+#if TCFG_SPECTRUM_ADVANCE_NODE_ENABLE
     if (!strncmp(name->name, "SpectrumAdv", strlen("SpectrumAdv"))) {//频谱检测 回调接口配置
         struct spectrum_advance_set_handler *get_handler = (struct spectrum_advance_set_handler *)arg;
         if (get_handler->type == SET_SPECTRUM_ADVANCE_HANDLER) {
@@ -294,7 +294,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_SPECTRUM_NODE_ENABLE
+#if TCFG_SPECTRUM_NODE_ENABLE
     if (!strncmp(name->name, "Spectrum", strlen("Spectrum"))) {//频谱检测 缓冲buf配置
         struct spectrum_set_handler *get_handler = (struct spectrum_set_handler *)arg;
         if (get_handler->type == SET_SPECTRUM_HANDLER) {
@@ -305,7 +305,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
     if (spatial_effect_eq_default_parm_set(name->name, (struct eq_default_parm *)arg)) {
         ret = 1;

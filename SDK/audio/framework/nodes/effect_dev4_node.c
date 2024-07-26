@@ -199,6 +199,7 @@ static void effect_dev4_ioc_stop(struct effect_dev4_node_hdl *hdl)
 {
     audio_effect_dev4_exit();
 #if EFFECT_DEV4_FRAME_POINTS
+    hdl->remain_len = 0;
     if (hdl->remain_buf) {
         free(hdl->remain_buf);
         hdl->remain_buf = NULL;

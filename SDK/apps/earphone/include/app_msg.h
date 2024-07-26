@@ -255,7 +255,7 @@ void app_send_message2(int _msg, int arg1, int arg2);
 
 void app_send_message_from(int from, int argc, int *msg);
 
-int app_key_event_remap(const struct key_remap_table *table, int *_event);
+int app_key_event_remap(const struct key_remap_table *table, int *event);
 
 int app_get_message(int *msg, int max_num, const struct key_remap_table *key_table);
 

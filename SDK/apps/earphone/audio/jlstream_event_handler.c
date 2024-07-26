@@ -186,14 +186,6 @@ static void player_close_handler(const char *name)
         audio_event_to_user(AUDIO_EVENT_ESCO_STOP);
         return;
     }
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
-        clock_free((char *)name);
-    }
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
-        clock_free((char *)name);
-    }
 }
 
 static int load_decoder_handler(struct stream_decoder_info *info)
@@ -321,7 +313,7 @@ int jlstream_event_notify(enum stream_event event, int arg)
     case STREAM_EVENT_A2DP_ENERGY:
         a2dp_energy_detect_handler((int *)arg);
         break;
-#ifdef TCFG_SWITCH_NODE_ENABLE
+#if TCFG_SWITCH_NODE_ENABLE
     case STREAM_EVENT_GET_SWITCH_CALLBACK:
         ret = get_switch_node_callback((const char *)arg);
         break;
@@ -333,7 +325,7 @@ int jlstream_event_notify(enum stream_event event, int arg)
         break;
 #endif
 
-#ifdef TCFG_CHANNEL_MERGE_NODE_ENABLE
+#if TCFG_CHANNEL_MERGE_NODE_ENABLE
     case STREAM_EVENT_GET_MERGER_CALLBACK:
         ret = get_merge_node_callback((const char *)arg);
         break;

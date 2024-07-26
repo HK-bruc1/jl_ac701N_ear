@@ -120,6 +120,11 @@ static u16 db_data_read_sub(u8 *buf, u16 buf_size)
     return ret_len;
 }
 
+u8 db_get_active_state(void)
+{
+    return db_active;
+}
+
 //尝试发送cbuff 数据
 static void db_data_try_send(void)
 {

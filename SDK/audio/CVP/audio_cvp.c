@@ -65,6 +65,10 @@ const u8 CONST_NLP_ENABLE = 1;
 const u8 CONST_NS_ENABLE  = 1;
 const u8 CONST_AGC_ENABLE = 1;
 
+/*CVP带宽配置*/
+const u8 CONST_CVP_BAND_WIDTH_CFG = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;  //ANS
+const u8 CONST_DNS_PARAM_TYPE = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;      //DNS
+
 /*使用输入立体声参考数据的TDE回音消除算法*/
 const u8 CONST_SMS_TDE_STEREO_REF_ENABLE = 0;
 
@@ -663,13 +667,17 @@ void audio_aec_reboot(u8 reduce)
             if (reduce) {
                 aec_hdl->attr.EnableBit = AEC_EN;
                 aec_hdl->attr.agc_en = 0;
-                aec_reboot(aec_hdl->attr.EnableBit);
             } else {
                 if (aec_hdl->EnableBit != aec_hdl->attr.EnableBit) {
-                    aec_hdl->attr.agc_en = 1;
-                    aec_reboot(aec_hdl->EnableBit);
+                    aec_hdl->attr.EnableBit = aec_hdl->EnableBit;
                 }
+                aec_hdl->attr.agc_en = 1;
             }
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+            sms_tde_reboot(aec_hdl->attr.EnableBit);
+#else
+            aec_reboot(aec_hdl->attr.EnableBit);
+#endif
         }
     } else {
         printf("audio_aec close now\n");
@@ -822,7 +830,11 @@ int audio_cvp_ioctl(int cmd, int value, void *priv)
     if (!aec_hdl) {
         return -1;
     }
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+    return sms_tde_ioctl(cmd, value, priv);
+#else
     return aec_ioctl(cmd, value, priv);
+#endif
 }
 
 /*
@@ -837,12 +849,40 @@ int audio_cvp_ioctl(int cmd, int value, void *priv)
 int audio_cvp_toggle_set(u8 toggle)
 {
     if (aec_hdl) {
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        sms_tde_toggle(toggle);
+#else
         aec_toggle(toggle);
-        return 0;
+#endif
     }
-    return 1;
+    return 0;
 }
 
+/*是否在重启*/
+u8 get_audio_aec_rebooting()
+{
+    if (aec_hdl && aec_hdl->start) {
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        return get_sms_tde_rebooting();
+#else
+        return get_aec_rebooting();
+#endif
+    }
+    return 0;
+}
+
+/*可写长度*/
+int get_audio_cvp_output_way_writable_len()
+{
+    if (aec_hdl && aec_hdl->start) {
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        return get_cvp_sms_tde_output_way_writable_len();
+#else
+        return get_cvp_sms_output_way_writable_len();
+#endif
+    }
+    return 0;
+}
 
 /**
  * 以下为用户层扩展接口

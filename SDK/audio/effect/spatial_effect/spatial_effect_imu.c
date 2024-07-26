@@ -13,7 +13,7 @@
 #include "app_config.h"
 #include "aec_uart_debug.h"
 
-#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || (defined (TCFG_AUDIO_SOMATOSENSORY_ENABLE) && TCFG_AUDIO_SOMATOSENSORY_ENABLE))
 #include "gSensor/mpu6050.h"
 #include "gSensor/gSensor_manage.h"
 #include "spatial_effect_imu.h"

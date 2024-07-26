@@ -52,6 +52,10 @@
 #include "bt_tws.h"
 #endif
 #include "app_ble_spp_api.h"
+#include "btstack_rcsp_user.h"
+#include "rcsp_manage.h"
+#include "rcsp.h"
+#include "rcsp_ch_loader_download.h"
 
 #if ASSISTED_HEARING_CUSTOM_TRASNDATA
 #include "adv_hearing_aid_setting.h"
@@ -91,15 +95,6 @@ static const char user_tag_string[] = {EIR_TAG_STRING};
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
 #define ATT_RAM_BUFSIZE           (ATT_CTRL_BLOCK_SIZE + ATT_LOCAL_PAYLOAD_SIZE + ATT_SEND_CBUF_SIZE)                   //note:
 static u8 att_ram_buffer[ATT_RAM_BUFSIZE] __attribute__((aligned(4)));
-
-extern void *rcsp_server_ble_hdl;
-extern void *rcsp_server_ble_hdl1;
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
-// 获取当前已连接ble数目
-extern u8 bt_rcsp_ble_conn_num(void);
-// 获取当前已连接spp数目
-extern u8 bt_rcsp_spp_conn_num(void);
 
 //---------------
 //---------------
@@ -157,15 +152,7 @@ static void (*app_recieve_callback)(void *priv, void *buf, u16 len) = NULL;
 static void (*ble_resume_send_wakeup)(void) = NULL;
 static u32 channel_priv;
 
-extern u8 get_rcsp_connect_status(void);
-extern const int config_btctler_le_hw_nums;
 
-/* static const char *const phy_result[] = { */
-/*     "None", */
-/*     "1M", */
-/*     "2M", */
-/*     "Coded" */
-/* }; */
 //------------------------------------------------------
 //ANCS
 #if TRANS_ANCS_EN
@@ -209,7 +196,6 @@ const char *ams_get_entity_attribute_name(u8 entity_id, u8 attr_id);
 //------------------------------------------------------
 //广播参数设置
 static void advertisements_setup_init();
-extern const char *bt_get_local_name();
 static int get_buffer_vaild_len(void *priv);
 //------------------------------------------------------
 static void send_request_connect_parameter(hci_con_handle_t connection_handle, u8 table_index)
@@ -289,7 +275,6 @@ void notify_update_connect_parameter(u8 table_index)
 /*     log_info("conn_timeout = %d\n", conn_timeout); */
 /* } */
 
-extern void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag);
 static void set_ble_work_state(ble_state_e state)
 {
     log_info("ble_work_st:%x->%x\n", ble_work_state, state);
@@ -353,7 +338,6 @@ u8 ble_update_get_ready_jump_flag(void)
 }
 
 static bool g_close_inquiry_scan = false;
-extern void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_addr);
 void rcsp_ble_adv_enable_with_con_dev();
 /**
  * @brief 一定时间设置是否关闭可发现可连接
@@ -429,7 +413,6 @@ void rcsp_ble_adv_enable_with_con_dev()
 #endif
 }
 
-extern void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn);
 /* LISTING_START(packetHandler): Packet Handler */
 static void cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
@@ -845,6 +828,7 @@ static int set_adv_enable(void *priv, u32 en)
         } else {
             app_ble_adv_enable(rcsp_server_ble_hdl, en);
         }
+        bt_ble_rcsp_adv_enable();
     } else {
         app_ble_adv_enable(rcsp_server_ble_hdl, en);
         app_ble_adv_enable(rcsp_server_ble_hdl1, en);
@@ -943,7 +927,6 @@ void rcsp_bt_ble_adv_enable(u8 enable)
     set_adv_enable(0, enable);
 }
 
-extern void ble_client_module_enable(u8 en);
 void ble_module_enable(u8 en)
 {
     uint32_t rets_addr;
@@ -974,6 +957,7 @@ void rcsp_bt_ble_init(void)
     upay_new_adv_enable = 0;
 
 #if UPAY_ONE_PROFILE
+    extern const int config_btctler_le_hw_nums;
     if (config_btctler_le_hw_nums < 2) {
         log_info("error:need add hw to adv new device!!!\n");
         ASSERT(0);
@@ -1009,7 +993,6 @@ void rcsp_bt_ble_init(void)
     app_ble_set_mac_addr(rcsp_server_ble_hdl1, tmp_ble_addr);
 
     ble_module_enable(1);
-    bt_ble_rcsp_adv_enable();
 
     ble_init_flag = 1;
 }
@@ -1027,7 +1010,6 @@ void rcsp_bt_ble_exit(void)
         ble_disconnect(NULL);
     }
 #if RCSP_MODE
-    extern void rcsp_exit(void);
     rcsp_exit();
 #endif
 

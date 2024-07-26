@@ -153,6 +153,10 @@ const struct task_info task_info_table[] = {
     {"mic_effect1",         6,     0,  768,   0 },
     {"mic_effect2",         6,     0,  768,   0 },
 #endif
+#if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
+    /*Head Action Detection*/
+    {"HA_Detect",           2,     0,  512,   0 },
+#endif
     {0, 0},
 };
 
@@ -493,6 +497,10 @@ struct app_mode *app_mode_switch_handler(int *msg)
         }
         next_mode = app_next_mode(next_mode);
     } while (next_mode);
+
+    if ((app_get_current_mode() != NULL) && (next_mode == app_get_current_mode())) {
+        return NULL;
+    }
 
     err = app_goto_mode(next_mode->name, arg);
 

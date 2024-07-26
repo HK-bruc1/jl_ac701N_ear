@@ -6,7 +6,7 @@
 #if TCFG_ADKEY_ENABLE
 //短按                  //长按                  //hold                       //长按抬起                  //双击                       //三击
 const int key_linein_ad_num0_msg_table[KEY_ACTION_MAX] = {
-    APP_MSG_MUSIC_PP,     		APP_MSG_KEY_POWER_OFF,           APP_MSG_NULL,           APP_MSG_NULL,            APP_MSG_NULL,        APP_MSG_NULL,
+    APP_MSG_MUSIC_PP,     		APP_MSG_KEY_POWER_OFF,           APP_MSG_NULL,           APP_MSG_NULL,            APP_MSG_GOTO_NEXT_MODE,        APP_MSG_NULL,
 };
 const int key_linein_ad_num1_msg_table[KEY_ACTION_MAX] = {
     APP_MSG_MUSIC_NEXT,     		APP_MSG_VOL_UP,       	APP_MSG_VOL_UP,       	APP_MSG_NULL,            APP_MSG_NULL,           APP_MSG_NULL,

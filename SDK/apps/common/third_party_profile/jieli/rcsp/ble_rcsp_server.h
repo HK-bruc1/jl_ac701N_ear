@@ -101,8 +101,11 @@ enum {
     TWS_UPDATE_INFO,
 };
 
+void rcsp_ble_profile_init(void);
 void bt_ble_init(void);
 void bt_ble_exit(void);
+void rcsp_bt_ble_init(void);
+void rcsp_bt_ble_exit(void);
 void rcsp_bt_ble_adv_enable(u8 enable);
 void ble_module_enable(u8 en);
 

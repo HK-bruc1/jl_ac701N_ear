@@ -1,7 +1,7 @@
 #ifndef _GPIO_H
 #define _GPIO_H
 
-#define IO_PORT_SPILT(io) (io) /16, BIT((io) %16)
+#define IO_PORT_SPILT(io) ((u32)(io)) / 16, BIT(((u32)(io)) %16)
 
 
 // PORT引脚输入输出模式

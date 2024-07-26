@@ -16,6 +16,10 @@ RCSP_BTMATE_EN
 
 #define JL_RCSP_NFC_DATA_OPT									0		// NFC数据传输
 
+#if (defined OTA_TWS_SAME_TIME_ENABLE)
+#undef OTA_TWS_SAME_TIME_ENABLE
+#endif
+
 // 没有开启rcsp协议
 #if (!defined(RCSP_MODE) || (RCSP_MODE == 0))
 
@@ -144,6 +148,11 @@ RCSP_BTMATE_EN
 #define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
 
 #define RCSP_UPDATE_EN		         							1		//是否支持rcsp升级
+
+#if (defined OTA_TWS_SAME_TIME_NEW)
+#undef OTA_TWS_SAME_TIME_NEW
+#endif
+
 #if CONFIG_DOUBLE_BANK_ENABLE              						//双备份才能打开同步升级流程
 #define OTA_TWS_SAME_TIME_ENABLE     							1		//是否支持TWS同步升级
 #define OTA_TWS_SAME_TIME_NEW        							1		//使用新的tws ota流程

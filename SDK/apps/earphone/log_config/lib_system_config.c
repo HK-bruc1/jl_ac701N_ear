@@ -124,7 +124,7 @@ const int PHYSIC_MALLOC_DEFRAG_ENABLE = 1;
 const int MALLOC_MEMORY_DEFRAG_ENABLE = 1;
 
 // 空闲RAM进入SD模式使能    			  //
-const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 1;
+const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 0;
 
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)

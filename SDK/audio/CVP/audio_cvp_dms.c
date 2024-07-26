@@ -162,6 +162,9 @@ const u8 CONST_DMS_WINDREPLACE = 1;
  */
 const u8 CONST_DMS_REF_MIC_AEC_ENABLE = 0;
 
+/*CVP带宽配置*/
+const u8 CONST_CVP_BAND_WIDTH_CFG = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;
+
 //**************************DMS_GLOBAL_V100配置 end*******************************//
 
 //*********************************************************************************//
@@ -202,6 +205,8 @@ const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
 const u8 CONST_JLSP_WD_EN = 0;
 const u8 CONST_JLSP_WD_MODE = JLSP_WD_MODE1;
 
+/*CVP带宽配置*/
+const u8 CONST_DNS_PARAM_TYPE = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;      //DNS
 //**************************DMS_GLOBAL_V200配置 end*******************************//
 
 extern void aec_code_movable_load(void);

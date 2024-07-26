@@ -50,7 +50,6 @@ u16 lsm6dsl_I2C_Read_NBytes(unsigned char devAddr,
                             u16 readLen)
 {
     u16 i = 0;
-    local_irq_disable();
     iic_start(lsm6dsl_info->iic_hdl);
     if (0 == iic_tx_byte(lsm6dsl_info->iic_hdl, devAddr)) {
         log_error("lsm6dsl iic read err1");
@@ -80,7 +79,6 @@ u16 lsm6dsl_I2C_Read_NBytes(unsigned char devAddr,
     }
 __iic_exit_r:
     iic_stop(lsm6dsl_info->iic_hdl);
-    local_irq_enable();
 
     return i;
 }
@@ -93,7 +91,6 @@ u16 lsm6dsl_I2C_Write_NBytes(unsigned char devAddr,
                              u16 writeLen)
 {
     u16 i = 0;
-    local_irq_disable();
     iic_start(lsm6dsl_info->iic_hdl);
     if (0 == iic_tx_byte(lsm6dsl_info->iic_hdl, devAddr)) {
         log_error("lsm6dsl iic write err1");
@@ -114,7 +111,6 @@ u16 lsm6dsl_I2C_Write_NBytes(unsigned char devAddr,
     }
 __iic_exit_w:
     iic_stop(lsm6dsl_info->iic_hdl);
-    local_irq_enable();
     return i;
 }
 
@@ -125,7 +121,6 @@ unsigned char lsm6dsl_I2C_Write_Byte(unsigned char devAddr,  //芯片支持1byte
                                      unsigned char byte)
 {
     u8 ret = 1;
-    local_irq_disable();
     iic_start(lsm6dsl_info->iic_hdl);
     if (0 == iic_tx_byte(lsm6dsl_info->iic_hdl, devAddr)) {
         log_error("lsm6dsl iic write err1");
@@ -146,7 +141,6 @@ unsigned char lsm6dsl_I2C_Write_Byte(unsigned char devAddr,  //芯片支持1byte
     }
 __iic_exit_w:
     iic_stop(lsm6dsl_info->iic_hdl);
-    local_irq_enable();
     return ret;
 }
 IMU_read    lsm6dsl_read     = lsm6dsl_I2C_Read_NBytes;

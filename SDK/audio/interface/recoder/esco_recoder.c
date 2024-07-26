@@ -73,7 +73,7 @@ int esco_recoder_open(u8 link_type)
         goto __exit0;
     }
 
-#if TCFG_AUDIO_SIDETONE_ENABLE && (defined TCFG_SWITCH_NODE_ENABLE)
+#if TCFG_AUDIO_SIDETONE_ENABLE && TCFG_SWITCH_NODE_ENABLE
     /*设置switch开头丢掉多少帧数据*/
     jlstream_node_ioctl(recoder->stream, NODE_UUID_SWITCH, NODE_IOC_SET_PRIV_FMT, 0);
 #endif
@@ -88,8 +88,10 @@ int esco_recoder_open(u8 link_type)
     u16 node_uuid = get_cvp_node_uuid();
     u32 ref_sr = audio_dac_get_sample_rate(&dac_hdl);
     if (node_uuid) {
+#if !(TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE))
 #if TCFG_ESCO_DL_CVSD_SR_USE_16K
         jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_FMT, (int)ref_sr);
+#endif
 #endif
         err = jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_PRIV_FMT, source_uuid);
         if (err && (err != -ENOENT)) {	//兼容没有cvp节点的情况

@@ -41,6 +41,9 @@
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
 #include "app_le_connected.h"
 #endif
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE
+#include "somatosensory/audio_somatosensory.h"
+#endif
 
 #if (TCFG_USER_TWS_ENABLE)
 
@@ -52,6 +55,7 @@
 #include "debug.h"
 
 
+#define SECONDE_PHONE_IN_RING_COEXIST   1
 
 /*配置通话时前面丢掉的数据包包数*/
 #define ESCO_DUMP_PACKET_ADJUST		1	/*配置使能*/
@@ -63,6 +67,8 @@ static u8 esco_dump_packet = ESCO_DUMP_PACKET_CALL;
 #define  SYNC_TONE_PHONE_RING_TIME    300
 void phone_income_num_check(void *priv);
 void tws_phone_call_send_cmd(u8 cmd, u8 *btaddr, u8 bt_value, u8 tx_do_action);
+static void outband_ring_bt_addr_record(u8 *bt_addr);
+
 enum {
     CMD_OPEN_ESCO_PLAYER = 1,
     CMD_CLOSE_ESCO_PLAYER,
@@ -72,6 +78,8 @@ enum {
     CMD_PHONE_ACTIVE,
     CMD_PHONE_LASET_CALL_TYPE,
     CMD_PHONE_SIRI,
+    CMD_PHONE_OUTBAND_RING,
+    CMD_PHONE_OUTBAND_RING_STOP,
 };
 
 static u8 g_play_addr[6];
@@ -95,6 +103,9 @@ u8 phone_ring_play_start(void)
         return 0;
     }
     if (!g_bt_hdl.inband_ringtone) {
+#if SECONDE_PHONE_IN_RING_COEXIST
+        outband_ring_bt_addr_record(g_bt_hdl.phone_ring_addr);
+#endif
 #if TCFG_USER_TWS_ENABLE
         tws_play_ring_file_alone(get_tone_files()->phone_in, SYNC_TONE_PHONE_RING_TIME);
 #endif
@@ -132,11 +143,121 @@ void phone_second_call_ring_play_start(void *priv)
     put_buf(priv, 6);
     printf("bt_get_call_status_for_addr=%d,%d\n", bt_get_call_status_for_addr(priv), bt_get_call_status_for_addr(other_addr));
     if (bt_stack_get_incoming_call_num() > 1 || (priv && bt_get_call_status_for_addr(priv) == BT_CALL_INCOMING && bt_get_call_status_for_addr(other_addr) != BT_CALL_OUTGOING)) {
+#if SECONDE_PHONE_IN_RING_COEXIST
+        outband_ring_bt_addr_record(priv);
+#endif
 #if TCFG_USER_TWS_ENABLE
         tws_play_ring_file_alone(get_tone_files()->phone_in, SYNC_TONE_PHONE_RING_TIME);
 #endif
     }
 }
+
+static void user_phone_second_call_ring_play_start(void *priv)
+{
+    log_info("%s\n", __FUNCTION__);
+    if (!priv) {
+        return;
+    }
+    //检测到地址对应的手机esco start,不播ring提示音
+    if (bt_check_esco_state_via_addr(priv) == BT_ESCO_STATUS_OPEN) {
+        log_info("inband ring tone play\n");
+        return;
+    }
+    phone_second_call_ring_play_start(priv);
+}
+
+static u8 get_other_dev_call_active(u8 *other_addr)
+{
+    return ((bt_get_call_status_for_addr(other_addr) != BT_CALL_HANGUP &&
+             bt_get_call_status_for_addr(other_addr) != BT_SIRI_STATE) ||
+            bt_check_esco_state_via_addr(other_addr));
+}
+
+#if SECONDE_PHONE_IN_RING_COEXIST
+static u8 coexist_outband_ring_bt_addr[6] = {0};
+static int is_outband_ring_device(u8 *addr)
+{
+    if (!memcmp(coexist_outband_ring_bt_addr, addr, 6)) {
+        return 1;
+    }
+    return 0;
+}
+
+static int bt_phone_outband_ring(u8 *bt_addr)
+{
+    log_debug("%s", __func__);
+    log_debug_hexdump(bt_addr, 6);
+    memcpy(coexist_outband_ring_bt_addr, bt_addr, 6);
+    /* clk_set("sys", 0); //提高一下系统频率 */
+    if (!ring_player_runing() && tws_api_get_role() == TWS_ROLE_MASTER) {
+        tws_play_ring_file("tone_en/ring.*", 500);
+    }
+    return 0;
+}
+
+static int bt_phone_outband_ring_stop(u8 *bt_addr)
+{
+    log_debug("%s", __func__);
+    /* log_debug_hexdump(bt_addr, 6); */
+    tone_player_stop();
+    ring_player_stop();
+    // memset(coexist_outband_ring_bt_addr, 0, 6); //任意手机接听或挂断，都会停止来电铃声
+    return 0;
+}
+
+static void outband_ring_bt_addr_record(u8 *bt_addr)
+{
+    memcpy(coexist_outband_ring_bt_addr, bt_addr, 6);
+}
+
+static u8 *outband_ring_bt_addr_get(void)
+{
+    // put_buf(coexist_outband_ring_bt_addr, 6);
+    return coexist_outband_ring_bt_addr;
+}
+
+static void outband_ring_clear_addr(void)
+{
+    //put_buf(coexist_outband_ring_bt_addr, 6);
+    memset(coexist_outband_ring_bt_addr, 0, 6);
+}
+
+static u16 second_phone_call_cmd_timer_id = 0;
+static void __second_phone_call_send_cmd_delay(void *p)
+{
+    u32 cmd = (u32)p;
+    u32 value = 0;
+    log_debug("%s\n", __func__);
+    second_phone_call_cmd_timer_id = 0;
+    if (cmd == CMD_PHONE_INCOME) {
+        value = 2;
+    }
+    tws_phone_call_send_cmd(cmd, coexist_outband_ring_bt_addr, value, 1);
+}
+
+static void second_phone_call_send_cmd_delay(u32 time, u8 *addr, u32 cmd)
+{
+    log_debug("%s\n", __func__);
+    if (second_phone_call_cmd_timer_id) {
+        sys_timeout_del(second_phone_call_cmd_timer_id);
+    }
+    memcpy(coexist_outband_ring_bt_addr, addr, 6);
+    second_phone_call_cmd_timer_id = sys_timeout_add((void *)cmd, __second_phone_call_send_cmd_delay, time);
+}
+
+static void second_phone_call_ring_stop(u8 *addr)
+{
+    log_debug("%s\n", __func__);
+    if (!addr) {
+        return;
+    }
+    if (second_phone_call_cmd_timer_id) {
+        sys_timeout_del(second_phone_call_cmd_timer_id);
+        second_phone_call_cmd_timer_id = 0;
+    }
+    tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING_STOP, addr, 0, 1);
+}
+#endif
 
 int bt_phone_income(u8 after_conn, u8 *bt_addr)
 {
@@ -177,11 +298,13 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 
         if (bt_stack_get_incoming_call_num() > 1) {
             //第一次来电被置上一次。第二次再来就有值了
-            sys_timeout_add(g_bt_hdl.phone_ring_addr, phone_second_call_ring_play_start, 2000);
+            if (!g_bt_hdl.inband_ringtone) { //后来电的手机支持铃声同步，就不播ring提示音
+                sys_timeout_add(g_bt_hdl.phone_ring_addr, phone_second_call_ring_play_start, 2000);
+            }
         } else {
             if (g_bt_hdl.inband_ringtone) {
                 if (after_conn == 2) { //强制播本地铃声
-                    sys_timeout_add(g_bt_hdl.phone_ring_addr, phone_second_call_ring_play_start, 2000);
+                    sys_timeout_add(g_bt_hdl.phone_ring_addr, user_phone_second_call_ring_play_start, 2000);
                 }
             } else {
 #if TCFG_BT_PHONE_NUMBER_ENABLE
@@ -206,11 +329,13 @@ int bt_phone_hangup(u8 *bt_addr)
 {
     esco_dump_packet = ESCO_DUMP_PACKET_CALL;
     log_info("phone_handup\n");
-    g_bt_hdl.phone_ring_flag = 0;
-    tone_ring_player_stop();
-    if (g_bt_hdl.phone_timer_id) {
-        sys_timeout_del(g_bt_hdl.phone_timer_id);
-        g_bt_hdl.phone_timer_id = 0;
+    if (g_bt_hdl.phone_ring_flag) {
+        g_bt_hdl.phone_ring_flag = 0;
+        tone_ring_player_stop();
+        if (g_bt_hdl.phone_timer_id) {
+            sys_timeout_del(g_bt_hdl.phone_timer_id);
+            g_bt_hdl.phone_timer_id = 0;
+        }
     }
     g_bt_hdl.phone_income_flag = 0;
     g_bt_hdl.phone_num_flag = 0;
@@ -234,8 +359,15 @@ int bt_phone_hangup(u8 *bt_addr)
                 memcpy(g_bt_hdl.phone_ring_addr, addr, 6);
                 g_bt_hdl.phone_ring_sync_tws = 1;
                 if ((inband_ring_flag == 0) || (inband_ring_flag && bt_check_esco_state_via_addr(g_bt_hdl.phone_ring_addr) == BT_ESCO_STATUS_CLOSE)) {
-                    tws_phone_call_send_cmd(CMD_PHONE_INCOME, g_bt_hdl.phone_ring_addr, 2, 1);
-
+                    if (!esco_player_start(bt_addr)) {
+#if SECONDE_PHONE_IN_RING_COEXIST
+                        second_phone_call_send_cmd_delay(1500, g_bt_hdl.phone_ring_addr, CMD_PHONE_INCOME);
+#else
+                        tws_phone_call_send_cmd(CMD_PHONE_INCOME, g_bt_hdl.phone_ring_addr, 2, 1);
+#endif
+                    } else {
+                        log_info("esco_player_not this _btaddr");
+                    }
                 }
             }
         }
@@ -294,6 +426,27 @@ int bt_phone_active(u8 *bt_addr)
 
 }
 
+struct esco_delay_ctl {
+    u8 esco_addr[6];
+    u16 timer;
+    u16 delay_timeout_cnt;
+};
+static struct esco_delay_ctl ed_ctl = {0};
+static void esco_delay_open(void *priv)
+{
+    ed_ctl.delay_timeout_cnt++;
+    if (ed_ctl.delay_timeout_cnt >= 60) {
+        tone_player_stop();
+    }
+    if ((!tone_player_runing() && !key_tone_player_running()) || (ed_ctl.delay_timeout_cnt >= 60)) {
+        ed_ctl.delay_timeout_cnt = 0;
+        lmp_private_esco_suspend_resume(2);
+        esco_audio_open(ed_ctl.esco_addr);
+        sys_timer_del(ed_ctl.timer);
+        ed_ctl.timer = 0;
+    }
+}
+
 #define ESCO_SIRI_WAKEUP()      (app_var.siri_stu == 1 || app_var.siri_stu == 2)
 static void esco_smart_voice_detect_handler(void)
 {
@@ -319,6 +472,9 @@ int bt_phone_esco_play(u8 *bt_addr)
         return 1;
     }
     esco_smart_voice_detect_handler();
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_open();
+#endif
 
     a2dp_player_close(bt_addr);
     bt_stop_a2dp_slience_detect(bt_addr);
@@ -337,7 +493,16 @@ int bt_phone_esco_play(u8 *bt_addr)
     }
 #endif
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_OPEN);
-    esco_audio_open(bt_addr);
+    printf("bt_phone_esco_play:%d %d %d\n", tone_player_runing(), key_tone_player_running(), ed_ctl.timer);
+    if (tone_player_runing() || key_tone_player_running()) {
+        if (!ed_ctl.timer) {
+            lmp_private_esco_suspend_resume(1);
+            memcpy(ed_ctl.esco_addr, bt_addr, 6);
+            ed_ctl.timer = sys_timer_add(NULL, esco_delay_open, 50);
+        }
+    } else {
+        esco_audio_open(bt_addr);
+    }
 
     g_bt_hdl.phone_call_dec_begin = 1;
     if (bt_get_call_status() == BT_CALL_ACTIVE) {
@@ -365,6 +530,9 @@ int bt_phone_esco_stop(u8 *bt_addr)
 #endif /*TCFG_KWS_VOICE_RECOGNITION_ENABLE*/
 
     puts("<<<<<<<<<<< esco_dec_stop\n");
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_close();
+#endif
     g_bt_hdl.phone_call_dec_begin = 0;
     esco_dump_packet = ESCO_DUMP_PACKET_CALL;
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_CLOSE);
@@ -438,6 +606,14 @@ static void tws_esco_play_in_task(u8 *data)
     case CMD_PHONE_SIRI:
         bt_phone_siri(bt_addr, bt_value);
         break;
+#if SECONDE_PHONE_IN_RING_COEXIST
+    case CMD_PHONE_OUTBAND_RING:
+        bt_phone_outband_ring(bt_addr);
+        break;
+    case CMD_PHONE_OUTBAND_RING_STOP:
+        bt_phone_outband_ring_stop(bt_addr);
+        break;
+#endif
     }
     if (data[1] != 2) {
         free(data);
@@ -601,6 +777,7 @@ static int bt_phone_status_event_handler(int *msg)
         return 0;
     }
 
+    u8 *other_addr = btstack_get_other_dev_addr(bt->args);
     switch (bt->event) {
     case BT_STATUS_PHONE_INCOME:
         log_info("BT_STATUS_PHONE_INCOME\n");
@@ -612,7 +789,28 @@ static int bt_phone_status_event_handler(int *msg)
          *(1)1t2有一台通话的时候，另一台如果来电会叠加
          */
         g_bt_hdl.phone_ring_sync_tws = 1;
+
+#if SECONDE_PHONE_IN_RING_COEXIST
+        if (other_addr && get_other_dev_call_active(other_addr)) { //另一个设备有通话行为
+            if (bt_get_call_status_for_addr(other_addr) == BT_CALL_ACTIVE) {
+                if (bt_check_esco_state_via_addr(other_addr) == BT_ESCO_STATUS_OPEN) { //判断另一台手机是否在耳机端通话
+                    log_info("phone_send_ring_cmd, line = %d\n", __LINE__);
+                    tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, bt->args, bt->value, 1);
+                } else {
+                    log_info("phone_send_income_cmd, line = %d\n", __LINE__);
+                    tws_phone_call_send_cmd(CMD_PHONE_INCOME, bt->args, 0, 1);
+                }
+            } else { //当前设备来电铃声叠加
+                log_info("phone_send_ring_cmd, line = %d\n", __LINE__);
+                tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, bt->args, bt->value, 1);
+            }
+        } else {
+            log_info("phone_send_income_cmd, line = %d\n", __LINE__);
+            tws_phone_call_send_cmd(CMD_PHONE_INCOME, bt->args, 0, 1);
+        }
+#else
         tws_phone_call_send_cmd(CMD_PHONE_INCOME, bt->args, 0, 1);
+#endif
 #if TCFG_BT_PHONE_NUMBER_ENABLE
         bt_cmd_prepare(USER_CTRL_HFP_CALL_CURRENT, 0, NULL); //发命令获取电话号码
 #endif
@@ -628,12 +826,18 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_ACTIVE:
         log_info("BT_STATUS_PHONE_ACTIVE\n");
+#if SECONDE_PHONE_IN_RING_COEXIST
+        second_phone_call_ring_stop(outband_ring_bt_addr_get());
+#endif
         tws_phone_call_send_cmd(CMD_PHONE_ACTIVE, bt->args, 0, 1);
 
         break;
     case BT_STATUS_PHONE_HANGUP:
         log_info("BT_STATUS_PHONE_HANGUP\n");
         put_buf(bt->args, 6);
+#if SECONDE_PHONE_IN_RING_COEXIST
+        second_phone_call_ring_stop(outband_ring_bt_addr_get());
+#endif
         tws_phone_call_send_cmd(CMD_PHONE_HANGUP, bt->args, 0, 1);
 
         break;
@@ -683,7 +887,44 @@ static int bt_phone_status_event_handler(int *msg)
             app_audio_set_volume(APP_AUDIO_STATE_CALL, call_vol, 1);
 
             bt_tws_sync_volume();
+
+#if SECONDE_PHONE_IN_RING_COEXIST
+            second_phone_call_ring_stop(outband_ring_bt_addr_get());
+#endif
+
             tws_phone_call_send_cmd(CMD_OPEN_ESCO_PLAYER, bt->args, 0, 1);
+
+#if SECONDE_PHONE_IN_RING_COEXIST
+            u8 device_a_call = bt_get_call_status_for_addr(bt->args);
+            u8 device_b_call = bt_get_call_status_for_addr(other_addr);
+            log_info("line = %d, a = %d, b = %d", __LINE__, device_a_call, device_b_call);
+            u8 *bt_call_addr = NULL;
+            u32 bt_call_cmd = 0;
+            u8 need_check_inband = 0;
+            if (device_a_call == BT_CALL_INCOMING) {
+                bt_call_cmd = CMD_PHONE_OUTBAND_RING;
+                if (device_b_call == BT_CALL_INCOMING) {
+                    bt_call_addr = other_addr;
+                } else if (device_b_call == BT_CALL_HANGUP) {
+                    bt_call_addr = (u8 *)bt->args;
+                    need_check_inband = 1;
+                }
+            } else if (device_b_call == BT_CALL_INCOMING) {
+                bt_call_cmd = CMD_PHONE_OUTBAND_RING;
+                if (device_a_call == BT_CALL_OUTGOING) {
+                    bt_call_addr = other_addr;
+                } else if (device_a_call == BT_CALL_ACTIVE) {
+                    bt_call_addr = other_addr;
+                }
+            }
+            if (bt_call_addr) {
+                if (!need_check_inband || !btstack_get_inband_ringtone_flag_for_addr(bt_call_addr)) {
+                    log_info("phone_send_ring_cmd (esco open) %lu, addr =\n", bt_call_cmd);
+                    log_info_hexdump(bt_call_addr, 6);
+                    second_phone_call_send_cmd_delay(1500, bt_call_addr, bt_call_cmd);
+                }
+            }
+#endif
 
         } else {
             u8 bt_esco_play[6];
@@ -694,9 +935,51 @@ static int bt_phone_status_event_handler(int *msg)
                 break;
             }
 
+#if SECONDE_PHONE_IN_RING_COEXIST
+            second_phone_call_ring_stop(outband_ring_bt_addr_get());
+#endif
+
             /* bt_phone_esco_stop(bt->args); */ //主机这里不直接停止，通过收到下面的命令在停止，避免主从停止不同步
             tws_phone_call_send_cmd(CMD_CLOSE_ESCO_PLAYER, bt->args, 0, 1);
 
+#if SECONDE_PHONE_IN_RING_COEXIST
+            u8 device_a_call = bt_get_call_status_for_addr(bt->args);
+            u8 device_b_call = bt_get_call_status_for_addr(other_addr);
+            log_info("line = %d, a = %d, b = %d", __LINE__, device_a_call, device_b_call);
+
+            u8 *bt_call_addr = NULL;
+            u32 bt_call_cmd = 0;
+            u8 need_check_inband = 0;
+            if (device_a_call == BT_CALL_INCOMING) {
+                bt_call_cmd = CMD_PHONE_OUTBAND_RING;
+                if (device_b_call == BT_CALL_INCOMING) {
+                    bt_call_addr = other_addr;
+                } else if (device_b_call == BT_CALL_ACTIVE) {
+                    bt_call_addr = (u8 *)bt->args;
+                } else if (device_b_call == BT_CALL_HANGUP) {
+                    bt_call_addr = (u8 *)bt->args;
+                    need_check_inband = 1;
+                }
+            } else if (device_b_call == BT_CALL_INCOMING) {
+                bt_call_cmd = CMD_PHONE_OUTBAND_RING;
+                if (device_a_call == BT_CALL_OUTGOING) {
+                    bt_call_addr = other_addr;
+                    need_check_inband = 1;
+                } else if (device_a_call == BT_CALL_ACTIVE) {
+                    bt_call_addr = other_addr;
+                } else if (device_a_call == BT_CALL_HANGUP) {
+                    bt_call_addr = other_addr;
+                    need_check_inband = 1;
+                }
+            }
+            if (bt_call_addr) {
+                if (!need_check_inband || !btstack_get_inband_ringtone_flag_for_addr(bt_call_addr)) {
+                    log_info("phone_send_ring_cmd (esco close) %lu, addr =\n", bt_call_cmd);
+                    log_info_hexdump(bt_call_addr, 6);
+                    second_phone_call_send_cmd_delay(1500, bt_call_addr, bt_call_cmd);
+                }
+            }
+#endif
         }
         break;
     case BT_STATUS_CALL_VOL_CHANGE:
@@ -818,6 +1101,18 @@ static int call_tws_msg_handler(int *msg)
 
         memset(g_play_addr, 0xff, 6);
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
+#if SECONDE_PHONE_IN_RING_COEXIST
+            if (bt_get_call_status_for_addr(phone_addr) == BT_CALL_INCOMING) {
+                if (!memcmp(g_bt_hdl.phone_ring_addr, phone_addr, 6) && !g_bt_hdl.phone_ring_sync_tws) { //前台来电
+                    g_bt_hdl.phone_ring_sync_tws = 1;
+                    printf("tws_monitor_start_send_income_cmd");
+                    tws_phone_call_send_cmd(CMD_PHONE_INCOME, phone_addr, 1, 1);
+                } else if (!memcmp(outband_ring_bt_addr_get(), phone_addr, 6)) { //后台来电
+                    printf("tws_monitor_start_send_ring_cmd");
+                    tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, phone_addr, 0, 1);
+                }
+            }
+#else
             void *device = btstack_get_conn_device(phone_addr);
             if (device) {
                 printf("g_bt_hdl.phone_income_flag=%d,%d\n", g_bt_hdl.phone_income_flag, btstack_bt_get_call_status(device));
@@ -829,6 +1124,7 @@ static int call_tws_msg_handler(int *msg)
 
                 }
             }
+#endif
 
         }
         break;

@@ -14,7 +14,7 @@
 #include "JL_rcsp_protocol.h"
 #include "effects/audio_bass_treble_eq.h"
 
-#if (RCSP_MODE && RCSP_ADV_HIGH_LOW_SET && defined(TCFG_BASS_TREBLE_NODE_ENABLE))
+#if (RCSP_MODE && RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
 
 struct _HIGH_LOW_VOL {
     int low_vol;

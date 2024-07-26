@@ -12,7 +12,7 @@
 #include "effects_default_param.h"
 #include "node_uuid.h"
 
-#ifdef TCFG_PITCH_SPEED_NODE_ENABLE
+#if TCFG_PITCH_SPEED_NODE_ENABLE
 
 static const float semi_tones_table[] = {-12.0, -10.0, -8.0, -6.0, -4.0, -2.0, 0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0};
 static s8 g_pitch_mode = 6; //记录变调模式

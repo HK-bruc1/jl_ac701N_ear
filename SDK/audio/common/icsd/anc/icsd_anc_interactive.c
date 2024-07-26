@@ -137,7 +137,7 @@ void anc_ear_adaptive_tone_play_start(void)
     hdl->tone_state = EAR_ADAPTIVE_TONE_STATE_START;
     audio_mic_pwr_ctl(MIC_PWR_ON);
     audio_anc_dac_open(hdl->param->gains.dac_gain, hdl->param->gains.dac_gain);
-#ifdef CPU_CONFIG_BR28
+#ifdef CONFIG_CPU_BR28
     hdl->param->adc_set_buffs_cb();
 #endif
     audio_anc_mic_open(hdl->param->mic_param, 0, hdl->param->adc_ch);

@@ -47,7 +47,7 @@ typedef struct __JL_QUEUE {
 
 typedef struct __JL_PACKET_ENTRY {
     struct list_head entry;
-    u16              size;
+    u16              packet_size;
     u8               packet[0];
 } JL_PACKET_ENTRY;
 
@@ -90,7 +90,7 @@ u16 JL_packet_get_tx_max_mtu(void);
 u16 JL_packet_set_mtu(u16 mtu);
 void JL_packet_recieve(void *buf, u16 len, u8 buf_index);
 void JL_packet_clear_all_data(void);
-bool JL_packet_find(u8 *r_buf, JL_PACKET **packet, u8 buf_index);
+bool JL_packet_find(u8 **r_buf, JL_PACKET **packet, u8 buf_index);
 void JL_packet_init(void);
 void JL_packet_clear(void);
 

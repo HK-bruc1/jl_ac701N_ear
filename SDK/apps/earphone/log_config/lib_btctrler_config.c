@@ -35,19 +35,36 @@ const int CONFIG_LMP_CONNECTION_NUM = 1;
 #define TWS_PURE_MONITOR_MODE    0//1:纯监听模式
 
 #if TWS_PURE_MONITOR_MODE
-	const int CONFIG_TWS_FORWARD_RUN_SLOT =28;
 	u8 get_extws_nack_adjust(u8 per_v, int a2dp_dly_paly_time, int msec)
 	{
 		return 0;
 	}
-#else
-	const int CONFIG_TWS_FORWARD_RUN_SLOT = 24;
 #endif
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
 	const int CONFIG_TWS_AUDIO_SHARE_ENABLE  = 1;
 #else
 	const int CONFIG_TWS_AUDIO_SHARE_ENABLE  = 0;
 #endif
+
+const int CONFIG_TWS_FORWARD_TIMES = 1;
+const int CONFIG_TWS_RUN_SLOT_MAX = 48;
+const int CONFIG_TWS_RUN_SLOT_AT_A2DP_FORWARD = 8;
+const int CONFIG_TWS_RUN_SLOT_AT_LOW_LATENCY = 8;
+const int CONFIG_TWS_RUN_SLOT_AT_LOCAL_MEDIA_TRANS = 48;
+
+#ifdef TCFG_LE_AUDIO_PLAY_LATENCY
+const int CONFIG_LE_AUDIO_PLAY_LATENCY = TCFG_LE_AUDIO_PLAY_LATENCY; // le_audio延时（us）
+#else
+const int CONFIG_LE_AUDIO_PLAY_LATENCY = 0; // le_audio延时（us）
+#endif
+
+#ifdef TCFG_JL_DONGLE_PLAYBACK_LATENCY
+const int CONFIG_JL_DONGLE_PLAYBACK_LATENCY = TCFG_JL_DONGLE_PLAYBACK_LATENCY; // dongle下行播放延时(msec)
+#else
+const int CONFIG_JL_DONGLE_PLAYBACK_LATENCY = 0; // dongle下行播放延时(msec)
+#endif
+
+
 //固定使用正常发射功率的等级:0-使用不同模式的各自等级;1~10-固定发射功率等级
 const int config_force_bt_pwr_tab_using_normal_level  = 0;
 //配置BLE广播发射功率的等级:0-最大功率等级;1~10-固定发射功率等级
@@ -164,7 +181,7 @@ u8 auto_check_a2dp_play_control_qos(u16 cur_delay_timer,u16 delay_set_timer,u16 
 
 }
 #endif
-const int CONFIG_TWS_SUPER_TIMEOUT          = 2000;
+const int CONFIG_TWS_SUPER_TIMEOUT          = 8000;
 const int CONFIG_BTCTLER_QOS_ENABLE         = 1;
 const int CONFIG_A2DP_DATA_CACHE_LOW_AAC    = 100;
 const int CONFIG_A2DP_DATA_CACHE_HI_AAC     = 250;

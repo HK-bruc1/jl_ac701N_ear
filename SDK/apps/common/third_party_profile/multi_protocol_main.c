@@ -9,6 +9,9 @@
 #include "multi_protocol_main.h"
 #include "bt_tws.h"
 #include "swift_pair_api.h"
+#include "gfps_platform_api.h"
+#include "btstack_rcsp_user.h"
+#include "ble_rcsp_server.h"
 
 #if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN|LE_AUDIO_CIS_RX_EN|LE_AUDIO_BIS_RX_EN|LE_AUDIO_BIS_RX_EN))
 
@@ -28,10 +31,6 @@ typedef struct {
 	const sdp_protocal_item_t  handler sec(.sdp_record_item)
 
 #if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
-extern void rcsp_ble_profile_init(void);
-extern void rcsp_bt_ble_init(void);
-extern void rcsp_bt_ble_exit(void);
-extern void rcsp_bt_ble_adv_enable(u8 enable);
 
 extern const u8 sdp_spp_service_data[];
 SDP_RECORD_REGISTER(rcsp_sdp_record_item) = {
@@ -39,6 +38,45 @@ SDP_RECORD_REGISTER(rcsp_sdp_record_item) = {
     .service_record_handle = 0x00010004,
 };
 
+// rcsp ble profile，用户可以此为基础添加需要ble服务和特征
+const uint8_t rcsp_profile_data[] = {
+    //////////////////////////////////////////////////////
+    //
+    // 0x0001 PRIMARY_SERVICE  1800
+    //
+    //////////////////////////////////////////////////////
+    0x0a, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x28, 0x00, 0x18,
+
+    /* CHARACTERISTIC,  2a00, READ | WRITE | DYNAMIC, */
+    // 0x0002 CHARACTERISTIC 2a00 READ | WRITE | DYNAMIC
+    0x0d, 0x00, 0x02, 0x00, 0x02, 0x00, 0x03, 0x28, 0x0a, 0x03, 0x00, 0x00, 0x2a,
+    // 0x0003 VALUE 2a00 READ | WRITE | DYNAMIC
+    0x08, 0x00, 0x0a, 0x01, 0x03, 0x00, 0x00, 0x2a,
+
+    //////////////////////////////////////////////////////
+    //
+    // 0x0004 PRIMARY_SERVICE  ae00
+    //
+    //////////////////////////////////////////////////////
+    0x0a, 0x00, 0x02, 0x00, 0x04, 0x00, 0x00, 0x28, 0x00, 0xae,
+
+    /* CHARACTERISTIC,  ae01, WRITE_WITHOUT_RESPONSE | DYNAMIC, */
+    // 0x0005 CHARACTERISTIC ae01 WRITE_WITHOUT_RESPONSE | DYNAMIC
+    0x0d, 0x00, 0x02, 0x00, 0x05, 0x00, 0x03, 0x28, 0x04, 0x06, 0x00, 0x01, 0xae,
+    // 0x0006 VALUE ae01 WRITE_WITHOUT_RESPONSE | DYNAMIC
+    0x08, 0x00, 0x04, 0x01, 0x06, 0x00, 0x01, 0xae,
+
+    /* CHARACTERISTIC,  ae02, NOTIFY, */
+    // 0x0007 CHARACTERISTIC ae02 NOTIFY
+    0x0d, 0x00, 0x02, 0x00, 0x07, 0x00, 0x03, 0x28, 0x10, 0x08, 0x00, 0x02, 0xae,
+    // 0x0008 VALUE ae02 NOTIFY
+    0x08, 0x00, 0x10, 0x00, 0x08, 0x00, 0x02, 0xae,
+    // 0x0009 CLIENT_CHARACTERISTIC_CONFIGURATION
+    0x0a, 0x00, 0x0a, 0x01, 0x09, 0x00, 0x02, 0x29, 0x00, 0x00,
+
+    // END
+    0x00, 0x00,
+};
 #endif
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
@@ -263,8 +301,7 @@ static void multi_protocol_profile_init(void)
 #endif
 
 #if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
-    extern void bt_rcsp_interface_init(void);
-    bt_rcsp_interface_init();
+    bt_rcsp_interface_init(rcsp_profile_data);
     rcsp_ble_profile_init();
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
@@ -353,7 +390,6 @@ void multi_protocol_bt_exit(void)
     printf("################# multi_protocol exit");
 #if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
     rcsp_bt_ble_exit();
-    extern void bt_rcsp_interface_exit(void);
     bt_rcsp_interface_exit();
 #endif
 #if (BT_AI_SEL_PROTOCOL & GFPS_EN)

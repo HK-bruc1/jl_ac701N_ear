@@ -75,15 +75,21 @@
  */
 /*
  * 标准模式:支持2的指数次幂点数
- * Platforms：br23/br25/br30/br34/br36/WL80.
+ * Platforms：br23/br25/br30/br34/br36/br29
  */
-#define FFT_V3		3
+#define FFT_V3				3
 
 /*
- * 扩展模式:FFT硬件模块支持非2的指数次幂点数.
- * Platforms：br27/br28/WL82
+ * 扩展模式 V1:FFT硬件模块支持非2的指数次幂点数.
+ * Platforms：br27/br28/br50/br52
  */
-#define FFT_EXT		4
+#define FFT_EXT				4
+
+/*
+ * 扩展模式 V2:
+ * Platforms：br56
+ */
+#define FFT_EXT_V2			5
 
 /*
  *******************************************************************

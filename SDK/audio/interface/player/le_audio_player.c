@@ -225,7 +225,7 @@ static void le_audio_player_callback(void *private_data, int event)
     printf("le audio player callback : %d\n", event);
     switch (event) {
     case STREAM_EVENT_START:
-#ifdef TCFG_VOCAL_REMOVER_NODE_ENABLE
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
         musci_vocal_remover_update_parm();
 #endif
 #if TCFG_KBOX_1T3_MODE_EN

@@ -25,7 +25,7 @@ static struct eq_seg_info dccs_eq_tab_16k[] = {
 };
 
 //使用EQ模块去除直流偏置配置
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 #define DCC_VIA_EQ_ENABLE			1
 #else
 #define DCC_VIA_EQ_ENABLE			0
@@ -33,7 +33,7 @@ static struct eq_seg_info dccs_eq_tab_16k[] = {
 
 /*省电容mic通过eq模块实现去直流滤波*/
 #if TCFG_SUPPORT_MIC_CAPLESS
-#if (!defined(TCFG_EQ_ENABLE) || (DCC_VIA_EQ_ENABLE == 0))
+#if (TCFG_EQ_ENABLE == 0 || (DCC_VIA_EQ_ENABLE == 0))
 #error "MicCapless enable,Please enable TCFG_EQ_ENABLE and DCC_VIA_EQ_ENABLE"
 #endif/*TCFG_EQ_ENABLE*/
 #endif/*TCFG_SUPPORT_MIC_CAPLESS*/

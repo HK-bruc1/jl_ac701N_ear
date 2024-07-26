@@ -35,7 +35,6 @@
         *(.spatial_mem)
         *(.TDSpatial.text)
         *(.TDSpatial.text.cache.L2)
-        *(.sbc_eng_code)
 #if (TCFG_CODE_RUN_RAM_FM_MODE)
         *(.pcm_code)
         *(.pcm_const)

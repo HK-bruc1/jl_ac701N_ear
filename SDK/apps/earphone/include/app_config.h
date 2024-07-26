@@ -480,6 +480,11 @@
 //                                 Audio配置                                        //
 //*********************************************************************************//
 
+//头部姿态检测
+#ifndef TCFG_AUDIO_SOMATOSENSORY_ENABLE
+#define TCFG_AUDIO_SOMATOSENSORY_ENABLE     0
+#endif
+
 /*
  *Hi-Res Audio:Aux/USB Audio
  *Hi-Res Wireless Audio::LDAC/LHDC
@@ -633,14 +638,14 @@
 #else
 #define TCFG_AUDIO_SPATIAL_EFFECT_ENABLE    DISABLE_THIS_MOUDLE
 #endif /*TCFG_SPATIAL_AUDIO_ENABLE*/
-#if (TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL == 0)
+#if (TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL == 0) && (TCFG_AUDIO_SOMATOSENSORY_ENABLE == 0)
 #define TCFG_SPATIAL_AUDIO_SENSOR_ENABLE    0 //不使用传感器
 #else
 #define TCFG_SPATIAL_AUDIO_SENSOR_ENABLE    1//需要使用传感器
 #endif /*TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL*/
 
-/*空间音效和传感器的依赖*/
-#if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE == 0) || (TCFG_SPATIAL_AUDIO_SENSOR_ENABLE == 0))
+/*空间音效、头部姿态检测和传感器的依赖*/
+#if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE == 0) || (TCFG_SPATIAL_AUDIO_SENSOR_ENABLE == 0)) && (TCFG_AUDIO_SOMATOSENSORY_ENABLE == 0)
 #undef TCFG_IMUSENSOR_ENABLE
 #undef TCFG_MPU6887P_ENABLE
 #undef TCFG_ICM42670P_ENABLE
@@ -791,6 +796,9 @@
 #if (TCFG_COMM_TYPE == TCFG_UART_COMM)
 #undef TCFG_USB_CDC_BACKGROUND_RUN
 #define TCFG_USB_CDC_BACKGROUND_RUN         DISABLE
+//1M波特率（1us）即使加了IO唤醒流程，也无法唤醒（信号时间太短），需要关了低功耗
+#undef TCFG_LOWPOWER_LOWPOWER_SEL
+#define TCFG_LOWPOWER_LOWPOWER_SEL          0
 #endif
 #endif
 #include "usb_common_def.h"
@@ -861,7 +869,7 @@
 
 #if APP_ONLINE_DEBUG
 #undef BT_AI_SEL_PROTOCOL
-#if TCFG_BT_AI_ENABLE
+#if (TCFG_BT_AI_ENABLE && (TCFG_BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | LE_AUDIO_CIS_RX_EN)))
 #define BT_AI_SEL_PROTOCOL  (TCFG_BT_AI_SEL_PROTOCOL | ONLINE_DEBUG_EN)
 #else
 #define BT_AI_SEL_PROTOCOL  (ONLINE_DEBUG_EN)
@@ -874,7 +882,7 @@
 #endif
 
 #ifndef EQ_SECTION_MAX
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 #define EQ_SECTION_MAX 32
 #endif
 #endif

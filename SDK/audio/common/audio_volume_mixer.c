@@ -575,16 +575,6 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
     u8 left_gain = left_vol > max_vol_l ? max_vol_l : left_vol;
     u8 right_gain = right_vol > max_vol_r ? max_vol_r : right_vol;
 
-    //printf("vol_type:%s,target:%d,%d\n",vol_type[SYS_VOL_TYPE],left_gain,right_gain);
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-    if (__this->state == APP_AUDIO_STATE_CALL) {
-        /*通话使用数字音量的时候，模拟音量默认最大*/
-        left_gain = max_vol_l;
-        right_gain = max_vol_r;
-        //printf("phone_call_use_digital_volume,a_vol max:%d,%d",left_gain,right_gain);
-    }
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
-
     /*数字音量*/
 #if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
     s16 volume = right_gain;
@@ -619,15 +609,7 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
 
     /*模拟数字联合音量*/
 #if (SYS_VOL_TYPE == VOL_TYPE_AD)
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-    if (__this->state == APP_AUDIO_STATE_CALL) {
-        audio_fade_timer_add(left_gain, right_gain);
-    } else {
-        audio_combined_fade_timer_add(left_gain, right_gain);
-    }
-#else
     audio_combined_fade_timer_add(left_gain, right_gain);
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
 #endif/*SYS_VOL_TYPE == VOL_TYPE_AD*/
 
     /*硬件数字音量*/
@@ -783,6 +765,8 @@ int audio_digital_vol_update_parm(u8 dvol_idx, s32 param)
     err = audio_digital_vol_node_name_get(dvol_idx, vol_name);
     if (!err) {
         err |= jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, vol_name, (void *)param, sizeof(struct volume_cfg));
+    } else {
+        printf("[Error]audio_digital_vol_node_name_get err:%x\n", err);
     }
     return err;
 }
@@ -855,10 +839,6 @@ void audio_app_volume_set(u8 state, s16 volume, u8 fade)
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume = volume;
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        dac_digital_vol_set(volume, volume, 1);
-        return;
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
         dvol_idx = CALL_DVOL;
         break;
     case APP_AUDIO_STATE_WTONE:
@@ -1084,11 +1064,6 @@ void audio_app_volume_up(u8 value)
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume += value;
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        volume = app_var.call_volume;
-        dac_digital_vol_set(volume, volume, 1);
-        return;
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
 
         /*模拟音量类型，通话的时候直接限制最大音量*/
 #if (SYS_VOL_TYPE == VOL_TYPE_ANALOG)
@@ -1147,10 +1122,6 @@ void audio_app_volume_down(u8 value)
             app_var.call_volume = 0;
         }
         volume = app_var.call_volume;
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        dac_digital_vol_set(volume, volume, 1);
-        return;
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
         break;
     case APP_AUDIO_STATE_WTONE:
 #if WARNING_TONE_VOL_FIXED
@@ -1215,10 +1186,6 @@ void app_audio_init_dig_vol(u8 state, s16 volume, u8 fade, dvol_handle *dvol_hdl
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume = volume;
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        dac_digital_vol_set(volume, volume, 1);
-        return;
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
         break;
     case APP_AUDIO_STATE_WTONE:
         app_var.wtone_volume = volume;
@@ -1288,21 +1255,6 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
     __this->analog_volume_r = MAX_ANA_VOL;
     __this->digital_volume = dvol_max;
 
-#if (SYS_VOL_TYPE != VOL_TYPE_DIGITAL)
-    if (__this->state == APP_AUDIO_STATE_CALL) {
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        u8 call_volume_level_max = ARRAY_SIZE(phone_call_dig_vol_tab) - 1;
-        app_var.call_volume = (app_var.call_volume > call_volume_level_max) ? call_volume_level_max : app_var.call_volume;
-        __this->digital_volume = phone_call_dig_vol_tab[app_var.call_volume];
-        printf("call_volume:%d,digital_volume:%d", app_var.call_volume, __this->digital_volume);
-        dac_digital_vol_open();
-        dac_digital_vol_tab_register(phone_call_dig_vol_tab, ARRAY_SIZE(phone_call_dig_vol_tab));
-        /*调数字音量的时候，模拟音量定最大*/
-        audio_dac_set_analog_vol(&dac_hdl, max_volume);
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
-    }
-#endif/*SYS_VOL_TYPE != VOL_TYPE_DIGITAL*/
-
     int cur_vol = app_audio_get_volume(state) * scale / 100 ;
     cur_vol = (cur_vol > __this->max_volume[state]) ? __this->max_volume[state] : cur_vol;
     app_audio_init_dig_vol(state, cur_vol, 1, dvol_hdl);
@@ -1319,11 +1271,6 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
 */
 void app_audio_state_exit(u8 state)
 {
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-    if (__this->state == APP_AUDIO_STATE_CALL) {
-        dac_digital_vol_close();
-    }
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
     if (state == __this->state) {
         __this->state = __this->prev_state;
         if ((__this->prev_state == APP_AUDIO_STATE_CALL) && (!esco_player_is_playing(NULL))) { //切回通话状态需要判断通话的数据流是否在跑
@@ -1380,11 +1327,6 @@ s16 app_audio_get_max_volume(void)
     if (__this->state == APP_AUDIO_STATE_IDLE) {
         return  app_audio_volume_max_query(AppVol_BT_MUSIC);
     }
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-    if (__this->state == APP_AUDIO_STATE_CALL) {
-        return (ARRAY_SIZE(phone_call_dig_vol_tab) - 1);
-    }
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
     return __this->max_volume[__this->state];
 }
 
@@ -1549,10 +1491,6 @@ void app_audio_change_volume(u8 state, s16 volume)
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume = volume;
-#if TCFG_CALL_USE_DIGITAL_VOLUME
-        dac_digital_vol_set(volume, volume, 1);
-        return;
-#endif/*TCFG_CALL_USE_DIGITAL_VOLUME*/
         break;
     case APP_AUDIO_STATE_WTONE:
 #if WARNING_TONE_VOL_FIXED

@@ -139,6 +139,7 @@ void audio_aec_inbuf_ref_1(s16 *buf, u16 len);
 void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len);
 u8 audio_aec_status(void);
 void audio_aec_reboot(u8 reduce);
+u8 get_audio_aec_rebooting();
 int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg);
 /*
 *********************************************************************
@@ -157,11 +158,17 @@ int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg);
 int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len));
 
 /*外部参考数据变采样*/
-void audio_cvp_ref_src_open(u32 input_rate, u32 output_rate, u8 iport_channel_mode);
-void audio_cvp_ref_src_data_fill(s16 *data, int len);
+int audio_cvp_ref_src_open(u8 scene, u32 insr, u32 outsr, u8 nch);
+int audio_cvp_ref_src_data_fill(void *p, s16 *data, int len);
 void audio_cvp_ref_src_close();
+/*对齐iis的数据延时，在第一次mic数据来时调用对齐*/
+void audio_cvp_ref_data_align();
+int audio_cvp_ref_data_align_reset(void);
+
 void audio_cvp_ref_start(u8 en);
 void audio_cvp_set_output_way(u8 en);
+/*可写长度*/
+int get_audio_cvp_output_way_writable_len();
 
 /*
 *********************************************************************

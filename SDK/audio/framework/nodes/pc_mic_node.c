@@ -70,6 +70,7 @@ struct audio_pcmic_channel {
 
 struct _pcmic_hdl {
     struct list_head sync_list;
+    struct list_head dev_sync_list;
     struct audio_cfifo cfifo;        /*DAC cfifo结构管理*/
     OS_MUTEX mutex;
     u8  state;              /*硬件通道的状态*/
@@ -78,6 +79,7 @@ struct _pcmic_hdl {
     u8 *out_cbuf;              //uac缓存cbuf
     u8 *frame_buf;             //pull frame后需转换成uac格式的一帧buf
     u16 frame_len;
+    u32 fade_value;
 
 };
 struct _pcmic_hdl pcmic_hdl  = {0};
@@ -86,9 +88,9 @@ struct pc_mic_node_hdl {
     char name[16];
     struct audio_pcmic_channel pcmic_ch;
     void *dev_sync;         //! bang
+    struct list_head entry;
     struct audio_pcmic_channel_attr attr;     /*PCMIC通道属性*/
     enum stream_scene scene;
-    int value;
     u8 iport_bit_width;     //保存输入节点的位宽
     u8 syncts_enabled;
     u8 start;
@@ -120,6 +122,31 @@ struct pc_mic_fmt_t pc_mic_fmt = {
 };
 
 static DEFINE_SPINLOCK(pc_mic_lock);
+static void audio_pcmic_fade_out(struct _pcmic_hdl *hdl, void *data, u16 len)
+{
+    u8 ch_num = pc_mic_fmt.channel;
+    if (hdl->iport_bit_width) {
+        if (config_media_24bit_enable) {
+            hdl->fade_value = jlstream_fade_out_32bit(hdl->fade_value, FADE_GAIN_MAX / (len / 4 / ch_num), (int *)data, len, ch_num);
+        }
+    } else {
+        hdl->fade_value = jlstream_fade_out(hdl->fade_value, FADE_GAIN_MAX / (len / 2 / ch_num), (short *)data, len, ch_num);
+    }
+}
+
+static void audio_pcmic_fade_in(struct _pcmic_hdl *hdl, void *data, u16 len)
+{
+    if (hdl->fade_value < FADE_GAIN_MAX) {
+        u8 ch_num = pc_mic_fmt.channel;
+        if (hdl->iport_bit_width) {
+            if (config_media_24bit_enable) {
+                hdl->fade_value = jlstream_fade_in_32bit(hdl->fade_value, FADE_GAIN_MAX / (len / 4 / ch_num), (s32 *)data, len, ch_num);
+            }
+        } else {
+            hdl->fade_value = jlstream_fade_in(hdl->fade_value, FADE_GAIN_MAX / (len / 2 / ch_num), (s16 *)data, len, ch_num);
+        }
+    }
+}
 
 static int pc_mic_tx_handler(void *priv, void *buf, int len);
 int audio_pcmic_channel_write(struct audio_pcmic_channel *ch, void *buf, int len);
@@ -160,9 +187,7 @@ static int dev_sync_output_handler(void *_hdl, void *data, int len)
     }
 
     int wlen = audio_pcmic_channel_write((void *)&hdl->pcmic_ch, data, len);
-    if (config_dev_sync_enable) {
-        dev_sync_calculate_output_samplerate(hdl->dev_sync, wlen, audio_pcmic_data_len(&hdl->pcmic_ch));
-    }
+
     return wlen;
 }
 
@@ -180,25 +205,13 @@ static void dev_sync_start(struct stream_iport *iport)
                 params.priv = hdl;
                 params.handle = dev_sync_output_handler;
                 hdl->dev_sync = dev_sync_open(&params);
+                spin_lock(&pc_mic_lock);
+                list_add(&hdl->entry, &pcmic_hdl.dev_sync_list);
+                spin_unlock(&pc_mic_lock);
             }
         }
     }
 
-}
-
-__NODE_CACHE_CODE(pc_mic)
-static void pc_mic_fade_in(struct pc_mic_node_hdl *hdl, void *buf, int len)
-{
-    if (hdl->value < FADE_GAIN_MAX) {
-        int fade_ms = 100;//ms
-        int fade_step = FADE_GAIN_MAX / (fade_ms * pc_mic_fmt.sample_rate / 1000);
-        u8 bit_width = audio_general_out_dev_bit_width();
-        if (bit_width == DATA_BIT_WIDE_16BIT) {
-            hdl->value = jlstream_fade_in(hdl->value, fade_step, buf, len, pc_mic_fmt.channel);
-        } else {
-            hdl->value = jlstream_fade_in_32bit(hdl->value, fade_step, buf, len, pc_mic_fmt.channel);
-        }
-    }
 }
 
 
@@ -352,14 +365,12 @@ static int audio_pcmic_channel_fifo_write(struct audio_pcmic_channel *ch, void *
     }
 
     os_mutex_pend(&hdl->mutex, 0);
-    spin_lock(&pc_mic_lock);
     int w_len = 0;
     if (is_fixed_data) {
         w_len = audio_cfifo_channel_write_fixed_data(&ch->fifo, (s16)data, len);
     } else {
         w_len = audio_cfifo_channel_write(&ch->fifo, data, len);
     }
-    spin_unlock(&pc_mic_lock);
     os_mutex_post(&hdl->mutex);
     return w_len;
 }
@@ -440,14 +451,20 @@ static void audio_pcmic_channel_read(struct _pcmic_hdl *hdl,  s16 *addr, int len
     u32 point_offset = hdl->iport_bit_width ? 2 : 1;
 
     if (hdl->fifo_state  == AUDIO_CFIFO_INITED) {
-        int rlen = audio_cfifo_read_data(&hdl->cfifo, addr, len);
+        u32 rlen = audio_cfifo_read_data(&hdl->cfifo, addr, len);
         if (rlen) {
             /* putchar('R'); */
             audio_pcmic_update_syncts_frames(hdl, (rlen >> point_offset) / pc_mic_fmt.channel);
+            if (rlen < len) {
+                audio_pcmic_fade_out(hdl, addr, rlen);
+                memset((void *)((u32)addr + rlen), 0x0, len - rlen);
+            } else {
+                audio_pcmic_fade_in(hdl, addr, len);
+            }
         } else {
             putchar('M');
+            audio_pcmic_fade_out(hdl, addr, len);
             /* puts("pcmic_empty\n"); */
-            memset(addr, 0x0, len);
         }
     }
 }
@@ -495,6 +512,7 @@ void audio_pcmic_channel_start(struct audio_pcmic_channel *ch)
     os_mutex_pend(&hdl->mutex, 0);
     spin_lock(&pc_mic_lock);
     if (!audio_pcmic_is_working(hdl)) {
+        hdl->fade_value = 0;
         set_uac_mic_tx_handler((void *)hdl, pc_mic_tx_handler);
 
         hdl->state = PCMIC_STATE_OPEN;
@@ -554,6 +572,7 @@ int audio_pcmic_channel_close(struct audio_pcmic_channel *ch)
                 free(hdl->frame_buf);
                 hdl->frame_buf = NULL;
             }
+            hdl->fade_value = 0;
         }
     }
     spin_unlock(&pc_mic_lock);
@@ -654,6 +673,14 @@ static int pc_mic_tx_handler(void *priv, void *buf, int len)
     int rlen = len;
     if (pc_mic_fmt.bit == 16 && !hdl->iport_bit_width) {//16->16
         audio_pcmic_channel_read(hdl, (s16 *)buf, rlen);
+        if (config_dev_sync_enable) {
+            struct pc_mic_node_hdl *node_hdl;
+            list_for_each_entry(node_hdl, &hdl->dev_sync_list, entry) {
+                if (node_hdl->dev_sync) {
+                    dev_sync_calculate_output_samplerate(node_hdl->dev_sync, len, 0);
+                }
+            }
+        }
     } else {
         u32 point_offset = hdl->iport_bit_width ? 2 : 1;
         int pcm_frames;
@@ -676,6 +703,14 @@ static int pc_mic_tx_handler(void *priv, void *buf, int len)
 
         audio_pcmic_channel_read(hdl, (s16 *)hdl->frame_buf, rlen);
         pcm_data_convert_to_uac_data(hdl, hdl->frame_buf, buf, pcm_frames);
+        if (config_dev_sync_enable) {
+            struct pc_mic_node_hdl *node_hdl;
+            list_for_each_entry(node_hdl, &hdl->dev_sync_list, entry) {
+                if (node_hdl->dev_sync) {
+                    dev_sync_calculate_output_samplerate(node_hdl->dev_sync, rlen, 0);
+                }
+            }
+        }
     }
     spin_unlock(&pc_mic_lock);
     return len;
@@ -735,14 +770,12 @@ static void pc_mic_handle_frame(struct stream_iport *iport, struct stream_note *
     while (1) {
         frame = jlstream_pull_frame(iport, NULL);
         if (!frame) {
-            return;
+            break;
         }
 
         if (config_dev_sync_enable) {
             if (frame->offset == 0) {
                 pc_mic_synchronize_with_main_device(iport, frame);
-                pc_mic_fade_in(hdl, frame->data, frame->len);
-                printf("pull_ts %s ,%u\n", hdl->name, frame->timestamp);
             }
         }
 
@@ -784,7 +817,6 @@ static void pc_mic_ioc_start(struct pc_mic_node_hdl *hdl)
     spin_lock(&pc_mic_lock);
     hdl->iport_bit_width = hdl_node(hdl)->iport->prev->fmt.bit_wide;
     hdl->start = 1;
-    hdl->value = 0;
 
     int ret = jlstream_read_node_data_new(hdl_node(hdl)->uuid, hdl_node(hdl)->subid, (void *)&hdl->attr, hdl->name);
     if (!ret) {
@@ -811,6 +843,10 @@ static void pc_mic_ioc_stop(struct pc_mic_node_hdl *hdl)
 
     if (config_dev_sync_enable) {
         if (hdl->dev_sync) {
+            spin_lock(&pc_mic_lock);
+            list_del(&hdl->entry);
+            spin_unlock(&pc_mic_lock);
+
             dev_sync_close(hdl->dev_sync);
             hdl->dev_sync = NULL;
         }
@@ -928,6 +964,7 @@ static int pc_mic_adapter_bind(struct stream_node *node, u16 uuid)
     if (!init) {
         os_mutex_create(&pcmic_hdl.mutex);
         INIT_LIST_HEAD(&pcmic_hdl.sync_list);
+        INIT_LIST_HEAD(&pcmic_hdl.dev_sync_list);
         init = 1;
     }
     return 0;

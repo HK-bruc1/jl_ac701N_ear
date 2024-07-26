@@ -799,18 +799,28 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
     struct stream_fmt *in_fmt = &iport->prev->fmt;
     struct stream_oport *oport = iport->node->oport;
     int ret = NEGO_STA_ACCPTED;
+    int nb_sr, wb_sr, nego_sr;
+
+#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_WB_EN)
+    nb_sr = 16000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#elif (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_NB_EN)
+    nb_sr = 8000;
+    wb_sr = 8000;
+    nego_sr  = 8000;
+#else
+    nb_sr = 8000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#endif
     //要求输入为8K或者16K
-    if (in_fmt->sample_rate != 8000 && in_fmt->sample_rate != 16000) {
-        in_fmt->sample_rate = 16000;
+    if (in_fmt->sample_rate != nb_sr && in_fmt->sample_rate != wb_sr) {
+        in_fmt->sample_rate = nego_sr;
         oport->fmt.sample_rate = in_fmt->sample_rate;
         ret = NEGO_STA_CONTINUE | NEGO_STA_SAMPLE_RATE_LOCK;
     }
-    //要求输入16bit位宽的数据
-    if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
-        in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
-        oport->fmt.bit_wide = in_fmt->bit_wide;
-        ret = NEGO_STA_CONTINUE;
-    }
+
     //要求输入16bit位宽的数据
     if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
         in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
@@ -829,6 +839,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     struct audio_aec_init_param_t init_param;
     init_param.sample_rate = fmt->sample_rate;
     init_param.ref_sr = hdl->ref_sr;
+    init_param.ref_channel = 1;;
     u8 mic_num; //算法需要使用的MIC个数
 
     audio_aec_init(&init_param);

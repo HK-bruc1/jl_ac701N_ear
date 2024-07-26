@@ -32,7 +32,7 @@ const int adkey_msg_table[10][KEY_ACTION_MAX] = {
     //按住3s, 按住5s
     [0] = {
         APP_MSG_MUSIC_PP,   APP_MSG_CALL_HANGUP,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_GOTO_NEXT_MODE,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_POWER_OFF,
     },
     [1] = {

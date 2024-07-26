@@ -60,6 +60,11 @@ const float const_out_dev_pns_time_ms = 1.0f;
  */
 const int CONFIG_MAX_ENC_DATA_CACHE_SIZE = 4096;
 
+#if TCFG_SPATIAL_EFFECT_VERSION
+const int CONFIG_SPATIAL_EFFECT_VERSION  = TCFG_SPATIAL_EFFECT_VERSION;
+#else
+const int CONFIG_SPATIAL_EFFECT_VERSION  = 0;
+#endif
 /*
  *******************************************************************
  *						Audio Hardware Config
@@ -489,9 +494,9 @@ const int config_audio_eq_lp_adv_enable = 1;	//Low Pass Advance：对应工具�
 
 const int AUDIO_EQ_MAX_SECTION = EQ_SECTION_MAX;
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 const int config_audio_eq_en = EQ_EN
-#ifdef TCFG_CROSSOVER_NODE_ENABLE
+#if TCFG_CROSSOVER_NODE_ENABLE
                                | EQ_HW_CROSSOVER_TYPE0_EN
 #endif
                                ;
@@ -536,12 +541,12 @@ const int howling_freshift_PLATFORM = PLATFORM_PARM_SEL;
 const int howling_freshift_highmode_flag = 0;              //移频快速模式
 const int howling_pitchshift_fastmode_flag   = 1;//移频啸叫抑制快速模式使能
 
-#ifdef TCFG_FREQUENCY_SHIFT_HOWLING_NODE_ENABLE
+#if TCFG_FREQUENCY_SHIFT_HOWLING_NODE_ENABLE
 const int audio_frequency_shift_howling_enable = 1; //啸叫抑制-移频使能
 #else
 const int audio_frequency_shift_howling_enable = 0;
 #endif
-#ifdef TCFG_NOTCH_HOWLING_NODE_ENABLE
+#if TCFG_NOTCH_HOWLING_NODE_ENABLE
 const int audio_notch_howling_enable           = 1; //啸叫抑制-陷波使能
 #else
 const int audio_notch_howling_enable           = 0;
@@ -575,13 +580,13 @@ const  int DOWN_S_FLAG 				= 0; //混响降采样处理使能
 //***********************
 const int PLATE_REVERB_ROOM_SIZE_Mutiplier = 1; // 影响了plateReverb的nee_buf的大小( 约等于 33k * PLATE_REVERB_ROOM_SIZE_Mutiplier)，对应的是roomsize=100对应的是多大
 
-#ifdef TCFG_PLATE_REVERB_NODE_ENABLE
+#if TCFG_PLATE_REVERB_NODE_ENABLE
 const int audio_effect_reverb_enable = 1;
 #else
 const int audio_effect_reverb_enable = 0;
 #endif
 
-#ifdef TCFG_PLATE_REVERB_ADVANCE_NODE_ENABLE
+#if TCFG_PLATE_REVERB_ADVANCE_NODE_ENABLE
 const int audio_effect_reverb_adv_enable = 1;
 #else
 const int audio_effect_reverb_adv_enable = 0;
@@ -590,13 +595,13 @@ const int audio_effect_reverb_adv_enable = 0;
 //***********************
 //*   	NoiseGate       *
 //***********************
-#ifdef TCFG_NOISEGATE_NODE_ENABLE
+#if TCFG_NOISEGATE_NODE_ENABLE
 const int audio_effect_nsgate_enable = 1;
 #else
 const int audio_effect_nsgate_enable = 0;
 #endif
 
-#ifdef TCFG_NOISEGATE_PRO_NODE_ENABLE
+#if TCFG_NOISEGATE_PRO_NODE_ENABLE
 const int audio_effect_nsgate_pro_enable = 1;
 #else
 const int audio_effect_nsgate_pro_enable = 0;
@@ -613,7 +618,7 @@ const int audio_vocal_remover_high_cut_enable = 1;
 //***********************
 const  int RS_FAST_MODE_QUALITY = 2;	//软件变采样 滤波阶数配置，范围2到8， 8代表16阶的变采样模式 ,速度跟它的大小呈正相关
 
-const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 1; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
+const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 0; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
 /*
  *******************************************************************
  *						Audio Smart Voice Config

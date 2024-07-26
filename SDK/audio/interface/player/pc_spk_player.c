@@ -17,6 +17,7 @@
 #include "audio_config.h"
 #include "scene_switch.h"
 #include "uac_stream.h"
+#include "audio_cvp.h"
 
 #define LOG_TAG_CONST       USB
 #define LOG_TAG             "[pcspk]"
@@ -50,6 +51,15 @@ static void pc_spk_player_callback(void *private_data, int event)
 
     switch (event) {
     case STREAM_EVENT_START:
+
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+        //先开pc mic，后开spk，需要取消忽略外部数据，重启aec
+        if (audio_aec_status()) {
+            audio_aec_reboot(0);
+            audio_cvp_ref_data_align_reset();
+        }
+#endif
+
         if (app_get_current_mode()->name == APP_MODE_PC) {
             s16 cur_vol = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
             u16 l_vol = 0, r_vol = 0;
@@ -58,7 +68,7 @@ static void pc_spk_player_callback(void *private_data, int event)
                 app_audio_set_volume(APP_AUDIO_STATE_MUSIC, (r_vol + l_vol) / 2, 1);
             }
         }
-#ifdef TCFG_VOCAL_REMOVER_NODE_ENABLE
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
         musci_vocal_remover_update_parm();
 #endif
         break;
@@ -149,6 +159,13 @@ void pc_spk_player_close(void)
     free(player);
     player = NULL;
     g_pc_spk_player = NULL;
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+    if (audio_aec_status()) {
+        //忽略参考数据
+        audio_cvp_ioctl(CVP_OUTWAY_REF_IGNORE, 1, NULL);
+        audio_cvp_ref_data_align_reset();
+    }
+#endif
     jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"pc_spk");
 }
 

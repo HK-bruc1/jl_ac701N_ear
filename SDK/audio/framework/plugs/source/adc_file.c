@@ -383,6 +383,14 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
     if ((hdl->scene == STREAM_SCENE_ESCO) ||
         (hdl->scene == STREAM_SCENE_PC_MIC) ||
         (hdl->scene == STREAM_SCENE_LEA_CALL)) {
+
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+        /*对齐iis外部参考数据延时*/
+        if (!get_audio_aec_rebooting()) {
+            audio_cvp_ref_data_align();
+        }
+#endif
+
 #if TCFG_AUDIO_DUT_ENABLE
         //打开产测功能，只有算法模式，才会读dac参考数据，避免 data full
         if (cvp_dut_mode_get() == CVP_DUT_MODE_ALGORITHM) {

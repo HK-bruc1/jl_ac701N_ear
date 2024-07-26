@@ -13,6 +13,7 @@
 #include "clock.h"
 #include "list.h"
 #include "app_config.h"
+#include "jlstream.h"
 
 #define LOG_TAG             "[clock-manager]"
 #define LOG_ERROR_ENABLE
@@ -163,10 +164,18 @@ static u32 clock_list_sum(void)
     clock_manager_item *p;
     u32 total = 0;
 
+#ifdef CONFIG_EARPHONE_CASE_ENABLE
+    list_for_each_entry(p, &clk_mgr_head, entry) {
+        if (total < p->freq) {
+            total = p->freq;
+        }
+    }
+#else
     list_for_each_entry(p, &clk_mgr_head, entry) {
         /*log_info("%s : %dHz", p->name, p->freq);*/
         total += p->freq;
     }
+#endif
     if (total < CLOCK_MINIMUM_FREQ) {
         total = CLOCK_MINIMUM_FREQ;
     }
@@ -308,7 +317,7 @@ static void clk_ref_cal(void)
 #endif
 
 
-    int usage[2] = { 0, 0 };
+    int usage[3] = { 0, 0, 0 };
     int a = os_cpu_usage(NULL, usage);
     task_info_reset();
 
@@ -316,6 +325,12 @@ static void clk_ref_cal(void)
         return;
     }
     int usage_max = MAX(usage[0], usage[1]);
+#ifdef CONFIG_EARPHONE_CASE_ENABLE
+    usage[2] = jlstream_get_cpu_usage();
+    if (usage_max < usage[2]) {
+        usage_max = usage[2];
+    }
+#endif
 
     int curr_clk = clk_get("sys");
     int dest_clk = curr_clk;
@@ -347,8 +362,8 @@ __again:
         dest_clk = min_clk;
     }
 
-    log_info("cpu0: %d%% cpu1: %d%%  curr_clk:%d  min_clk:%d dest_clk:%d, %d\n",
-             usage[0], usage[1], curr_clk, min_clk, dest_clk, clk_adjust_step);
+    log_info("cpu0: %d%% cpu1: %d%% jlstream: %d%% curr_clk:%d  min_clk:%d dest_clk:%d, %d\n",
+             usage[0], usage[1], usage[2], curr_clk, min_clk, dest_clk, clk_adjust_step);
 
     //clock lock
     if (clk_locker.freq) {

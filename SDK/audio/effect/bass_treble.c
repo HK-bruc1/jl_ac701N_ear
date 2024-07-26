@@ -15,7 +15,7 @@
 #include "bass_treble.h"
 #include "scene_switch.h"
 
-#ifdef TCFG_BASS_TREBLE_NODE_ENABLE
+#if TCFG_BASS_TREBLE_NODE_ENABLE
 struct bass_treble_default_parm  music_bass_treble_par = {0};
 struct bass_treble_default_parm  mic_bass_treble_par = {0};
 

@@ -105,7 +105,7 @@ IMU_SENSOR_PLATFORM_DATA_END();
 
 void board_imu_sensor_init()
 {
-#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     extern void imu_sensor_power_ctl(u32 gpio, u8 value);
     extern void imu_sensor_ad0_selete(u32 gpio, u8 value);
 #ifdef TCFG_IMU_SENSOR_PWR_PORT
@@ -155,7 +155,7 @@ void board_imu_sensor_init()
     imu_sensor_io_ctl("icm42670p", IMU_SENSOR_SLEEP, NULL);
 #endif
 
-#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE*/
+#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE*/
 }
 
 
@@ -251,7 +251,7 @@ void board_init()
     eartouch_init(&eartouch_cfg);
 #endif
 
-#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE)
+#if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE) || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     board_imu_sensor_init();
 #endif
 }

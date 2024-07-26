@@ -15,6 +15,7 @@
 #include "os/os_api.h"
 #include "ble_rcsp_server.h"
 #include "btstack/avctp_user.h"
+#include "rcsp_ch_loader_download.h"
 
 #include <string.h>
 
@@ -80,6 +81,8 @@ static u16 g_bt_read_len = 0;
 static u32 rcsp_file_offset = 0;
 static u8 rcsp_seek_type = 0;
 
+static u8 g_rcsp_ancs_state_flag = 0;
+
 //NOTE:测试盒的定义和本sdk文件系统的seek_type定义不一样;
 enum {
     BT_SEEK_SET = 0x01,
@@ -88,7 +91,9 @@ enum {
     BT_SEEK_TYPE_UPDATE_LEN = 0x10,
 };
 
-// 断开连接时，需要清空正在升级的bthdl
+/**
+ * @brief 断开连接时，需要清空正在升级的bthdl
+ */
 void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_addr)
 {
     if (ble_con_handle == __this->ble_con_handle) {
@@ -370,7 +375,7 @@ void rcsp_update_handle(u8 state, void *buf, int len)
     }
 }
 
-void rcsp_resume(void)
+void rcsp_update_resume(void)
 {
     if (__this->resume_hdl) {
         __this->resume_hdl(NULL);
@@ -397,6 +402,19 @@ void rcsp_ch_update_init(void (*resume_hdl)(void *priv), int (*sleep_hdl)(void *
     //register_receive_fw_update_block_handle(rcsp_updata_handle);
 }
 
+extern u8 get_ota_status();
+void rcsp_update_ancs_disconn_handler(void)
+{
+    if (get_ota_status()) {
+#if (TCFG_USER_TWS_ENABLE && OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+        extern OS_SEM tws_ota_sem;
+        os_sem_post(&tws_ota_sem);
+#endif
+        g_rcsp_ancs_state_flag = 1;
+        rcsp_update_resume();
+    }
+}
+
 const update_op_api_t rcsp_update_op = {
     .ch_init = rcsp_ch_update_init,
     .f_open = rcsp_f_open,
@@ -407,7 +425,6 @@ const update_op_api_t rcsp_update_op = {
 };
 
 extern void set_jl_update_flag(u8 flag);
-extern u8 *rcsp_get_ble_hdl_remote_mac_addr(u16 ble_con_handle);
 static void rcsp_update_state_cbk(int type, u32 state, void *priv)
 {
     update_ret_code_t *ret_code = (update_ret_code_t *)priv;

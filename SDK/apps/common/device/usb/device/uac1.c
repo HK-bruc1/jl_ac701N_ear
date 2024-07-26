@@ -1450,13 +1450,14 @@ static void spk_feed_data_when_downstream_halt(struct usb_device_t *usb_device, 
         }
     }
     ep_buffer = spk_info->spk_dma_buffer;
-    if (spk_info->downstream_halt) {
+    if (spk_info->downstream_halt >= 5) {
+        spk_info->downstream_halt = 5;  //avoid numerical overflow
         spk_frame_len = spk_info->spk_sampling_rate * (spk_res / 8) * SPK_CHANNEL / 1000;
         spk_frame_len += padding_len;
         memset(ep_buffer, 0, spk_frame_len);
         uac_speaker_stream_write(ep_buffer, spk_frame_len);
     }
-    spk_info->downstream_halt = 1;
+    spk_info->downstream_halt++;
 }
 static void open_spk(struct usb_device_t *usb_device)
 {
@@ -1726,25 +1727,26 @@ static void mic_drop_data_when_upstream_halt(struct usb_device_t *usb_device, u3
 #endif
 
     ep_buffer = mic_info->mic_dma_buffer;
-    mic_res = mic_info->res;
-#if UAC_24BIT_IN_4BYTE
-    if (mic_res == 24) {
-        mic_res = 32;
-    }
-#endif
-    mic_frame_len = ((mic_info->mic_sampling_rate * mic_res / 8 * MIC_CHANNEL) / 1000);
-    //非对齐采样率补点
-    if (mic_info->mic_padding_interval) {
-        if (++mic_info->mic_padding_cnt == mic_info->mic_padding_interval) {
-            mic_info->mic_padding_cnt = 0;
-            mic_frame_len += (mic_res / 8) * MIC_CHANNEL;
-        }
-    }
 
-    if (mic_info->upstream_halt) {
+    if (mic_info->upstream_halt >= 5) {
+        mic_info->upstream_halt = 5;  //avoid numerical overflow
+        mic_res = mic_info->res;
+#if UAC_24BIT_IN_4BYTE
+        if (mic_res == 24) {
+            mic_res = 32;
+        }
+#endif
+        mic_frame_len = ((mic_info->mic_sampling_rate * mic_res / 8 * MIC_CHANNEL) / 1000);
+        //非对齐采样率补点
+        if (mic_info->mic_padding_interval) {
+            if (++mic_info->mic_padding_cnt == mic_info->mic_padding_interval) {
+                mic_info->mic_padding_cnt = 0;
+                mic_frame_len += (mic_res / 8) * MIC_CHANNEL;
+            }
+        }
         uac_mic_stream_read(ep_buffer,  mic_frame_len);
     }
-    mic_info->upstream_halt = 1;
+    mic_info->upstream_halt++;
 }
 static void open_mic(struct usb_device_t *usb_device)
 {

@@ -68,7 +68,6 @@ u16 qmi8658_I2C_Read_NBytes(unsigned char devAddr,
                             u16 readLen)
 {
     u16 i = 0;
-    local_irq_disable();
     iic_start(qmi8658_info->iic_hdl);
     if (0 == iic_tx_byte(qmi8658_info->iic_hdl, devAddr)) {
         log_error("qmi8658 iic read err1");
@@ -98,7 +97,6 @@ u16 qmi8658_I2C_Read_NBytes(unsigned char devAddr,
     }
 __iic_exit_r:
     iic_stop(qmi8658_info->iic_hdl);
-    local_irq_enable();
 
     return i;
 }
@@ -110,7 +108,6 @@ unsigned char qmi8658_I2C_Write_Byte(unsigned char devAddr,  //芯片支持1byte
                                      unsigned char byte)
 {
     u8 ret = 1;
-    local_irq_disable();
     iic_start(qmi8658_info->iic_hdl);
     if (0 == iic_tx_byte(qmi8658_info->iic_hdl, devAddr)) {
         log_error("qmi8658 iic write err1");
@@ -131,7 +128,6 @@ unsigned char qmi8658_I2C_Write_Byte(unsigned char devAddr,  //芯片支持1byte
     }
 __iic_exit_w:
     iic_stop(qmi8658_info->iic_hdl);
-    local_irq_enable();
     return ret;
 }
 //起止信号间隔：standard mode(100khz):4.7us; fast mode(400khz):1.3us

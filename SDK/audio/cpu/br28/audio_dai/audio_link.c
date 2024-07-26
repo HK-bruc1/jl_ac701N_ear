@@ -22,7 +22,7 @@
 #pragma   data_seg(".audio_link.data")
 #pragma  const_seg(".audio_link.text.const")
 #endif
-#ifdef TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE
 
 #define IIS_IO_INIT_AFTER_ALINK_START  1// alink_start之后，再初始化输出io,避免iis起始io输出不定态引起一声杂音的问题
 /* #define ALINK_DEBUG_INFO */

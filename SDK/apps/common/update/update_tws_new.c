@@ -18,6 +18,7 @@
 #include "update.h"
 #include "app_main.h"
 #include "timer.h"
+#include "clock_manager/clock_manager.h"
 
 #if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
 
@@ -45,8 +46,6 @@ static u32(*sync_update_crc_calc_hdl)(u32 init_crc, const void *data, u32 len) =
 
 extern void norflash_set_write_protect_en(void);
 extern void norflash_set_write_protect_remove(void);
-
-int clock_alloc(const char *name, u32 clk);
 
 struct _bt_event {
     u8 event;
@@ -520,8 +519,7 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
         break;
     case OTA_TWS_VERIFY:
         g_printf("MSG_OTA_TWS_VERIFY\n");
-        old_sys_clk = clk_get("sys");
-        clock_alloc("sys", 120 * 1000000L - old_sys_clk);   //提升主频加快CRC校验速度
+        clock_alloc("sys", 120 * 1000000L);   //提升主频加快CRC校验速度
         ret =  dual_bank_update_verify(sync_update_crc_init_hdl, sync_update_crc_calc_hdl, tws_verify_result_hdl);
         if (ret) {
             rsp_data[0] = OTA_TWS_VERIFY_RSP;
@@ -538,10 +536,7 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
         break;
     case OTA_TWS_VERIFY_WITHOUT_CRC:
         g_printf("MSG_OTA_TWS_VERIFY_WITHOUT_CRC\n");
-        old_sys_clk = clk_get("sys");
-        if (160 * 1000000L - old_sys_clk > 0) { //如果校验时时钟较慢就提升
-            clock_alloc("sys", 160 * 1000000L - old_sys_clk);   //提升主频加快CRC校验速度
-        }
+        clock_alloc("sys", 160 * 1000000L);   //提升主频加快CRC校验速度
         ret = dual_bank_update_verify_without_crc_new(tws_verify_without_crc_result_hdl);
         if (ret) {
             rsp_data[0] = OTA_TWS_VERIFY_WITHOUT_CRC_RSP;

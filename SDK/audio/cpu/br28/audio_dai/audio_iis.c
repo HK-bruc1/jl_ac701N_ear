@@ -37,7 +37,7 @@
 #pragma  const_seg(".audio_link.text.const")
 #endif
 
-#ifdef TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE
 
 
 

@@ -66,7 +66,12 @@ static void testbox_bt_classic_update_before_jump_handle(int type)
 #if (defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28)
         __bt_updata_reset_bt_bredrexm_addr();       //仅36、27、28使用跳转，后续CPU升级都直接reset
 #else
+#if CONFIG_UPDATE_JUMP_TO_MASK
+        y_printf(">>>[test]:latch reset update\n");
+        latch_reset();
+#else
         cpu_reset();
+#endif
 #endif
     }
 }

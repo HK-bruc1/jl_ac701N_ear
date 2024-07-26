@@ -92,12 +92,13 @@ const int CONFIG_BTSTACK_TWS_AUDIO_SHARE_ENABLE  = 0;
 #endif
 
 #if RCSP_MODE
-int app_info_debug_enable = 0;//BIT(4);
-/* #define RCSP_API_LOG		0 */
+int app_info_debug_enable = 0; // | BIT(4); 				//	rcsp库内部打印
+/* #define RCSP_API_LOG		0 */							// rcsp认证相关
 /* #define RCSP_PACKET_LOG		1 */
-/* #define RCSP_PROTOCOL_LOG	2 */
+/* #define RCSP_PROTOCOL_LOG	2 */						// rcsp发送接收数据相关
 /* #define SPP_USER_LOG		3 */
-/* #define RCSP_INTERFACE_LOG	4 */
+/* #define RCSP_INTERFACE_LOG	4 */						// rcsp连接相关
+u8 rcsp_allow_ble_spp_connect_simultaneously = 0;			// 1t1时，是否允许ble连接的同时连接spp
 #endif
 
 //le 配置,可以优化代码和RAM

@@ -60,14 +60,11 @@ SECTIONS
 
     .text ALIGN(32):SUBALIGN(4)
     {
-        aec_code_begin = . ;
         . = ALIGN(4);
-#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG & CVP_WB_EN)
+        cvp_code_begin = . ;
         *(.dns_16k_data)
-#endif
-#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG & CVP_NB_EN)
         *(.dns_8k_data)
-#endif
+        . = ALIGN(4);
 		*(.jlsp_const)
 		*(.jlsp_code)
         *(.jlsp_dns_code)
@@ -160,8 +157,9 @@ SECTIONS
         *(.jlsp_tri_code)
         *(.jlsp_tri_const)
 #endif
-		aec_code_end = . ;
-		aec_code_size = aec_code_end - aec_code_begin ;
+		. = ALIGN(4);
+		cvp_code_end = . ;
+		cvp_code_size = cvp_code_end - cvp_code_begin ;
 
     } > code0
 
@@ -169,6 +167,8 @@ SECTIONS
 	{
         /*使用动态加载时*/
 #ifdef CONFIG_CODE_MOVABLE_ENABLE
+        . = ALIGN(4);
+		cvp_data_code_begin = . ;
 #if AUDIO_CVP_TEXT_AT_RAM
         . = ALIGN(4);
         *(.text._*)
@@ -242,8 +242,9 @@ SECTIONS
         *(.jlsp_tri_code)
         *(.jlsp_tri_const)
 #endif
-		aec_code_end = . ;
-		aec_code_size = aec_code_end - aec_code_begin ;
+        . = ALIGN(4);
+		cvp_data_code_end = . ;
+		cvp_data_code_size = cvp_data_code_end - cvp_data_code_begin ;
 #endif /*CONFIG_CODE_MOVABLE_ENABLE*/ 
 
 	} > ram0

@@ -238,11 +238,12 @@ INCLUDES := \
 	-Iapps/common/cJSON \
 	-Iinterface/media/cpu/br28 \
 	-Iinterface/utils/ui/ui/cpu/br28 \
+	-Iapps/common/le_audio \
+	-Iapps/earphone/include/le_audio \
+	-Iapps/earphone/include/le_audio/big \
+	-Iapps/earphone/include/le_audio/cig \
 	-Iinterface/btstack/third_party/le_audio \
 	-Iinterface/btstack/third_party/broadcast \
-	-Iapps/common/include/le_audio \
-	-Iapps/common/include/le_audio/cig \
-	-Iapps/common/include/le_audio/big \
 	-Iaudio/le_audio \
 	-Iapps/common/third_party_profile/tuya_protocol \
 	-Iapps/common/third_party_profile/tuya_protocol/app/demo \
@@ -275,6 +276,7 @@ INCLUDES := \
 	-Iaudio/cpu/br28/audio_dai \
 	-Iaudio/smart_voice \
 	-Iaudio/effect/spatial_effect \
+	-Iaudio/effect/somatosensory \
 	-Iinterface/media/aispeech/enc \
 	-Iaudio/cpu/br28/audio_vad \
 	-Iinterface/media/framework/include \
@@ -362,14 +364,7 @@ c_SRC_FILES := \
 	apps/common/fat_nor/cfg_private.c \
 	apps/common/fat_nor/virfat_flash.c \
 	apps/common/le_audio/big.c \
-	apps/common/le_audio/big/app_le_broadcast.c \
-	apps/common/le_audio/big/le_broadcast.c \
-	apps/common/le_audio/big/le_broadcast_config.c \
 	apps/common/le_audio/cig.c \
-	apps/common/le_audio/cig/app_le_connected.c \
-	apps/common/le_audio/cig/le_connected.c \
-	apps/common/le_audio/cig/le_connected_config.c \
-	apps/common/le_audio/le_audio_common.c \
 	apps/common/le_audio/wireless_trans_manager.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_anc_manager.c \
@@ -603,6 +598,13 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/earphone.c \
 	apps/earphone/mode/bt/eartch_event_deal.c \
 	apps/earphone/mode/bt/kws_voice_event_deal.c \
+	apps/earphone/mode/bt/le_audio/big/app_le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast_config.c \
+	apps/earphone/mode/bt/le_audio/cig/app_le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected_config.c \
+	apps/earphone/mode/bt/le_audio/le_audio_common.c \
 	apps/earphone/mode/bt/low_latency.c \
 	apps/earphone/mode/bt/phone_call.c \
 	apps/earphone/mode/bt/poweroff.c \
@@ -621,10 +623,12 @@ c_SRC_FILES := \
 	apps/earphone/mode/linein/linein.c \
 	apps/earphone/mode/linein/linein_dev.c \
 	apps/earphone/mode/linein/linein_key_msg_table.c \
+	apps/earphone/mode/mic_effect/mic_effect.c \
 	apps/earphone/mode/pc/pc.c \
 	apps/earphone/mode/pc/pc_key_msg_table.c \
 	apps/earphone/mode/power_on/power_on.c \
 	apps/earphone/test/rssi.c \
+	apps/earphone/test/tws_role_switch.c \
 	apps/earphone/third_part/app_protocol_deal.c \
 	apps/earphone/third_part/tuya/tuya_app.c \
 	apps/earphone/third_part/tuya/tuya_demo.c \
@@ -665,6 +669,9 @@ c_SRC_FILES := \
 	audio/common/audio_volume_mixer.c \
 	audio/common/bt_audio_energy_detection.c \
 	audio/common/debug/audio_debug.c \
+	audio/common/demo/codec_demo/audio_enc_file_demo.c \
+	audio/common/demo/codec_demo/audio_file_dec_demo.c \
+	audio/common/demo/codec_demo/audio_frame_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
@@ -726,6 +733,7 @@ c_SRC_FILES := \
 	audio/effect/eq_config.c \
 	audio/effect/esco_ul_voice_changer.c \
 	audio/effect/node_param_update.c \
+	audio/effect/somatosensory/audio_somatosensory.c \
 	audio/effect/spatial_effect/spatial_effect.c \
 	audio/effect/spatial_effect/spatial_effect_imu.c \
 	audio/effect/spatial_effect/spatial_effect_tws.c \
@@ -956,6 +964,7 @@ LFLAGS := \
 	cpu/br28/liba/lib_point360_td.a \
 	cpu/br28/liba/SensorCalib.a \
 	cpu/br28/liba/SpatialAudio.a \
+	cpu/br28/liba/SomatosensoryControl.a \
 	cpu/br28/liba/DynamicEQ.a \
 	cpu/br28/liba/DynamicEQPro.a \
 	cpu/br28/liba/lib_icsd_adt.a \

@@ -6,7 +6,7 @@
 #endif
 #include "spatial_imu_trim.h"
 #include "app_config.h"
-#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || (defined (TCFG_AUDIO_SOMATOSENSORY_ENABLE) && TCFG_AUDIO_SOMATOSENSORY_ENABLE))
 
 #include "spatial_effect_imu.h"
 #include "tech_lib/SpatialAudio_api.h"

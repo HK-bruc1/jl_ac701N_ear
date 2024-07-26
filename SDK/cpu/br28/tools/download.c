@@ -101,11 +101,16 @@ set TONE_ZH_ENABLE=0
 set RCSP_EN=1
 #endif
 
+#ifdef CONFIG_EARPHONE_CASE
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 copy anc_ext.bin download\earphone\ALIGN_DIR\.
 #else
 del download\earphone\ALIGN_DIR\anc_ext.bin
 #endif
 call download/earphone/download.bat
+#endif
 
+#ifdef CONFIG_SOUNDBOX_CASE
+call download/soundbox/download.bat
+#endif
 #endif

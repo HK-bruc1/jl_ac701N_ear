@@ -37,6 +37,9 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE
+#include "somatosensory/audio_somatosensory.h"
+#endif
 
 
 #if (TCFG_USER_TWS_ENABLE == 0)
@@ -252,6 +255,27 @@ static int bt_phone_active(u8 *bt_addr)
 
 }
 
+struct esco_delay_ctl {
+    u8 esco_addr[6];
+    u16 timer;
+    u16 delay_timeout_cnt;
+};
+static struct esco_delay_ctl ed_ctl = {0};
+static void esco_delay_open(void *priv)
+{
+    ed_ctl.delay_timeout_cnt++;
+    if (ed_ctl.delay_timeout_cnt >= 60) {
+        tone_player_stop();
+    }
+    if ((!tone_player_runing() && !key_tone_player_running()) || (ed_ctl.delay_timeout_cnt >= 60)) {
+        ed_ctl.delay_timeout_cnt = 0;
+        lmp_private_esco_suspend_resume(2);
+        esco_audio_open(ed_ctl.esco_addr);
+        sys_timer_del(ed_ctl.timer);
+        ed_ctl.timer = 0;
+    }
+}
+
 #define ESCO_SIRI_WAKEUP()      (app_var.siri_stu == 1 || app_var.siri_stu == 2)
 static void esco_smart_voice_detect_handler(void)
 {
@@ -280,6 +304,10 @@ int bt_phone_esco_play(u8 *bt_addr)
     esco_smart_voice_detect_handler();
 #endif
 
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_open();
+#endif
+
     a2dp_player_close(bt_addr);
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
@@ -297,7 +325,16 @@ int bt_phone_esco_play(u8 *bt_addr)
     }
 #endif
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_OPEN);
-    esco_audio_open(bt_addr);
+    printf("bt_phone_esco_play:%d %d %d\n", tone_player_runing(), key_tone_player_running(), ed_ctl.timer);
+    if (tone_player_runing() || key_tone_player_running()) {
+        if (!ed_ctl.timer) {
+            lmp_private_esco_suspend_resume(1);
+            memcpy(ed_ctl.esco_addr, bt_addr, 6);
+            ed_ctl.timer = sys_timer_add(NULL, esco_delay_open, 50);
+        }
+    } else {
+        esco_audio_open(bt_addr);
+    }
 
     g_bt_hdl.phone_call_dec_begin = 1;
     if (bt_get_call_status() == BT_CALL_ACTIVE) {
@@ -319,6 +356,9 @@ int bt_phone_esco_stop(u8 *bt_addr)
 #endif /*TCFG_KWS_VOICE_RECOGNITION_ENABLE*/
 
     puts("<<<<<<<<<<<esco_dec_stop\n");
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_close();
+#endif
     g_bt_hdl.phone_call_dec_begin = 0;
     esco_dump_packet = ESCO_DUMP_PACKET_CALL;
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_CLOSE);

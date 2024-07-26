@@ -104,3 +104,8 @@ int play_key_tone_file(const char *file_name)
     return key_tone_player_start(player);
 }
 
+u8 key_tone_player_running(void)
+{
+    return g_player ? 1 : 0;
+}
+

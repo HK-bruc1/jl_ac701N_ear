@@ -147,6 +147,45 @@ static void dns_ioc_open_iport(struct stream_iport *iport)
     iport->handle_frame = dns_handle_frame;				//注册输出回调
 }
 
+/*节点参数协商*/
+static int dns_ioc_negotiate(struct stream_iport *iport)
+{
+    struct stream_fmt *in_fmt = &iport->prev->fmt;
+    struct stream_oport *oport = iport->node->oport;
+    int ret = NEGO_STA_ACCPTED;
+    int nb_sr, wb_sr, nego_sr;
+
+#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_WB_EN)
+    nb_sr = 16000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#elif (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_NB_EN)
+    nb_sr = 8000;
+    wb_sr = 8000;
+    nego_sr  = 8000;
+#else
+    nb_sr = 8000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#endif
+    //要求输入为8K或者16K
+    if (in_fmt->sample_rate != nb_sr && in_fmt->sample_rate != wb_sr) {
+        in_fmt->sample_rate = nego_sr;
+        oport->fmt.sample_rate = in_fmt->sample_rate;
+        ret = NEGO_STA_CONTINUE | NEGO_STA_SAMPLE_RATE_LOCK;
+    }
+
+    //要求输入16bit位宽的数据
+    if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
+        in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
+        in_fmt->Qval = AUDIO_QVAL_16BIT;
+        oport->fmt.bit_wide = in_fmt->bit_wide;
+        oport->fmt.Qval = in_fmt->Qval;
+        ret = NEGO_STA_CONTINUE;
+    }
+    return ret;
+}
+
 
 /*节点start函数*/
 static void dns_ioc_start(struct dns_node_hdl *hdl)
@@ -202,6 +241,9 @@ static int dns_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         break;
     case NODE_IOC_OPEN_IPORT:
         dns_ioc_open_iport(iport);
+        break;
+    case NODE_IOC_NEGOTIATE:
+        *(int *)arg |= dns_ioc_negotiate(iport);
         break;
     case NODE_IOC_START:
         dns_ioc_start(hdl);

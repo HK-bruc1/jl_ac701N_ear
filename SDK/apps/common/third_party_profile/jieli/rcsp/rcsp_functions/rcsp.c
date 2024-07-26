@@ -18,6 +18,7 @@
 #include "rcsp_manage.h"
 #include "rcsp_setting_opt.h"
 #include "adv_1t2_setting.h"
+#include "rcsp_ch_loader_download.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
@@ -40,7 +41,7 @@
 #define rcsp_put_buf(...)
 #endif
 
-struct RcspModel *__this = NULL;
+static struct RcspModel *__this = NULL;
 
 #if RCSP_BLE_MASTER
 
@@ -214,7 +215,7 @@ void rcsp_init(void)
     }
 }
 
-void rcsp_exit(void)
+static void rcsp_exit_in_app_core_task(void)
 {
     if (rcsp_timer) {
         sys_s_hi_timer_del(rcsp_timer);
@@ -231,6 +232,16 @@ void rcsp_exit(void)
         __this = NULL;
     }
     rcsp_opt_release();
+    rcsp_update_resume();
+}
+
+void rcsp_exit(void)
+{
+    int argv[3];
+    argv[0] = (int)rcsp_exit_in_app_core_task;
+    argv[1] = 1;
+    argv[2] = 0;
+    os_taskq_post_type("app_core", Q_CALLBACK, 3, argv);
 }
 
 #endif//RCSP_MODE

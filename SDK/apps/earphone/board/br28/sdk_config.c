@@ -8,15 +8,6 @@
 **/
 
 
-// ------------蓝牙配置.json------------
-const int CONFIG_LE_AUDIO_PLAY_LATENCY = 0x7530; // le_audio延时（us）
-const int CONFIG_JL_DONGLE_PLAYBACK_LATENCY = 0x28; // dongle下行播放延时(msec)
-// ------------蓝牙配置.json------------
-
-// ------------音频配置.json------------
-const int CONFIG_SPATIAL_EFFECT_VERSION = 0x1; // 音效算法版本选择
-// ------------音频配置.json------------
-
 #if TCFG_BATTERY_CURVE_ENABLE
 const struct battery_curve g_battery_curve_table [] =  {
     {

@@ -342,12 +342,6 @@
 #else
 //#define SYS_VOL_TYPE            VOL_TYPE_DIGITAL_HW
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
-/*
- *通话的时候使用数字音量
- *0：通话使用和SYS_VOL_TYPE一样的音量调节类型
- *1：通话使用数字音量调节，更加平滑
- */
-#define TCFG_CALL_USE_DIGITAL_VOLUME		0
 
 //第三方清晰语音开发使能
 // #define TCFG_CVP_DEVELOP_ENABLE             DISABLE_THIS_MOUDLE

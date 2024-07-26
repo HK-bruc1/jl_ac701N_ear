@@ -22,7 +22,7 @@
 #define pdm_mic_file_log(...)
 #endif/*log_en*/
 
-#ifdef TCFG_PDM_NODE_ENABLE
+#if TCFG_PDM_NODE_ENABLE
 
 #define ESCO_PDM_SCLK          2400000 /*1M-4M,SCLK/SR需为整数且在1-4096范围*/
 #define ESCO_PDM_IRQ_POINTS    256 /*采样中断点数*/

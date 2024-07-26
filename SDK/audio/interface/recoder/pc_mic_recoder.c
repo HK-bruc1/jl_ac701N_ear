@@ -14,6 +14,7 @@
 #include "app_main.h"
 #include "volume_node.h"
 #include "audio_cvp.h"
+#include "pc_spk_player.h"
 
 #define LOG_TAG_CONST       USB
 #define LOG_TAG             "[pcmic]"
@@ -75,6 +76,14 @@ static void pc_mic_recoder_callback(void *private_data, int event)
         cfg.cur_vol = volume;
         err = jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, "Vol_PcMic", (void *)&cfg, sizeof(struct volume_cfg));
         log_info(">>> pc mic vol: %d, ret:%d", volume, err);
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+        /*打开pc mic，没有开skp，忽略外部参考数据*/
+        printf("STREAM_EVENT_START");
+        if (!pc_spk_player_runing()) {
+            printf("CVP_OUTWAY_REF_IGNORE, 1");
+            audio_cvp_ioctl(CVP_OUTWAY_REF_IGNORE, 1, NULL);
+        }
+#endif
         break;
     }
 }
@@ -116,8 +125,10 @@ int pc_mic_recoder_open(void)
     u16 node_uuid = get_cvp_node_uuid();
     //根据回音消除的类型，将配置传递到对应的节点
     if (node_uuid) {
+#if !(TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE))
         u32 ref_sr = audio_dac_get_sample_rate(&dac_hdl);
         jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_FMT, (int)ref_sr);
+#endif
         err = jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_PRIV_FMT, source_uuid);
         if (err && (err != -ENOENT)) {	//兼容没有cvp节点的情况
             goto __exit1;
@@ -155,6 +166,7 @@ void pc_mic_recoder_close(void)
 
     recoder_wait_close_flag = 0;
     if (!recoder) {
+        os_mutex_post(&mic_rec_mutex);
         return;
     }
     if (recoder->stream) {

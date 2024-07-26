@@ -478,6 +478,7 @@ struct jlstream {
     u8 ref;
     u8 run_cnt;
     u8 delay;
+    u8 usage;
     u8 incr_sys_clk;
     u8 thread_run;
     u8 thread_num;
@@ -655,7 +656,7 @@ int jlstream_fade_in_32bit(int value, s16 step, s32 *data, int len, u8 channel);
 /*
  * 获取节点和设置节点参数接口
  */
-void *jlstream_get_node(u16 node_uuid, const char *name);
+void *jlstream_get_node(u16 node_uuid, const char *name, u16 max_param_len);
 
 int jlstream_set_node_param_s(void *node, void *param, u16 param_len);
 
@@ -723,6 +724,8 @@ jlstream_breaker_t jlstream_insert_breaker(struct jlstream *stream,
 int jlstream_delete_breaker(jlstream_breaker_t breaker, bool restore);
 
 void jlstream_return_frame(struct stream_iport *iport, struct stream_frame *frame);
+
+int jlstream_get_cpu_usage();
 
 void stream_mem_unfree_dump();
 #endif

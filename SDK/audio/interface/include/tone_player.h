@@ -97,6 +97,10 @@ int tone_player_runing();
  */
 int play_key_tone_file(const char *file_name);
 
+/*
+ * 按键音播放器是否运行中
+ */
+u8 key_tone_player_running(void);
 
 /*
  * 提示音文件名转uuid, 全局的提示音播放结束事件中会有次参数，可用于识别是哪一个提示音

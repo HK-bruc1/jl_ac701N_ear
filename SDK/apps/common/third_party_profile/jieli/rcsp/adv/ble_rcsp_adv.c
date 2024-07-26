@@ -47,6 +47,7 @@
 #include "multi_protocol_main.h"
 #include "JL_rcsp_api.h"
 #include "rcsp_config.h"
+#include "btstack_rcsp_user.h"
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
 #include "app_le_connected.h"
@@ -83,7 +84,7 @@ static u8 adv_data[ADV_RSP_PACKET_MAX];//max is 31
 static u8 scan_rsp_data_len;
 static u8 scan_rsp_data[ADV_RSP_PACKET_MAX];//max is 31
 
-static u32 ble_timer_handle = 0;
+static u16 ble_timer_handle = 0;
 u16 sibling_ver_info = 0;
 u16 cur_ver_info  = 0;
 
@@ -598,17 +599,10 @@ int bt_ble_adv_ioctl(u32 cmd, u32 priv, u8 mode)
     return 0;
 }
 
-// 获取当前已连接spp数目
-extern u8 bt_rcsp_spp_conn_num(void);
-// 获取当前已连接ble数目
-extern u8 bt_rcsp_ble_conn_num(void);
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
 static void bt_ble_rcsp_adv_enable_do(void *priv)
 {
 #if TCFG_USER_TWS_ENABLE
 
-    // 感觉可以屏蔽该部分
     if (tws_api_get_role() == TWS_ROLE_SLAVE) {
         /* printf("%s, %s, it's slave\n", __FILE__, __FUNCTION__); */
         return;
@@ -642,19 +636,21 @@ static void bt_ble_rcsp_adv_enable_do(void *priv)
 #endif // TCFG_USER_TWS_ENABLE
     }
 #endif
+    u8 max_con_dev = rcsp_max_support_con_dev_num();
+    u8 rcsp_conn_num = bt_rcsp_device_conn_num();
     // 判断是否已连接并进入RCSP通讯
-    if (get_rcsp_connect_status() && JL_rcsp_get_auth_flag() && (__this->ble_adv_notify || __this->modify_flag)) {
+    if ((rcsp_conn_num > 0) && JL_rcsp_get_auth_flag() && (__this->ble_adv_notify || __this->modify_flag)) {
         u8 data[18];
         update_adv_data(data);
         adv_info_notify(data, 18);
-        __this->modify_flag = 0;
+        if (rcsp_conn_num >= max_con_dev) {
+            __this->modify_flag = 0;
+        }
         set_ble_adv_notify(0);
     }
 
     // 如果设备连接数最大，则不开启广播
-    u8 max_con_dev = rcsp_max_support_con_dev_num();
-    if (bt_rcsp_device_conn_num() >= max_con_dev) {
-        putchar('A');
+    if (rcsp_conn_num >= max_con_dev) {
         return;
     }
 
@@ -663,6 +659,7 @@ static void bt_ble_rcsp_adv_enable_do(void *priv)
     }
 
     log_info("adv modify!!!!!!\n");
+    __this->modify_flag = 0;
     rcsp_bt_ble_adv_enable(0);
     rcsp_make_set_adv_data();
     rcsp_make_set_rsp_data();

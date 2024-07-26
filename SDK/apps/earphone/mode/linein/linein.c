@@ -56,7 +56,7 @@ static void linein_start(void)
 
     /* set_dac_start_delay_time(1, 1); //设置dac通道的启动延时 */
     linein_player_open();
-#if (defined TCFG_PITCH_SPEED_NODE_ENABLE && LINEIN_PLAYBACK_PITCH_KEEP)
+#if (TCFG_PITCH_SPEED_NODE_ENABLE && LINEIN_PLAYBACK_PITCH_KEEP)
     audio_pitch_default_parm_set(app_var.pitch_mode);
     linein_file_pitch_mode_init(app_var.pitch_mode);
 #endif
@@ -169,7 +169,7 @@ static int linein_mode_init()
         printf("linein tone play err!!!");
         app_send_message(APP_MSG_LINEIN_START, 0);
     }
-#ifdef TCFG_PITCH_SPEED_NODE_ENABLE
+#if TCFG_PITCH_SPEED_NODE_ENABLE
     app_var.pitch_mode = PITCH_0;    //设置变调初始模式
 #endif
     app_send_message(APP_MSG_ENTER_MODE, APP_MODE_LINEIN);

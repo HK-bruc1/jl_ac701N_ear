@@ -22,6 +22,7 @@
 #include "btstack/btstack_task.h"
 #include "bt_tws.h"
 #include "ble_rcsp_adv.h"
+#include "rcsp_adv_bluetooth.h"
 #include "ble_rcsp_server.h"
 #include "rcsp_music_info_setting.h"
 #include "JL_rcsp_api.h"
@@ -29,6 +30,9 @@
 #include "rcsp_command.h"
 #include "app_ble_spp_api.h"
 #include "asm/charge.h"
+#include "btstack_rcsp_user.h"
+#include "rcsp_ch_loader_download.h"
+#include "clock_manager/clock_manager.h"
 
 #if RCSP_MODE == RCSP_MODE_EARPHONE
 #include "earphone.h"
@@ -59,10 +63,6 @@
 static u8 ble_adv_miss_flag = 0;
 static u8 ble_adv_poweron_flag = 0;
 
-extern u8 bt_rcsp_spp_conn_num(void);
-extern u8 bt_rcsp_device_conn_num(void);
-extern void bt_rcsp_reset_ble_info_for_tws_sw();
-extern u8 adv_info_device_request(u8 *buf, u16 len);
 #if (0 == BT_CONNECTION_VERIFY)
 void JL_rcsp_auth_flag_tws_sync(void);
 #endif
@@ -477,7 +477,6 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_spp_state) = {
 };
 #endif
 
-extern void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_addr);
 int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
 {
 #if TCFG_USER_TWS_ENABLE
@@ -496,7 +495,6 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
     switch (packet_type) {
     case SPP_USER_ST_CONNECT:
         // spp 连接后会走这里
-        extern void clock_refurbish(void);
         clock_refurbish();
 
 #if TCFG_USER_TWS_ENABLE
@@ -816,7 +814,6 @@ void rcsp_protocol_bound_tws_sync(void)
 	 ((u8)('H' + 'D' + 'L') << (1 * 8)) | \
 	 ((u8)('S' + 'Y' + 'N' + 'C') << (0 * 8)))
 
-extern void rcsp_interface_set_bt_hdl_with_tws_data(u8 *recieve_buf, u16 recieve_len);
 static void rcsp_interface_bt_handle_tws_sync_in_task(u8 *data, int len)
 {
     /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
@@ -830,23 +827,20 @@ static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool 
     if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
         /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
-        if (get_bt_tws_connect_status() && TWS_ROLE_MASTER != tws_api_get_role()) {
-            /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-            u8 *rx_data = malloc(len);
-            if (rx_data == NULL) {
-                return;
-            }
-            memcpy(rx_data, _data, len);
+        u8 *rx_data = malloc(len);
+        if (rx_data == NULL) {
+            return;
+        }
+        memcpy(rx_data, _data, len);
 
-            int argv[4];
-            argv[0] = (int)rcsp_interface_bt_handle_tws_sync_in_task;
-            argv[1] = 2;
-            argv[2] = (int)rx_data;
-            argv[3] = (int)len;
-            int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
-            if (ret) {
-                log_e("taskq post err \n");
-            }
+        int argv[4];
+        argv[0] = (int)rcsp_interface_bt_handle_tws_sync_in_task;
+        argv[1] = 2;
+        argv[2] = (int)rx_data;
+        argv[3] = (int)len;
+        int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
+        if (ret) {
+            log_e("taskq post err \n");
         }
     }
 }
@@ -856,8 +850,6 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_bt_hdl_sync) = {
     .func = rcsp_interface_bt_handle_tws_sync_in_irq,
 };
 
-u16 rcsp_interface_tws_sync_buf_size();
-void rcsp_interface_tws_sync_buf_content(u8 *send_buf);
 void rcsp_interface_bt_handle_tws_sync(void)
 {
     if (IS_CHARGE_EN()) {

@@ -24,6 +24,8 @@
 #include "rcsp_device_status.h"
 #include "JL_rcsp_protocol.h"
 #include "rcsp_config.h"
+#include "rcsp_ch_loader_download.h"
+#include "btstack_rcsp_user.h"
 #if RCSP_ADV_EN
 #include "rcsp_setting_opt.h"
 #endif
@@ -70,10 +72,7 @@ extern const int support_dual_bank_update_en;
 extern void ble_app_disconnect(void);
 extern void updata_parm_set(UPDATA_TYPE up_type, void *priv, u32 len);
 extern u8 check_le_pakcet_sent_finish_flag(void);
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
-// 获取当前ble连接设备的mac地址
-u8 *rcsp_get_ble_hdl_remote_mac_addr(u16 ble_con_handle);
+extern void rcsp_update_ancs_disconn_handler(void);
 
 static u8 update_flag = 0;
 static u8 tws_need_update = 0;             //标志耳机是否需要强制升级

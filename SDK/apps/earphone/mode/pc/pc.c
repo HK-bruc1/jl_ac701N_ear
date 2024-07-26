@@ -81,11 +81,7 @@ static void pc_task_start(void)
 
 #if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
      && TCFG_CHARGESTORE_PORT == IO_PORT_DP)
-#if defined(CONFIG_CPU_BR28) || defined(CONFIG_CPU_BR36)
-    power_wakeup_index_enable(TCFG_CHARGESTORE_WAKEUP_INDEX, 0);
-#else
     p33_io_wakeup_enable(TCFG_CHARGESTORE_PORT, 0);
-#endif
     chargestore_api_stop();
 #endif
 
@@ -125,11 +121,7 @@ static void pc_task_stop(void)
 #if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
      && TCFG_CHARGESTORE_PORT == IO_PORT_DP)
     chargestore_api_restart();
-#if defined(CONFIG_CPU_BR28) || defined(CONFIG_CPU_BR36)
-    power_wakeup_index_enable(TCFG_CHARGESTORE_WAKEUP_INDEX, 1);
-#else
     p33_io_wakeup_enable(TCFG_CHARGESTORE_PORT, 1);
-#endif
 #endif
 
 #if (TCFG_DEV_MANAGER_ENABLE)
