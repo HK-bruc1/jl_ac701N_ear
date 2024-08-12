@@ -167,7 +167,7 @@ void dynamic_eq_set_detection_callback(struct dynamic_eq *hdl, void *priv,  int 
 * Note(s)    : None.
 *********************************************************************
 */
-int dynamic_eq_run(struct dynamic_eq *hdl, int *data, int len);
+int dynamic_eq_run(struct dynamic_eq *hdl, int *ext_det_data, int *data, int len);
 /*
 *********************************************************************
 *            dynamic_eq_bypass

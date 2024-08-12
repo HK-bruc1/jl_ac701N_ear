@@ -90,6 +90,9 @@ static void auto_close_page_scan(void *p)
 
 void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
+    u32 rets_addr = 0;
+    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    printf("write_scan_conn_enable rets=0x%x\n", rets_addr);
     if (g_dual_conn.page_scan_auto_disable) {
         if (!scan_enable && conn_enable) {
             return;
@@ -152,9 +155,13 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 
     lmp_hci_write_scan_enable((conn_enable << 1) | scan_enable);
 
-    if ((scan_enable || conn_enable) && page_list_empty()) {
+    if ((scan_enable || conn_enable)) {
         int connect_device = bt_get_total_connect_dev();
-        app_send_message(APP_MSG_BT_IN_PAIRING_MODE, connect_device);
+        if (page_list_empty()) {
+            app_send_message(APP_MSG_BT_IN_PAIRING_MODE, connect_device);
+        } else {
+            app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
+        }
     }
 
 #if TCFG_DUAL_CONN_PAGE_SCAN_TIME
@@ -293,6 +300,7 @@ static void del_device_from_page_list(u8 *mac_addr)
 
 void clr_device_in_page_list()
 {
+    printf("clr_device_in_page_list\n");
     struct page_device_info *info, *n;
 
     if (!g_dual_conn.page_head_inited) {
@@ -709,6 +717,7 @@ static int dual_conn_btstack_event_handler(int *_event)
     struct bt_event *event = (struct bt_event *)_event;
     int state = tws_api_get_tws_state();
 
+    printf("dual_conn_btstack_event_handler:0x%x\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         dual_conn_page_devices_init();
@@ -842,6 +851,7 @@ static int dual_conn_hci_event_handler(int *_event)
     }
     int is_remote_test = bt_get_remote_test_flag();
 
+    printf("dual_conn_hci_event_handler:0x%x 0x%x\n", event->event, event->value);
     switch (event->event) {
     case HCI_EVENT_VENDOR_NO_RECONN_ADDR:
         break;
@@ -1015,6 +1025,7 @@ static int dual_conn_tws_event_handler(int *_event)
             tws_api_auto_role_switch_disable();
             if (!page_list_empty()) {
                 dual_conn_page_device();
+                app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
             } else {
                 tws_dual_conn_state_handler();
             }
@@ -1203,11 +1214,13 @@ static void tws_pair_timeout(void *p)
 
     if (!page_list_empty()) {
         dual_conn_page_device();
+        app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
     } else {
 #if TCFG_TWS_CONN_DISABLE
         write_scan_conn_enable(1, 1);
 #else
         tws_api_wait_pair_by_code(0, bt_get_local_name(), 0);
+        app_send_message(APP_MSG_BT_IN_PAIRING_MODE, 0);
 #endif
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
         write_scan_conn_enable(1, 1);
@@ -1223,6 +1236,7 @@ static void tws_create_conn_timeout(void *p)
 
     if (!page_list_empty()) {
         dual_conn_page_device();
+        app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
     } else {
         tws_dual_conn_state_handler();
     }

@@ -4,7 +4,8 @@
 #include "generic/typedef.h"
 
 //定时打印音频配置参数开关，默认3s打印一次
-#define TCFG_AUDIO_CONFIG_TRACE     0
+#define TCFG_AUDIO_CONFIG_TRACE     		0
+#define TCFG_AUDIO_CONFIG_TRACE_INTERVAL    3000//unit:ms
 
 /*
 **************************************************************

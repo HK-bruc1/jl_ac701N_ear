@@ -14,6 +14,7 @@
 #include "sdk_config.h"
 #include "effects/audio_vbass.h"
 #include "audio_config_def.h"
+#include "scene_switch.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
@@ -133,6 +134,7 @@ static void a2dp_player_callback(void *private_data, int event)
 #if TCFG_TWS_DUAL_CHANNEL
         a2dp_player_update_steromix_param(player, player->channel);
 #endif
+        musci_vocal_remover_update_parm();
         break;
     case STREAM_EVENT_PREEMPTED:
 #if ANC_EAR_ADAPTIVE_EN

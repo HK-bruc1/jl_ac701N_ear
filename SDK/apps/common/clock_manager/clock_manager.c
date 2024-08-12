@@ -240,7 +240,11 @@ int clock_lock(const char *name, u32 clk)
     clk_locker.freq = clk;
     clk_locker.name = hash;
 
+#if (defined TCFG_FIX_CLOCK_FREQ  && TCFG_FIX_CLOCK_FREQ)
+    clk_set_api("sys", TCFG_FIX_CLOCK_FREQ);
+#else
     clk_set_api("sys", clk);
+#endif
 
     CLOCK_MANAGER_EXIT_CRITICAL();
 
@@ -303,19 +307,9 @@ int clock_unlock(char *name)
 /* ----------------------------------------------------------------------------*/
 static void clk_ref_cal(void)
 {
-    u32 clk_freq;
-    u32 clk_decr;
-    u32 pct;
-
-#if 0   //效率统计
-
-    extern void CacheReport(void);
-    CacheReport();
-
+#if 0   //效率统计输出
     task_info_output(0);
-
 #endif
-
 
     int usage[3] = { 0, 0, 0 };
     int a = os_cpu_usage(NULL, usage);
@@ -393,14 +387,8 @@ static void clk_ref_fun(void *p)
         ref_cnt++;
         clk_ref_cal();
     } else {
-#if TCFG_CFG_TOOL_ENABLE
-        task_info_reset();
-        /* log_info("clock_reflash_reset"); */
-#else
         sys_timer_del(clk_ref_timer);
         clk_ref_timer = 0;
-        /* log_info("clock_reflash_stop"); */
-#endif
     }
     CLOCK_MANAGER_EXIT_CRITICAL();
 }
@@ -426,8 +414,10 @@ void clock_refurbish(void)
     CLOCK_MANAGER_ENTER_CRITICAL();
 
     //clk driver 需要提供每个芯片可以设置的最高挡位
+#if (defined TCFG_FIX_CLOCK_FREQ  && TCFG_FIX_CLOCK_FREQ)
+    clk_set_api("sys", TCFG_FIX_CLOCK_FREQ);
+#else
     clk_set_api("sys", CLOCK_MAXIMUM_FREQ);
-
     ref_cnt = 0;
     clk_adjust_step = 0;
 
@@ -441,6 +431,7 @@ void clock_refurbish(void)
 
     task_info_reset();
 
+#endif
     CLOCK_MANAGER_EXIT_CRITICAL();
 }
 
@@ -461,31 +452,28 @@ static int clock_manager_init(void)
     CLOCK_MANAGER_INIT_CRITICAL();
     return 0;
 }
-module_initcall(clock_manager_init);
+early_initcall(clock_manager_init);
 
 /* --------------------------------------------------------------------------*/
 /**
  * @brief clock_manager_test
  */
 /* ----------------------------------------------------------------------------*/
+#if 0   //test code
 static void clk_test2_tmr_fun(void *p)
 {
     clk_set_api("sys", CLOCK_MAXIMUM_FREQ);
 
     clock_refurbish();
 }
-
 void clock_manager_test2(void)
 {
     sys_timer_add(NULL, clk_test2_tmr_fun, 60 * 1000);
 }
-
-
-
 static void clk_test3_tmr_fun(void *p)
 {
-    int ret;
-    ret = clock_unlock("test");
+    /* int ret; */
+    clock_unlock("test");
     /* ASSERT(ret == 0); */
 }
 void clock_manager_test3(void)
@@ -499,4 +487,4 @@ void clock_manager_test3(void)
     /* u32 addr = (u32)(&clk_locker.freq); */
     /* mpu_set(2, addr, addr+3, 0, "Cr"); */
 }
-
+#endif

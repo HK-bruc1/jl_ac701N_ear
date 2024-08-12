@@ -70,7 +70,7 @@
 <Add option="-DFS_VERSION=0x020001" />
 <Add option="-DFATFS_VERSION=0x020101" />
 <Add option="-DSDFILE_VERSION=0x020000" />
-<Add option="-DVFS_ENABLE=1" />
+<Add option="-DVFS_ENABLE=0" />
 <Add option="-DVM_MAX_SIZE_CONFIG=16*1024" />
 <Add option="-DVM_ITEM_MAX_NUM=256" />
 <Add option="-DCONFIG_EARPHONE_CASE_ENABLE" />
@@ -88,6 +88,7 @@
 <Add directory="interface/driver" />
 <Add directory="interface/driver/device" />
 <Add directory="interface/driver/cpu/br28" />
+<Add directory="interface/driver/cpu/periph" />
 <Add directory="interface/media" />
 <Add directory="interface/system" />
 <Add directory="interface/system/generic" />
@@ -122,6 +123,7 @@
 <Add directory="apps/common/device/key" />
 <Add directory="apps/common/device/eartouch" />
 <Add directory="apps/common/include" />
+<Add directory="apps/common/ui" />
 <Add directory="apps/common/config/include" />
 <Add directory="apps/common/dev_manager" />
 <Add directory="apps/common/third_party_profile" />
@@ -344,6 +346,7 @@
 <Add option="cpu/br28/liba/cfg_tool.a" />
 <Add option="cpu/br28/liba/vm.a" />
 <Add option="cpu/br28/liba/debug_record.a" />
+<Add option="cpu/br28/liba/lzma_dec.a" />
 <Add option="--end-group" />
 <Add option="-Tcpu/br28/sdk.ld" />
 <Add option="-M=cpu/br28/tools/sdk.map" />
@@ -851,6 +854,10 @@
 <Unit filename="apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/tuya_protocol/tuya_ble_config.h" />
 <Unit filename="apps/common/third_party_profile/tuya_protocol/tuya_ble_sdk_version.h" />
+<Unit filename="apps/common/ui/pwm_led/led_ui_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/ui/pwm_led/led_ui_api.h" />
+<Unit filename="apps/common/ui/pwm_led/led_ui_tws_sync.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/ui/pwm_led/led_ui_tws_sync.h" />
 <Unit filename="apps/common/update/testbox_uart_update.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/update/testbox_update.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/update/update.c"><Option compilerVer="CC"/></Unit>
@@ -874,6 +881,7 @@
 <Unit filename="apps/earphone/board/br28/board_config.h" />
 <Unit filename="apps/earphone/board/br28/jlstream_node_cfg.h" />
 <Unit filename="apps/earphone/board/br28/led_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/board/br28/led_config.h" />
 <Unit filename="apps/earphone/board/br28/lp_touch_key_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/br28/sdk_config.h" />
 <Unit filename="apps/earphone/board/sdk_board_config.c"><Option compilerVer="CC"/></Unit>
@@ -919,7 +927,6 @@
 <Unit filename="apps/earphone/include/le_audio/cig/app_le_connected.h" />
 <Unit filename="apps/earphone/include/le_audio/cig/le_connected.h" />
 <Unit filename="apps/earphone/include/le_audio/wireless_trans.h" />
-<Unit filename="apps/earphone/include/led_ui_api.h" />
 <Unit filename="apps/earphone/include/linein.h" />
 <Unit filename="apps/earphone/include/linein_dev.h" />
 <Unit filename="apps/earphone/include/low_latency.h" />
@@ -951,6 +958,7 @@
 <Unit filename="apps/earphone/message/adapter/eartouch.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/message/adapter/key.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/message/adapter/tws.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/mode/bt/a2dp_play.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_background.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_call_kws_handler.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_event_func.c"><Option compilerVer="CC"/></Unit>
@@ -958,6 +966,7 @@
 <Unit filename="apps/earphone/mode/bt/bt_key_msg_table.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_slience_detect.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_tws.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/mode/bt/dual_a2dp_play.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/dual_conn.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/dual_phone_call.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/earphone.c"><Option compilerVer="CC"/></Unit>
@@ -975,7 +984,6 @@
 <Unit filename="apps/earphone/mode/bt/poweroff.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/sniff.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/tone.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="apps/earphone/mode/bt/tws_a2dp_play.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/tws_dual_conn.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/tws_dual_share.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/tws_phone_call.c"><Option compilerVer="CC"/></Unit>
@@ -1003,17 +1011,13 @@
 <Unit filename="apps/earphone/tools/app_anctool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/tools/app_key_dut.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/tools/app_testbox.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="apps/earphone/ui/led/led_ui_api.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="apps/earphone/ui/led/led_ui_cfg.h" />
-<Unit filename="apps/earphone/ui/led/led_ui_manager.h" />
 <Unit filename="apps/earphone/ui/led/led_ui_msg_handler.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="apps/earphone/ui/led/led_ui_tws_sync.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="apps/earphone/ui/led/led_ui_tws_sync.h" />
 <Unit filename="apps/earphone/user_cfg.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp.h" />
 <Unit filename="audio/CVP/audio_cvp_3mic.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_ais_3mic.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/CVP/audio_cvp_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_develop.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_dms.c"><Option compilerVer="CC"/></Unit>
@@ -1189,6 +1193,7 @@
 <Unit filename="audio/framework/nodes/esco_tx_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/iis_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/le_audio_source.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/nodes/local_tws_source_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/multi_ch_iis_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/ns_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/pc_mic_node.c"><Option compilerVer="CC"/></Unit>
@@ -1211,6 +1216,7 @@
 <Unit filename="audio/framework/plugs/source/iis_file.h" />
 <Unit filename="audio/framework/plugs/source/le_audio_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/linein_file.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/plugs/source/local_tws_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/multi_ch_adc_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/multi_ch_iis_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/pc_spk_file.c"><Option compilerVer="CC"/></Unit>
@@ -1235,6 +1241,7 @@
 <Unit filename="audio/interface/include/le_audio_player.h" />
 <Unit filename="audio/interface/include/le_audio_recorder.h" />
 <Unit filename="audio/interface/include/linein_player.h" />
+<Unit filename="audio/interface/include/local_tws_player.h" />
 <Unit filename="audio/interface/include/pc_mic_recoder.h" />
 <Unit filename="audio/interface/include/pc_spk_player.h" />
 <Unit filename="audio/interface/include/reference_time.h" />
@@ -1249,6 +1256,7 @@
 <Unit filename="audio/interface/player/key_tone_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/le_audio_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/linein_player.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/interface/player/local_tws_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/pc_spk_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/reference_time.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/ring_player.c"><Option compilerVer="CC"/></Unit>
@@ -1298,10 +1306,13 @@
 <Unit filename="cpu/br28/overlay_code.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/overlay_code.h" />
 <Unit filename="cpu/br28/periph/gpadc.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/irflt.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/led_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/led_api_test.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/pwm_led.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/pwm_led_test.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/two_io_led.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/led/two_io_led_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/mcpwm.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/pwm_led/pwm_led_hw.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/pwm_led_hw.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/rdec.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key_alog.c"><Option compilerVer="CC"/></Unit>
@@ -1317,14 +1328,19 @@
 <Unit filename="cpu/components/gpadc_utils.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/iic_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/iic_soft.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/ir_decoder.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/ir_encoder.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/rdec_soft.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/config/gpio_file_parse.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/config/lib_power_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/periph_demo/gptimer_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/iic_master_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/iic_slave_demo.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/periph_demo/ir_encoder_decoder_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/ledc_test.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/periph_demo/rdec_soft_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/sd_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/spi_test.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/periph_demo/timer_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/periph_demo/uart_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="interface/btctrler/ble/hci_ll.h" />
 <Unit filename="interface/btctrler/ble/ll_config.h" />
@@ -1384,8 +1400,8 @@
 <Unit filename="interface/driver/cpu/br28/asm/includes.h" />
 <Unit filename="interface/driver/cpu/br28/asm/io_imap.h" />
 <Unit filename="interface/driver/cpu/br28/asm/io_omap.h" />
-<Unit filename="interface/driver/cpu/br28/asm/irflt.h" />
 <Unit filename="interface/driver/cpu/br28/asm/irq.h" />
+<Unit filename="interface/driver/cpu/br28/asm/led_api.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_alog.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_api.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_hw.h" />
@@ -1410,6 +1426,8 @@
 <Unit filename="interface/driver/cpu/br28/asm/power/power_trim.h" />
 <Unit filename="interface/driver/cpu/br28/asm/power/rtc_app.h" />
 <Unit filename="interface/driver/cpu/br28/asm/power_interface.h" />
+<Unit filename="interface/driver/cpu/br28/asm/pwm_led.h" />
+<Unit filename="interface/driver/cpu/br28/asm/pwm_led_api.h" />
 <Unit filename="interface/driver/cpu/br28/asm/pwm_led_hw.h" />
 <Unit filename="interface/driver/cpu/br28/asm/rdec.h" />
 <Unit filename="interface/driver/cpu/br28/asm/rtc.h" />
@@ -1418,10 +1436,15 @@
 <Unit filename="interface/driver/cpu/br28/asm/sfc_spi.h" />
 <Unit filename="interface/driver/cpu/br28/asm/spi_hw.h" />
 <Unit filename="interface/driver/cpu/br28/asm/spiflash.h" />
-<Unit filename="interface/driver/cpu/br28/asm/timer.h" />
+<Unit filename="interface/driver/cpu/br28/asm/two_io_led.h" />
 <Unit filename="interface/driver/cpu/br28/asm/usb_hw.h" />
 <Unit filename="interface/driver/cpu/br28/asm/wdt.h" />
 <Unit filename="interface/driver/cpu/includes.h" />
+<Unit filename="interface/driver/cpu/periph/gptimer.h" />
+<Unit filename="interface/driver/cpu/periph/gptimer_hw_v2.h" />
+<Unit filename="interface/driver/cpu/periph/ir_decoder.h" />
+<Unit filename="interface/driver/cpu/periph/ir_encoder.h" />
+<Unit filename="interface/driver/cpu/periph/rdec_soft.h" />
 <Unit filename="interface/driver/cpu/pwm_led_debug.h" />
 <Unit filename="interface/driver/device/anctool.h" />
 <Unit filename="interface/driver/device/inside_flash.h" />
@@ -1442,7 +1465,6 @@
 <Unit filename="interface/driver/gpadc.h" />
 <Unit filename="interface/driver/gpio.h" />
 <Unit filename="interface/driver/gpio_config.h" />
-<Unit filename="interface/driver/gptimer.h" />
 <Unit filename="interface/driver/iic_api.h" />
 <Unit filename="interface/driver/iic_hw_v1.h" />
 <Unit filename="interface/driver/iic_soft.h" />
@@ -1477,6 +1499,7 @@
 <Unit filename="interface/media/codec/audio_encode_common_api.h" />
 <Unit filename="interface/media/codec/lc3_codec_api.h" />
 <Unit filename="interface/media/codec/sbc_codec.h" />
+<Unit filename="interface/media/codec/sbc_enc.h" />
 <Unit filename="interface/media/cpu/br28/asm/anc.h" />
 <Unit filename="interface/media/cpu/br28/asm/audio_adc.h" />
 <Unit filename="interface/media/cpu/br28/asm/audio_common.h" />
@@ -1488,6 +1511,7 @@
 <Unit filename="interface/media/cpu/br28/asm/dac.h" />
 <Unit filename="interface/media/cpu/br28/asm/hw_eq.h" />
 <Unit filename="interface/media/cpu/br28/audio_output_dac.h" />
+<Unit filename="interface/media/cpu/br28/audio_platform_config.h" />
 <Unit filename="interface/media/cvp/aec_ref_dac_ch_data.h" />
 <Unit filename="interface/media/cvp/aec_uart_debug.h" />
 <Unit filename="interface/media/cvp/audio_agc.h" />
@@ -1520,12 +1544,14 @@
 <Unit filename="interface/media/effects/audio_notch_howling.h" />
 <Unit filename="interface/media/effects/audio_pitch.h" />
 <Unit filename="interface/media/effects/audio_pitchspeed.h" />
+<Unit filename="interface/media/effects/audio_plate_reverb.h" />
 <Unit filename="interface/media/effects/audio_reverb.h" />
 <Unit filename="interface/media/effects/audio_reverb_common.h" />
 <Unit filename="interface/media/effects/audio_spk_eq.h" />
 <Unit filename="interface/media/effects/audio_stereo_widener.h" />
 <Unit filename="interface/media/effects/audio_surround.h" />
 <Unit filename="interface/media/effects/audio_vbass.h" />
+<Unit filename="interface/media/effects/audio_vocal_remove.h" />
 <Unit filename="interface/media/effects/audio_voice_changer.h" />
 <Unit filename="interface/media/effects/audio_wdrc.h" />
 <Unit filename="interface/media/effects/audio_wdrc_advance.h" />
@@ -1548,6 +1574,7 @@
 <Unit filename="interface/media/effects/pitchshifter_api.h" />
 <Unit filename="interface/media/effects/ps_cal_api.h" />
 <Unit filename="interface/media/effects/reverb_api.h" />
+<Unit filename="interface/media/effects/reverb_v2_api.h" />
 <Unit filename="interface/media/effects/spectrum/SpectrumShow_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_eq.h" />
@@ -1578,6 +1605,7 @@
 <Unit filename="interface/media/tech_lib/jlsp_kws.h" />
 <Unit filename="interface/media/tech_lib/jlsp_vad.h" />
 <Unit filename="interface/media/tech_lib/sensor_common_parm.h" />
+<Unit filename="interface/media/tws/jl_tws.h" />
 <Unit filename="interface/system/bank_switch.h" />
 <Unit filename="interface/system/boot.h" />
 <Unit filename="interface/system/event.h" />

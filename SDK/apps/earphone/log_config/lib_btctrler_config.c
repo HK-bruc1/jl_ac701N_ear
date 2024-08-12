@@ -652,3 +652,10 @@ const char log_tag_const_i_TWS_ESCO  = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_d_TWS_ESCO  = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_w_TWS_ESCO  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_e_TWS_ESCO  = CONFIG_DEBUG_LIB(1);
+
+const char log_tag_const_v_QUICK_CONN  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_i_QUICK_CONN  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_QUICK_CONN  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_w_QUICK_CONN  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_QUICK_CONN  = CONFIG_DEBUG_LIB(0);
+

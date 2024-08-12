@@ -185,8 +185,3 @@ const char log_tag_const_d_APP_CFG_TOOL  = FALSE;
 const char log_tag_const_w_APP_CFG_TOOL  = TRUE;
 const char log_tag_const_e_APP_CFG_TOOL  = TRUE;
 
-const char log_tag_const_v_PERI  = FALSE;
-const char log_tag_const_i_PERI  = FALSE;
-const char log_tag_const_d_PERI  = FALSE;
-const char log_tag_const_w_PERI  = TRUE;
-const char log_tag_const_e_PERI  = TRUE;

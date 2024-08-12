@@ -604,7 +604,14 @@ static s32 eff_online_update_base(void *packet, u32 size, u8 sq)
             eq_fast_update(name, eq_ret, start, end, ep->par.uuid);
             break;
         }
-        res = jlstream_set_node_param(ep->par.uuid, name, &ep->par.data[16], size - sizeof(ep->cmd) - sizeof(ep->par.uuid) - sizeof(ep->par.reserve) - 16); //减去cmd 减uuid 减revere 减name
+        int eff_size = size - sizeof(ep->cmd) - sizeof(ep->par.uuid) - sizeof(ep->par.reserve) - 16;//减去cmd 减uuid 减revere 减name
+        if ((ep->par.uuid == NODE_UUID_EQ) || (ep->par.uuid == NODE_UUID_SOF_EQ)) {
+            struct eq_adj eff = {0};
+            memcpy(&eff, &ep->par.data[16], eff_size);
+            res = jlstream_set_node_param(ep->par.uuid, name, &eff, sizeof(eff));
+        } else {
+            res = jlstream_set_node_param(ep->par.uuid, name, &ep->par.data[16], eff_size);
+        }
         effects_adj_printf();
         break;
     case EFF_MODE_CMD:

@@ -200,7 +200,7 @@ const struct linein_platform_cfg linein_platform_cfg_table[] = {
         .linein_mode        = TCFG_LINEIN0_MODE,
         .linein_gain        = TCFG_LINEIN0_GAIN,
         .linein_pre_gain    = TCFG_LINEIN0_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = AUDIO_LINEIN0_CH0,
+        .linein_ain_sel     = TCFG_LINEIN0_CH,
         .linein_dcc         = TCFG_LINEIN0_DCC,
     },
 #else
@@ -214,7 +214,7 @@ const struct linein_platform_cfg linein_platform_cfg_table[] = {
         .linein_mode        = TCFG_LINEIN1_MODE,
         .linein_gain        = TCFG_LINEIN1_GAIN,
         .linein_pre_gain    = TCFG_LINEIN1_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = AUDIO_LINEIN1_CH0,
+        .linein_ain_sel     = TCFG_LINEIN1_CH,
         .linein_dcc         = TCFG_LINEIN1_DCC,
     },
 #else

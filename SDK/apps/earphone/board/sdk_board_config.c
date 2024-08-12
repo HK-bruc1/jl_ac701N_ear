@@ -208,7 +208,8 @@ int gpio_config_uninit()
 }
 
 
-#if TCFG_LP_TOUCH_KEY_ENABLE
+#if 0//TODO:WEIJIABAO fix
+//#if TCFG_LP_TOUCH_KEY_ENABLE
 const struct lp_touch_key_platform_data lp_touch_key_config = {
     .hv_level                   = TCFG_LP_KEY_UPPER_LIMIT_VOLTAGE,
     .lv_level                   = TCFG_LP_KEY_LOWER_LIMIT_VOLTAGE,
@@ -243,7 +244,8 @@ void board_init()
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
 #endif
 
-#if TCFG_LP_TOUCH_KEY_ENABLE
+#if 0//TODO:WEIJIABAO fix
+//#if TCFG_LP_TOUCH_KEY_ENABLE
     lp_touch_key_init(&lp_touch_key_config);
 #endif
 

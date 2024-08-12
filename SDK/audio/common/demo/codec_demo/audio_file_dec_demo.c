@@ -312,7 +312,7 @@ static int audio_demo_dec_data_read(void *priv, u8 *buf, int len, u32 offset)
     struct audio_dec_demo_hdl *hdl = (struct audio_dec_demo_hdl *)priv;
     /* printf("== offset = %d\n",offset); */
     if (offset != (u32) - 1) {
-        fseek(hdl->file, offset, SEEK_SET); //seek 到需要读数据的位置
+        resfile_seek(hdl->file, offset, SEEK_SET); //seek 到需要读数据的位置
     }
 
     int rlen = resfile_read(hdl->file, buf, len);

@@ -253,19 +253,6 @@ extern void local_irq_enable();
 
 
 
-extern void cpu_assert_debug();
-extern const int config_asser;
-extern void cpu_assert(char *file, int line, bool condition, char *cond_str);
-
-#define ASSERT(a,...)   \
-        do { \
-            if(config_asser){\
-                if(!(a)){ \
-                    printf("ASSERT : "__VA_ARGS__); \
-                } \
-            } \
-            cpu_assert(__FILE__, __LINE__, a ? true : false, #a); \
-        }while(0);
 
 
 #endif //__ASSEMBLY__

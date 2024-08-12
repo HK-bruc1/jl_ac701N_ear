@@ -49,27 +49,9 @@
 #define AEC_FRAME_SIZE		(AEC_FRAME_POINTS << 1)
 
 
-#if ((defined TCFG_AUDIO_DATA_EXPORT_DEFINE) && (TCFG_AUDIO_DATA_EXPORT_DEFINE == AUDIO_DATA_EXPORT_VIA_UART))
-/*AEC串口数据导出*/
-const u8 CONST_AEC_EXPORT = 1;
-#else
-const u8 CONST_AEC_EXPORT = 0;
-#endif/*TCFG_AUDIO_DATA_EXPORT_DEFINE*/
-
 /*数据输出开头丢掉的数据包数*/
 #define CVP_OUT_DUMP_PACKET		15
 
-/*
- * 参考数据变采样处理
- * 0 : 关闭参考数据变采样
- * 1 : 使用软件变采样
- * 2 : 使用硬件变采样
- */
-#if TCFG_BT_DONGLE_ENABLE || TCFG_ESCO_DL_CVSD_SR_USE_16K
-const u8 CONST_REF_SRC = 1;
-#else
-const u8 CONST_REF_SRC = 0;
-#endif
 
 //*********************************************************************************//
 //                                预处理配置(Pre-process Config)               	   //

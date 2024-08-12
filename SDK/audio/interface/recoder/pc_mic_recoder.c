@@ -29,16 +29,19 @@
 
 extern struct audio_dac_hdl dac_hdl;
 
+typedef enum {
+    PC_MIC_STA_CLOSE,
+    PC_MIC_STA_WAIT_CLOSE,
+    PC_MIC_STA_OPEN,
+    PC_MIC_STA_WAIT_OPEN,
+} pc_mic_state_t;
+pc_mic_state_t g_pc_mic_state;
+
 struct pc_mic_recoder {
     struct jlstream *stream;
-    u8 open_flag;
 };
 static struct pc_mic_recoder *g_pc_mic_recoder = NULL;
 
-//防止通过消息队列打开、关闭或者重启recoder被多次调用
-static u8 recoder_wait_open_flag = 0;
-static u8 recoder_wait_close_flag = 0;
-static u8 recoder_wait_restart_flag = 0;
 static u8 pcmic_volume_wait_set_flag = 0;
 static u8 pcm_mic_recoder_check = 0;
 static OS_MUTEX mic_rec_mutex;
@@ -93,7 +96,6 @@ int pc_mic_recoder_open(void)
     os_mutex_pend(&mic_rec_mutex, 0);
     struct pc_mic_recoder *recoder = NULL;
     u16 source_uuid;
-    recoder_wait_open_flag = 0;
     if (g_pc_mic_recoder) {
         log_error("## %s, pc mic recoder is busy!\n", __func__);
         os_mutex_post(&mic_rec_mutex);
@@ -143,7 +145,7 @@ int pc_mic_recoder_open(void)
         goto __exit1;
     }
 
-    recoder->open_flag = 1;
+    g_pc_mic_state = PC_MIC_STA_OPEN;
     g_pc_mic_recoder = recoder;
 
     pcm_mic_recoder_dump(pcm_mic_recoder_check);
@@ -164,7 +166,6 @@ void pc_mic_recoder_close(void)
     os_mutex_pend(&mic_rec_mutex, 0);
     struct pc_mic_recoder *recoder = g_pc_mic_recoder;
 
-    recoder_wait_close_flag = 0;
     if (!recoder) {
         os_mutex_post(&mic_rec_mutex);
         return;
@@ -173,7 +174,6 @@ void pc_mic_recoder_close(void)
         jlstream_stop(recoder->stream, 0);
         jlstream_release(recoder->stream);
     }
-    recoder->open_flag = 0;
 
     free(recoder);
     g_pc_mic_recoder = NULL;
@@ -181,18 +181,16 @@ void pc_mic_recoder_close(void)
 
     jlstream_event_notify(STREAM_EVENT_CLOSE_RECODER, (int)"pc_mic");
     os_mutex_post(&mic_rec_mutex);
+    g_pc_mic_state = PC_MIC_STA_CLOSE;
 }
 
 //重启pc mic
 static void pc_mic_recoder_restart(void)
 {
-    if (g_pc_mic_recoder) {
-        if (g_pc_mic_recoder->open_flag) {
-            pc_mic_recoder_close();
-        }
+    if (g_pc_mic_state == PC_MIC_STA_OPEN) {
+        pc_mic_recoder_close();
+        pc_mic_recoder_open();
     }
-    pc_mic_recoder_open();
-    recoder_wait_restart_flag = 0;
 }
 
 bool pc_mic_recoder_runing()
@@ -204,11 +202,13 @@ int pc_mic_recoder_open_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (recoder_wait_open_flag == 0) {
+    if (g_pc_mic_state == PC_MIC_STA_CLOSE ||
+        g_pc_mic_state == PC_MIC_STA_WAIT_CLOSE) {
+
+        g_pc_mic_state = PC_MIC_STA_WAIT_OPEN;
         msg[0] = (int)pc_mic_recoder_open;
         msg[1] = 0;
         ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        recoder_wait_open_flag = 1;
     }
     return ret;
 }
@@ -217,11 +217,13 @@ int pc_mic_recoder_close_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (recoder_wait_close_flag == 0) {
+    if (g_pc_mic_state == PC_MIC_STA_OPEN ||
+        g_pc_mic_state == PC_MIC_STA_WAIT_OPEN) {
+
+        g_pc_mic_state = PC_MIC_STA_WAIT_CLOSE;
         msg[0] = (int)pc_mic_recoder_close;
         msg[1] = 0;
         ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        recoder_wait_close_flag = 1;
     }
     return ret;
 }
@@ -230,12 +232,9 @@ int pc_mic_recoder_restart_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (recoder_wait_restart_flag == 0) {
-        msg[0] = (int)pc_mic_recoder_restart;
-        msg[1] = 0;
-        ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        recoder_wait_restart_flag = 1;
-    }
+    msg[0] = (int)pc_mic_recoder_restart;
+    msg[1] = 0;
+    ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
     return ret;
 }
 

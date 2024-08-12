@@ -186,7 +186,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
 
     bt_stop_a2dp_slience_detect(NULL);
 
-    app_send_message(APP_MSG_POWER_OFF, 0);
+    app_send_message(APP_MSG_POWER_OFF, reason);
 
     bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
 

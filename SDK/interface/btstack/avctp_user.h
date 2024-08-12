@@ -693,6 +693,15 @@ extern u8 bt_a2dp_is_source_dev_null();
 // 配置LDAC支持的采样率
 extern void bt_set_a2dp_ldac_sampling_freq(u8 a2dp_ldac_sampling_freq);
 #define LE_AUDIO_CLASS              BIT(14)
+
+//LHDC_V5 采样率
+#define LHDC_V5_SAMPLING_FREQ_192000    0x01
+#define LHDC_V5_SAMPLING_FREQ_96000     0x04
+#define LHDC_V5_SAMPLING_FREQ_48000     0x10
+#define LHDC_V5_SAMPLING_FREQ_44100     0x20
+// 配置LDAC支持的采样率
+extern void bt_set_a2dp_lhdc_v5_sampling_freq(u8 a2dp_lhdc_v5_sampling_freq);
+
 /*提供接口修改设备类型信息，修改什么的类型，会影响到手机显示的图标*/
 extern void bt_change_hci_class_type(u32 class);
 /*设备信息值举例*/

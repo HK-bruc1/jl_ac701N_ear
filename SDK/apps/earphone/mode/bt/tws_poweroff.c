@@ -238,7 +238,7 @@ static void wait_tws_detach_handler(void *p)
         return;
     }
 
-    app_send_message(APP_MSG_POWER_OFF, 0);
+    app_send_message(APP_MSG_POWER_OFF, (int)p);
 
     int state = tws_api_get_tws_state();
     if (state & TWS_STA_PHONE_CONNECTED) {
@@ -344,7 +344,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
 #if TCFG_AUDIO_ANC_ENABLE
     anc_poweroff();
 #endif
-    app_send_message(APP_MSG_POWER_OFF, 0);
+    app_send_message(APP_MSG_POWER_OFF, reason);
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
     extern u8 le_audio_disconn_le_audio_link();
     le_audio_disconn_le_audio_link();

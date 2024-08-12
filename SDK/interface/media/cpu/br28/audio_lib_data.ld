@@ -36,6 +36,7 @@
     *(.aptx_dec.data)
     *(.ldac_dec.data)
     *(.ldac.data)
+    *(.ldac_enc.data)
 	*(.sbc_eng_data)
 	*(.bt_audioplc_data)
 	*(.lc3_dec.data)

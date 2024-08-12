@@ -3,18 +3,18 @@
 
 #include "asm/spi_hw.h"
 
-enum spi_mode {
+enum spi_mode : u8 {
     SPI_MODE_BIDIR_1BIT,    //支持SPIx(x=0,1,2)，全双工，di接收，do发送
     SPI_MODE_UNIDIR_1BIT,   //支持SPIx(x=0,1,2)，半双工，do分时发送/接收
     SPI_MODE_UNIDIR_2BIT,   //支持SPIx(x=0,1,2)，半双工，di & do共2bit分时发送/接收
     SPI_MODE_UNIDIR_4BIT,   //支持SPIx(x=1)，半双工，di & do & wp & hold 共4bit分时发送/接收
 };
-enum spi_role {
+enum spi_role : u8  {
     SPI_ROLE_MASTER,
     SPI_ROLE_SLAVE,
 };
 
-enum hw_spi_isr_status {
+enum hw_spi_isr_status : u8 {
     SPI_WAITING_PND,
     SPI_TX_FINISH,
     SPI_RX_FINISH,

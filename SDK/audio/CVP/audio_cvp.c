@@ -59,26 +59,11 @@
 
 /*CVP_TOGGLE:CVP模块(包括AEC、NLP、NS等)总开关，Disable则数据完全不经过处理，释放资源*/
 #define CVP_TOGGLE				TCFG_AEC_ENABLE	/*CVP模块总开关*/
-/*模块使能，控制代码是否链接*/
-const u8 CONST_AEC_ENABLE = 1;
-const u8 CONST_NLP_ENABLE = 1;
-const u8 CONST_NS_ENABLE  = 1;
-const u8 CONST_AGC_ENABLE = 1;
 
-/*CVP带宽配置*/
-const u8 CONST_CVP_BAND_WIDTH_CFG = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;  //ANS
-const u8 CONST_DNS_PARAM_TYPE = TCFG_AUDIO_CVP_BAND_WIDTH_CFG;      //DNS
 
 /*使用输入立体声参考数据的TDE回音消除算法*/
 const u8 CONST_SMS_TDE_STEREO_REF_ENABLE = 0;
 
-
-#if ((defined TCFG_AUDIO_DATA_EXPORT_DEFINE) && (TCFG_AUDIO_DATA_EXPORT_DEFINE == AUDIO_DATA_EXPORT_VIA_UART))
-/*AEC串口数据导出*/
-const u8 CONST_AEC_EXPORT = 1;
-#else
-const u8 CONST_AEC_EXPORT = 0;
-#endif/*TCFG_AUDIO_DATA_EXPORT_DEFINE*/
 
 /*使能即可跟踪通话过程的内存情况*/
 #define CVP_MEM_TRACE_ENABLE	0
@@ -119,18 +104,6 @@ const u8 CONST_DNS_POST_ENHANCE = 0;
 
 //*******************************DNS配置 end**************************************//
 
-/*
- * 参考数据变采样处理
- * 0 : 关闭参考数据变采样
- * 1 : 使用软件变采样
- * 2 : 使用硬件变采样
- */
-#if TCFG_BT_DONGLE_ENABLE || TCFG_ESCO_DL_CVSD_SR_USE_16K || (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC) || TCFG_USB_SLAVE_AUDIO_MIC_ENABLE \
-|| ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN) && (defined TCFG_LEA_CALL_DL_GLOBAL_SR) && (TCFG_LEA_CALL_DL_GLOBAL_SR != 0x01))
-const u8 CONST_REF_SRC = 1;
-#else
-const u8 CONST_REF_SRC = 0;
-#endif
 /*Splittingfilter模式：0 or 1
  *mode = 0:运算量和ram小，高频会跌下来
  *mode = 1:运算量和ram大，频响正常（过认证，选择模式1）
@@ -145,12 +118,6 @@ const u8 CONST_SPLIT_FILTER_MODE = 0;
  */
 #define AEC_TAIL_LENGTH			5 /*range:2~10,default:2*/
 
-#if TCFG_AEC_SIMPLEX
-/*限幅器-噪声门限*/
-const u8 CONST_AEC_SIMPLEX = 1;
-#else
-const u8 CONST_AEC_SIMPLEX = 0;
-#endif/*TCFG_AEC_SIMPLEX*/
 /*单工连续清0的帧数*/
 #define AEC_SIMPLEX_TAIL 	15
 /**远端数据大于CONST_AEC_SIMPLEX_THR,即清零近端数据
@@ -219,7 +186,9 @@ struct audio_aec_hdl {
     u8 input_clear;			//清0输入数据标志
     u16 dump_packet;		//前面如果有杂音，丢掉几包
 
+#if TCFG_SUPPORT_MIC_CAPLESS
     void *dcc_hdl;
+#endif
     struct aec_s_attr attr;
     struct audio_cvp_pre_param_t pre;	//预处理配置
 };
@@ -267,9 +236,11 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
     if (aec_hdl->pre.pre_gain_en) {
         GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
     }
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (aec_hdl->dcc_hdl) {
         audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
     }
+#endif
     return 0;
 }
 
@@ -597,9 +568,11 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
     /* clk_set("sys", 0); */
 
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
         aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
+#endif
 
     //aec_param_dump(aec_param);
     aec_hdl->EnableBit = aec_param->EnableBit;
@@ -708,10 +681,12 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
+#if TCFG_SUPPORT_MIC_CAPLESS
         if (aec_hdl->dcc_hdl) {
             audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
             aec_hdl->dcc_hdl = NULL;
         }
+#endif
 
         local_irq_disable();
 #if AEC_USER_MALLOC_ENABLE

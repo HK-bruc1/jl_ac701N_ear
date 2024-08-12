@@ -277,6 +277,7 @@ int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 /*
  * 该接口可直接更新整个EQ系数表及总增益，
  * 切换系数表时的po声表现优于调用eq_update_parm更新
+ * 需要使能const变量：config_audio_eq_xfade_enable = 1
  */
 void eq_update_tab(u8 mode_index, char *node_name, u8 cfg_index)
 {

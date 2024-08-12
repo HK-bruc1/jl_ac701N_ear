@@ -17,6 +17,7 @@
 #include "effects/audio_notch_howling.h"
 #include "effects/audio_pitchspeed.h"
 #include "effects/audio_reverb.h"
+#include "effects/audio_plate_reverb.h"
 #include "effects/spectrum/spectrum_fft.h"
 #include "effects/audio_stereo_widener.h"
 #include "effects/audio_vbass.h"

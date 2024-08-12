@@ -1045,16 +1045,53 @@ int bt_app_msg_handler(int *msg)
         bt_send_a2dp_cmd(msg[0]);
         break;
     case APP_MSG_CALL_ANSWER:
-        printf("APP_MSG_CALL_ANSWER: status = %d\n", bt_get_call_status());
-        if (bt_get_call_status() == BT_CALL_INCOMING) {
-            bt_cmd_prepare(USER_CTRL_HFP_CALL_ANSWER, 0, NULL);
+        u8 temp_call_btaddr[6];
+        if (esco_player_get_btaddr(temp_call_btaddr)) {
+            if (bt_get_call_status() == BT_CALL_INCOMING) {
+                printf("APP_MSG_CALL_ANSWER: esco playing, device_addr:\n");
+                put_buf(temp_call_btaddr, 6);
+                bt_cmd_prepare_for_addr(temp_call_btaddr, USER_CTRL_HFP_CALL_ANSWER, 0, NULL);		// 根据哪个设备使用esco接听哪个
+                break;
+            }
+        } else {
+            if (bt_get_call_status() == BT_CALL_INCOMING) {
+                printf("APP_MSG_CALL_ANSWER: esco no playing\n");
+                bt_cmd_prepare(USER_CTRL_HFP_CALL_ANSWER, 0, NULL);
+                break;
+            }
         }
         break;
     case APP_MSG_CALL_HANGUP:
-        printf("APP_MSG_CALL_HANGUP: status = %d\n", bt_get_call_status());
-        if ((bt_get_call_status() >= BT_CALL_INCOMING) &&
-            (bt_get_call_status() <= BT_CALL_ALERT)) {
-            bt_cmd_prepare(USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+        u8 temp_btaddr[6];
+        if (esco_player_get_btaddr(temp_btaddr)) {
+            printf("APP_MSG_CALL_HANGUP: current esco playing\n");		// 根据哪个设备使用esco挂断哪个
+            put_buf(temp_btaddr, 6);
+            bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+            break;
+        } else {
+            u8 *addr = bt_get_current_remote_addr();
+            if (addr) {
+                memcpy(temp_btaddr, addr, 6);
+                u8 call_status = bt_get_call_status_for_addr(temp_btaddr);
+                if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
+                    printf("APP_MSG_CALL_HANGUP: current addr\n");
+                    put_buf(temp_btaddr, 6);
+                    bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                    break;
+                }
+                u8 *other_conn_addr;
+                other_conn_addr = btstack_get_other_dev_addr(addr);
+                if (other_conn_addr) {
+                    printf("APP_MSG_CALL_HANGUP: other addr\n");
+                    memcpy(temp_btaddr, other_conn_addr, 6);
+                    put_buf(temp_btaddr, 6);
+                    call_status = bt_get_call_status_for_addr(temp_btaddr);
+                    if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
+                        bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                        break;
+                    }
+                }
+            }
         }
         break;
     case APP_MSG_CALL_LAST_NO:

@@ -248,6 +248,16 @@ static void app_common_app_event_handler(int *msg)
         esco_eff_goddess = !esco_eff_goddess;
         break;
 #endif
+#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+    case APP_MSG_SPATIAL_EFFECT_SWITCH:
+        u8 mode = get_a2dp_spatial_audio_mode();
+        if (++mode > 2) {
+            mode = 0;
+        }
+        printf("%s : %d", __func__, mode);
+        audio_spatial_effects_mode_switch(mode);
+        break;
+#endif
     default:
         break;
     }

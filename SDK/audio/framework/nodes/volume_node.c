@@ -257,6 +257,7 @@ static void volume_ioc_start(struct volume_hdl *hdl)
     case STREAM_SCENE_HEARING_AID:
     case STREAM_SCENE_MIC_EFFECT2:
     case STREAM_SCENE_LE_AUDIO:
+    case STREAM_SCENE_LOCAL_TWS:
         /*puts("set_a2dp_volume\n");*/
         hdl->state = APP_AUDIO_STATE_MUSIC;
         params.vol        = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);

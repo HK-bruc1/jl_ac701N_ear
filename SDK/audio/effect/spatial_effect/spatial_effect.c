@@ -70,42 +70,7 @@ int  angleresetflag = 0;
 
 /*在线更新参数的标志*/
 static u8 param_update_flag = 0;
-
-static spatial_effect_cfg_t effect_cfg = {
-    .angle = {
-        .track_sensitivity = 1.0f,
-        .angle_reset_sensitivity = 0.01f,
-    },
-    .rp_parm = {
-        .trackKIND = P360_T0,
-        .ReverbKIND = P360_R1,
-        .reverbance = 70,
-        .dampingval = 70,
-    },
-    .pcm_info = {
-        .IndataBit = DATA_INT_16BIT,
-        .OutdataBit = DATA_INT_16BIT,
-        .IndataInc = 2,
-        .OutdataInc = 2,
-        .Qval = 15,
-    },
-    .scfi = {
-        .CustomizedITD = 1,
-        .FarField = 1,
-        .sampleRate = 44100,//节点配置
-    },
-    .sag = {
-        .Azimuth_angle = 0, //实时更新的角度
-        .Elevation_angle = 0,
-        .radius = 1,//工具配置，半径是声源到人的距离，调节远近的效果
-        .bias_angle = 40, //工具配置，偏角是调节声像的，偏角为0，听上去就是点声源，比如30度就听感上是60度范围的声像
-    },
-    .cor = {
-        .ListenerHeadRadius = 0.0875f,
-        .soundSpeed = 343,
-        .channel = 2,
-    },
-};
+static spatial_effect_cfg_t effect_cfg;
 
 static char *version[2] = {"SPATIAL_EFFECT_V1", "SPATIAL_EFFECT_V2"};
 void spatial_effect_param_dump(spatial_effect_cfg_t *effect_cfg)
@@ -152,6 +117,46 @@ void spatial_effect_param_dump(spatial_effect_cfg_t *effect_cfg)
 
 }
 
+void spatial_effect_param_init()
+{
+    /*传感器角度计算参数*/
+    effect_cfg.angle.track_sensitivity = 1.0f;//工具配置，头部跟踪灵敏度
+    effect_cfg.angle.angle_reset_sensitivity = 0.01f;//工具配置，静止角度复位灵敏度
+
+    /*V100音效参数*/
+    effect_cfg.rp_parm.trackKIND = P360_T0;
+    effect_cfg.rp_parm.ReverbKIND = P360_R1;
+    effect_cfg.rp_parm.reverbance = 70;
+    effect_cfg.rp_parm.dampingval = 70;
+
+    /*V200音效参数*/
+    effect_cfg.pcm_info.IndataBit = DATA_INT_16BIT;//节点协商确定
+    effect_cfg.pcm_info.OutdataBit = DATA_INT_16BIT;//节点协商确定
+    effect_cfg.pcm_info.IndataInc = 2;
+    effect_cfg.pcm_info.OutdataInc = 2;
+    effect_cfg.pcm_info.Qval = 15;
+
+    effect_cfg.scfi.CustomizedITD = 1;
+    effect_cfg.scfi.FarField = 1;
+    effect_cfg.scfi.sampleRate = 44100;//节点协商确定
+
+    effect_cfg.sag.Azimuth_angle = 0; //实时更新的角度
+    effect_cfg.sag.Elevation_angle = 0;
+    effect_cfg.sag.radius = 1;//工具配置，半径是声源到人的距离，调节远近的效果
+    effect_cfg.sag.bias_angle = 40; //工具配置，偏角是调节声像的，偏角为0，听上去就是点声源，比如30度就听感上是60度范围的声像
+
+    effect_cfg.cor.ListenerHeadRadius = 0.0875f;
+    effect_cfg.cor.soundSpeed = 343;
+    effect_cfg.cor.channel = 2;
+
+    int len = spatial_effects_node_param_cfg_read(&effect_cfg, sizeof(effect_cfg));
+    if (len != sizeof(effect_cfg)) {
+        printf("spatial effects use default effect_cfg");
+    }
+
+    spatial_effect_param_dump(&effect_cfg);
+}
+
 void spatial_effect_online_updata(void *params)
 {
     /* memcpy(&effect_cfg, (u8 *)params, sizeof(effect_cfg)); */
@@ -178,7 +183,6 @@ void get_spatial_effect_reverb_params(RP_PARM_CONIFG *params)
     memcpy(params, &effect_cfg.rp_parm, sizeof(effect_cfg.rp_parm));
 }
 
-extern int spatial_effects_node_param_cfg_read(void *cfg, int size);
 static void *spatial_audio_effect_init(void)
 {
     struct sound360td_algo *algo = NULL;
@@ -186,13 +190,9 @@ static void *spatial_audio_effect_init(void)
 #if SPATIAL_AUDIO_EFFECT_ENABLE
     int buf_size = 0;
     angleresetflag = 1;
-    int len = spatial_effects_node_param_cfg_read(&effect_cfg, sizeof(effect_cfg));
-    if (len != sizeof(effect_cfg)) {
-        printf("spatial effects use default effect_cfg");
-    }
-
-    spatial_effect_param_dump(&effect_cfg);
     param_update_flag = 0;
+
+    spatial_effect_param_init();
 
     if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
         Sound_3DSpatial *ops = get_SpatialEffect_ops();//获取句柄

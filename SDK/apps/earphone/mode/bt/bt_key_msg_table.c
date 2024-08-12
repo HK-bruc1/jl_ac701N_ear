@@ -269,7 +269,7 @@ int bt_key_power_msg_remap(int *msg)
     default:
         break;
     }
-
+    printf("bt_key_msg_remap, key_action: %d, app_msg: %d\n", key_action, app_msg);
     return app_msg;
 }
 

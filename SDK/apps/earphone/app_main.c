@@ -41,6 +41,7 @@
 #include "linein.h"
 #include "pc.h"
 #include "rcsp_user_api.h"
+#include "pwm_led/led_ui_api.h"
 
 
 #define LOG_TAG             "[APP]"
@@ -103,6 +104,11 @@ const struct task_info task_info_table[] = {
     {"kws",                 2,     0,   256,   64  },
 #endif
 
+#if TCFG_LP_TOUCH_KEY_ENABLE
+    {"lp_touch_key",        5,     0,   256,   32  },
+#endif
+
+
 #if TCFG_USB_SLAVE_ENABLE || TCFG_USB_HOST_ENABLE
     {"usb_stack",          	1,     0,   512,   128 },
 #endif
@@ -114,6 +120,11 @@ const struct task_info task_info_table[] = {
 #if (TCFG_DEV_MANAGER_ENABLE)
     {"dev_mg",           	3,     0,   512,   512 },
 #endif
+
+#if (TCFG_PWMLED_ENABLE)
+    {"led_driver",         	5,     0,   256,   128 },
+#endif
+
     {"audio_vad",           1,     1,   512,   128 },
 #if TCFG_KEY_TONE_EN
     {"key_tone",            5,     0,   256,   32  },
@@ -180,6 +191,12 @@ int eSystemConfirmStopStatus(void)
 #else
     if (get_charge_full_flag()) {
 #endif
+#if TCFG_PWMLED_ENABLE
+        if (!led_ui_state_is_idle()) {
+            return 0;
+        }
+#endif
+
 #if (!TCFG_CHARGESTORE_ENABLE)
         power_set_soft_poweroff();
 #endif
@@ -204,19 +221,25 @@ void app_var_init(void)
 
 u8 get_power_on_status(void)
 {
+    u8 flag = 0;
 #if TCFG_IOKEY_ENABLE
-    return is_iokey_press_down();
+    if (is_iokey_press_down()) {
+        flag = 1;
+    }
 #endif
 
 #if TCFG_ADKEY_ENABLE
-    return is_adkey_press_down();
+    if (is_adkey_press_down()) {
+        flag = 1;
+    }
 #endif
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
-    return lp_touch_key_power_on_status();
+    if (lp_touch_key_power_on_status()) {
+        flag = 1;
+    }
 #endif
-
-    return 0;
+    return flag;
 }
 
 

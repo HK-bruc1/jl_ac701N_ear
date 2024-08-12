@@ -13,6 +13,8 @@
 
 #if TCFG_PLC_NODE_ENABLE
 
+#define TCFG_MUSIC_PLC_ENABLE	1
+
 enum audio_plc_type {
     AUD_PLC_BYPASS = 0, //不做任何处理，但是仍然会有缓存;
     AUD_PLC_NORMAL,     //仅修复
@@ -24,7 +26,9 @@ struct plc_node_hdl {
     u8 start;
     u8 channel_num;
     enum stream_scene scene;	//当前场景
+#if TCFG_MUSIC_PLC_ENABLE
     struct music_plc *plc;
+#endif
     void *esco_plc;
     char *out_buf;
     u16 out_buf_len;
@@ -160,7 +164,9 @@ static void plc_handle_frame(struct stream_iport *iport, struct stream_note *not
         repair_flag = 1;
     }
     if (hdl->scene == STREAM_SCENE_A2DP) {
+#if TCFG_MUSIC_PLC_ENABLE
         music_plc_run(hdl->plc, (s16 *)frame->data, frame->len, repair_flag);
+#endif
     } else {
         esco_plc_run(hdl, (s16 *)frame->data, frame->len, repair_flag);
     }
@@ -192,7 +198,9 @@ static void plc_ioc_start(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
     hdl->data_wide.oport_data_wide = hdl_node(hdl)->oport->fmt.bit_wide;
     /*log_d("%s bit_wide, %d %d %d\n", __FUNCTION__, hdl->data_wide.iport_data_wide, hdl->data_wide.oport_data_wide, hdl_node(hdl)->oport->fmt.Qval);*/
     if (hdl->scene == STREAM_SCENE_A2DP) {
+#if TCFG_MUSIC_PLC_ENABLE
         hdl->plc = music_plc_open(hdl, sr,  ch_num);
+#endif
     } else {
         hdl->esco_plc = esco_plc_open(hdl, sr, ch_num);
     }
@@ -202,10 +210,12 @@ static void plc_ioc_start(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
 static void plc_ioc_stop(struct plc_node_hdl *hdl)
 {
     if (hdl->scene == STREAM_SCENE_A2DP) {
+#if TCFG_MUSIC_PLC_ENABLE
         if (hdl->plc) {
             music_plc_close(hdl->plc);
             hdl->plc = NULL;
         }
+#endif
     } else {
         if (hdl->esco_plc) {
             esco_plc_close(hdl->esco_plc);

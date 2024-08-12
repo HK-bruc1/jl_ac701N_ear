@@ -65,6 +65,9 @@ static void auto_close_page_scan(void *p)
 
 static void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
+    u32 rets_addr = 0;
+    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    printf("write_scan_conn_enable rets=0x%x\n", rets_addr);
     if (g_dual_conn.page_scan_auto_disable) {
         if (!scan_enable && conn_enable) {
             return;
@@ -174,6 +177,7 @@ static void del_device_from_page_list(u8 *mac_addr)
 
 void clr_device_in_page_list()
 {
+    printf("clr_device_in_page_list\n");
     struct page_device_info *info, *n;
 
     if (!g_dual_conn.page_head_inited) {
@@ -343,6 +347,7 @@ static int dual_conn_btstack_event_handler(int *_event)
 {
     struct bt_event *event = (struct bt_event *)_event;
 
+    printf("dual_conn_btstack_event_handler:0x%x\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         puts("dual_conn BT_STATUS_INIT_OK");
@@ -420,6 +425,7 @@ static int dual_conn_hci_event_handler(int *_event)
     }
     int is_remote_test = bt_get_remote_test_flag();
 
+    printf("dual_conn_hci_event_handler:0x%x 0x%x\n", event->event, event->value);
     switch (event->event) {
     case HCI_EVENT_VENDOR_NO_RECONN_ADDR:
         break;

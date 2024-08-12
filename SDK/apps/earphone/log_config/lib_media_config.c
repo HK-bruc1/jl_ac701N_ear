@@ -41,7 +41,7 @@ const int CONFIG_STREAM_FRAME_DEBUG = 0;
 #define MEDIA_24BIT_ENABLE 		0
 #endif
 
-#ifdef TCFG_SPATIAL_AUDIO_ENABLE
+#if TCFG_SPATIAL_AUDIO_ENABLE
 /*空间音效需要跑24bit*/
 const int config_media_24bit_enable = 1;
 #else
@@ -297,8 +297,11 @@ const int MP3_OUTPUT_LEN = 1;
 #define FAST_FILTER_restrict			0x02 //限制滤波器长度【子带滤波器旁瓣加大，边缘不够陡】
 #define FAST_CHANNEL_restrict			0x04 //混合左右声道，再解码【如果是左右声道独立性较强的歌曲，会牺牲空间感，特别耳机听会听出来的话】
 const int config_mp3_dec_speed_mode 	=  0;//FAST_FREQ_restrict | FAST_FILTER_restrict | FAST_CHANNEL_restrict; //3个开关都置上，是最快的解码模式
-
+#if TCFG_APP_MUSIC_EN
 const int CONFIG_MUSIC_FILE_BUF_SIZE = 4 * 1024;
+#else
+const int CONFIG_MUSIC_FILE_BUF_SIZE = 0;
+#endif
 
 const int const_audio_mp3_dec16_fifo_precision = 16;  //  24 或者 16
 //***********************

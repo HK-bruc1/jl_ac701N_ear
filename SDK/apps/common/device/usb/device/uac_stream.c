@@ -271,7 +271,7 @@ void uac_mute_volume(u32 type, u32 l_vol, u32 r_vol)
         last_spk_l_vol = l_vol;
         last_spk_r_vol = r_vol;
 
-        //left and right seperate
+        //TODO
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
         printf(">> PC, r_vol:%d, l_vol:%d\n", r_vol, l_vol);
         /* app_audio_set_volume(APP_AUDIO_STATE_MUSIC, (r_vol + l_vol) / 2, 1); */

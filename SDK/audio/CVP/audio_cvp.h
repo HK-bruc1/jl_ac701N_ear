@@ -9,6 +9,9 @@
 #define AEC_DEBUG_ONLINE	0
 #define AEC_READ_CONFIG		1
 
+extern const u8 CONST_AEC_EXPORT;
+extern const u8 CONST_REF_SRC;
+
 /*
  *CVP(清晰语音模式定义)
  */

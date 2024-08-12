@@ -13,7 +13,6 @@
 #include "typedef.h"
 #include "system/includes.h"
 #include "media/includes.h"
-#include "asm/timer.h"
 #include "imuSensor_manage.h"
 #include "qmi8658c.h"
 

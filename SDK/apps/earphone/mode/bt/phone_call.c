@@ -219,12 +219,12 @@ static int esco_audio_open(u8 *bt_addr)
     /* #if 0	//功能未完善，暂时关闭 */
     if (tws_api_get_role() == TWS_ROLE_MASTER) {
         log_info("tws_master open esco recoder\n");
-        esco_recoder_open(COMMON_SCO);
+        esco_recoder_open(COMMON_SCO, bt_addr);
     } else {
         log_info("tws_slave don't open esco recoder\n");
     }
 #else
-    esco_recoder_open(COMMON_SCO);
+    esco_recoder_open(COMMON_SCO, bt_addr);
 #endif/*TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE*/
     return 0;
 }

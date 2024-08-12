@@ -86,6 +86,7 @@ struct jlstream;
 #define NODE_IOC_ENC_RESET          0x0002002d
 #define NODE_IOC_FORCE_DUMP_PACKET  0x0002002e
 #define NODE_IOC_GET_MIXER_INFO     0x0002002f
+#define NODE_IOC_TWS_TX_SWITCH      0x00020030
 
 #define NODE_IOC_START              (0x00040000 | NODE_STA_RUN)
 #define NODE_IOC_PAUSE              (0x00040000 | NODE_STA_PAUSE)
@@ -148,6 +149,7 @@ enum stream_scene : u8 {
     STREAM_SCENE_LEA_CALL,//LE Audio CALL
     STREAM_SCENE_ADDA_LOOP,
     STREAM_SCENE_WIRELESS_MIC,  //16 wireless mic
+    STREAM_SCENE_LOCAL_TWS,
 
 
     //最大32个场景，如果大于32个场景，需把tone、ring, key_tone场景号往后挪

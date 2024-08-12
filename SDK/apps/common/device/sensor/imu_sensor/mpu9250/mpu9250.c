@@ -13,7 +13,6 @@
 #include "typedef.h"
 #include "system/includes.h"
 #include "media/includes.h"
-#include "asm/timer.h"
 #include "imuSensor_manage.h"
 
 #if TCFG_TP_MPU9250_ENABLE

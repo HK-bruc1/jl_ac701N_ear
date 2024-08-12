@@ -14,7 +14,6 @@ int CONFIG_YESNO_VAD_ENABLE = 0;
 //===================================================//
 //                    算法接口函数                   //
 //===================================================//
-#define JL_KWS_PARAM_FILE 	SDFILE_RES_ROOT_PATH"jl_kws.cfg"
 #define KWS_FRAME_LEN 		320
 //每帧固定320 bytes, 16k采样率, 10ms
 int jlsp_wake_word_yesno_heap_size(int *private_heap_size, int *share_heap_size);

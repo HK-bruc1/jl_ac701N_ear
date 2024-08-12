@@ -313,8 +313,14 @@ u32 rcsp_update_status_response(void *priv, u8 status);
 u32 rcsp_update_data_read(void *priv, u32 offset_addr, u16 len);
 extern void rcsp_update_handle(u8 state, void *buf, int len);
 extern void rcsp_update_data_api_register(u32(*data_send_hdl)(void *priv, u32 offset, u16 len), u32(*send_update_handl)(void *priv, u8 state));
-extern void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms);
 extern void bt_ble_rcsp_adv_disable(void);
+
+#if RCSP_MODE == RCSP_MODE_EARPHONE
+extern void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms);
+#elif RCSP_MODE == RCSP_MODE_SOUNDBOX
+extern void bt_set_low_latency_mode(int enable);
+#endif
+
 void JL_resp_inquire_device_if_can_update(u8 OpCode, u8 OpCode_SN, u8 update_sta, u16 ble_con_handle, u8 *spp_remote_addr);
 void JL_rcsp_resp_dev_update_file_info_offest(u8 OpCode, u8 OpCode_SN, u16 ble_con_handle, u8 *spp_remote_addr);
 int JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
@@ -429,7 +435,12 @@ int JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 l
         break;
     case JL_OPCODE_ENTER_UPDATE_MODE:
         rcsp_printf("JL_OPCODE_ENTER_UPDATE_MODE\n");
+#if RCSP_MODE == RCSP_MODE_EARPHONE
         bt_set_low_latency_mode(0, 0, 0);
+#elif RCSP_MODE == RCSP_MODE_SOUNDBOX
+        bt_set_low_latency_mode(0);
+#endif
+
 #if TCFG_USER_TWS_ENABLE
         if (support_dual_bank_update_en && !tws_api_get_role()) {
 #else

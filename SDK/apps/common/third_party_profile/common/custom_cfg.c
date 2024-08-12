@@ -42,8 +42,7 @@
 #endif
 
 #define CFG_DEBUG_TAG "-[CFG]:"
-//#define RES_CUSTOM_CFG_FILE "/config.***"
-#define RES_CUSTOM_CFG_FILE	SDFILE_RES_ROOT_PATH"config.dat"
+#define RES_CUSTOM_CFG_FILE	FLASH_RES_PATH"config.dat"
 
 //配置:VM的接口采用692X还是693X
 #define VM_API_AC692X	0
@@ -1341,12 +1340,12 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
     custom_cfg_item_write(CFG_ITEM_PVID, (u8 *)pvid, sizeof(pvid));
 
     u8 md5[32] = {0};
-    FILE *fp = NULL;
-#define RES_MD5_FILE	SDFILE_RES_ROOT_PATH"md5.bin"
-    fp = fopen(RES_MD5_FILE, "r");
+    RESFILE *fp = NULL;
+#define RES_MD5_FILE	FLASH_RES_PATH"md5.bin"
+    fp = resfile_open(RES_MD5_FILE);
     if (fp) {
-        fread((void *)md5, 32, 1, fp);
-        fclose(fp);
+        resfile_read(fp, (void *)md5, 32);
+        resfile_close(fp);
     }
     custom_cfg_item_write(CFG_ITEM_MD5, md5, sizeof(md5));
     u8 sdk_type = 0;

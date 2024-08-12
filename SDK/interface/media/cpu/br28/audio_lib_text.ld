@@ -143,6 +143,8 @@
 	    *(.m4a.text.const)
 	    *(.alac.text)
 	    *(.alac.text.const)
+        *(.ldac_enc.text)
+	    *(.ldac_enc.text.const)
 	
 
 			

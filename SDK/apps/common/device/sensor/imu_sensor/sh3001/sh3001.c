@@ -47,7 +47,6 @@
 #include "typedef.h"
 #include "system/includes.h"
 #include "media/includes.h"
-#include "asm/timer.h"
 #include "sh3001.h"
 #include "imuSensor_manage.h"
 

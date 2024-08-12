@@ -12,7 +12,6 @@
 #include "tech_lib/SpatialAudio_api.h"
 #include "tech_lib/SensorCalib_api.h"
 #include "system/includes.h"
-#include "asm/timer.h"
 #include "task.h"
 #include "app_msg.h"
 

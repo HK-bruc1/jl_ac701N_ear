@@ -12,7 +12,6 @@
 #include "inv_imu_defs.h"
 #include "inv_imu_driver.h"
 #include "imuSensor_manage.h"
-#include "asm/timer.h"
 #include "clock.h"
 /* #include "inv_imu_extfunc.h" */
 /* #include "inv_imu_regmap.h" */

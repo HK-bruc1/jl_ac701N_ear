@@ -31,7 +31,7 @@ SECTIONS
 	    . = ALIGN(4);
     } > ram0
 
-    .bss ALIGN(32):SUBALIGN(4)
+    .bss (NOLOAD):SUBALIGN(4)
     {
 	    audio_cvp_bss_begin = .;
         . = ALIGN(4);

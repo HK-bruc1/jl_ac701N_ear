@@ -25,6 +25,8 @@
 #include "tws_dual_share.h"
 
 
+#if TCFG_BT_DUAL_CONN_ENABLE
+
 enum {
     CMD_A2DP_PLAY = 1,
     CMD_A2DP_SLIENCE_DETECT,
@@ -661,5 +663,6 @@ APP_MSG_HANDLER(a2dp_tws_msg_handler_stub) = {
 #endif
 
 
+#endif
 
 

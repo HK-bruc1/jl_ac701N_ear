@@ -97,6 +97,9 @@ struct sdfile_scn {
     u16 fileTotalInDir;     // 当前目录的根下有效文件的个数
     u16 fileTotalOutDir;	// 当前目录前的文件总数，目录循环模式下，需要用它来计算文件序号
     u32 sclust_id;
+    u32 root_addr;  //分区根地址
+    u8  part_index;  //标记分区，0为res 1：app 2:ext_reserve
+    u8  scan_dir_flag; //按目录扫描标志
     const char *ftypes;
     struct sdfile_file_head head;
     struct sdfile_folder folder[SDFILE_MAX_DEEPTH];

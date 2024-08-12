@@ -11,7 +11,7 @@
 #include "effects/effects_adj.h"
 #include "sync/audio_clk_sync.h"
 
-#if 1
+#if 0
 #define adc_file_log	printf
 #else
 #define adc_file_log(...)

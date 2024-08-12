@@ -453,3 +453,14 @@ iis_file_plug
 iis1_file_plug
 #endif
 
+#if TCFG_SIGNAL_GENERATOR_NODE_ENABLE
+signal_generator_file_plug
+#endif
+
+#if TCFG_REPLACE_NODE_ENABLE
+replace_node_adapter
+#endif
+
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
+vocal_remover_node_adapter
+#endif

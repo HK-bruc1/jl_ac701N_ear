@@ -172,11 +172,34 @@
  		*(.bt_aac_dec.text.cache.L2.const)
 #endif
 
+       . = ALIGN(4);
         *(.ldac_dec.text)
 	    *(.ldac_dec.text.const)
         *(.ldac.text)
 	    *(.ldac.text.const)
 
+        
+#if TCFG_CODE_RUN_RAM_JLA_CODE
+        . = ALIGN(4);
+        *(.jla_dec.text.const)
+        *(.jla_dec.text)
+        *(.jla_enc.text.const)
+        *(.jla_enc.text)
+        *(.jla_dec_const)
+        *(.jla_dec_code)
+	    *(.jla_codec_c_const)
+	    *(.jla_codec_c_code)
+	    *(.jla_codec_ari_c_const)
+	    *(.jla_codec_ari_c_code)
+	    *(.jla_codec_d_code)
+	    *(.jla_codec_e_code)
+	    *(.jla_codec_c_sparse_code)
+	    *(.jla_codec_t8k_code)
+	    *(.jla_codec_t16k_code)
+	    *(.jla_codec_t24k_code)
+	    *(.jla_codec_t32k_code)
+	    *(.jla_codec_t441k_code)
+#endif
         . = ALIGN(4);
         media_data_code_end = .;
 

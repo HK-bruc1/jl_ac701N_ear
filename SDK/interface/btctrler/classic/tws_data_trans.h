@@ -44,5 +44,13 @@ void tws_api_data_trans_clear(u8 channel);
 int tws_api_data_trans_check(u8 channel, u16 *ready_len, u16 *total_len);
 int tws_api_data_trans_check_start();
 
+
+void tws_api_data_trans_rx_notify_register(u8 channel, void (*notify)(void *), void *notify_priv);
+
+void tws_api_data_trans_rx_notify_unregister(u8 channel);
+
+u8  local_tws_data_trans_open_send();
+
+bool tws_api_data_trans_connect(void);
 #endif
 

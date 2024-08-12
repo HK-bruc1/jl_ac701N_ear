@@ -10,7 +10,7 @@ Date：
 #define _typedef_h_
 
 
-#include "asm/cpu.h"
+#include "cpu.h"
 
 
 #if defined(__GNUC__)

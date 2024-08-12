@@ -199,9 +199,11 @@ static int bt_phone_outband_ring_stop(u8 *bt_addr)
 {
     log_debug("%s", __func__);
     /* log_debug_hexdump(bt_addr, 6); */
-    tone_player_stop();
-    ring_player_stop();
-    // memset(coexist_outband_ring_bt_addr, 0, 6); //任意手机接听或挂断，都会停止来电铃声
+    if (bt_addr && !memcmp(bt_addr, coexist_outband_ring_bt_addr, 6) &&
+        ring_player_runing()) {
+        tone_player_stop();
+        ring_player_stop();
+    }
     return 0;
 }
 
@@ -249,6 +251,9 @@ static void second_phone_call_ring_stop(u8 *addr)
 {
     log_debug("%s\n", __func__);
     if (!addr) {
+        return;
+    }
+    if (memcmp(coexist_outband_ring_bt_addr, addr, 6)) {
         return;
     }
     if (second_phone_call_cmd_timer_id) {
@@ -360,11 +365,7 @@ int bt_phone_hangup(u8 *bt_addr)
                 g_bt_hdl.phone_ring_sync_tws = 1;
                 if ((inband_ring_flag == 0) || (inband_ring_flag && bt_check_esco_state_via_addr(g_bt_hdl.phone_ring_addr) == BT_ESCO_STATUS_CLOSE)) {
                     if (!esco_player_start(bt_addr)) {
-#if SECONDE_PHONE_IN_RING_COEXIST
-                        second_phone_call_send_cmd_delay(1500, g_bt_hdl.phone_ring_addr, CMD_PHONE_INCOME);
-#else
                         tws_phone_call_send_cmd(CMD_PHONE_INCOME, g_bt_hdl.phone_ring_addr, 2, 1);
-#endif
                     } else {
                         log_info("esco_player_not this _btaddr");
                     }
@@ -388,12 +389,12 @@ static int esco_audio_open(u8 *bt_addr)
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
     if (tws_api_get_role() == TWS_ROLE_MASTER) {
         log_info("tws_master open esco recoder\n");
-        esco_recoder_open(COMMON_SCO);
+        esco_recoder_open(COMMON_SCO, bt_addr);
     } else {
         log_info("tws_slave don't open esco recoder\n");
     }
 #else
-    esco_recoder_open(COMMON_SCO);
+    esco_recoder_open(COMMON_SCO, bt_addr);
 #endif
     return 0;
 }
@@ -801,8 +802,10 @@ static int bt_phone_status_event_handler(int *msg)
                     tws_phone_call_send_cmd(CMD_PHONE_INCOME, bt->args, 0, 1);
                 }
             } else { //当前设备来电铃声叠加
-                log_info("phone_send_ring_cmd, line = %d\n", __LINE__);
-                tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, bt->args, bt->value, 1);
+                if (bt_check_esco_state_via_addr(other_addr) == BT_ESCO_STATUS_OPEN) {
+                    log_info("phone_send_ring_cmd, line = %d\n", __LINE__);
+                    tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, bt->args, bt->value, 1);
+                }
             }
         } else {
             log_info("phone_send_income_cmd, line = %d\n", __LINE__);

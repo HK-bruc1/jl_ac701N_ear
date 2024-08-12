@@ -52,6 +52,8 @@ int audio_src_base_frame_resample(void *resample, struct resample_frame *in_fram
 
 void audio_src_base_close(void *resample);
 
+int audio_src_base_filter_frames(void *resample);
+
 int audio_src_base_push_data_out(void *resample);
 u8 audio_src_base_get_hw_core_id(void *resample);
 

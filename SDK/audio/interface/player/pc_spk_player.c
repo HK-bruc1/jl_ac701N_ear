@@ -30,19 +30,21 @@
 
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
 
+typedef enum {
+    PC_SPK_STA_CLOSE,
+    PC_SPK_STA_WAIT_CLOSE,
+    PC_SPK_STA_OPEN,
+    PC_SPK_STA_WAIT_OPEN,
+} pc_spk_state_t;
+pc_spk_state_t g_pc_spk_state;
+
 struct pc_spk_player {
     struct jlstream *stream;
-    u8 open_flag;
     s8 pc_spk_pitch_mode;
 };
 static struct pc_spk_player *g_pc_spk_player = NULL;
 
 extern void dac_try_power_on_task_delete();
-// 防止通过系统任务重复调用关闭、打开player
-static u8 player_wait_close_flag = 0;
-static u8 player_wait_open_flag = 0;
-static u8 player_wait_restart_flag = 0;
-static u8 pcspk_volume_wait_set_flag = 0;
 
 static void pc_spk_player_callback(void *private_data, int event)
 {
@@ -85,7 +87,6 @@ int pc_spk_player_open(void)
     int err = 0;
     struct pc_spk_player *player = NULL;;
 
-    player_wait_open_flag = 0;
     if (g_pc_spk_player) {
         return 0;
     }
@@ -106,6 +107,9 @@ int pc_spk_player_open(void)
         err = -ENOMEM;
         goto __exit0;
     }
+    u16 l_vol = 0, r_vol = 0;
+    uac_speaker_stream_get_volume(&l_vol, &r_vol);
+    app_audio_set_volume(APP_AUDIO_STATE_MUSIC, (r_vol + l_vol) / 2, 1);
     jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, 192);
     jlstream_set_callback(player->stream, player->stream, pc_spk_player_callback);
     jlstream_set_scene(player->stream, STREAM_SCENE_PC_SPK);
@@ -116,7 +120,7 @@ int pc_spk_player_open(void)
         dac_try_power_on_task_delete();
     }
 
-    player->open_flag = 1;
+    g_pc_spk_state = PC_SPK_STA_OPEN;
     g_pc_spk_player = player;
     return 0;
 
@@ -142,12 +146,14 @@ void pc_spk_player_close(void)
 {
     struct pc_spk_player *player = g_pc_spk_player;
 
-    player_wait_close_flag = 0;
     if (!player) {
+        if (g_pc_spk_state == PC_SPK_STA_WAIT_OPEN || g_pc_spk_state == PC_SPK_STA_OPEN) {
+            //可能在切到其它模式瞬间有spk音频起来，打开spk采用的是信号量方式打开，导致关闭spk的动作比打开的动作更提前
+            log_debug("err, [%s], player_wait_open_flag:1!\n", __func__);
+            pcspk_close_player_by_taskq();
+        }
         return;
     }
-
-    player->open_flag = 0;
 
 #if 0//pc + bt 通过mixer叠加的环境， 因usbrx已经停止，无法驱动数据流。需手动提前将当前的mixer ch关闭
     struct mixer_ch_pause pause = {0};
@@ -167,14 +173,13 @@ void pc_spk_player_close(void)
     }
 #endif
     jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"pc_spk");
+
+    g_pc_spk_state = PC_SPK_STA_CLOSE;
 }
 
 static void pc_spk_player_restert(void)
 {
-    struct pc_spk_player *player = g_pc_spk_player;
-
-    player_wait_restart_flag = 0;
-    if (player && player->open_flag) {
+    if (g_pc_spk_state == PC_SPK_STA_OPEN) {
         pc_spk_player_close();
         pc_spk_player_open();
     }
@@ -185,11 +190,13 @@ int pcspk_close_player_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (player_wait_close_flag == 0) {
+    if (g_pc_spk_state == PC_SPK_STA_OPEN ||
+        g_pc_spk_state == PC_SPK_STA_WAIT_OPEN) {
+
+        g_pc_spk_state = PC_SPK_STA_WAIT_CLOSE;
         msg[0] = (int)pc_spk_player_close;
         msg[1] = 0;
         ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        player_wait_close_flag = 1;
     }
     return ret;
 }
@@ -199,11 +206,13 @@ int pcspk_open_player_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (player_wait_open_flag == 0) {
+    if (g_pc_spk_state == PC_SPK_STA_CLOSE ||
+        g_pc_spk_state == PC_SPK_STA_WAIT_CLOSE) {
+
+        g_pc_spk_state = PC_SPK_STA_WAIT_OPEN;
         msg[0] = (int)pc_spk_player_open;
         msg[1] = 0;
         ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        player_wait_open_flag = 1;
     }
     return ret;
 }
@@ -212,18 +221,14 @@ int pcspk_restart_player_by_taskq(void)
 {
     int msg[2];
     int ret = 0;
-    if (player_wait_restart_flag == 0) {
-        msg[0] = (int)pc_spk_player_restert;
-        msg[1] = 0;
-        ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        player_wait_restart_flag = 1;
-    }
+    msg[0] = (int)pc_spk_player_restert;
+    msg[1] = 0;
+    ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
     return ret;
 }
 
 static void pc_spk_set_volume(void)
 {
-    pcspk_volume_wait_set_flag = 0;
     if (app_get_current_mode()->name == APP_MODE_PC) {
         s16 cur_vol = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
         u16 l_vol = 0, r_vol = 0;
@@ -240,14 +245,9 @@ int pcspk_set_volume_by_taskq(void)
     int msg[2];
     int ret = -1;
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
-    if (pcspk_volume_wait_set_flag == 0) {
-        msg[0] = (int)pc_spk_set_volume;
-        msg[1] = 0;
-        ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
-        if (ret == 0) {
-            pcspk_volume_wait_set_flag = 1;
-        }
-    }
+    msg[0] = (int)pc_spk_set_volume;
+    msg[1] = 0;
+    ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
 #endif
     return ret;
 }

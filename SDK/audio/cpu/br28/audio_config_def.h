@@ -11,12 +11,12 @@
 
 #include "app_config.h"
 #include "audio_def.h"
+#include "audio_platform_config.h"
 
 //**************************************
 // 			ASS通用配置
 //**************************************
 #define MEDIA_24BIT_ENABLE		TCFG_AUDIO_BIT_WIDTH
-#define HW_FFT_VERSION			FFT_EXT
 
 
 //**************************************
@@ -68,10 +68,19 @@
 #endif
 
 //ADC中断点数
-#define AUDIO_ADC_IRQ_POINTS 128
+#if (TCFG_LOCAL_TWS_ENABLE && TCFG_MIC_EFFECT_ENABLE)
+#define AUDIO_ADC_IRQ_POINTS   256
+#else
+#define AUDIO_ADC_IRQ_POINTS   192
+#endif
 #define AUDIO_ADC_IRQ_POINTS_MUSIC_MODE 256
 
+#if TCFG_MIC_EFFECT_ENABLE
+/*如果混响开启，则LINEIN共享ADC IRQ配置*/
+#define AUDIO_LINEIN_IRQ_POINTS AUDIO_ADC_IRQ_POINTS
+#else
 #define AUDIO_LINEIN_IRQ_POINTS 128
+#endif
 
 #define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 //**************************************

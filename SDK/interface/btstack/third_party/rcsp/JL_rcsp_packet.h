@@ -54,6 +54,9 @@ typedef struct __JL_PACKET_ENTRY {
 struct __JL_PACKET_CONTROL {
     JL_PACKET            packet;
     JL_QUEUE             queue;
+    u8                  *packet_buf;
+    u32                  packet_offset;
+    u32                  packet_remain;
 };
 typedef struct __JL_PACKET_CONTROL JL_PACKET_CONTROL;
 

@@ -10,7 +10,7 @@
 
 extern void putbyte(char a);
 typedef const int uart_dev;
-
+extern const u32 lib_config_uart_flow_enable;
 enum uart_parity : u8 {//uart_v2有效
     UART_PARITY_DISABLE  = 0x0,
     UART_PARITY_all_0,

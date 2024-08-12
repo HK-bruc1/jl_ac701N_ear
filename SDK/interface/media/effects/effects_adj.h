@@ -14,6 +14,10 @@
 #define USER_CTRL_BYPASS  	(1 << 4)
 #define BYPASS_CTRL_MODE(x) (x >> 4)
 
+#define TOOL_CTRL_BYPASS  	(0 << 4)
+#define USER_CTRL_BYPASS  	(1 << 4)
+#define BYPASS_CTRL_MODE(x) (x >> 4)
+
 struct node_param {//单节点名称
     char name[16];
 };

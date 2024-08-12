@@ -13,6 +13,12 @@
 //tws
 // #define PWM_LED_TEST_MODE 2
 
+//测试灯效属性互相切换是否正常
+// #define PWM_LED_TEST_MODE 3
+
+// #define PWM_LED_TEST_MODE 4
+
+
 // #define PWM_PAIRED_LED_UUID 0xb37e
 // #define PWM_PAIRED_LED_UUID 0xc3eb
 #define PWM_PAIRED_LED_UUID 0x63b8

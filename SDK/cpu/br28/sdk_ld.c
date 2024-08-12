@@ -123,6 +123,11 @@ SECTIONS
         app_mode_begin = .;
 		KEEP(*(.app_mode))
         app_mode_end = .;
+
+        local_tws_ops_begin = .;
+		KEEP(*(.local_tws))
+        local_tws_ops_end = .;
+
 		#include "media/cpu/br28/audio_lib_data.ld"
 
 		. = ALIGN(4);

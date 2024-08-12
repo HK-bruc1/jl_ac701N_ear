@@ -313,7 +313,8 @@ int usb_cdc_background_standby(const usb_dev usbfd)
 #else
 #if TCFG_PC_ENABLE
 #if TWFG_APP_POWERON_IGNORE_DEV
-    if (jiffies_to_msecs(jiffies) < TWFG_APP_POWERON_IGNORE_DEV) {
+    if ((jiffies_to_msecs(jiffies) < TWFG_APP_POWERON_IGNORE_DEV)\
+        && (!app_in_mode(APP_MODE_IDLE))) {
         usb_cdc_background_run(usbfd);
     } else
 #endif

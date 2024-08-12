@@ -138,7 +138,7 @@ DEFINES := \
 	-DFS_VERSION=0x020001 \
 	-DFATFS_VERSION=0x020101 \
 	-DSDFILE_VERSION=0x020000 \
-	-DVFS_ENABLE=1 \
+	-DVFS_ENABLE=0 \
 	-DVM_MAX_SIZE_CONFIG=16*1024 \
 	-DVM_ITEM_MAX_NUM=256 \
 	-DCONFIG_EARPHONE_CASE_ENABLE \
@@ -162,6 +162,7 @@ INCLUDES := \
 	-Iinterface/driver \
 	-Iinterface/driver/device \
 	-Iinterface/driver/cpu/br28 \
+	-Iinterface/driver/cpu/periph \
 	-Iinterface/media \
 	-Iinterface/system \
 	-Iinterface/system/generic \
@@ -196,6 +197,7 @@ INCLUDES := \
 	-Iapps/common/device/key \
 	-Iapps/common/device/eartouch \
 	-Iapps/common/include \
+	-Iapps/common/ui \
 	-Iapps/common/config/include \
 	-Iapps/common/dev_manager \
 	-Iapps/common/third_party_profile \
@@ -545,6 +547,8 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
+	apps/common/ui/pwm_led/led_ui_api.c \
+	apps/common/ui/pwm_led/led_ui_tws_sync.c \
 	apps/common/update/testbox_uart_update.c \
 	apps/common/update/testbox_update.c \
 	apps/common/update/update.c \
@@ -586,6 +590,7 @@ c_SRC_FILES := \
 	apps/earphone/message/adapter/eartouch.c \
 	apps/earphone/message/adapter/key.c \
 	apps/earphone/message/adapter/tws.c \
+	apps/earphone/mode/bt/a2dp_play.c \
 	apps/earphone/mode/bt/bt_background.c \
 	apps/earphone/mode/bt/bt_call_kws_handler.c \
 	apps/earphone/mode/bt/bt_event_func.c \
@@ -593,6 +598,7 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/bt_key_msg_table.c \
 	apps/earphone/mode/bt/bt_slience_detect.c \
 	apps/earphone/mode/bt/bt_tws.c \
+	apps/earphone/mode/bt/dual_a2dp_play.c \
 	apps/earphone/mode/bt/dual_conn.c \
 	apps/earphone/mode/bt/dual_phone_call.c \
 	apps/earphone/mode/bt/earphone.c \
@@ -610,7 +616,6 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/poweroff.c \
 	apps/earphone/mode/bt/sniff.c \
 	apps/earphone/mode/bt/tone.c \
-	apps/earphone/mode/bt/tws_a2dp_play.c \
 	apps/earphone/mode/bt/tws_dual_conn.c \
 	apps/earphone/mode/bt/tws_dual_share.c \
 	apps/earphone/mode/bt/tws_phone_call.c \
@@ -636,13 +641,12 @@ c_SRC_FILES := \
 	apps/earphone/tools/app_anctool.c \
 	apps/earphone/tools/app_key_dut.c \
 	apps/earphone/tools/app_testbox.c \
-	apps/earphone/ui/led/led_ui_api.c \
 	apps/earphone/ui/led/led_ui_msg_handler.c \
-	apps/earphone/ui/led/led_ui_tws_sync.c \
 	apps/earphone/user_cfg.c \
 	audio/CVP/audio_cvp.c \
 	audio/CVP/audio_cvp_3mic.c \
 	audio/CVP/audio_cvp_ais_3mic.c \
+	audio/CVP/audio_cvp_config.c \
 	audio/CVP/audio_cvp_demo.c \
 	audio/CVP/audio_cvp_develop.c \
 	audio/CVP/audio_cvp_dms.c \
@@ -757,6 +761,7 @@ c_SRC_FILES := \
 	audio/framework/nodes/esco_tx_node.c \
 	audio/framework/nodes/iis_node.c \
 	audio/framework/nodes/le_audio_source.c \
+	audio/framework/nodes/local_tws_source_node.c \
 	audio/framework/nodes/multi_ch_iis_node.c \
 	audio/framework/nodes/ns_node.c \
 	audio/framework/nodes/pc_mic_node.c \
@@ -777,6 +782,7 @@ c_SRC_FILES := \
 	audio/framework/plugs/source/iis_file.c \
 	audio/framework/plugs/source/le_audio_file.c \
 	audio/framework/plugs/source/linein_file.c \
+	audio/framework/plugs/source/local_tws_file.c \
 	audio/framework/plugs/source/multi_ch_adc_file.c \
 	audio/framework/plugs/source/multi_ch_iis_file.c \
 	audio/framework/plugs/source/pc_spk_file.c \
@@ -794,6 +800,7 @@ c_SRC_FILES := \
 	audio/interface/player/key_tone_player.c \
 	audio/interface/player/le_audio_player.c \
 	audio/interface/player/linein_player.c \
+	audio/interface/player/local_tws_player.c \
 	audio/interface/player/pc_spk_player.c \
 	audio/interface/player/reference_time.c \
 	audio/interface/player/ring_player.c \
@@ -830,10 +837,13 @@ c_SRC_FILES := \
 	cpu/br28/lua_port_api.c \
 	cpu/br28/overlay_code.c \
 	cpu/br28/periph/gpadc.c \
-	cpu/br28/periph/irflt.c \
+	cpu/br28/periph/led/led_api.c \
+	cpu/br28/periph/led/led_api_test.c \
+	cpu/br28/periph/led/pwm_led.c \
+	cpu/br28/periph/led/pwm_led_test.c \
+	cpu/br28/periph/led/two_io_led.c \
+	cpu/br28/periph/led/two_io_led_test.c \
 	cpu/br28/periph/mcpwm.c \
-	cpu/br28/periph/pwm_led/pwm_led_hw.c \
-	cpu/br28/periph/pwm_led_hw.c \
 	cpu/br28/periph/rdec.c \
 	cpu/br28/periph/touch/lp_touch_key.c \
 	cpu/br28/periph/touch/lp_touch_key_alog.c \
@@ -848,14 +858,19 @@ c_SRC_FILES := \
 	cpu/components/gpadc_utils.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
+	cpu/components/ir_decoder.c \
+	cpu/components/ir_encoder.c \
+	cpu/components/rdec_soft.c \
 	cpu/config/gpio_file_parse.c \
 	cpu/config/lib_power_config.c \
+	cpu/periph_demo/gptimer_demo.c \
 	cpu/periph_demo/iic_master_demo.c \
 	cpu/periph_demo/iic_slave_demo.c \
+	cpu/periph_demo/ir_encoder_decoder_demo.c \
 	cpu/periph_demo/ledc_test.c \
+	cpu/periph_demo/rdec_soft_demo.c \
 	cpu/periph_demo/sd_test.c \
 	cpu/periph_demo/spi_test.c \
-	cpu/periph_demo/timer_demo.c \
 	cpu/periph_demo/uart_test.c \
 
 
@@ -1013,6 +1028,7 @@ LFLAGS := \
 	cpu/br28/liba/cfg_tool.a \
 	cpu/br28/liba/vm.a \
 	cpu/br28/liba/debug_record.a \
+	cpu/br28/liba/lzma_dec.a \
 	--end-group \
 	-Tcpu/br28/sdk.ld \
 	-M=cpu/br28/tools/sdk.map \

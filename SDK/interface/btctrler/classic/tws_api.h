@@ -295,4 +295,6 @@ void tws_api_set_quick_rxtx_time(u16 time_msec);
 void tws_api_cancel_search_sibling(void);
 extern u32 tws_conn_get_mclkn(u32 *timebase);
 extern int bredr_clkn2offset(int clkn_begin, int clkn_end);
+
+u32 bt_audio_reference_clock_time(u8 network);
 #endif

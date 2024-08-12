@@ -51,6 +51,7 @@ struct pc_spk_file_hdl {
     u8 *cache_buf;
     u8 start;
     u8 data_run;
+    u32 timestamp;
 };
 static struct pc_spk_file_hdl *pc_spk = NULL;
 
@@ -89,7 +90,6 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         return;
     }
     struct stream_node  *source_node = hdl->source_node;
-    u32 pcrx_isr_timestamp = audio_jiffies_usec();
     if (!hdl->cache_buf) {
         int cache_buf_len = len * SPK_PUSH_FRAME_NUM * 4; //4块输出buf
         //申请cbuffer
@@ -97,6 +97,10 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         if (hdl->cache_buf) {
             cbuf_init(&hdl->spk_cache_cbuffer, hdl->cache_buf, cache_buf_len);
         }
+    }
+
+    if (cbuf_get_data_len(&hdl->spk_cache_cbuffer) == 0) {
+        hdl->timestamp = audio_jiffies_usec();
     }
 
 #if PC_SPK_ONLINE_DET_EN
@@ -116,7 +120,7 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         }
         frame->len    = cache_len;
         frame->flags  = FRAME_FLAG_SYS_TIMESTAMP_ENABLE;
-        frame->timestamp = pcrx_isr_timestamp;
+        frame->timestamp = hdl->timestamp;
         cbuf_read(&hdl->spk_cache_cbuffer, frame->data, frame->len);
         source_plug_put_output_frame(source_node, frame);
         hdl->data_run = 1;

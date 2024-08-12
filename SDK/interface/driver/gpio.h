@@ -63,6 +63,7 @@ enum gpio_pulldown_mode {
 
 #define PORT_PIN_MASK              (0x0000FFFFu) /* PIN mask for assert test */
 
+#include "cpu.h"
 #include "asm/gpio_hw.h"
 
 struct gpio_config {

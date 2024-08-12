@@ -2,6 +2,7 @@
 #define __RCSP_CFG_H__
 
 #include "rcsp_define.h"
+#include "sdk_config.h"
 
 // 全局搜索 RCSP_MODE 查找当前SDK相关配置
 /*
@@ -54,7 +55,7 @@ RCSP_BTMATE_EN
 #define RCSP_UPDATE_EN		         							1		//是否支持rcsp升级
 #define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
 #define UPDATE_MD5_ENABLE            							1		//升级是否支持MD5校验
-#define RCSP_FILE_OPT				 							1
+#define RCSP_FILE_OPT				 							0
 #define TCFG_BS_DEV_PATH_EN			 							1
 #define RCSP_APP_RTC_EN											1		// 闹钟功能
 
@@ -64,7 +65,7 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_LED_SET_ENABLE         						1		// 灯光设置
 #define RCSP_ADV_MIC_SET_ENABLE         						0		// mic设置
 #define RCSP_ADV_WORK_SET_ENABLE        						0		// 模式设置（游戏模式）
-#define RCSP_ADV_EQ_SET_ENABLE          						1		// eq设置
+#define RCSP_ADV_EQ_SET_ENABLE          						0		// eq设置
 #define RCSP_ADV_MUSIC_INFO_ENABLE      						1		// 音乐信息设置
 #define RCSP_ADV_HIGH_LOW_SET									1		// 高低音设置
 #define RCSP_ADV_FIND_DEVICE_ENABLE     						1		// 查找设备设置
@@ -172,7 +173,7 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_MIC_SET_ENABLE         						1		// mic设置
 #define RCSP_ADV_WORK_SET_ENABLE        						1		// 模式设置（游戏模式）
 #define RCSP_ADV_HALTER_ENABLE									0		// 挂脖功能
-#define RCSP_ADV_EQ_SET_ENABLE          						1		// eq设置
+#define RCSP_ADV_EQ_SET_ENABLE          			TCFG_EQ_ENABLE		// eq设置
 #define RCSP_ADV_MUSIC_INFO_ENABLE      						1		// 音乐信息设置
 #define RCSP_ADV_HIGH_LOW_SET									1		// 高低音设置
 #define RCSP_ADV_FIND_DEVICE_ENABLE     						1		// 查找设备设置
@@ -184,7 +185,7 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_ASSISTED_HEARING								0		// 辅听，注意开启辅听后，需要关闭ANC相关功能
 
 #if !RCSP_ADV_ASSISTED_HEARING
-#define RCSP_ADV_ANC_VOICE     									1		// 主动降噪
+#define RCSP_ADV_ANC_VOICE     					CONFIG_ANC_ENABLE		// 主动降噪
 
 #if RCSP_ADV_ANC_VOICE
 #define RCSP_ADV_ADAPTIVE_NOISE_REDUCTION 						0		// 自适应降噪

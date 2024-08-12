@@ -478,14 +478,6 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 #endif
         fmt->channel_mode   = AUDIO_CH_MIX;
         break;
-    case STREAM_SCENE_MIC:
-#if SUPPORT_CHAGE_AUDIO_CLK
-        fmt->sample_rate    = audio_adc_sample_rate_mapping(44100);
-#else
-        fmt->sample_rate    = 44100;
-#endif
-        fmt->channel_mode   = AUDIO_CH_MIX;
-        break;
     case STREAM_SCENE_HEARING_AID:
 #ifdef TCFG_AUDIO_HEARING_AID_SAMPLE_RATE
         fmt->sample_rate = TCFG_AUDIO_HEARING_AID_SAMPLE_RATE;

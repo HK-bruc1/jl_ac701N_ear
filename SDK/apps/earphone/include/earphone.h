@@ -194,6 +194,12 @@ void set_dual_conn_config(u8 *addr, u8 dual_conn_en);
 void tws_sync_dual_conn_info();
 bool bt_check_already_initializes(void);
 
+/**
+ * @brief 一拖二时，电话相关蓝牙事件消息处理函数 包含通话和通话的抢占
+ *
+ * @param msg  蓝牙事件消息
+ *
+ */
 void bt_dual_phone_call_msg_handler(int *msg);
 
 void bt_init_ok_search_index(void);

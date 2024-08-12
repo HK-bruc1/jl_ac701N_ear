@@ -71,4 +71,7 @@ void audio_spatial_effects_mode_switch(enum SPATIAL_EFX_MODE mode);
 
 /*默认eq参数设置*/
 int spatial_effect_eq_default_parm_set(char name[16], struct eq_default_parm *get_eq_parm);
+
+int spatial_effects_node_param_cfg_read(void *cfg, int size);
+
 #endif
