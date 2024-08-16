@@ -1,11 +1,12 @@
 #include "cpu/includes.h"
 #include "app_msg.h"
-#include "asm/led_api.h"
-#include "asm/pwm_led.h"
-#include "asm/two_io_led.h"
+#include "led_api.h"
+#include "pwm_led.h"
+#include "two_io_led.h"
 #include "gpio.h"
 #include "system/timer.h"
 #include "app_config.h"
+#include "resource_multiplex.h"
 
 
 #if 1
@@ -98,28 +99,36 @@ static void led_effect_output_by_hardware(led_pdata_t *led_effect, int cbpriv)
     pled.ctl_cycle_num = led_effect->ctl_cycle_num;
     pled.cbfunc = led_effect->cbfunc;
     pled.cbpriv = cbpriv;
+
+    u32 cycle_base = 50;
+    u32 cycle_pnum = 2;
+    if (__get_lrc_hz() / 100000) {
+        cycle_base = 320;
+        cycle_pnum = 4;
+    }
+
     switch (led_effect->ctl_mode) {
     case CYCLE_ONCE_BRIGHT:
         pled.out_once.pwm_out_time = led_effect->once_bright.bright_time * time_unit;
-        pled.pwm_cycle = pled.out_once.pwm_out_time * 2;
-        pled.pwm_cycle = pled.pwm_cycle > 50 ? 50 : pled.pwm_cycle;
+        pled.pwm_cycle = pled.out_once.pwm_out_time * cycle_pnum;
+        pled.pwm_cycle = pled.pwm_cycle > cycle_base ? cycle_base : pled.pwm_cycle;
         break;
     case CYCLE_TWICE_BRIGHT:
         pled.out_twice.first_pwm_out_time  = led_effect->twice_bright.first_bright_time * time_unit;
         pled.out_twice.second_pwm_out_time = led_effect->twice_bright.second_bright_time * time_unit;
         pled.out_twice.pwm_gap_time        = led_effect->twice_bright.bright_gap_time * time_unit;
-        pled.pwm_cycle = pled.out_twice.first_pwm_out_time * 2;
-        pled.pwm_cycle = pled.pwm_cycle > 50 ? 50 : pled.pwm_cycle;
+        pled.pwm_cycle = pled.out_twice.first_pwm_out_time * cycle_pnum;
+        pled.pwm_cycle = pled.pwm_cycle > cycle_base ? cycle_base : pled.pwm_cycle;
         break;
     case CYCLE_BREATHE_BRIGHT:
         pled.out_breathe.pwm_out_time = led_effect->breathe_bright.bright_time * time_unit;
         pled.out_breathe.pwm_duty_max_keep_time = led_effect->breathe_bright.brightest_keep_time * time_unit;
-        pled.pwm_cycle = pled.out_breathe.pwm_out_time * 2;
-        pled.pwm_cycle = pled.pwm_cycle > 50 ? 50 : pled.pwm_cycle;
+        pled.pwm_cycle = pled.out_breathe.pwm_out_time * cycle_pnum;
+        pled.pwm_cycle = pled.pwm_cycle > cycle_base ? cycle_base : pled.pwm_cycle;
         break;
     case ALWAYS_BRIGHT:
         pled.ctl_cycle = 5;
-        pled.pwm_cycle = 10;
+        pled.pwm_cycle = 32;
         pled.out_mode = CYCLE_ONCE_BRIGHT;
         pled.out_once.pwm_out_time = pled.ctl_cycle;
         pled.cbfunc = NULL;
@@ -156,6 +165,12 @@ static void led_effect_output_by_software(led_pdata_t *led_effect, int cbpriv)
     if (led_board_cfg->layout == THREE_IO_TWO_LED) {
         tled.com_pole_is_io = 1;
         tled.com_pole_io = led_board_cfg->com_pole_port;
+#if LED_IO_SUPPORT_MUX
+        if (resource_multiplex_is_registered(led_board_cfg->com_pole_port)) {
+            tled.io0_pwm_duty = tled.io0_pwm_duty > 60 ? 60 : tled.io0_pwm_duty;
+            tled.io1_pwm_duty = tled.io1_pwm_duty > 60 ? 60 : tled.io1_pwm_duty;
+        }
+#endif
     } else {
         tled.com_pole_is_io = 0;
         tled.com_pole_io = -1;
@@ -232,6 +247,11 @@ void led_effect_init(led_pdata_t *led_effect, int cbpriv)
     u32 use_pwm_led;
     if (led_board_cfg->layout <= ONE_IO_TWO_LED) {
         use_pwm_led = 1;
+#if LED_IO_SUPPORT_MUX
+    } else if ((led_board_cfg->layout == THREE_IO_TWO_LED) && \
+               (resource_multiplex_is_registered(led_board_cfg->com_pole_port))) {
+        use_pwm_led = 0;
+#endif
     } else if (led_effect->ctl_mode == CYCLE_BREATHE_BRIGHT) {
         use_pwm_led = 1;
     } else if ((led_effect->ctl_option == CTL_LED0_ONLY) || \
@@ -251,9 +271,10 @@ void led_effect_init(led_pdata_t *led_effect, int cbpriv)
 #if TCFG_LED_LAYOUT == TWO_IO_TWO_LED
         led_effect_output_by_software(led_effect, cbpriv);
 #endif
+        return;
     }
 
-    if ((use_pwm_led) && (led_board_cfg->layout == THREE_IO_TWO_LED)) {//第三IO
+    if (led_board_cfg->layout == THREE_IO_TWO_LED) {//第三IO
         if (led_effect->ctl_mode == ALWAYS_EXTINGUISH) {
             gpio_set_mode(IO_PORT_SPILT(led_board_cfg->com_pole_port), PORT_HIGHZ);
         } else {

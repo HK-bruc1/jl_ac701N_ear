@@ -407,6 +407,7 @@ struct stream_node_adapter {
     u8 ability_channel_convert;
     u8 ability_resample;
     u8 ability_bit_wide;
+    u8 fixed_oport;
 
     int (*bind)(struct stream_node *, u16 uuid);
 

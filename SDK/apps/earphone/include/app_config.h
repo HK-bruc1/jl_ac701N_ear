@@ -102,9 +102,6 @@
 #define LE_AUDIO_CODEC_SAMPLERATE 24000 //采样率
 #define LE_AUDIO_CODEC_BIT_RATR 48000 //采样率
 #define LEA_DEC_OUTPUT_CHANNEL 0x25 //接收端解码输出
-//jla代码放ram
-#define TCFG_CODE_RUN_RAM_JLA_CODE           1
-
 
 
 /* -----------------独立模式 PC/LINEIN/SPDIF 模块默认控制------- */

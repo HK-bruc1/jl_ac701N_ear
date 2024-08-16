@@ -4,7 +4,6 @@
 #include "battery_manager.h"
 #include "asm/charge.h"
 #include "led_ui_api.h"
-#include "asm/pwm_led_api.h"
 
 #define LOG_TAG             "[PWM_LED]"
 #define LOG_ERROR_ENABLE

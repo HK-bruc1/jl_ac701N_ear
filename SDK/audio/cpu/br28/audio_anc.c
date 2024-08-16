@@ -29,6 +29,10 @@
 #include "audio_anc_common_plug.h"
 #include "clock_manager/clock_manager.h"
 #include "dac_node.h"
+#if ANC_HOWLING_DETECT_EN
+#include "anc_howling_detect.h"
+#endif
+
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
 #include "anc_ext_tool.h"
 #endif
@@ -2470,7 +2474,6 @@ void audio_anc_dut_enable_set(u8 enablebit)
 
 void audio_anc_mic_mana_set_gain(audio_anc_t *param, u8 num, u8 type)
 {
-    int i;
     switch (type) {
     case 0:
         param->mic_param[num].gain = param->gains.l_ffmic_gain;

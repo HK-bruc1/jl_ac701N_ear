@@ -14,6 +14,9 @@
 #include "app_msg.h"
 #include "tws/jl_tws.h"
 #include "local_tws_player.h"
+#include "app_config.h"
+
+#if TCFG_LOCAL_TWS_ENABLE
 
 #define USE_LOCAL_REFERENCE_TIME    1 // 0 - 直接使用时间戳的TWS参考时钟，1 - 转换为本地参考时钟
 
@@ -224,3 +227,4 @@ REGISTER_SOURCE_NODE_PLUG(local_tws_file_plug) = {
     .release    = local_tws_file_release,
 };
 
+#endif

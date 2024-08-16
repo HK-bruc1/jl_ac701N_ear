@@ -214,5 +214,6 @@ int jlstream_read_effects_online_param(u32 uuid, char *name, void *param, u16 le
  * */
 void eff_node_send_packet(u32 id, u8 sq, u8 *packet, int size);
 
-
+u32 jlstream_read_jbhash(u8 *data, int len);
+void jlstream_node_name_to_uuid(char *name, char *out);
 #endif/*__EFFECTS_ADJ__H*/

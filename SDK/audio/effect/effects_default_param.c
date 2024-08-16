@@ -136,6 +136,40 @@ int get_eff_default_param(int arg)
         char name[16];
     };
     struct _name *name = (struct _name *)arg;
+
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+
+    char out[16];
+#if TCFG_EQ_ENABLE
+    char *eqname_tab[] = {"CEqVSPro", "LRSEqVSPro"};
+    for (int i = 0; i < ARRAY_SIZE(eqname_tab); i++) {
+        jlstream_node_name_to_uuid(eqname_tab[i], out);
+        if (!strcmp(name->name, out)) {
+            struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
+            get_eq_parm->cfg_index = 0;
+            get_eq_parm->mode_index = get_current_scene();
+            ret = 1;
+            break;
+        }
+    }
+#endif
+
+    char *vspro_name[] = {"PreLimiterVSPro", "LRLimiterVSPro", "CLimiterVSPro", "LRSLimiterVSPro", "MBLimiter0Media",
+                          "CDrcAdvVSPro", "LRSDrcAdvVSPro", "LRCrossVSPro", "LRBandVSPro", "LSCBandVSPro", "RSCBandVSPro",
+                          "VBassMedia", "LRPcmDlyVSPro", "LRSNsGateVSPro", "UpMix2to5VSPro"
+                         };
+    for (int i = 0; i < ARRAY_SIZE(vspro_name); i++) {
+        jlstream_node_name_to_uuid(vspro_name[i], out);
+        if (!strcmp(name->name, out)) {
+            struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+            get_parm->mode_index = get_current_scene();
+            get_parm->cfg_index = 0;//目标配置项
+            ret = 1;
+            break;
+        }
+    }
+#endif
+
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
     if (!strcmp(name->name, "spk_eq")) {
         ret = spk_eq_read_from_vm((void *)arg);

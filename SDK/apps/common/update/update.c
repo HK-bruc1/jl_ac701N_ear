@@ -43,10 +43,6 @@
 #include "audio_config.h"
 #endif
 
-#ifdef UPDATE_LED_REMIND
-#include "asm/pwm_led_hw.h"
-#endif
-
 #include "custom_cfg.h"
 
 #define LOG_TAG "[APP-UPDATE]"
@@ -67,6 +63,7 @@ extern void testbox_update_init(void);
 extern void ll_hci_destory(void);
 extern void hci_controller_destory(void);
 extern const int support_norflash_update_en;
+extern const int support_dual_bank_update_no_erase;
 extern void ram_protect_close(void);
 extern void hwi_all_close(void);
 extern void wifi_det_close();
@@ -504,12 +501,51 @@ REGISTER_LP_TARGET(ota_lp_target) = {
 extern void tws_sync_update_api_register(const update_op_tws_api_t *op);
 extern update_op_tws_api_t *get_tws_update_api(void);
 
+extern const int support_dual_bank_update_breakpoint;
 extern const int support_dual_bank_update_en;
 extern int tws_ota_init(void);
 extern void tws_api_auto_role_switch_disable();
 extern void tws_api_auto_role_switch_enable();
-extern void tws_api_auto_role_switch_enable();
+extern void tws_dual_conn_state_handler();
+extern void bt_sniff_enable();
 extern int  norflash_set_write_protect(u32 enable, u32 wp_addr);
+
+#define DUAL_BANK_BREAKPOIONT_STEP		(64 * 1024)
+// 断点设置
+// 当前函数时双备份升级时会触发，仅双备份升级且开启了断点续传功能有效
+int dual_bank_curr_write_offset_callback(u32 curr_write_offset, u32 remain_len, void *priv)
+{
+    static u32 write_offset_recored = 0;
+    u32 offset_step = curr_write_offset / DUAL_BANK_BREAKPOIONT_STEP * DUAL_BANK_BREAKPOIONT_STEP;
+    if (remain_len) {
+        if (write_offset_recored != offset_step) {
+            write_offset_recored = offset_step;
+            // 64k记录一次，放入vm中
+            syscfg_write(DUAL_BANK_BP_STEP, &curr_write_offset, sizeof(curr_write_offset));
+        }
+    } else {
+        write_offset_recored = 0;
+        // 清除vm中的断点信息
+        syscfg_write(DUAL_BANK_BP_STEP, &write_offset_recored, sizeof(write_offset_recored));
+    }
+    return 0;
+}
+
+// 断点获取
+// 当前函数用于升级前或升级失败后全擦的情况，如果是使用断点续传，中途失败不擦，其他情况擦除
+// 如果有开断点续传功能，该函数返回0，则表示没有升级或升级完成，忽略校验是否成功
+u32 dual_bank_update_bp_info_get(void)
+{
+    if (support_dual_bank_update_breakpoint) {
+        u32 write_offset = 0;
+        // 从vm中获取断点信息
+        if (sizeof(write_offset) != syscfg_read(DUAL_BANK_BP_STEP, &write_offset, sizeof(write_offset))) {
+            return 0;
+        }
+        return write_offset;
+    }
+    return 0;
+}
 
 void norflash_set_write_protect_en(void)
 {
@@ -532,10 +568,23 @@ static void update_init_common_handle(int type)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
+        // 关闭pack_scan
+        write_scan_conn_enable(0, 0);
+        // 退出sniff并关闭sniff
+        update_start_exit_sniff();
+        // 关闭主从切换
         tws_api_auto_role_switch_disable();
         tws_sync_update_api_register(get_tws_update_api());
         tws_ota_init();
 #endif
+        if (support_dual_bank_update_no_erase) {
+            extern void verify_os_time_dly_set(u32 time);
+            verify_os_time_dly_set(1); // 校验每包延时10ms
+        }
+
+        if (support_dual_bank_update_en && support_dual_bank_update_breakpoint) {
+            dual_bank_curr_write_offset_set(dual_bank_update_bp_info_get());
+        }
     }
     // 解除保护
     norflash_set_write_protect_remove();
@@ -544,7 +593,13 @@ static void update_init_common_handle(int type)
 static void update_exit_common_handle(int type, void *priv)
 {
     update_ret_code_t *ret_code = (update_ret_code_t *)priv;
-    if (UPDATE_RESULT_ERR_NONE != ret_code->err_code && (UPDATE_RESULT_FLAG_BITMAP | UPDATE_RESULT_ERR_NONE) != ret_code->err_code) {
+    printf("%s, %x\n", __func__, ret_code->err_code);
+    if (UPDATE_RESULT_ERR_NONE != ret_code->err_code && (UPDATE_RESULT_FLAG_BITMAP | UPDATE_RESULT_ERR_NONE) != ret_code->err_code && UPDATE_RESULT_BT_UPDATE_OVER != ret_code->err_code) {
+        if (support_dual_bank_update_no_erase) {
+            if (0 == dual_bank_update_bp_info_get()) {
+                dual_bank_check_flash_update_area(1);
+            }
+        }
         // 升级失败，添加写保护
         norflash_set_write_protect_en();
     }
@@ -555,7 +610,12 @@ static void update_exit_common_handle(int type, void *priv)
 
 #if OTA_TWS_SAME_TIME_ENABLE
     if (UPDATE_DUAL_BANK_IS_SUPPORT()) {
+        // 打开主从切换
         tws_api_auto_role_switch_enable();
+        // 打开pack_scan
+        tws_dual_conn_state_handler();
+        // 允许进入sniff
+        bt_sniff_enable();
     }
 #endif
 

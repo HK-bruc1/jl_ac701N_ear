@@ -529,15 +529,6 @@ typedef struct {
     u8 adt_state;//智能免摘开启状态
 } audio_anc_t;
 
-//啸叫检测相关结构体
-struct anc_howling_detect_cfg {
-    u16 detect_time;	//啸叫检测时间(单位ms)
-    u16 hold_time;		//增益冷却时间(单位ms)
-    u16 resume_time;	//增益恢复时间(单位ms)
-    audio_anc_t *param;
-    void (*fade_gain_set)(u16 gain);
-};
-
 //ANC场景自适应相关结构体
 struct anc_power_adaptive_cfg {
     u8 ref_max_lvl;
@@ -739,9 +730,6 @@ void audio_anc_debug_cbuf_sel_set(u8 sel);
 
 void audio_anc_debug_extern_trigger(u8 flag);
 
-/*播歌状态下特殊处理API*/
-void audio_anc_mix_process(u8 en);
-
 /*ANC模块复位*/
 void audio_anc_reset(audio_anc_t *param, u8 fade_en);
 
@@ -848,19 +836,6 @@ void audio_anc_sz_fft_outbuf_release(void);
 void audio_anc_sz_fft_trigger(void);
 
 void anc_user_train_process(audio_anc_t *param);
-
-//啸叫检测打印控制变量
-extern const u8 CONST_ANC_HOWLING_MSG_DEBUG;
-//啸叫检测初始化
-void anc_howling_detect_init(struct anc_howling_detect_cfg *cfg);
-//啸叫检测使能控制, 支持在线开关
-void anc_howling_detect_toggle(u8 toggle);
-//啸叫检测中断函数
-void anc_howling_detect_isr_handle(u8 pend);
-/*ANC啸叫抑制参数初始化-用于工具在线更新*/
-void anc_howling_detect_cfg_update(audio_anc_t *param);
-/*啸叫检测参数复位*/
-void anc_howling_detect_reset(void);
 
 /* ANC DMA 中断控制 */
 void anc_dma_ie(u8 en);

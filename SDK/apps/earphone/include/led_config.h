@@ -15,7 +15,7 @@ enum led_state_name : u8 {
     LED_STA_ALL_ON,                          // mode1: 所有灯全亮
     LED_STA_ALL_OFF,                         // mode2: 所有灯全灭
 
-    // 非周期灯效，一般用于开机关机灯效
+    // 非周期灯效
     LED_STA_RED_ON,                 // 红灯亮
     LED_STA_RED_ON_1S,              // 红灯亮1秒
     LED_STA_RED_ON_2S,              // 红灯亮2秒
@@ -23,7 +23,6 @@ enum led_state_name : u8 {
     LED_STA_RED_FLASH_1TIMES,       // 红灯闪1次
     LED_STA_RED_FLASH_2TIMES,       // 红灯闪2次
     LED_STA_RED_FLASH_3TIMES,       // 红灯闪3次
-    // 非周期灯效结束
 
     // 周期灯效
     LED_STA_RED_SLOW_FLASH,         // 红灯慢闪
@@ -33,9 +32,8 @@ enum led_state_name : u8 {
     LED_STA_RED_FLASH_1TIMES_PER_5S,// 红灯每5秒闪1次
     LED_STA_RED_FLASH_2TIMES_PER_5S,// 红灯每5秒闪2次
     LED_STA_RED_BREATHE,            // 红灯呼吸
-    // 周期灯效结束
 
-    // 非周期灯效，一般用于开机关机灯效
+    // 非周期灯效
     LED_STA_BLUE_ON,                 // 蓝灯亮
     LED_STA_BLUE_ON_1S,              // 蓝灯亮1秒
     LED_STA_BLUE_ON_2S,              // 蓝灯亮2秒
@@ -43,7 +41,7 @@ enum led_state_name : u8 {
     LED_STA_BLUE_FLASH_1TIMES,       // 蓝灯闪1次
     LED_STA_BLUE_FLASH_2TIMES,       // 蓝灯闪2次
     LED_STA_BLUE_FLASH_3TIMES,       // 蓝灯闪3次
-    // 非周期灯效结束
+
 
     // 周期灯效
     LED_STA_BLUE_SLOW_FLASH,         // 蓝灯慢闪
@@ -57,14 +55,13 @@ enum led_state_name : u8 {
     LED_STA_RED_BLUE_SLOW_FLASH_ALTERNATELY, // 红蓝交替慢闪
     LED_STA_RED_BLUE_FAST_FLASH_ALTERNATELY, // 红蓝交替快闪
     LED_STA_RED_BLUE_BREATHE_ALTERNATELY,    // 红蓝交替呼吸
-    // 周期灯效结束
+
 
     //软件控制灯效
-    LED_STA_RED_BLUE_5S_FLASHS_3_TIMES,      // 红蓝交替呼吸
-    LED_STA_BLUE_BREATH_1_5_AND_ON_3S,       // 红蓝交替呼吸
+    LED_STA_RED_BLUE_5S_FLASHS_3_TIMES,
+    LED_STA_BLUE_BREATH_AND_RED_FLASH,
     LED_STA_BLUE_1S_FLASHS_3_TIMES,
 
-    //新增灯效该处新增，不可改变上面排序
     LED_STA_POWERON,
 
 };

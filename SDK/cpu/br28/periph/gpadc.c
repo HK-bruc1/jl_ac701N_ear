@@ -15,7 +15,8 @@
 #include "jiffies.h"
 #include "app_config.h"
 #include "gpio.h"
-#include "driver/clock.h"
+#include "clock.h"
+#include "asm/power_interface.h"
 
 //br28
 
@@ -419,3 +420,14 @@ static void adc_test_demo()  //adc测试函数，根据需求搭建
     /* printf("%s() PA6:%dmv\n", __func__, adc_get_voltage_blocking(adc_io2ch(IO_PORTA_06))); */
 }
 
+static u8 gpadc_idle_query(void)
+{
+    if (JL_ADC->CON & BIT(4)) {
+        return 0; //不可以进入休眠
+    }
+    return 1; //可以进入休眠
+}
+REGISTER_LP_TARGET(gpadc_driver_target) = {
+    .name = "gpadc",
+    .is_idle = gpadc_idle_query,
+};

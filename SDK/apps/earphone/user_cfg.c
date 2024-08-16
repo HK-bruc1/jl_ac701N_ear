@@ -14,7 +14,6 @@
 #include "app_main.h"
 #include "media/includes.h"
 #include "audio_config.h"
-#include "asm/pwm_led_hw.h"
 #include "audio_cvp.h"
 #include "app_power_manage.h"
 #include "sdk_config.h"

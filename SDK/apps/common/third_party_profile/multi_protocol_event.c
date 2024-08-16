@@ -6,8 +6,7 @@
 #endif
 #include "system/includes.h"
 #include "multi_protocol_main.h"
-#include "classic/tws_api.h"
-#include "classic/tws_event.h"
+#include "bt_tws.h"
 #include "btstack/avctp_user.h"
 #include "app_main.h"
 
@@ -44,6 +43,11 @@ void multi_protocol_state_update_callback(void *_hdl, uint8_t state, uint8_t *pa
 
 void multi_protocol_bt_tws_poweroff_handler(void)
 {
+    log_info("tws poweroff : %d %d\n", get_bt_tws_connect_status(), tws_api_get_role());
+    if (!get_bt_tws_connect_status() || !(tws_api_get_role() == TWS_ROLE_MASTER)) {
+        return;
+    }
+
     multi_protocol_tws_sync_send();
 
 #if (BT_AI_SEL_PROTOCOL & GFPS_EN)

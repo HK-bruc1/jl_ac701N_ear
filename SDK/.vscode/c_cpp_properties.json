@@ -65,6 +65,7 @@
                 "${workspaceFolder}/interface",
                 "${workspaceFolder}/interface/driver",
                 "${workspaceFolder}/interface/driver/device",
+                "${workspaceFolder}/interface/driver/utils",
                 "${workspaceFolder}/interface/driver/cpu/br28",
                 "${workspaceFolder}/interface/driver/cpu/periph",
                 "${workspaceFolder}/interface/media",

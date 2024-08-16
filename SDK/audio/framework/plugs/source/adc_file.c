@@ -620,8 +620,10 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
         }
     }
 
-    if (jlstream_read_effects_online_param(NODE_UUID_ADC, hdl->name, &hdl->adc_f->cfg, sizeof(hdl->adc_f->cfg))) {
-        adc_file_log("get adc online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (jlstream_read_effects_online_param(NODE_UUID_ADC, hdl->name, &hdl->adc_f->cfg, sizeof(hdl->adc_f->cfg))) {
+            adc_file_log("get adc online param\n");
+        }
     }
     if (hdl->start == 0) {
         hdl->start = 1;

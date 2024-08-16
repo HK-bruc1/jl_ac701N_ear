@@ -72,15 +72,13 @@
 
 #define TCFG_PWMLED_ENABLE 1 // LED配置
 #if TCFG_PWMLED_ENABLE
-#define TCFG_LED_RED_ENABLE 0x1 // 红灯(Red)
-#define TCFG_LED_RED_IO IO_PORTC_02 // IO
-#define TCFG_LED_RED_LOGIC 1 // 点亮方式
-#define TCFG_LED_BLUE_ENABLE 0x1 // 蓝灯(Blue)
-#define TCFG_LED_BLUE_IO IO_PORTC_02 // IO
-#define TCFG_LED_BLUE_LOGIC 0 // 点亮方式
-#define TCFG_LED_WHITE_ENABLE 0x0 // 白灯(White)
-#define TCFG_LED_WHITE_IO IO_PORTC_02 // IO
-#define TCFG_LED_WHITE_LOGIC 0 // 点亮方式
+#define TCFG_LED_LAYOUT ONE_IO_TWO_LED // 连接方式
+#define TCFG_LED_RED_ENABLE 1 // 红灯(Red)
+#define TCFG_LED_RED_GPIO IO_PORTC_02 // IO
+#define TCFG_LED_RED_LOGIC BRIGHT_BY_HIGH// 点亮方式
+#define TCFG_LED_BLUE_ENABLE 1 // 蓝灯(Blue)
+#define TCFG_LED_BLUE_GPIO IO_PORTC_02 // IO
+#define TCFG_LED_BLUE_LOGIC BRIGHT_BY_LOW// 点亮方式
 #endif // TCFG_PWMLED_ENABLE
 
 #define FUSB_MODE 0x1 // USB工作模式

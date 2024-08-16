@@ -108,7 +108,7 @@ void eq_list_entry_update(struct eq_list_entry *hdl, struct eff_online_packet *e
                 free(hdl->tab);
             }
             int sizet = sizeof(struct eq_online) + data[3] * sizeof(struct eq_seg_info);
-            hdl->tab = malloc(sizet);
+            hdl->tab = zalloc(sizet);
             total_buf += sizet;
         }
 
@@ -163,7 +163,7 @@ void eq_list_entry_update(struct eq_list_entry *hdl, struct eff_online_packet *e
                 free(hdl->tab);
             }
             int sizet = sizeof(struct eq_online) + eq.param.seg_num * sizeof(struct eq_seg_info);
-            hdl->tab = malloc(sizet);
+            hdl->tab = zalloc(sizet);
             total_buf += sizet;
 
             hdl->tab->global_gain = global_gain;
@@ -196,7 +196,7 @@ void eff_list_entry_update(struct eff_list_entry *hdl, struct eff_online_packet 
             free(hdl->packet);
         }
         hdl->len = size;
-        hdl->packet = malloc(size);
+        hdl->packet = zalloc(size);
         total_buf += size;
     }
     hdl->packet->cmd = ep->cmd;
@@ -293,7 +293,7 @@ void eff_entry_add(void *packet, u32 size, int *ret, int *start, int *end)
         total_buf += sizet;
         int default_section = 10;
         sizet = sizeof(struct eq_online) + default_section * sizeof(struct eq_seg_info);
-        hdl->tab = malloc(sizet);
+        hdl->tab = zalloc(sizet);
         total_buf += sizet;
         hdl->tab->seg_num = default_section;
         eq_list_entry_update(hdl, ep, size, ret, start, end);
@@ -660,7 +660,7 @@ static s32 eff_online_update(void *packet, u32 size, u8 sq)
                     log_error("eff_struct_len error offset %d size %d\n", offset, size);
                     break;
                 }
-                new_ep = (struct eff_online_packet *)malloc(eff_struct_len + 4);//struct eff_struct结构长度 + cmd长度
+                new_ep = (struct eff_online_packet *)zalloc(eff_struct_len + 4);//struct eff_struct结构长度 + cmd长度
                 if (new_ep) {//重组packet并做更新
                     /* printf("offset %d ,size %d, eff_struct_len %d\n", offset, size, eff_struct_len); */
                     new_ep->cmd = EFF_ADJ_CMD;

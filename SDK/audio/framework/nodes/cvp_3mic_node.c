@@ -338,10 +338,12 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
     /*
      *获取在线调试的临时参数
      * */
-    if (g_cvp_hdl) {
-        memcpy(g_cvp_hdl->name, ncfg.name, sizeof(ncfg.name));
-        if (jlstream_read_effects_online_param(hdl_node(g_cvp_hdl)->uuid, g_cvp_hdl->name, &cfg, sizeof(cfg))) {
-            printf("get cvp online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (g_cvp_hdl) {
+            memcpy(g_cvp_hdl->name, ncfg.name, sizeof(ncfg.name));
+            if (jlstream_read_effects_online_param(hdl_node(g_cvp_hdl)->uuid, g_cvp_hdl->name, &cfg, sizeof(cfg))) {
+                printf("get cvp online param\n");
+            }
         }
     }
     cvp_node_param_cfg_update(&cfg, p);

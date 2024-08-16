@@ -7,7 +7,7 @@ struct mulit_mix_gain {
     float gain2;
 };
 typedef  struct _MULIT_MIX_TOOL_SET {
-    float gain_fade_step;//淡入步进 0:默认不淡入 非0：淡入步进，范围：0.01f~10.0f，建议值0.1f,步进越大，更新越快
+    int is_bypass;//打开时，只输出 gain0通道的数据
     struct mulit_mix_gain gain;
 } multi_mix_param_tool_set;
 

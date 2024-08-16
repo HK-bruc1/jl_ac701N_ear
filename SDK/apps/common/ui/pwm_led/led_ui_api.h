@@ -4,9 +4,9 @@
 #include "generic/typedef.h"
 #include "generic/list.h"
 #include "led_config.h"
-#include "asm/led_api.h"
-#include "asm/pwm_led.h"
-#include "cpu/pwm_led_debug.h"
+#include "led_api.h"
+#include "pwm_led.h"
+#include "pwm_led_debug.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "pwm_led/led_ui_tws_sync.h"

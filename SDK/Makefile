@@ -161,6 +161,7 @@ INCLUDES := \
 	-Iinterface \
 	-Iinterface/driver \
 	-Iinterface/driver/device \
+	-Iinterface/driver/utils \
 	-Iinterface/driver/cpu/br28 \
 	-Iinterface/driver/cpu/periph \
 	-Iinterface/media \
@@ -567,7 +568,6 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br28/board_config.c \
-	apps/earphone/board/br28/led_config.c \
 	apps/earphone/board/br28/lp_touch_key_config.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/debug_record_demo.c \
@@ -641,6 +641,7 @@ c_SRC_FILES := \
 	apps/earphone/tools/app_anctool.c \
 	apps/earphone/tools/app_key_dut.c \
 	apps/earphone/tools/app_testbox.c \
+	apps/earphone/ui/led/led_config.c \
 	apps/earphone/ui/led/led_ui_msg_handler.c \
 	apps/earphone/user_cfg.c \
 	audio/CVP/audio_cvp.c \
@@ -837,12 +838,7 @@ c_SRC_FILES := \
 	cpu/br28/lua_port_api.c \
 	cpu/br28/overlay_code.c \
 	cpu/br28/periph/gpadc.c \
-	cpu/br28/periph/led/led_api.c \
-	cpu/br28/periph/led/led_api_test.c \
 	cpu/br28/periph/led/pwm_led.c \
-	cpu/br28/periph/led/pwm_led_test.c \
-	cpu/br28/periph/led/two_io_led.c \
-	cpu/br28/periph/led/two_io_led_test.c \
 	cpu/br28/periph/mcpwm.c \
 	cpu/br28/periph/rdec.c \
 	cpu/br28/periph/touch/lp_touch_key.c \
@@ -860,17 +856,22 @@ c_SRC_FILES := \
 	cpu/components/iic_soft.c \
 	cpu/components/ir_decoder.c \
 	cpu/components/ir_encoder.c \
+	cpu/components/led_api.c \
 	cpu/components/rdec_soft.c \
+	cpu/components/two_io_led.c \
 	cpu/config/gpio_file_parse.c \
 	cpu/config/lib_power_config.c \
 	cpu/periph_demo/gptimer_demo.c \
 	cpu/periph_demo/iic_master_demo.c \
 	cpu/periph_demo/iic_slave_demo.c \
 	cpu/periph_demo/ir_encoder_decoder_demo.c \
+	cpu/periph_demo/led_api_test.c \
 	cpu/periph_demo/ledc_test.c \
+	cpu/periph_demo/pwm_led_test.c \
 	cpu/periph_demo/rdec_soft_demo.c \
 	cpu/periph_demo/sd_test.c \
 	cpu/periph_demo/spi_test.c \
+	cpu/periph_demo/two_io_led_test.c \
 	cpu/periph_demo/uart_test.c \
 
 

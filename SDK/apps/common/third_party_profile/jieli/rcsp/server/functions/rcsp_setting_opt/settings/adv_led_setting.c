@@ -15,7 +15,6 @@
 #if (RCSP_MODE && RCSP_ADV_EN)
 #if RCSP_ADV_LED_SET_ENABLE
 
-#include "asm/pwm_led_hw.h"
 
 enum ADV_LED_TYPE {
     ADV_LED_TYPE_ALL_OFF = 0x0,

@@ -20,11 +20,14 @@ struct __tws_ota_para {
     u32 fm_size;
     u32 fm_crc;
     u16 max_pkt_len;
+    u32 param_len;
+    void *param;
 };
 
 typedef struct _ret_code {
     int stu;
     u8 err_code;
+    void *priv;
 } update_ret_code_t;
 
 typedef struct _update_op_api_tws {
@@ -39,6 +42,7 @@ typedef struct _update_op_api_tws {
     int (*tws_ota_data_send_pend)(void);
     //for user chip update
     int (*tws_ota_user_chip_update_send)(u8 cmd, u8 *buf, u16 len);
+    int (*tws_ota_user_chip_update_send_data)(u8 *buf, u16 len, u16 pack_crc, void *priv);
 } update_op_tws_api_t;  //给tws同步升级用的接口
 
 update_op_tws_api_t *get_tws_update_api(void);
@@ -197,6 +201,8 @@ void rcsp_update_loader_download_init(int update_type, void (*result_cbk)(void *
 int app_active_update_task_init(update_mode_info_t *info);
 int update_file_verify(u32 ufw_addr, s32(*ufw_read)(void *buf, u32 addr, u32 len));
 
+u32 dual_bank_curr_write_offset_get(void);
+int dual_bank_curr_write_offset_set(u32 offset);
 //==========================================================//
 //  		           获取升级进度信息                     //
 //注意: 只有双备份升级可以获取该信息                        //

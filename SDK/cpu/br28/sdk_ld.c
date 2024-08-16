@@ -128,8 +128,6 @@ SECTIONS
 		KEEP(*(.local_tws))
         local_tws_ops_end = .;
 
-		#include "media/cpu/br28/audio_lib_data.ld"
-
 		. = ALIGN(4);
         #include "btctrler/crypto/data.ld"
 
@@ -148,9 +146,6 @@ SECTIONS
         *(.*.data.bss)
         . = ALIGN(4);
         *(.*.data.bss.nv)
-
-        . = ALIGN(4);
-		#include "media/cpu/br28/audio_lib_bss.ld"
 
         . = ALIGN(4);
         *(.volatile_ram)
@@ -174,7 +169,7 @@ SECTIONS
 	.data_code ALIGN(32):SUBALIGN(4)
 	{
 		data_code_pc_limit_begin = .;
-		#include "media/cpu/br28/audio_lib_data_text.ld"
+		#include "media/media_lib_data_text.ld"
 		*(.flushinv_icache)
         *(.cache)
         *(.os_critical_code)
@@ -424,7 +419,6 @@ SECTIONS
 		/********maskrom arithmetic ****/
         *(.opcore_table_maskrom)
         *(.bfilt_table_maskroom)
-        *(.opcore_maskrom)
         *(.bfilt_code)
         *(.bfilt_const)
 		/********maskrom arithmetic end****/
@@ -435,17 +429,6 @@ SECTIONS
         __VERSION_END = .;
 
         *(.noop_version)
-		. = ALIGN(4);
-
-
-        MEDIA_CODE_BEGIN = .;
-        #include "media/cpu/br28/audio_lib_text.ld"
-		audio_sync_code_begin = .;
-		*(.audio_sync_code)
-		audio_sync_code_end = .;
-		. = ALIGN(4);
-        MEDIA_CODE_SIZE = . - MEDIA_CODE_BEGIN;
-
 
 		. = ALIGN(4);
          __a2dp_text_cache_L2_start = .;
@@ -472,10 +455,10 @@ SECTIONS
 #include "btstack/btstack_lib.ld"
 //#include "btctrler/port/br28/btctler_lib.ld"
 #include "driver/cpu/br28/driver_lib.ld"
-/* #include "media/cpu/br28/audio_lib.ld" */
 #include "utils/utils_lib.ld"
 #include "ui/ui/ui.ld"
 #include "cvp/audio_cvp_lib.ld"
+#include "media/media_lib.c"
 
 #if TCFG_JLSTREAM_TURBO_ENABLE
 #define INCLUDE_FROM_LD

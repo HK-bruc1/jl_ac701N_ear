@@ -24,7 +24,7 @@ typedef struct pwm_led_platform_data {
     u8 port1;           //输出波形的引脚
     u8 first_logic;     //0,先送出h_pwm     1:先送出l_pwm
     u8 alternate_out;   //范围0~7，两种波形(h_pwm和l_pwm)交替输出，每种波形输出的周期个数。当值为0时：则关闭交替输出模式，那么波形由first_logic决定。
-    u32 pwm_cycle;       //pwm的周期，单位10us, 最小只能到32
+    u32 pwm_cycle;       //pwm的周期，单位10us
     u32 ctl_cycle;      //控制周期, 单位ms, 比如每5s输出一次0.1s的pwm，那么5s就是控制周期
     u8 ctl_cycle_num;   //控制周期的个数，值为0时，则控制周期无限循环，  值为n时， 则第n次控制周期之后，模块自动关闭
     u8 h_pwm_duty;      //h_pwm 占空比0~100, 呼吸模式时，为最大占空比

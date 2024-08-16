@@ -183,11 +183,14 @@ u16 rcsp_f_read(void *fp, u8 *buff, u16 len)
     }
 #endif
 
+    if (get_rcsp_connect_status()) {
+        __this->data_send_hdl(fp, __this->file_offset, len);
+    }
+
 __RETRY:
-    if (!get_rcsp_connect_status()) {   //如果已经断开连接直接返回-1
+    if (!get_rcsp_connect_status() || g_rcsp_ancs_state_flag) {   //如果已经断开连接直接返回-1
         return -1;
     }
-    __this->data_send_hdl(fp, __this->file_offset, len);
 
     while (!((0 == __this->state) && (__this->read_len == len))) {
         if (__this->sleep_hdl && get_rcsp_connect_status()) {
@@ -296,6 +299,10 @@ static u16 rcsp_f_stop(u8 err)
     log_info(">>>rcsp_stop\n");
     __this->state = UPDATA_STOP;
 
+    if (!get_rcsp_connect_status() || g_rcsp_ancs_state_flag) {
+        return 1;
+    }
+
     if (__this->data_send_hdl) {
         __this->data_send_hdl(NULL, 0, 0);
     }
@@ -356,6 +363,10 @@ void rcsp_update_handle(u8 state, void *buf, int len)
         return;
     }
 
+    if (!get_rcsp_connect_status() || g_rcsp_ancs_state_flag) {
+        return;
+    }
+
     switch (state) {
     case UPDATA_REV_DATA:
         if (__this->read_buf) {
@@ -398,6 +409,7 @@ void rcsp_ch_update_init(void (*resume_hdl)(void *priv), int (*sleep_hdl)(void *
 {
     log_info("------------rcsp_ch_update_init\n");
 
+    g_rcsp_ancs_state_flag = 0;
     rcsp_update_resume_hdl_register(resume_hdl, sleep_hdl);
     //register_receive_fw_update_block_handle(rcsp_updata_handle);
 }
@@ -475,6 +487,7 @@ static void rcsp_update_state_cbk(int type, u32 state, void *priv)
         rcsp_ble_adv_enable_with_con_dev();
 #endif
 #endif
+        rcsp_update_resume_hdl_register(NULL, NULL);
         break;
     }
 }

@@ -772,8 +772,10 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
     printf("---%s --- %d   %d\n", __func__, __LINE__, event);
     switch (event) {
     case MSG_JL_DEV_DISCONNECT:
-        if (rcsp_send_list_is_empty() && check_ble_all_packet_sent()) {
-            rcsp_printf("MSG_JL_DEV_DISCONNECT\n");
+        rcsp_printf("MSG_JL_DEV_DISCONNECT\n");
+        static u8 wait_cnt = 0;
+        if ((10 == wait_cnt) || (rcsp_send_list_is_empty() && check_ble_all_packet_sent())) {
+            wait_cnt = 0;
             ble_app_disconnect();
             if (check_edr_is_disconnct()) {
                 puts("-need discon edr\n");
@@ -781,6 +783,7 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
             }
             ble_discon_timeout = sys_timeout_add(NULL, ble_discon_timeout_handle, 1000);
         } else {
+            wait_cnt++;
             wait_response_timeout = sys_timeout_add(NULL, wait_response_and_disconn_ble, 100);
         }
         break;
@@ -806,11 +809,16 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
         break;
 
     case MSG_JL_UPDATE_START:
+        rcsp_printf("MSG_JL_UPDATE_START\n");
+        static u8 update_wait_cnt = 0;
         // loader加载完成，开始进入loader升级
-        if (check_edr_is_disconnct()) {
+        if ((100 < update_wait_cnt) && check_edr_is_disconnct()) {
             rcsp_printf("b");
+            update_wait_cnt++;
             JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
             break;
+        } else {
+            update_wait_cnt = 0;
         }
 
         // 单备份的loader都是使用ble

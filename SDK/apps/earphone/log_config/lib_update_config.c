@@ -26,6 +26,15 @@ const int support_dual_bank_update_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
 #endif
 
+// 是否支持双备份升级前和升级失败对升级区域全擦，升级过程只写的功能
+const int support_dual_bank_update_no_erase = 0;
+
+// 是否支持双备份断点续传升级
+const int support_dual_bank_update_breakpoint = 0;
+
+// 是否支持tws双备份升级，从机收错包重发机制
+const int support_dual_bank_slave_recv_again = 1;
+
 #if OTA_TWS_SAME_TIME_NEW       //使用新的同步升级流程
 const int support_ota_tws_same_time_new =  1;
 #else

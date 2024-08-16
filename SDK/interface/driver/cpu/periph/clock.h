@@ -151,6 +151,7 @@ void udelay(u32 us);
 void mdelay(u32 ms);
 
 
+u32 __get_lrc_hz();
 
 
 /**

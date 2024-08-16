@@ -128,7 +128,7 @@ int icsd_audio_dac_read(s16 points_offset, void *data, int len, u8 read_channel)
 
 float adt_pow10(float n)
 {
-    float pow10n = exp_float((float)n / log10_anc(exp_float((float)1.0)));
+    float pow10n = exp_float((float)n / adt_log10_anc(exp_float((float)1.0)));
     return pow10n;
 }
 
@@ -191,7 +191,8 @@ void set_icsd_adt_dma_done_flag(u8 flag)
 
 void icsd_adt_hw_suspend()
 {
-    anc_dma_off();
+    anc_core_dma_ie(0);
+    anc_core_dma_stop();
 }
 
 void icsd_adt_hw_resume()
@@ -457,6 +458,9 @@ void icsd_play_normal()
 {
     icsd_adt_tone_play(ICSD_ADT_TONE_NORMAL);
 }
+
+
+extern u8 cepst_on;
 void icsd_adt_output_demo(__adt_result *adt_result)
 {
 #if ADT_EAR_IN_EN
@@ -505,6 +509,31 @@ void icsd_adt_output_demo(__adt_result *adt_result)
     }
 }
 #endif /*ADT_DATA_DEBUG*/
+
+
+double adt_log10_anc(double x)
+{
+    double tmp = x;
+    if (tmp == 0) {
+        tmp = 0.0000001;
+    }
+    return log10_float(tmp);
+}
+
+float adt_anc_pow10(float n)
+{
+    float pow10n = exp_float((float)n / adt_log10_anc(exp_float((float)1.0)));
+    return pow10n;
+}
+
+void adt_icsd_anc_fft256(int *in, int *out)
+{
+    u32 fft_config;
+    fft_config = hw_fft_config(256, 8, 1, 0, 1);
+    hw_fft_run(fft_config, in, out);
+}
+
+
 
 #endif /*(defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 

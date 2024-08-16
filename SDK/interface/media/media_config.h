@@ -14,6 +14,7 @@ extern const int config_jlstream_fade_32bit_enable;
 
 extern const int CONFIG_MAX_ENC_DATA_CACHE_SIZE;
 extern const int CONFIG_LOG_OUTPUT_ENABLE;
+extern const int config_audio_cfg_online_enable;
 
 
 /*

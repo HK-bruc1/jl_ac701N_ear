@@ -40,6 +40,11 @@ const int config_audio_dac_power_on_mode = 0;
 #ifdef TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE
 const int config_audio_dac_power_off_lite = TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE;
 #endif
+#if TCFG_CFG_TOOL_ENABLE
+const int config_audio_cfg_online_enable = 1;
+#else
+const int config_audio_cfg_online_enable = 0;
+#endif
 
 
 __attribute__((weak))

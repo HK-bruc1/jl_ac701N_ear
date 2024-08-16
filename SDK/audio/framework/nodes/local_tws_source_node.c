@@ -14,6 +14,9 @@
 #include "classic/tws_api.h"
 #include "codec/sbc_enc.h"
 #include "effects/effects_adj.h"
+#include "app_config.h"
+
+#if TCFG_LOCAL_TWS_ENABLE
 
 #define LOCAL_TWS_SEND_DEBUG    0
 
@@ -418,3 +421,4 @@ REGISTER_STREAM_NODE_ADAPTER(local_tws_source_adapter) = {
     .release    = local_tws_source_release,
     .hdl_size	= sizeof(struct local_tws_source_context),
 };
+#endif

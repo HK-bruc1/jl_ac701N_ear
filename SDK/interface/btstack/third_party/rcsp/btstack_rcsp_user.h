@@ -50,13 +50,6 @@ u8 bt_rcsp_spp_conn_num(void);
 void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn);
 
 /**
- * @brief 切换tws的时候，会断开ble，然后进行回连
- * 			因为回连速度很快，会导致ble连接信息紊乱，
- * 			所以需要在主动断开ble连接之前，提前清空已连接的ble设备信息
- */
-void bt_rcsp_reset_ble_info_for_tws_sw();
-
-/**
  * @brief 用于tws同步，从机接收到主机的tws数据后同步到本地
  *
  * @param bt handle数据

@@ -1,5 +1,5 @@
 #include "cpu/includes.h"
-#include "asm/pwm_led.h"
+#include "pwm_led.h"
 #include "gpio.h"
 #include "asm/power_interface.h"
 #include "system/timer.h"

@@ -5,6 +5,13 @@
 #include "typedef.h"
 
 
+#ifdef CONFIG_CPU_BR29
+#define LED_IO_SUPPORT_MUX  1
+#else
+#define LED_IO_SUPPORT_MUX  0
+#endif
+
+
 // *INDENT-OFF*
 typedef struct two_io_platform_data {
     u8 io0;             //送出电平信号的IO

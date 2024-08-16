@@ -43,6 +43,8 @@ static u8 sync_update_sn = 1;
 static void (*user_chip_tws_update_handle)(void *data, u32 len) = NULL;
 static void (*sync_update_crc_init_hdl)(void) = NULL;
 static u32(*sync_update_crc_calc_hdl)(u32 init_crc, const void *data, u32 len) = NULL;
+extern const int support_dual_bank_update_no_erase;
+extern const int support_dual_bank_update_breakpoint;
 
 extern void norflash_set_write_protect_en(void);
 extern void norflash_set_write_protect_remove(void);
@@ -209,6 +211,60 @@ int tws_ota_data_send_m_to_s(u8 *buf, u16 len)
     return 0;
 }
 
+static u32 g_tws_ota_addr_recore = 0;
+static int tws_ota_data_send_with_crc_m_to_s(u8 *buf, u16 len, u16 pack_crc, void *priv)
+{
+    int ret = 0;
+    u8 retry = 5;
+    if (g_tws_ota_addr_recore != ((u32 *)priv)[0]) {
+        os_sem_set(&tws_ota_sem, 0);
+        g_tws_ota_addr_recore = ((u32 *)priv)[0];
+    }
+    u8 *data = malloc(len + 4);
+    data[0] = OTA_TWS_TRANS_UPDATE_DATA_VERIFY_CRC;
+    data[1] = ++ sync_update_sn;
+    memcpy(&data[2], (u8 *)&pack_crc, sizeof(pack_crc));
+    memcpy(&data[4], buf, len);
+    while (retry --) {
+        ret = tws_ota_trans_to_sibling(data, len + 4);
+        if (ret < 0 && ret != -1) {
+            os_time_dly(5);
+        } else {
+            break;
+        }
+    }
+    free(data);
+    return 0;
+}
+
+extern int norflash_origin_read(u8 *buf, u32 offset, u32 len);
+static int tws_trans_data_send_data_again(void *recv_data, u16 len)
+{
+    u8 retry = 2;
+    u16 pack_crc = 0;
+    u16 data_len = 0;
+    memcpy(&pack_crc, &recv_data[0], sizeof(pack_crc));
+    memcpy(&data_len, &recv_data[2], sizeof(data_len));
+    // 通过之前记录的地址，从flash中获取对应的数据
+    u8 *retry_data = zalloc(data_len);
+    if (retry_data) {
+        // 防止还没写入数据就把数据读出来，重试2次
+        while (retry) {
+            norflash_origin_read(retry_data, g_tws_ota_addr_recore, data_len);
+            if (CRC16(retry_data, data_len) == pack_crc) {
+                tws_ota_data_send_with_crc_m_to_s(retry_data, data_len, pack_crc, (void *)&g_tws_ota_addr_recore);
+                break;
+            }
+            retry --;
+            // 写数据大概需要20~30ms
+            os_time_dly(3);
+        }
+        free(retry_data);
+    }
+    // 如果错误如何告诉升级库?
+    return 0;
+}
+
 int tws_ota_data_send_pend(void)
 {
     if (os_sem_pend(&tws_ota_sem, 300) ==  OS_TIMEOUT) {       //等待收到从机的RSP
@@ -351,9 +407,10 @@ int tws_ota_open(void *priv)
 {
     struct __tws_ota_para *para = (struct __tws_ota_para *)priv;
     int ret = 0;
+    g_tws_ota_addr_recore = 0;
     tws_api_auto_role_switch_disable();
     os_sem_create(&tws_ota_sem, 0);
-    u8 *data = malloc(sizeof(struct __tws_ota_para) + 2);
+    u8 *data = malloc(sizeof(struct __tws_ota_para) + 2 + para->param_len);
     if (!data) {
         ret = -1;
         goto _ERR_RET;
@@ -377,8 +434,11 @@ int tws_ota_open(void *priv)
     data[0] = OTA_TWS_START_UPDATE;
     data[1] = ++ sync_update_sn;
     memcpy(data + 2, para, sizeof(struct __tws_ota_para));
+    if (para->param_len) {
+        memcpy(data + 2 + sizeof(struct __tws_ota_para), para->param, para->param_len);
+    }
     log_info("tws_ota_open2\n");
-    if (tws_ota_trans_to_sibling(data, sizeof(struct __tws_ota_para) + 2)) {
+    if (tws_ota_trans_to_sibling(data, sizeof(struct __tws_ota_para) + 2 + para->param_len)) {
         ret = -1;
         goto _ERR_RET;
     }
@@ -425,11 +485,16 @@ int tws_verify_result_hdl(int calc_crc)
         rsp_data[2] = OTA_TWS_CMD_SUCC;
     } else {
         rsp_data[2] = OTA_TWS_CMD_ERR;
-        // 添加写保护
-        norflash_set_write_protect_en();
     }
     if (tws_ota_trans_to_sibling(rsp_data, 3)) {
         return -1;
+    }
+    if (calc_crc != 1) {
+        if (support_dual_bank_update_no_erase) {
+            dual_bank_check_flash_update_area(1);
+        }
+        // 添加写保护
+        norflash_set_write_protect_en();
     }
     return 0;
 }
@@ -450,16 +515,49 @@ int tws_verify_without_crc_result_hdl(int calc_crc)
     return 0;
 }
 
-int tws_trans_data_write_callback(void *priv)
+int dual_bank_curr_write_offset_callback(u32 curr_write_offset, u32 remain_len, void *priv);
+static int tws_trans_data_write_callback(void *priv)
 {
     u8 rsp_data[3];
     rsp_data[0] = OTA_TWS_TRANS_UPDATE_DATA_RSP;
     rsp_data[1] = ++ sync_update_sn;
     rsp_data[2] = OTA_TWS_CMD_SUCC;
     tws_ota_trans_to_sibling(rsp_data, 3);
+    if (support_dual_bank_update_breakpoint) {
+        dual_bank_curr_write_offset_callback(dual_bank_curr_write_offset_get(), 1, NULL);
+    }
     return 0;
 }
 
+static int tws_trans_data_recv_data_again_callback(u16 pack_crc, u16 data_len, void *priv)
+{
+    u8 rsp_data[6];
+    rsp_data[0] = OTA_TWS_TRANS_UPDATE_DATA_RECV_AGAIN;
+    rsp_data[1] = ++ sync_update_sn;
+    memcpy(&rsp_data[2], &pack_crc, sizeof(pack_crc));
+    memcpy(&rsp_data[4], &data_len, sizeof(data_len));
+    tws_ota_trans_to_sibling(rsp_data, 6);
+    return 0;
+}
+
+static int tws_ota_recv_data_again_handle(void *recv_data, u16 len)
+{
+    if (len > 4) {
+        u16 pack_crc = 0;
+        u16 data_crc = CRC16(recv_data + 4, len - 4);
+        memcpy(&pack_crc, &recv_data[2], sizeof(pack_crc));
+        if (pack_crc != data_crc) {
+            g_printf("err:tws ota recv data crc verify fail, %x, %x\n", pack_crc, data_crc);
+            // 告诉主机需要重传，把数据长度和crc再次传给主机
+            tws_trans_data_recv_data_again_callback(pack_crc, len - 4, NULL);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+extern int dual_bank_curr_write_offset_callback(u32 curr_write_offset, u32 remain_len, void *priv);
+extern int dual_bank_bp_fw_code_verify(u8 *remote_fw_code, u32 code_start_of_fw_file, u32 file_code_len);
 static void deal_sibling_tws_ota_trans(void *data, u16 len)
 {
     static u8 last_sync_update_sn = 0;
@@ -483,8 +581,33 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
     case OTA_TWS_START_UPDATE:
         g_printf("MSG_OTA_TWS_START_UPDATE\n");
         struct __tws_ota_para para;
+        u32 write_offset = 0;
         memcpy(&para, recv_data + 2, sizeof(struct __tws_ota_para));
         printf("crc:%d fm_size:%d max_pkt_len:%d\n", para.fm_crc, para.fm_size, para.max_pkt_len);
+        if (support_dual_bank_update_no_erase) {
+            extern void verify_os_time_dly_set(u32 time);
+            verify_os_time_dly_set(1); //校验每包延时10ms
+        }
+        if (support_dual_bank_update_breakpoint) {
+            u8 *ptr = recv_data + 2 + sizeof(struct __tws_ota_para);
+            memcpy(&write_offset, ptr, sizeof(write_offset));
+            ptr += sizeof(write_offset);
+            // 对fw校验码进行处理
+            dual_bank_bp_fw_code_verify(ptr, 0, 0); // 如果只指被动升级，做不到根据fw校验码去区分升级文件
+            if ((u32) - 1 == write_offset) {
+                printf("err:tws ota breakpoint is enable, the last ufw is not match current ufw\n");
+                g_tws_ota_addr_recore = -1;
+                dual_bank_curr_write_offset_callback(0, 0, NULL);
+                rsp_data[0] = OTA_TWS_START_UPDATE_RSP;
+                rsp_data[1] = ++ sync_update_sn;
+                rsp_data[2] = OTA_TWS_CMD_ERR;
+                tws_ota_trans_to_sibling(rsp_data, 3);
+                ota_event_update_to_user(OTA_UPDATE_ERR);
+                break;
+            }
+        }
+        // 如果没有打开被动升级断点续传功能，初始化是需要把记录清除
+        dual_bank_curr_write_offset_set(write_offset);
         dual_bank_passive_update_init(para.fm_crc, para.fm_size, para.max_pkt_len, NULL);
         // 解除保护
         norflash_set_write_protect_remove();
@@ -507,9 +630,28 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
             os_sem_post(&tws_ota_sem);
         }
         break;
+    case OTA_TWS_TRANS_UPDATE_DATA_VERIFY_CRC:
+        printf("OTA_TWS_TRANS_UPDATE_DATA_VERIFY_CRC %d, %d\n", len, recv_data[1]);
+        if (tws_ota_recv_data_again_handle(recv_data, len)) {
+            break;
+        }
+        if (support_dual_bank_update_no_erase) {
+            dual_bank_update_write_only(recv_data + 4, len - 4, tws_trans_data_write_callback);
+        } else {
+            dual_bank_update_write(recv_data + 4, len - 4, tws_trans_data_write_callback);
+        }
+        break;
+    case OTA_TWS_TRANS_UPDATE_DATA_RECV_AGAIN:
+        printf("OTA_TWS_TRANS_UPDATE_DATA_RECV_AGAIN:%d\n", recv_data[1]);
+        tws_trans_data_send_data_again(recv_data + 2, len - 2);
+        break;
     case OTA_TWS_TRANS_UPDATE_DATA:
         printf("MSG_OTA_TWS_TRANS_UPDATE_DATA %d, %d\n", len, recv_data[1]);
-        dual_bank_update_write(recv_data + 2, len - 2, tws_trans_data_write_callback);
+        if (support_dual_bank_update_no_erase) {
+            dual_bank_update_write_only(recv_data + 2, len - 2, tws_trans_data_write_callback);
+        } else {
+            dual_bank_update_write(recv_data + 2, len - 2, tws_trans_data_write_callback);
+        }
         break;
     case OTA_TWS_TRANS_UPDATE_DATA_RSP:
         printf("MSG_OTA_TWS_TRANS_UPDATE_DATA_RSP:%d\n", recv_data[1]);
@@ -520,6 +662,10 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
     case OTA_TWS_VERIFY:
         g_printf("MSG_OTA_TWS_VERIFY\n");
         clock_alloc("sys", 120 * 1000000L);   //提升主频加快CRC校验速度
+        if (support_dual_bank_update_breakpoint) {
+            dual_bank_curr_write_offset_callback(0, 0, NULL);
+            dual_bank_bp_fw_code_verify(NULL, 0, 0);
+        }
         ret =  dual_bank_update_verify(sync_update_crc_init_hdl, sync_update_crc_calc_hdl, tws_verify_result_hdl);
         if (ret) {
             rsp_data[0] = OTA_TWS_VERIFY_RSP;
@@ -594,6 +740,15 @@ int tws_ota_sync_cmd(int reason)
         g_printf("SYNC_CMD_UPDATE_ERR\n");
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             update_result_set(UPDATA_DEV_ERR);
+        } else {
+            /* // 如果这里cpu_reset被注释掉，就打开这个，fw验证码校验不通过，从机就会触发擦除 */
+            /* if (support_dual_bank_update_no_erase) { */
+            /* 	if ((u8)-1 == g_tws_ota_addr_recore) { */
+            /* 		dual_bank_check_flash_update_area(1); */
+            /* 	} */
+            /* } */
+            /* // 添加写保护 */
+            /* norflash_set_write_protect_en(); */
         }
         cpu_reset();
         /* ota_event_update_to_user(OTA_UPDATE_ERR); */
@@ -618,6 +773,7 @@ update_op_tws_api_t update_tws_api = {
     .tws_ota_data_send_pend = tws_ota_data_send_pend,
     //for user_chip
     .tws_ota_user_chip_update_send = tws_ota_user_chip_update_send_m_to_s,
+    .tws_ota_user_chip_update_send_data = tws_ota_data_send_with_crc_m_to_s,
 };
 
 update_op_tws_api_t *get_tws_update_api(void)

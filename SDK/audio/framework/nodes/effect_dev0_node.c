@@ -176,8 +176,10 @@ static void effect_dev0_ioc_start(struct effect_dev0_node_hdl *hdl)
     /*
      *获取在线调试的临时参数
      * */
-    if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &hdl->cfg, sizeof(hdl->cfg))) {
-        log_debug("get effect dev0 online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &hdl->cfg, sizeof(hdl->cfg))) {
+            log_debug("get effect dev0 online param\n");
+        }
     }
     printf("effect dev0 name : %s \n", hdl->name);
     for (int i = 0 ; i < 8; i++) {

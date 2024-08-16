@@ -176,7 +176,6 @@
 
 #define NODE_UUID_UPMIX_2TO5               0XB542
 
-#define NODE_UUID_VIRTUAL_SURROUND_PRO     0X191f
 #define NODE_UUID_REPLACE                  0xb5e1
 #define NODE_UUID_SIGNAL_GENERATOR         0x225d
 #define NODE_UUID_REVERB                   0x24AB//混响V2

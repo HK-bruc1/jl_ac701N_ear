@@ -10,6 +10,8 @@
 #include "local_tws_player.h"
 #include "tws/jl_tws.h"
 
+#if TCFG_LOCAL_TWS_ENABLE
+
 struct local_tws_player {
     struct jlstream *stream;
 };
@@ -44,6 +46,7 @@ int local_tws_player_open(struct local_tws_player_param *param)
     player->stream = jlstream_pipeline_parse(uuid, NODE_UUID_LOCAL_TWS_SINK);
     if (!player->stream) {
         printf("create local_tws stream faild\n");
+        free(player);
         return -EFAULT;
     }
     jlstream_set_scene(player->stream, STREAM_SCENE_LOCAL_TWS);
@@ -61,10 +64,10 @@ int local_tws_player_open(struct local_tws_player_param *param)
         printf("durations:%d", param->durations);
         printf("bit_rate:%d", param->bit_rate);
 #endif
-        err = jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
-                                  NODE_IOC_SET_BTADDR, (int)param->tws_channel);
-        err = jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
-                                  NODE_IOC_SET_FMT, (int)param);
+        jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
+                            NODE_IOC_SET_BTADDR, (int)param->tws_channel);
+        jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
+                            NODE_IOC_SET_FMT, (int)param);
 
         channel = param->channel_mode == JL_TWS_CH_MONO ? AUDIO_CH_MIX : AUDIO_CH_LR ;
     }
@@ -113,3 +116,4 @@ bool local_tws_player_is_playing(void)
     return 0;
 }
 
+#endif

@@ -48,11 +48,21 @@
 #define AUDIO_CVP_PREP_AT_RAM		    0	//COMMON 预处理
 #define AUDIO_CVP_WN_AT_RAM			    0	//抗风噪
 #define AUDIO_CVP_THIRD_AT_RAM		    0	//3MIC
-#define AUDIO_ENCODER_AT_RAM		    0	//MSBC/CVSD 解码
 
 /*编解码编译链接配置*/
 #define AUD_AAC_DEC_AT_RAM		        1   //AAC解码
+#define AUDIO_LDAC_AT_RAM			    1	//LDAC解码
+#define AUDIO_MSBC_CODEC_AT_RAM		    0	//MSBC 编解码
+#define AUDIO_CVSD_CODEC_AT_RAM		    0	//CVSD 编解码
+#define AUDIO_JLA_CODEC_AT_RAM			1	//JLA 编解码
+#define AUDIO_LC3_CODEC_AT_RAM			0	//LC3 编解码
 
+/*语音识别算法编译链接配置*/
+#define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram
+#define AUDIO_KWS_YES_NO_AT_RAM             0   //yes/no识别 ， 0:放flash，1:放ram
+#define AUDIO_KWS_CHINESE_AT_RAM            2   //近场中文识别，0:放flash，1:放ram，2:一部分放ram，一部分放flash
+#define AUDIO_KWS_INDIA_ENGLISH_AT_RAM      0   //印度英语识别，0:放flash，1:放ram
+#define AUDIO_KWS_CHINESE_FAR_AT_RAM        1   //远场中文识别，0:放flash，1:放ram
 
 
 //**************************************

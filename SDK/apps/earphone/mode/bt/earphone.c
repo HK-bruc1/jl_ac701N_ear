@@ -75,7 +75,6 @@
 #include "app_power_manage.h"
 #include "gSensor/gSensor_manage.h"
 #include "classic/tws_api.h"
-#include "asm/pwm_led_hw.h"
 #include "ir_sensor/ir_manage.h"
 #include "in_ear_detect/in_ear_manage.h"
 #include "vol_sync.h"
