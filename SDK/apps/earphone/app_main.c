@@ -42,9 +42,6 @@
 #include "pc.h"
 #include "rcsp_user_api.h"
 #include "pwm_led/led_ui_api.h"
-#if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
-#include "icsd_adt_app.h"
-#endif
 
 
 #define LOG_TAG             "[APP]"

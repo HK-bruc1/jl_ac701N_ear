@@ -780,7 +780,9 @@ int audio_acoustic_detector_close()
         if (hdl->lib_alloc_ptr) {
             /*需要先挂起再关闭*/
             icsd_acoustic_detector_suspend();
+            printf("%s: %d", __func__, __LINE__);
             icsd_acoustic_detector_close();
+            printf("%s: %d", __func__, __LINE__);
             icsd_task_kill();
 
             if (hdl->infmt.lfb_coeff) {

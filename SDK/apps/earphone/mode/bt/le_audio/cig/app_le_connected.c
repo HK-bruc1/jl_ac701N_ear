@@ -879,9 +879,8 @@ void le_audio_profile_init()
 {
     if (get_bt_le_audio_config() && g_le_audio_hdl.le_audio_profile_ok == 0) {
 #if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
-        extern const uint8_t rcsp_profile_data_default[];
         extern void le_audio_user_server_profile_init(const uint8_t *profile_tb);
-        le_audio_user_server_profile_init(rcsp_profile_data_default);
+        le_audio_user_server_profile_init(rcsp_profile_data);
 #endif
         g_le_audio_hdl.le_audio_profile_ok = 1;
         char le_audio_name[LOCAL_NAME_LEN] = "le_audio_";     //le_audio蓝牙名

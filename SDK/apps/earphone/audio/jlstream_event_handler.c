@@ -120,7 +120,7 @@ static int get_pipeline_uuid(const char *name)
     }
 
     if (!strcmp(name, "a2dp")) {
-        clock_alloc("a2dp", 12 * 1000000UL);
+        clock_alloc("a2dp", 48 * 1000000UL);
         audio_event_to_user(AUDIO_EVENT_A2DP_START);
 #if TCFG_AUDIO_DUT_ENABLE
         if (audio_dec_dut_en_get(0)) {

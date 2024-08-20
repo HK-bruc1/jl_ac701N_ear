@@ -42,15 +42,6 @@ static void adv_work_setting_vm_value(u8 *work_setting_info)
     syscfg_write(CFG_RCSP_ADV_WORK_SETTING, work_setting_info, sizeof(u8));
 }
 
-static void adv_work_setting_sync(u8 *work_setting_info)
-{
-#if TCFG_USER_TWS_ENABLE
-    if (get_bt_tws_connect_status()) {
-        update_rcsp_setting(ATTR_TYPE_WORK_MODE);
-    }
-#endif
-}
-
 static void update_work_setting_state(void)
 {
 #if TCFG_USER_TWS_ENABLE
@@ -71,16 +62,20 @@ static void update_work_setting_state(void)
 
 static void deal_work_setting(u8 *work_setting_info, u8 write_vm, u8 tws_sync)
 {
-    /* printf("rcsp_work %s, %s, %d, work_setting_info:%d\n", __FILE__, __FUNCTION__, __LINE__, *work_setting_info); */
     if (work_setting_info) {
         set_work_setting(work_setting_info);
+        //printf("rcsp_work %s, %s, %d, work_setting:%d\n", __FILE__, __FUNCTION__, __LINE__, work_setting_info); */
     }
     if (write_vm) {
-        adv_work_setting_vm_value(work_setting_info);
+        adv_work_setting_vm_value(&g_work_mode);
     }
+#if TCFG_USER_TWS_ENABLE
     if (tws_sync) {
-        adv_work_setting_sync(work_setting_info);
+        if (get_bt_tws_connect_status()) {
+            update_rcsp_setting(ATTR_TYPE_WORK_MODE);
+        }
     }
+#endif
     update_work_setting_state();
 }
 
@@ -118,6 +113,7 @@ static int adv_work_opt_init(void)
         if (work_setting_info != RCSPWorkModeNormal && work_setting_info != RCSPWorkModeGame) {
             work_setting_info = RCSPWorkModeNormal;
         }
+        printf("%s, %s, %d, work_setting_info:%d\n", __FILE__, __FUNCTION__, __LINE__, work_setting_info);
         set_work_setting(&work_setting_info);
         update_work_setting_state();
     }

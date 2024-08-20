@@ -19,6 +19,10 @@ enum {
     MULTI_PROTOCOL_TASK_EXIT,
 };
 
+#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+extern const uint8_t rcsp_profile_data[];
+#endif
+
 extern void multi_protocol_bt_init(void);
 extern void multi_protocol_bt_exit(void);
 
