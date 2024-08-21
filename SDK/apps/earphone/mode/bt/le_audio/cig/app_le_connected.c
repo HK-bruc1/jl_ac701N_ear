@@ -28,6 +28,7 @@
 #include "btstack/bluetooth.h"
 /* #include "earphone.h" */
 #include "btstack/le/ble_api.h"
+#include "multi_protocol_main.h"
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
 extern void tws_dual_conn_state_handler();

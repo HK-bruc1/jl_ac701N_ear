@@ -37,7 +37,18 @@
 #define DAC_CH_FR                          (1UL << 1)
 #define DAC_CH_RL                          (1UL << 2)
 #define DAC_CH_RR                          (1UL << 3)
+/*
+ *******************************************************************
+ *						EPA Definitions
+ *******************************************************************
+ */
+#define EPA_DSM_MODE_375K                  (0)
+#define EPA_DSM_MODE_750K                  (1)
+#define EPA_DSM_MODE_1500K                 (2)
 
+#define EPA_PWM_MODE0                      (0)
+#define EPA_PWM_MODE1                      (1)
+#define EPA_PWM_MODE2                      (2)
 /*
  *******************************************************************
  *						Analog Aux Definitions

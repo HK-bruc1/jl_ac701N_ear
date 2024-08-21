@@ -333,6 +333,7 @@
 #define TCFG_ESCO_DL_CVSD_SR_USE_16K 0x0 // ESCO通话全局采样率
 #define TCFG_LEA_CALL_DL_GLOBAL_SR 0x1 // LEA通话全局采样率
 #define TCFG_AUDIO_SMS_SEL SMS_DEFAULT // 1mic算法选择
+#define TCFG_AUDIO_DMS_GLOBAL_VERSION DMS_GLOBAL_V200 // 2micDNS算法选择
 #define TCFG_3MIC_MODE_SEL JLSP_3MIC_MODE2 // 3mic算法选择
 #define TCFG_MUSIC_PLC_TYPE 0 // PLC 类型选择
 #define TCFG_AUDIO_DUT_ENABLE 0x1 // 音频/通话产测

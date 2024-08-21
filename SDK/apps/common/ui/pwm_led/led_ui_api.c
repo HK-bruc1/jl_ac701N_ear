@@ -274,7 +274,7 @@ void led_ui_add_state(struct led_state_obj *s)
         s->uuid = ++__this->id;
     } while (s->uuid == 0);
 
-    if (s->time->ctl_cycle_num == 0 ||
+    if ((s->time && (s->time->ctl_cycle_num == 0)) ||
         s->table[s->table_size - 1].action == LED_ACTION_LOOP) {
         // s为周期性循环灯效
         led_ui_clr_loop_state();

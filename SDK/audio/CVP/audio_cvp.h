@@ -39,13 +39,6 @@ extern const u8 CONST_REF_SRC;
 
 #define AEC_MODE_SIMPLEX	(ANS_EN)
 
-/*
- *DMS版本配置
- *DMS_GLOBAL_V100:第一版双麦算法
- *DMS_GLOBAL_V200:第二版双麦算法，更少的ram和mips
- */
-#define TCFG_AUDIO_DMS_GLOBAL_VERSION		DMS_GLOBAL_V100
-
 extern const u8 CONST_AEC_SIMPLEX;
 
 struct audio_aec_init_param_t {

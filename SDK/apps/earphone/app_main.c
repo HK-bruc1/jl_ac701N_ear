@@ -159,7 +159,7 @@ const struct task_info task_info_table[] = {
 #endif
 #endif
 
-#if TCFG_MIC_EFFECT_ENABLE
+#if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)
     /* 混响任务优先级要高 */
     {"mic_effect1",         6,     0,  768,   0 },
     {"mic_effect2",         6,     0,  768,   0 },

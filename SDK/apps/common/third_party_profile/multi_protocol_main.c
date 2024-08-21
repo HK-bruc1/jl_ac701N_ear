@@ -306,7 +306,7 @@ static void multi_protocol_profile_init(void)
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
     if (get_bt_le_audio_config()) { // RCSP 与 CIS 共用 ACL
-        app_ble_no_profile_flag_set(rcsp_server_ble_hdl, flag);
+        app_ble_no_profile_flag_set(rcsp_server_ble_hdl, 1);
     }
 #endif
 #endif

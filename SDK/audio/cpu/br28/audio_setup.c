@@ -222,6 +222,34 @@ const struct linein_platform_cfg linein_platform_cfg_table[] = {
         .linein_mode        = 0xff,
     },
 #endif
+
+#if TCFG_LINEIN2_ENABLE
+    [2] = {
+        .linein_mode        = TCFG_LINEIN2_MODE,
+        .linein_gain        = TCFG_LINEIN2_GAIN,
+        .linein_pre_gain    = TCFG_LINEIN2_PRE_GAIN,    // 0:0dB   1:6dB
+        .linein_ain_sel     = TCFG_LINEIN2_CH,
+        .linein_dcc         = TCFG_LINEIN2_DCC,
+    },
+#else
+    [2] = {
+        .linein_mode        = 0xff,
+    },
+#endif
+
+#if TCFG_LINEIN3_ENABLE
+    [3] = {
+        .linein_mode        = TCFG_LINEIN3_MODE,
+        .linein_gain        = TCFG_LINEIN3_GAIN,
+        .linein_pre_gain    = TCFG_LINEIN3_PRE_GAIN,    // 0:0dB   1:6dB
+        .linein_ain_sel     = TCFG_LINEIN3_CH,
+        .linein_dcc         = TCFG_LINEIN3_DCC,
+    },
+#else
+    [3] = {
+        .linein_mode        = 0xff,
+    },
+#endif
 };
 #endif
 

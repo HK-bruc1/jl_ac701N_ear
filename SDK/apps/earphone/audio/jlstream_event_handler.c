@@ -157,7 +157,7 @@ static int get_pipeline_uuid(const char *name)
     if (!strcmp(name, "dev_flow")) {
         return PIPELINE_UUID_DEV_FLOW;
     }
-#if TCFG_MIC_EFFECT_ENABLE
+#if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)
     if (!strcmp(name, "mic_effect")) {
         clock_alloc("mic_effect", 24 * 1000000UL);
         return PIPELINE_UUID_MIC_EFFECT;

@@ -766,6 +766,15 @@
 #error "开辅听需要固定全局输出采样率"
 #endif
 
+#if (TCFG_AUDIO_CVP_SMS_ANS_MODE + TCFG_AUDIO_CVP_SMS_DNS_MODE \
+   + TCFG_AUDIO_CVP_DMS_ANS_MODE + TCFG_AUDIO_CVP_DMS_DNS_MODE \
+   + TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE + TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE \
+   + TCFG_AUDIO_CVP_3MIC_MODE \
+   + TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE + TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE \
+   ) > 1
+#error "整个SDK数据流里面只能使用一种模式的CVP通话节点"
+#endif
+
 //*********************************************************************************//
 //                    充电中按键清除手机配对信息配置                               //
 //*********************************************************************************//
@@ -817,7 +826,7 @@
 #define TCFG_LOWPOWER_RAM_SIZE              2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 #endif
 #endif
-#if ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)||TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC||TCFG_BT_SUPPORT_LDAC)&&(TCFG_LOWPOWER_RAM_SIZE>=2)
+#if ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)|| TCFG_AUDIO_BIT_WIDTH || TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC||TCFG_BT_SUPPORT_LDAC)&&(TCFG_LOWPOWER_RAM_SIZE>=2)
 #undef TCFG_LOWPOWER_RAM_SIZE
 #define TCFG_LOWPOWER_RAM_SIZE              2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 
