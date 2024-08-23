@@ -475,17 +475,17 @@ static void rcsp_update_state_cbk(int type, u32 state, void *priv)
         }
 #if TCFG_RCSP_DUAL_CONN_ENABLE
         rcsp_clean_update_hdl_for_end_update(0, NULL);
-#if TCFG_USER_TWS_ENABLE
-        if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
-            if (tws_api_get_role() == TWS_ROLE_MASTER) {
-                rcsp_ble_adv_enable_with_con_dev();
-            }
-        } else {
-            rcsp_ble_adv_enable_with_con_dev();
-        }
-#else
-        rcsp_ble_adv_enable_with_con_dev();
-#endif
+        /* #if TCFG_USER_TWS_ENABLE */
+        /*         if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) { */
+        /*             if (tws_api_get_role() == TWS_ROLE_MASTER) { */
+        /*                 rcsp_ble_adv_enable_with_con_dev(); */
+        /*             } */
+        /*         } else { */
+        /*             rcsp_ble_adv_enable_with_con_dev(); */
+        /*         } */
+        /* #else */
+        /*         rcsp_ble_adv_enable_with_con_dev(); */
+        /* #endif */
 #endif
         rcsp_update_resume_hdl_register(NULL, NULL);
         break;

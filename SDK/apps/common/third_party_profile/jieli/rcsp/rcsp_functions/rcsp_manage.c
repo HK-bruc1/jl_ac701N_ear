@@ -287,7 +287,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
     case BLE_ST_IDLE:
 #if RCSP_UPDATE_EN
         if (get_jl_update_flag()) {
-            JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            if (0 == support_dual_bank_update_en) {
+                JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            }
         }
 #endif
         break;
@@ -371,7 +373,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
         }
 #if RCSP_UPDATE_EN
         if (get_jl_update_flag()) {
-            JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            if (0 == support_dual_bank_update_en) {
+                JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            }
         }
 #endif
         break;
