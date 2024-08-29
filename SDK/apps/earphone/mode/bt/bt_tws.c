@@ -920,7 +920,16 @@ int bt_tws_connction_status_event_handler(int *msg)
 #endif
 
         tws_sync_bat_level(); //同步电量到对耳
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+        u32 slave_info =  evt->args[3] | (evt->args[4] << 8) | (evt->args[5] << 16) | (evt->args[6] << 24) ;
+        printf("====slave_info:%x\n", slave_info);
+        if (!(slave_info & TWS_STA_LE_AUDIO_PLAYING)) {
+            //only set to slave while slave not playing
+            bt_tws_sync_volume();
+        }
+#else
         bt_tws_sync_volume();
+#endif
         tws_sync_dual_conn_info();
 
 #if TCFG_EAR_DETECT_ENABLE

@@ -93,6 +93,7 @@ void local_packet_free()
 extern const char *sdk_version_info_get(void);
 extern u8 *sdfile_get_burn_code(u8 *len);
 extern int norflash_erase(u32 cmd, u32 addr);
+extern void flash_w_region_check_en(u8 en);
 extern void doe(u16 k, void *pBuf, u32 lenIn, u32 addr);
 extern void go_mask_usb_updata();
 static void tws_sync_cfg_tool_data(struct cfg_tool_event *cfg_tool_dev);
@@ -684,7 +685,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
 
         for (u8 i = 0; i < (__this->r_erase_addr_range.size / __this->s_prepare_write_file.earse_unit); i ++) {
+            flash_w_region_check_en(0);
             u8 ret = norflash_erase(erase_cmd, __this->r_erase_addr_range.addr + (i * __this->s_prepare_write_file.earse_unit));
+            flash_w_region_check_en(1);
             if (ret) {
                 send_len = sizeof(fa_return);
                 buf = send_buf_malloc(send_len);
@@ -709,7 +712,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
         memcpy(buf_temp, cfg_packet.packet + 16, __this->r_write_addr_range.size);
         encode_data_by_user_key(boot_info.chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - boot_info.sfc.sfc_base_addr, 0x20);
+        flash_w_region_check_en(0);
         write_len = norflash_write(NULL, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr);
+        flash_w_region_check_en(1);
 
         if (write_len != __this->r_write_addr_range.size) {
             send_len = sizeof(fa_return);

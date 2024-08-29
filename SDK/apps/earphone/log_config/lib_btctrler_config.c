@@ -139,7 +139,12 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
 
 #if (TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LDAC) //LHDC/LDAC使用较高码率时需要增大蓝牙buf
+#if CONFIG_CPU_BR36
+	// RAM较紧凑的芯片需要使用这个配置
 	const int CONFIG_A2DP_MAX_BUF_SIZE          = 30 * 1024;
+#else
+	const int CONFIG_A2DP_MAX_BUF_SIZE          = 50 * 1024;
+#endif
 	const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 40;
 #else
 	const int CONFIG_A2DP_MAX_BUF_SIZE          = 25 * 1024;

@@ -21,7 +21,6 @@
 #include "wireless_trans.h"
 #include "clock_manager/clock_manager.h"
 #include "le_audio_stream.h"
-/* #include "bt_event_func.h" */
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
 
@@ -598,7 +597,9 @@ static void connected_perip_event_callback(const CIG_EVENT event, void *priv)
         break;
     }
 }
-//u32 get_cig_sdu_period_us(void);
+/*
+ * CIS通道收到数据回连到上层处理
+ * */
 static void connected_iso_callback(const void *const buf, size_t length, void *priv)
 {
     static u32 old_timestamp = 0;

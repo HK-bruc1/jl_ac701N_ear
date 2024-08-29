@@ -26,9 +26,10 @@
 #include "bt_common.h"
 #include "user_cfg.h"
 #include "btstack/bluetooth.h"
-/* #include "earphone.h" */
 #include "btstack/le/ble_api.h"
+#include "btstack/le/le_user.h"
 #include "multi_protocol_main.h"
+#include "earphone.h"
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
 extern void tws_dual_conn_state_handler();
@@ -41,25 +42,13 @@ extern void tws_dual_conn_state_handler();
 struct le_audio_var {
     u8 le_audio_profile_ok;
     u8 le_audio_en_config;
-    u8 cig_phone_conn_status;//cig 当前tws耳机le_audio连接状态
-    u8 cig_phone_other_conn_status;//cig 另外一个tws耳机e_audio连接状态
+    u8 cig_phone_conn_status;			// cig 当前tws耳机le_audio连接状态
+    u8 cig_phone_other_conn_status;		// cig 另外一个tws耳机le_audio连接状态
     u8 peer_address[6];
     u8 le_audio_tws_role;
     u8 le_audio_adv_connected;
 };
 static struct le_audio_var g_le_audio_hdl;
-extern void le_audio_init(u8 mode);
-extern void bt_le_audio_adv_enable(u8 enable);
-extern int le_audio_ops_register(u8 mode);
-extern void le_audio_name_reset(u8 *name, u8 len);
-extern void tws_sync_le_audio_conn_info();
-extern u8 get_sm_peer_address(u8 *addr);
-extern void le_audio_surport_config(u8 le_auido_en);
-extern void clr_device_in_page_list();
-extern void updata_last_link_key(bd_addr_t bd_addr, u8 id);
-extern u8 get_remote_dev_info_index();
-extern u8 le_audio_set_discover_mode(u8 flag);
-extern void set_dual_conn_config(u8 *addr, u8 dual_conn_en);
 
 /**************************************************************************************************
   Macros
@@ -72,19 +61,9 @@ extern void set_dual_conn_config(u8 *addr, u8 dual_conn_en);
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
-#define CENTRAL_AUTO_TEST_EN    0
-#define PERIP_AUTO_TEST_EN       0
-
-#define CIG_CONNECTED_TIMEOUT   0//(10 * 1000L)  //单位:ms
-
 /**************************************************************************************************
   Data Types
 **************************************************************************************************/
-enum {
-    ///0x1000起始为了不要跟提示音的IDEX_TONE_重叠了
-    TONE_INDEX_CONNECTED_OPEN = 0x1002,
-    TONE_INDEX_CONNECTED_CLOSE,
-};
 
 struct app_cis_conn_info {
     u8 cis_status;
@@ -102,27 +81,17 @@ struct app_cig_conn_info {
 };
 
 /**************************************************************************************************
-  Static Prototypes
-**************************************************************************************************/
-static bool is_connected_as_central();
-static void app_cig_connection_timeout(void *priv);
-
-/**************************************************************************************************
   Global Variables
 **************************************************************************************************/
 static OS_MUTEX mutex;
-static u8 connected_last_role = 0; /*!< 挂起前CIG角色 */
-static u8 connected_app_mode_exit = 0;  /*!< 音源模式退出标志 */
-static u8 config_connected_as_master = 0;   /*!< 配置强制做发送设备 */
 static u8 acl_connected_nums = 0;
 static u8 cis_connected_nums = 0;
 static struct app_cig_conn_info app_cig_conn_info[CIG_MAX_NUMS];
-static int cig_connection_timeout = 0;
-static int cur_deal_scene = -1; /*< 当前系统处于的运行场景 */
 
 /**************************************************************************************************
   Function Declarations
 **************************************************************************************************/
+extern void clr_device_in_page_list();    //清除回连列表地址
 
 /* --------------------------------------------------------------------------*/
 /**
@@ -156,40 +125,6 @@ static inline void app_connected_mutex_post(OS_MUTEX *mutex, u32 line)
         log_error("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
         ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
     }
-}
-
-/* --------------------------------------------------------------------------*/
-/**
- * @brief CIG开关提示音结束回调接口
- *
- * @param priv:传递的参数
- * @param event:提示音回调事件
- *
- * @return
- */
-/* ----------------------------------------------------------------------------*/
-static int connected_tone_play_end_callback(void *priv, enum stream_event event)
-{
-    u32 index = (u32)priv;
-
-    switch (event) {
-    case STREAM_EVENT_NONE:
-    case STREAM_EVENT_STOP:
-        switch (index) {
-        case TONE_INDEX_CONNECTED_OPEN:
-            g_printf("TONE_INDEX_CONNECTED_OPEN");
-            break;
-        case TONE_INDEX_CONNECTED_CLOSE:
-            g_printf("TONE_INDEX_CONNECTED_CLOSE");
-            break;
-        default:
-            break;
-        }
-    default:
-        break;
-    }
-
-    return 0;
 }
 
 /* --------------------------------------------------------------------------*/
@@ -249,8 +184,13 @@ static int app_connected_conn_status_event_handler(int *msg)
 
         g_le_audio_hdl.cig_phone_conn_status |= APP_CONNECTED_STATUS_MUSIC;
         if (hdl->Max_PDU_P_To_C) {
+            u8 now_call_vol  = vcs_server_get_volume(hdl->acl_hdl) * 15 / 255;
+            //set call volume
+            app_audio_set_volume(APP_AUDIO_STATE_CALL, now_call_vol, 1);
             g_le_audio_hdl.cig_phone_conn_status &= ~APP_CONNECTED_STATUS_MUSIC;
             g_le_audio_hdl.cig_phone_conn_status |= APP_CONNECTED_STATUS_PHONE_CALL;
+            printf("cis call to stop tone");
+            tone_player_stop();
         }
 #if TCFG_USER_TWS_ENABLE
         tws_sync_le_audio_conn_info();
@@ -363,6 +303,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             rcsp_bt_ble_adv_enable(1);
         }
 #endif
+        g_le_audio_hdl.cig_phone_conn_status = 0;
         acl_info = (cis_acl_info_t *)&event[1];
         if (acl_info->conn_type) {
             log_info("disconnect test box ble");
@@ -403,6 +344,10 @@ static int app_connected_conn_status_event_handler(int *msg)
 #endif
 #if TCFG_USER_TWS_ENABLE
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+            break;
+        }
+        if (is_cig_other_music_play() || is_cig_other_phone_call_play()) {
+            //主机入仓，主机出仓测试，播歌的时候又播提示音有点变调，先屏蔽。
             break;
         }
         tws_play_tone_file(get_tone_files()->bt_connect, 400);
@@ -448,6 +393,64 @@ APP_MSG_PROB_HANDLER(app_le_connected_msg_entry) = {
     .from = MSG_FROM_CIG,
     .handler = app_connected_conn_status_event_handler,
 };
+
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio状态查询函数， 是否在音乐播放状态，
+ *
+ * @return 1：在le audio音乐播放  0：不在音乐播放
+ */
+/* ----------------------------------------------------------------------------*/
+u8 is_cig_music_play()
+{
+    if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_MUSIC) {
+        return 1;
+    }
+    return 0;
+}
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio状态查询函数， tws另一个耳机是否在音乐播放状态
+ *
+ * @return  1：在le audio音乐播放  0：不在音乐播放
+ */
+/* ----------------------------------------------------------------------------*/
+u8 is_cig_other_music_play()
+{
+    if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_MUSIC) {
+        return 1;
+    }
+    return 0;
+}
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio状态查询函数, 是否在通话状态
+ *
+ * @return 1：在le audio通话状态  0：不在通话状态
+ */
+/* ----------------------------------------------------------------------------*/
+u8 is_cig_phone_call_play()
+{
+    if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
+        return 1;
+    }
+    return 0;
+}
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio状态查询函数, tws另一个耳机是否在通话状态
+ *
+ * @return  1：在le audio通话状态  0：不在通话状态
+ */
+/* ----------------------------------------------------------------------------*/
+u8 is_cig_other_phone_call_play()
+{
+    if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
+        return 1;
+    }
+    return 0;
+}
 
 /* --------------------------------------------------------------------------*/
 /**
@@ -509,10 +512,10 @@ static void app_connected_suspend()
         }
     }
     if (find) {
-        connected_last_role = app_get_connected_role();
         app_connected_close_all(APP_CONNECTED_STATUS_SUSPEND);
     }
 }
+
 int tws_check_user_conn_open_quick_type()
 {
     /* r_printf("tws_check_user_conn_open_quick_type=%d\n",check_le_audio_tws_conn_role() ); */
@@ -522,46 +525,33 @@ int tws_check_user_conn_open_quick_type()
     return 0xff;
 }
 
+/* ----------------------------------------------------------------------------*/
+/**
+ * @brief 判断cig是否已被连接
+ *
+ * @return 1:已连接 2:未连接
+ */
+/* ----------------------------------------------------------------------------*/
 u8 is_cig_phone_conn()
 {
-    r_printf("is_cig_phone_conn=%d,%d\n", bt_get_total_connect_dev(), g_le_audio_hdl.cig_phone_conn_status);
+    r_printf("is_cig_phone_conn=%d,%x\n", bt_get_total_connect_dev(), g_le_audio_hdl.cig_phone_conn_status);
 
     if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_CONNECT) {
         return 1;
     }
     return 0;
 }
-u8 is_cig_music_play()
-{
-    if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_MUSIC) {
-        return 1;
-    }
-    return 0;
-}
-u8 is_cig_other_music_play()
-{
-    if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_MUSIC) {
-        return 1;
-    }
-    return 0;
-}
-u8 is_cig_phone_call_play()
-{
-    if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
-        return 1;
-    }
-    return 0;
-}
-u8 is_cig_other_phone_call_play()
-{
-    if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
-        return 1;
-    }
-    return 0;
-}
+
+/* ----------------------------------------------------------------------------*/
+/**
+ * @brief 判断tws另一端cig是否已被连接
+ *
+ * @return 1:已连接 2:未连接
+ */
+/* ----------------------------------------------------------------------------*/
 u8 is_cig_other_phone_conn()
 {
-    r_printf("is_cig_other_phone_conn=%d,%d\n", bt_get_total_connect_dev(), g_le_audio_hdl.cig_phone_conn_status);
+    r_printf("is_cig_other_phone_conn=%d,%x\n", bt_get_total_connect_dev(), g_le_audio_hdl.cig_phone_other_conn_status);
     if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) {
         return 1;
     }
@@ -605,7 +595,7 @@ void app_connected_open(void)
     //打开big，打开成功后会在函数app_connected_conn_status_event_handler做后续处理
     temp_connected_hdl.cig_hdl = connected_perip_open(params);
 
-#if PERIP_AUTO_TEST_EN
+#if 0
     extern void wireless_trans_auto_test3_init(void);
     extern void wireless_trans_auto_test4_init(void);
     //不定时切换模式
@@ -657,28 +647,11 @@ void app_connected_close(u8 cig_hdl, u8 status)
         ASSERT(acl_connected_nums <= CIG_MAX_CIS_NUMS && acl_connected_nums >= 0, "acl_connected_nums:%d", acl_connected_nums);
         cis_connected_nums -= CIG_MAX_CIS_NUMS;
         ASSERT(cis_connected_nums <= CIG_MAX_CIS_NUMS && cis_connected_nums >= 0, "cis_connected_nums:%d", cis_connected_nums);
-        if (cig_connection_timeout) {
-            sys_timeout_del(cig_connection_timeout);
-            cig_connection_timeout = 0;
-        }
     }
 
 
     //释放互斥量
     app_connected_mutex_post(&mutex, __LINE__);
-}
-
-bool get_connected_on_off(void)
-{
-    bool find = false;
-    for (int i = 0; i < CIG_MAX_NUMS; i++) {
-        if (app_cig_conn_info[i].used) {
-            find = true;
-            break;
-        }
-    }
-    return find;
-
 }
 
 /* --------------------------------------------------------------------------*/
@@ -705,11 +678,6 @@ void app_connected_close_all(u8 status)
 
     acl_connected_nums = 0;
     cis_connected_nums = 0;
-
-    if (cig_connection_timeout) {
-        sys_timeout_del(cig_connection_timeout);
-        cig_connection_timeout = 0;
-    }
 
     //释放互斥量
     app_connected_mutex_post(&mutex, __LINE__);
@@ -741,14 +709,8 @@ int app_connected_switch(void)
     }
 
     if (find) {
-        /* play_tone_file_alone_callback(get_tone_files()->le_connected_close, */
-        /*                               (void *)TONE_INDEX_CONNECTED_CLOSE, */
-        /*                               connected_tone_play_end_callback); */
         app_connected_close_all(APP_CONNECTED_STATUS_STOP);
     } else {
-        /* play_tone_file_alone_callback(get_tone_files()->le_connected_open, */
-        /*                               (void *)TONE_INDEX_CONNECTED_OPEN, */
-        /*                               connected_tone_play_end_callback); */
         app_connected_open();
     }
     return 0;
@@ -803,6 +765,7 @@ void app_connected_close_in_other_mode()
     app_connected_close_all(APP_CONNECTED_STATUS_STOP);
     app_connected_uninit();
 }
+
 void le_audio_adv_api_enable(u8 en)
 {
     if (!get_bt_le_audio_config()) {
@@ -820,6 +783,7 @@ void le_audio_adv_api_enable(u8 en)
 
 }
 
+/*提供使用参考用户设置le audio的广播包配置可连接不可发现状态*/
 void le_audio_adv_close_discover_mode()
 {
     le_audio_adv_api_enable(0);
@@ -832,10 +796,14 @@ void le_audio_adv_open_discover_mode()
     le_audio_set_discover_mode(1);
     le_audio_adv_api_enable(1);
 }
+
 /*le audio profile lib check tws ear side to do something different*/
 #define LE_AUDIO_LEFT_EAR                                       1
 #define LE_AUDIO_RIGHT_EAR                                      2
 #define LE_AUDIO_BOTH_EAR                                       3
+/*
+ * 实现le_audio_profile.a里面的weak函数，给库获取当前耳机的左右情况
+ * */
 u8 le_audio_get_tws_ear_side()
 {
 #if TCFG_USER_TWS_ENABLE
@@ -852,8 +820,11 @@ u8 le_audio_get_tws_ear_side()
     return LE_AUDIO_BOTH_EAR;
 #endif
 }
+/*
+ * 实现le_audio_profile.a里面的weak函数，给库获取当前耳机的主从情况
+ * le audio profile lib check tws role to do something different
+*/
 static void tws_sync_le_audio_sirk();
-/*le audio profile lib check tws role to do something different*/
 u8 le_audio_get_tws_role()
 {
 #if TCFG_USER_TWS_ENABLE
@@ -870,17 +841,21 @@ u8 le_audio_get_tws_role()
  *tws配对之后，主机要发送这个值给从机
  * */
 static u8 default_sirk[16] = {0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+/*
+ * 实现le_audio_profile.a里面的weak函数，给库获取当前耳机的sirk配置值
+ * */
 u8 le_audio_get_user_sirk(u8 *sirk)
 {
     memcpy(sirk, default_sirk, 16);
     return 0;
 }
-
+/*
+ * le audio功能总初始化函数
+ * */
 void le_audio_profile_init()
 {
     if (get_bt_le_audio_config() && g_le_audio_hdl.le_audio_profile_ok == 0) {
 #if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
-        extern void le_audio_user_server_profile_init(const uint8_t *profile_tb);
         le_audio_user_server_profile_init(rcsp_profile_data);
 #endif
         g_le_audio_hdl.le_audio_profile_ok = 1;
@@ -895,11 +870,12 @@ void le_audio_profile_init()
         le_audio_ops_register(0);
 
         make_rand_num(default_sirk);
-        /* app_connected_deal(CONNECTED_APP_MODE_ENTER); */
-
     }
 
 }
+/*
+ * 一些公共消息按需处理
+ * */
 static int le_audio_app_msg_handler(int *msg)
 {
     u8 comm_addr[6];
@@ -944,7 +920,7 @@ static int le_audio_app_msg_handler(int *msg)
     case APP_MSG_TWS_PAIR_SUSS://1
         log_info("APP_MSG_TWS_PAIR_SUSS");
     case APP_MSG_TWS_CONNECTED://1
-        log_info("APP_MSG_TWS_CONNECTED");
+        log_info("APP_MSG_TWS_CONNECTED--in app le connect");
 #if TCFG_USER_TWS_ENABLE
         tws_sync_le_audio_conn_info();
         //配对之后主从广播的情况不一样
@@ -953,6 +929,13 @@ static int le_audio_app_msg_handler(int *msg)
             le_audio_adv_api_enable(0);
             le_audio_adv_api_enable(1);
             //TWS连上的时候，从机收到SIRK再刷新广播信息
+        } else {
+            //if slave cis is playing,then send vol to master
+            if (is_cig_music_play() || is_cig_phone_call_play()) {
+                void bt_tws_slave_sync_volume_to_master();
+                bt_tws_slave_sync_volume_to_master();
+            }
+
         }
 #endif
 
@@ -974,9 +957,13 @@ static int le_audio_app_msg_handler(int *msg)
     }
     return 0;
 }
+/*
+ * 一些蓝牙线程消息按需处理
+ * */
 static int le_audio_conn_btstack_event_handler(int *_event)
 {
     struct bt_event *event = (struct bt_event *)_event;
+    printf("le_audio_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_FIRST_CONNECTED:
         if (get_bt_le_audio_config()) {
@@ -998,12 +985,20 @@ static int le_audio_conn_btstack_event_handler(int *_event)
     case HCI_EVENT_CONNECTION_COMPLETE:
         break;
     case HCI_EVENT_DISCONNECTION_COMPLETE :
+        log_info("app le connect HCI_EVENT_DISCONNECTION_COMPLETE: %0x\n", event->value);
+        if (event->value ==  ERROR_CODE_CONNECTION_TIMEOUT) {
+            //超时断开设置上请求回连标记
+            le_audio_adv_api_enable(0);
+            le_audio_set_requesting_a_connection_flag(1);
+            le_audio_adv_api_enable(1);
+        }
         break;
     }
     return 0;
 
 }
 #if TCFG_USER_TWS_ENABLE
+/*一些tws线程消息按需处理*/
 int le_audio_tws_connction_status_event_handler(int *msg)
 {
     struct tws_event *evt = (struct tws_event *)msg;
@@ -1051,6 +1046,9 @@ APP_MSG_HANDLER(conn_stack_msg_entry) = {
 #define LEA_MICS_SERVER_MUTE_STATE    0x02
 
 extern void set_music_device_volume(int volume);
+/**
+ * 实现le_audio_profile.a里面的weak函数，获取到了手机配置的音量消息，音量值更新
+ */
 void le_audio_profile_event_to_user(u16 type, u8 *data, u16 len)
 {
     printf("le_audio_profile_event in app");
@@ -1065,7 +1063,12 @@ enum {
     LE_AUDIO_CONFIG_EN = 1,
     LE_AUDIO_CONN_STATUES,
     LE_AUDIO_CONFIG_SIRK,
+    LE_AUDIO_GET_SLAVE_VOL,  //when tws connect,if slave playing cis then it will send vol to master
 };
+/**
+ * 有些手机连接过同一个地址之后会记忆耳机的服务，所以动态配置le audio的功能的时候，
+ * 仅经典蓝牙功能和经典蓝牙+le audio功能的地址要不一样
+ * */
 void le_audio_surport_config_change_addr(u8 ramdom)
 {
     u8 mac_buf[6];
@@ -1096,26 +1099,38 @@ void le_audio_surport_config_change_addr(u8 ramdom)
 
     }
 }
+/**
+ *实现le_audio_profile.a里面的weak函数，这个回调表示le audio广播刚连上，加密之前，协议还没开始连
+ * */
 void le_audio_adv_conn_success(u8 adv_id)
 {
-    //这个回调表示le audio广播刚连上，加密之前，协议还没开始连
     printf("le_audio_adv_conn_success,adv id:%d\n", adv_id);
     g_le_audio_hdl.le_audio_adv_connected = 0xAA;
 }
+/**
+ *实现le_audio_profile.a里面的weak函数，这个回调表示le audio的广播连接断开回调
+ * */
 void le_audio_adv_disconn_success(u8 adv_id)
 {
     printf("le_audio_adv_disconn_success,adv id:%d\n", adv_id);
     g_le_audio_hdl.le_audio_adv_connected = 0;
 }
+/*定义接口获取le audio广播的连接状态*/
 u8  le_audio_get_adv_conn_success()
 {
     return !(g_le_audio_hdl.le_audio_adv_connected == 0xAA);
 }
+/*
+ * 实现le_audio_profile.a里面的weak函数,传递出来更多参数可用于功能扩展
+ * 这个回调表示le audio广播刚连上，加密之前，协议还没开始连
+ * */
 void le_audio_profile_connected_for_cig_peripheral(u8 status, u16 acl_handle, u8 *addr)
 {
-    //这个回调表示le audio广播刚连上，加密之前，协议还没开始连
 }
 #if TCFG_USER_TWS_ENABLE
+/*
+ *有些le audio信息TWS之间的同步流程
+ * */
 static void tws_sync_le_audio_config_func(u8 *data, int len)
 {
     r_printf("tws_sync_le_audio_config_func: %d, %d\n", data[0], data[1]);
@@ -1155,6 +1170,14 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         le_audio_adv_api_enable(0);
         le_audio_adv_api_enable(1);
         break;
+    case LE_AUDIO_GET_SLAVE_VOL:
+        if (is_cig_music_play() || is_cig_phone_call_play()) {
+            break ;
+        }
+        printf("master get slave vol while slave playing cis");
+        app_audio_set_volume(APP_AUDIO_STATE_MUSIC, data[1], 1);
+        app_audio_set_volume(APP_AUDIO_STATE_CALL, data[2], 1);
+        break;
     }
     free(data);
 
@@ -1180,6 +1203,10 @@ REGISTER_TWS_FUNC_STUB(app_vol_sync_stub) = {
     .func_id = 0x23782C5B,
     .func    = tws_sync_le_audio_info_func,
 };
+
+/*
+ * le audio的使能配置主从之间信息同步
+ * */
 void tws_sync_le_audio_en_info(u8 random)
 {
     u8 data[3];
@@ -1189,14 +1216,19 @@ void tws_sync_le_audio_en_info(u8 random)
     tws_api_send_data_to_slave(data, 3, 0x23782C5B);
 
 }
+/*
+ * le audio的连接状态主从之间信息同步
+ * */
 void tws_sync_le_audio_conn_info()
 {
     u8 data[2];
     data[0] = LE_AUDIO_CONN_STATUES;
     data[1] = g_le_audio_hdl.cig_phone_conn_status;
-    tws_api_send_data_to_slave(data, 2, 0x23782C5B);
-
+    tws_api_send_data_to_sibling(data, 2, 0x23782C5B);
 }
+/*
+ * le audio的sirk主从之间信息同步
+ * */
 static void tws_sync_le_audio_sirk()
 {
     u8 data[17];
@@ -1207,7 +1239,26 @@ static void tws_sync_le_audio_sirk()
     tws_api_send_data_to_slave(data, 17, 0x23782C5B);
 
 }
+void bt_tws_slave_sync_volume_to_master()
+{
+    u8 data[4];
+    //原从机正在播le audio，另一个出仓后是主机，
+    //这个时候从不接收主机的音量，并且要同步自己的音量给主
+    data[0] = LE_AUDIO_GET_SLAVE_VOL;
+    data[1] = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
+    data[2] = app_audio_get_volume(APP_AUDIO_STATE_CALL);
+
+    tws_api_send_data_to_sibling(data, 3, 0x23782C5B);
+}
 #endif
+/* ----------------------------------------------------------------------------*/
+/**
+ * @brief  一开始设计是用于app动态配置le audio的功能开关，配置会记录在VM
+ *
+ * @param   le_auido_en  1-enable   0-disable
+ * @return  void
+ */
+/* ----------------------------------------------------------------------------*/
 void le_audio_surport_config(u8 le_auido_en)
 {
     u8 addr[6] = {0};
@@ -1232,15 +1283,31 @@ void le_audio_surport_config(u8 le_auido_en)
 #endif
 
 }
+
 void set_le_audio_surport_config(u8 le_auido_en)
 {
     app_send_message(APP_MSG_LE_AUDIO_MODE, le_auido_en);
-
 }
+
+/* ----------------------------------------------------------------------------*/
+/**
+ * @brief 是否支持le_audio功能
+ *
+ * @return 1:支持 0:不支持
+ */
+/* ----------------------------------------------------------------------------*/
 u8 get_bt_le_audio_config()
 {
     return g_le_audio_hdl.le_audio_en_config;
 }
+
+/* ----------------------------------------------------------------------------*/
+/**
+ * @brief 从vm读取是否支持le_audio功能
+ *
+ * @return 1:支持 0:不支持
+ */
+/* ----------------------------------------------------------------------------*/
 u8 get_bt_le_audio_config_for_vm()
 {
 #if 1//default support le_audio
@@ -1266,19 +1333,6 @@ u8 edr_conn_memcmp_filterate_for_addr(u8 *addr)
     }
     return 0;
 }
-/* void bt_ble_init(void) */
-/* { */
-
-/* } */
-/* void bt_ble_adv_enable(u8 en) */
-/* { */
-
-/* } */
-
-/* void bt_ble_exit(void) */
-/* { */
-
-/* } */
 //le_audio phone conn不进power down
 static u8 le_audio_idle_query(void)
 {

@@ -11,6 +11,9 @@
 #include "user_cfg.h"
 #include "bt_background.h"
 #include "dual_conn.h"
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#include "app_le_connected.h"
+#endif
 
 #if (TCFG_USER_TWS_ENABLE == 0)
 
@@ -73,6 +76,14 @@ static void write_scan_conn_enable(bool scan_enable, bool conn_enable)
             return;
         }
     }
+
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+        g_printf("le_audio have connd scan conn disble=%x,%x\n", is_cig_phone_conn(), is_cig_other_phone_conn());
+        scan_enable = 0;
+        conn_enable = 0;
+    }
+#endif
 
     lmp_hci_write_scan_enable((conn_enable << 1) | scan_enable);
 
@@ -347,7 +358,7 @@ static int dual_conn_btstack_event_handler(int *_event)
 {
     struct bt_event *event = (struct bt_event *)_event;
 
-    printf("dual_conn_btstack_event_handler:0x%x\n", event->event);
+    printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         puts("dual_conn BT_STATUS_INIT_OK");

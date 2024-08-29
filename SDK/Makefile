@@ -568,7 +568,6 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br28/board_config.c \
-	apps/earphone/board/br28/lp_touch_key_config.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/debug_record_demo.c \
 	apps/earphone/demo/pbg_demo.c \
@@ -842,8 +841,9 @@ c_SRC_FILES := \
 	cpu/br28/periph/mcpwm.c \
 	cpu/br28/periph/rdec.c \
 	cpu/br28/periph/touch/lp_touch_key.c \
-	cpu/br28/periph/touch/lp_touch_key_alog.c \
+	cpu/br28/periph/touch/lp_touch_key_range_algo.c \
 	cpu/br28/periph/touch/lp_touch_key_tool.c \
+	cpu/br28/periph/touch/lpctmu_hw.c \
 	cpu/br28/periph/touch/plcnt.c \
 	cpu/br28/power/key_wakeup.c \
 	cpu/br28/power/power_app.c \

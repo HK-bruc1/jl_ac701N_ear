@@ -203,15 +203,6 @@ static void le_audio_source_open_iport(struct stream_iport *iport)
     iport->handle_frame = le_audio_source_handle_frame;
 }
 
-static void le_audio_source_close_iport(struct stream_iport *iport)
-{
-    struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
-
-    if (hdl) {
-        free(hdl);
-    }
-}
-
 static void le_audio_source_set_bt_addr(struct stream_iport *iport, int arg)
 {
     struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
@@ -423,7 +414,6 @@ static int le_audio_source_ioctl(struct stream_iport *iport, int cmd, int arg)
         le_audio_source_open_iport(iport);
         break;
     case NODE_IOC_CLOSE_IPORT:
-        le_audio_source_close_iport(iport);
         break;
     case NODE_IOC_SET_BTADDR:
         le_audio_source_set_bt_addr(iport, arg);

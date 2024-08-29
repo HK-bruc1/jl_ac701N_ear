@@ -39,9 +39,14 @@
 #define DAC_CH_RR                          (1UL << 3)
 /*
  *******************************************************************
- *						EPA Definitions
+ *						Class-D Driver Definitions
  *******************************************************************
  */
+
+#define CLASSD_PA_MODE                     (1UL << 0)
+#define CLASSD_APIO_MODE                   (1UL << 1)
+#define CLASSD_GPIO_MODE				   (1UL << 2)
+
 #define EPA_DSM_MODE_375K                  (0)
 #define EPA_DSM_MODE_750K                  (1)
 #define EPA_DSM_MODE_1500K                 (2)

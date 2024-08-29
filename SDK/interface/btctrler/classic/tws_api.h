@@ -30,6 +30,7 @@
 #define TWS_STA_MONITOR_START               0x00004000
 #define TWS_STA_HAVE_PAGE_INFO              0x00008000
 #define TWS_STA_LE_AUDIO_CONNECTED          0x00010000
+#define TWS_STA_LE_AUDIO_PLAYING            0x00020000
 
 #define TWS_SYNC_CALL_TX                1
 #define TWS_SYNC_CALL_RX                2

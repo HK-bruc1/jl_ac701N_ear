@@ -145,6 +145,7 @@ void chargestore_open(u8 mode)
     config.tx_pin = __this->data->io_port;
     config.rx_pin = __this->data->io_port;
     config.parity = UART_PARITY_DISABLE;
+    config.tx_wait_mutex = 0;
     __this->udev = uart_init(-1, &config);
     if (__this->udev < 0) {
         goto __err_exit;
@@ -154,8 +155,8 @@ void chargestore_open(u8 mode)
     if (__this->data->io_port == IO_PORT_LDOIN) {
         gpio_set_mode(IO_PORT_SPILT(__this->data->io_port), PORT_INPUT_FLOATING);
     }
-
-    uart_timeout = 20 * 1000000 / __this->data->baudrate;//us
+    //确保2byte时间
+    uart_timeout = 25 * 1000000 / __this->data->baudrate;//us
     dma.rx_timeout_thresh = uart_timeout;
     dma.frame_size = DMA_BUF_LEN;
     dma.event_mask = UART_EVENT_RX_DATA | UART_EVENT_RX_TIMEOUT | UART_EVENT_TX_DONE;
@@ -195,9 +196,12 @@ void chargestore_set_baudrate(u32 baudrate)
     if (__this->udev < 0) {
         return;
     }
-    uart_timeout = 20 * 1000000 / baudrate;
+    //确保2byte的时间
+    uart_timeout = 25 * 1000000 / baudrate;
     uart_set_baudrate(__this->udev, baudrate);
     uart_set_rx_timeout_thresh(__this->udev, uart_timeout);
+    //重新初始化DMA,防止高波特率时候出现分包行为
+    uart_dma_rx_reset(__this->udev);
 }
 
 void chargestore_init(const struct chargestore_platform_data *data)

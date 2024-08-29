@@ -37,6 +37,9 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#include "app_le_connected.h"
+#endif
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
 #include "somatosensory/audio_somatosensory.h"
 #endif
@@ -135,6 +138,11 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
     g_bt_hdl.inband_ringtone = btstack_get_inband_ringtone_flag_for_addr(bt_addr);
 #else
     g_bt_hdl.inband_ringtone = 0 ;
+#endif
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+    if (is_cig_phone_conn()) {
+        g_bt_hdl.inband_ringtone = 1;
+    }
 #endif
 
     printf("inband_ringtone=0x%x %d\n", g_bt_hdl.inband_ringtone, after_conn);

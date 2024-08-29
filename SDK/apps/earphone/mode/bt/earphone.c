@@ -64,6 +64,7 @@
 #include "bt_event_func.h"
 
 
+#include "asm/lp_touch_key_api.h"
 #include "asm/charge.h"
 #include "app_charge.h"
 
@@ -586,10 +587,6 @@ static void bt_hci_event_connection_exist(struct bt_event *bt)
 {
 }
 
-
-void __attribute__((weak)) lp_touch_key_testbox_inear_trim(u8 flag)
-{
-}
 
 enum {
     TEST_STATE_INIT = 1,

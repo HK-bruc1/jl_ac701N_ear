@@ -472,7 +472,7 @@ const u16 hw_dig_vol_table[DVOL_HW_LEVEL_MAX + 1] = {
 void audio_hw_digital_vol_init(u8 cfg_en)
 {
     float dB_value = BT_MUSIC_VOL_MAX ;
-#if (TCFG_AUDIO_ANC_ENABLE)
+#if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
     app_var.aec_dac_gain = (app_var.aec_dac_gain > BT_CALL_VOL_LEAVE_MAX) ? BT_CALL_VOL_LEAVE_MAX : app_var.aec_dac_gain;
@@ -1244,7 +1244,7 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
     }
 
     float dB_value = DEFAULT_DIGITAL_VOLUME;
-#if (TCFG_AUDIO_ANC_ENABLE)
+#if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
     u16 dvol_max = (u16)(16384.0f * dB_Convert_Mag(dB_value));

@@ -881,7 +881,6 @@
 <Unit filename="apps/earphone/board/br28/board_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/br28/board_config.h" />
 <Unit filename="apps/earphone/board/br28/jlstream_node_cfg.h" />
-<Unit filename="apps/earphone/board/br28/lp_touch_key_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/br28/sdk_config.h" />
 <Unit filename="apps/earphone/board/sdk_board_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/debug_record_demo.c"><Option compilerVer="CC"/></Unit>
@@ -1311,8 +1310,9 @@
 <Unit filename="cpu/br28/periph/mcpwm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/rdec.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/touch/lp_touch_key_alog.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/touch/lp_touch_key_range_algo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key_tool.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/br28/periph/touch/lpctmu_hw.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/plcnt.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/power/key_wakeup.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/power/power_app.c"><Option compilerVer="CC"/></Unit>
@@ -1401,10 +1401,10 @@
 <Unit filename="interface/driver/cpu/br28/asm/io_imap.h" />
 <Unit filename="interface/driver/cpu/br28/asm/io_omap.h" />
 <Unit filename="interface/driver/cpu/br28/asm/irq.h" />
-<Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_alog.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_api.h" />
-<Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_hw.h" />
+<Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_range_algo.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_tool.h" />
+<Unit filename="interface/driver/cpu/br28/asm/lpctmu_hw.h" />
 <Unit filename="interface/driver/cpu/br28/asm/mcpwm.h" />
 <Unit filename="interface/driver/cpu/br28/asm/plcnt.h" />
 <Unit filename="interface/driver/cpu/br28/asm/power/lp_ipc.h" />

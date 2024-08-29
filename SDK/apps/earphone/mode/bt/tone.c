@@ -137,6 +137,13 @@ static int tone_tws_event_handler(int *_event)
             if (state & (TWS_STA_SBC_OPEN | TWS_STA_ESCO_OPEN)) {
                 break;
             }
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+            u32 slave_info =  event->args[3] | (event->args[4] << 8) | (event->args[5] << 16) | (event->args[6] << 24) ;
+            printf("====slave_info:%x\n", slave_info);
+            if ((slave_info & TWS_STA_LE_AUDIO_PLAYING) || is_cig_music_play() || is_cig_phone_call_play()) {
+                break;
+            }
+#endif
 #if TCFG_USER_TWS_ENABLE
             tws_play_tone_file(get_tone_files()->tws_connect, 400);
 #else

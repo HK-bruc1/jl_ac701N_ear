@@ -369,12 +369,12 @@ SECTIONS
         KEEP(*(.connected_sync_call_func))
         conn_sync_call_func_end = .;
 
-        . = ALIGN(4);
-        conn_data_trans_stub_begin = .;
-        KEEP(*(.conn_data_trans_stub))
-        conn_data_trans_stub_end = .;
-
-		. = ALIGN(4);
+        /* . = ALIGN(4); */
+        /* conn_data_trans_stub_begin = .; */
+        /* KEEP(*(.conn_data_trans_stub)) */
+        /* conn_data_trans_stub_end = .; */
+        /*  */
+		/* . = ALIGN(4); */
 
 #if (!TCFG_LED7_RUN_RAM)
 		. = ALIGN(4);

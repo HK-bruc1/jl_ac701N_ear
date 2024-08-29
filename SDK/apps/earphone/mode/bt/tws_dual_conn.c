@@ -717,7 +717,7 @@ static int dual_conn_btstack_event_handler(int *_event)
     struct bt_event *event = (struct bt_event *)_event;
     int state = tws_api_get_tws_state();
 
-    printf("dual_conn_btstack_event_handler:0x%x\n", event->event);
+    printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         dual_conn_page_devices_init();
@@ -1023,6 +1023,14 @@ static int dual_conn_tws_event_handler(int *_event)
 
         if (role == TWS_ROLE_MASTER) {
             tws_api_auto_role_switch_disable();
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+            u32 slave_info =  event->args[3] | (event->args[4] << 8) | (event->args[5] << 16) | (event->args[6] << 24) ;
+            printf("====slave_info:%x\n", slave_info);
+            if (slave_info & TWS_STA_LE_AUDIO_CONNECTED) {
+                clr_device_in_page_list();
+                break;
+            }
+#endif
             if (!page_list_empty()) {
                 dual_conn_page_device();
                 app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
@@ -1166,6 +1174,9 @@ int tws_host_get_local_role()
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
     if (is_cig_phone_conn()) {
         state |= TWS_STA_LE_AUDIO_CONNECTED;
+    }
+    if (is_cig_music_play() || is_cig_phone_call_play()) {
+        state |= TWS_STA_LE_AUDIO_PLAYING;
     }
 #endif
     /* r_printf("tws_host_get_local_role=%x\n",state ); */

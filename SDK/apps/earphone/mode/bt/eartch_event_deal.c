@@ -387,7 +387,6 @@ static void eartch_out_bt_control_handle(void)
 }
 //-------------测试盒流程-----------------//
 u8 testbox_in_ear_detect_test_flag_get(void);
-void lp_touch_key_testbox_inear_trim(u8 flag);
 
 enum {
     IN_EAR_TRIM_SUCC_KEY = 0xf4,
