@@ -702,7 +702,7 @@ static int pc_mic_tx_handler(void *priv, void *buf, int len)
         }
 
         audio_pcmic_channel_read(hdl, (s16 *)hdl->frame_buf, rlen);
-        pcm_data_convert_to_uac_data(hdl, hdl->frame_buf, buf, pcm_frames);
+        pcm_data_convert_to_uac_data(hdl, hdl->frame_buf, buf, pcm_frames * pc_mic_fmt.channel);
         if (config_dev_sync_enable) {
             struct pc_mic_node_hdl *node_hdl;
             list_for_each_entry(node_hdl, &hdl->dev_sync_list, entry) {

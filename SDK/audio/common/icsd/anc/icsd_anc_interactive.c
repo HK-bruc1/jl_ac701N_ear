@@ -32,6 +32,10 @@
 #include "audio_anc_mult_scene.h"
 #endif/*ANC_MULT_ORDER_ENABLE*/
 
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#include "icsd_adt_app.h"
+#endif
+
 #if 1
 #define anc_log	printf
 #else

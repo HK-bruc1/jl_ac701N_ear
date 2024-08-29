@@ -14,6 +14,9 @@
 #include "poweroff.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#include "app_le_connected.h"
+#endif
 
 
 #define LOG_TAG             "[EARPHONE]"
@@ -184,7 +187,12 @@ int bt_key_power_msg_remap(int *msg)
     } else {
         /* 非通话相关状态 */
         int tws_state = tws_api_get_tws_state();
-        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+        int tws_cig_state = is_cig_phone_conn();
+        if (tws_state & TWS_STA_PHONE_CONNECTED || tws_cig_state) { //已连接手机经典蓝牙或者cig
+#else
+        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
+#endif
             char channel = tws_api_get_local_channel();
             switch (key_action) {
             case KEY_ACTION_CLICK:

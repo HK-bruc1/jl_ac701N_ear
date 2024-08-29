@@ -42,6 +42,9 @@
 #include "pc.h"
 #include "rcsp_user_api.h"
 #include "pwm_led/led_ui_api.h"
+#if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
+#include "icsd_adt_app.h"
+#endif
 
 
 #define LOG_TAG             "[APP]"
@@ -438,6 +441,7 @@ int app_get_message(int *msg, int max_num, const struct key_remap_table *key_tab
             audio_wide_area_tap_ignore_flag_set(1, 1000);
 #endif
             int key_msg = app_key_event_remap(key_table, msg + 1);
+            log_info(">>>>>key_msg = %d\n", key_msg);
             if (key_msg == APP_MSG_NULL) {
                 return 1;
             }

@@ -37,7 +37,7 @@ int app_key_event_remap(const struct key_remap_table *table, int *event)
 {
     u8 key_value = APP_MSG_KEY_VALUE(event[0]);
     u8 key_action = APP_MSG_KEY_ACTION(event[0]);
-
+    g_printf("%s key_value = %d, key_action = %d\n", __FUNCTION__, key_value, key_action);
     if (table) {
         for (int i = 0; table[i].key_value != 0xff; i++) {
             if (table[i].key_value == key_value) {
