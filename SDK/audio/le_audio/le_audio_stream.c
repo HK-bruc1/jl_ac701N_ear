@@ -13,6 +13,10 @@
 #include "audio_base.h"
 #include "circular_buf.h"
 #include "system/timer.h"
+#include "app_config.h"
+
+#if LE_AUDIO_STREAM_ENABLE
+
 #define LE_AUDIO_TX_TEST        0
 
 struct le_audio_stream_buf {
@@ -539,3 +543,5 @@ void le_audio_stream_free_frame(void *le_audio, struct le_audio_frame *frame)
     spin_unlock(&ctx->lock);
     free(frame);
 }
+
+#endif /*LE_AUDIO_STREAM_ENABLE*/

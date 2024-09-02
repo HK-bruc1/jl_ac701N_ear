@@ -53,11 +53,11 @@ lhdc_dec_plug
 #if TCFG_BT_SUPPORT_LHDC_V5
 lhdc_v5_dec_plug
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN||BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+
+#if LE_AUDIO_STREAM_ENABLE
 lc3_encoder_plug
 lc3_dec_plug
 capture_sync_adapter
-le_audio_file_plug
 #endif
 
 #if TCFG_BT_SUPPORT_LDAC

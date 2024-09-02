@@ -63,7 +63,7 @@ const int CONFIG_MAX_ENC_DATA_CACHE_SIZE = 4096;
 #if TCFG_SPATIAL_EFFECT_VERSION
 const int CONFIG_SPATIAL_EFFECT_VERSION  = TCFG_SPATIAL_EFFECT_VERSION;
 #else
-const int CONFIG_SPATIAL_EFFECT_VERSION  = 0;
+const int CONFIG_SPATIAL_EFFECT_VERSION  = 1;
 #endif
 /*
  *******************************************************************

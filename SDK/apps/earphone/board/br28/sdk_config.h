@@ -75,10 +75,10 @@
 #define TCFG_LED_LAYOUT ONE_IO_TWO_LED // 连接方式
 #define TCFG_LED_RED_ENABLE 1 // 红灯(Red)
 #define TCFG_LED_RED_GPIO IO_PORTC_02 // IO
-#define TCFG_LED_RED_LOGIC BRIGHT_BY_HIGH// 点亮方式
+#define TCFG_LED_RED_LOGIC BRIGHT_BY_HIGH // 点亮方式
 #define TCFG_LED_BLUE_ENABLE 1 // 蓝灯(Blue)
 #define TCFG_LED_BLUE_GPIO IO_PORTC_02 // IO
-#define TCFG_LED_BLUE_LOGIC BRIGHT_BY_LOW// 点亮方式
+#define TCFG_LED_BLUE_LOGIC BRIGHT_BY_LOW // 点亮方式
 #endif // TCFG_PWMLED_ENABLE
 
 #define FUSB_MODE 0x1 // USB工作模式
@@ -147,8 +147,8 @@
 // ------------板级配置.json------------
 
 // ------------按键配置.json------------
-#define TCFG_TWS_COMBINATIION_KEY_ENABLE 0x0 // TWS两边同时按消息使能
-#define TCFG_SEND_HOLD_SEC_MSG_DURING_HOLD 0x1 // 按住过程中发送按住几秒消息
+#define TCFG_TWS_COMBINATIION_KEY_ENABLE 0 // TWS两边同时按消息使能
+#define TCFG_SEND_HOLD_SEC_MSG_DURING_HOLD 1 // 按住过程中发送按住几秒消息
 #define TCFG_MAX_HOLD_SEC ((KEY_ACTION_HOLD_5SEC << 8) | 5) // 最长按住消息
 
 #define TCFG_IOKEY_ENABLE 1 // IO按键配置
@@ -159,20 +159,17 @@
 
 #define TCFG_LP_TOUCH_KEY_ENABLE 0 // 内置触摸按键配置
 #if TCFG_LP_TOUCH_KEY_ENABLE
-#define TCFG_LP_KEY_SLIDE_ENABLE 0 // 是否使能多个触摸按键的滑动功能
-#define TCFG_LP_KEY_SLIDE_VALUE KEY_SLIDER // 键值
-#define TCFG_LP_KEY_UPPER_LIMIT_VOLTAGE LPCTMU_VH_080V // 上限电压挡位
-#define TCFG_LP_KEY_LOWER_LIMIT_VOLTAGE LPCTMU_VL_020V // 下限电压挡位
-#define TCFG_LP_KEY_CURRENT_LEVEL LPCTMU_ISEL_288UA // 充放电电流挡位
-#define TCFG_LP_KEY_ENABLE_IN_CHARGE 0 // 充电是否保持触摸
+#define TCFG_LP_KEY_UPPER_LIMIT_VOLTAGE 3 // 上限电压挡位
+#define TCFG_LP_KEY_LOWER_LIMIT_VOLTAGE 0 // 下限电压挡位
+#define TCFG_LP_KEY_CURRENT_LEVEL 7 // 充放电流挡位
+#define TCFG_LP_KEY_ENABLE_IN_CHARGE 0 // 充电保持触摸
 #define TCFG_LP_KEY_LONG_PRESS_RESET 1 // 长按复位功能
 #define TCFG_LP_KEY_LONG_PRESS_RESET_TIME 8000 // 长按复位时间
-#define TCFG_LP_KEY_SOFTOFF_TIME 1000 // 长按唤醒时间
+#define TCFG_LP_KEY_SLIDE_ENABLE 0 // 两个按键滑动
+#define TCFG_LP_KEY_SLIDE_VALUE KEY_SLIDER // 键值
 #define TCFG_LP_EARTCH_KEY_ENABLE 0 // 入耳检测
 #define TCFG_LP_EARTCH_DETECT_CH LPCTMU_CH2_PB2 // 检测通道
 #define TCFG_LP_EARTCH_REF_CH LPCTMU_CH1_PB1 // 参考通道
-#define TCFG_LP_EARTCH_INEAR_VAL 100 // 入耳阈值
-#define TCFG_LP_EARTCH_OUTEAR_VAL 100 // 出耳阈值
 #endif // TCFG_LP_TOUCH_KEY_ENABLE
 // ------------按键配置.json------------
 
@@ -214,7 +211,7 @@
 #define TCFG_BT_BACKGROUND_ENABLE 0x0 // 蓝牙后台
 #define TCFG_BT_BACKGROUND_GOBACK 0x1 // 蓝牙后台连接断开返回
 #define TCFG_BT_BACKGROUND_DETECT_TIME 0x2ee // 音乐检测时间
-#define CONFIG_BT_MODE 0x1 // 模式选择
+#define CONFIG_BT_MODE BT_NORMAL // 模式选择
 #define TCFG_NORMAL_SET_DUT_MODE 0x0 // NORMAL模式下使能DUT测试
 
 #define TCFG_USER_TWS_ENABLE 1 // TWS
@@ -258,7 +255,9 @@
 #define TCFG_BT_RCSP_DUAL_CONN_ENABLE 0x0 // 支持连接两路rcsp
 #endif // TCFG_BT_AI_ENABLE
 
+#define TCFG_LE_AUDIO_PLAY_LATENCY 30000 // le_audio延时（us）
 #define TCFG_BT_DONGLE_ENABLE 0x0 // 支持dongle连接
+#define TCFG_JL_DONGLE_PLAYBACK_LATENCY 40 // dongle下行播放延时(msec)
 #define TCFG_BT_DONGLE_A2DP_PHONE_A2DP_MIX_ENABLE 0x0 // dongle游戏声音和手机蓝牙播歌声音叠加
 #define TCFG_BT_DONGLE_A2DP_PHONE_ESCO_MIX_ENABLE 0x0 // dongle游戏声音和手机蓝牙通话声音叠加
 // ------------蓝牙配置.json------------
@@ -329,8 +328,8 @@
 
 #define TCFG_AUDIO_GLOBAL_SAMPLE_RATE 44100 // 全局采样率
 #define TCFG_AEC_TOOL_ONLINE_ENABLE 0x0 // 手机APP在线调试
-#define TCFG_AUDIO_CVP_SYNC 0x1 // 通话上行同步
-#define TCFG_ESCO_DL_CVSD_SR_USE_16K 0x0 // ESCO通话全局采样率
+#define TCFG_AUDIO_CVP_SYNC 0x0 // 通话上行同步
+#define TCFG_ESCO_DL_CVSD_SR_USE_16K 0x1 // ESCO通话全局采样率
 #define TCFG_LEA_CALL_DL_GLOBAL_SR 0x1 // LEA通话全局采样率
 #define TCFG_AUDIO_SMS_SEL SMS_DEFAULT // 1mic算法选择
 #define TCFG_AUDIO_DMS_GLOBAL_VERSION DMS_GLOBAL_V200 // 2micDNS算法选择
@@ -349,6 +348,7 @@
 #define TCFG_AUDIO_KWS_LANGUAGE_SEL KWS_CH // 模式选择
 #define TCFG_AUDIO_DAC_DEFAULT_VOL_MODE 0x0 // 音量增强模式
 #define TCFG_SPATIAL_EFFECT_ONLINE_ENABLE 0x0 // 空间音效在线调试
+#define TCFG_SPATIAL_EFFECT_VERSION 1 // 音效算法版本选择
 #define TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL 'L' // 传感器选择
 #define TCFG_DEC_OPUS_ENABLE 0x0 // OPUS
 #define TCFG_ENC_OPUS_ENABLE 0x0 // OPUS
@@ -369,6 +369,7 @@
 
 #define TCFG_DATA_EXPORT_UART_TX_PORT IO_PORT_DM // 串口发送引脚
 #define TCFG_DATA_EXPORT_UART_BAUDRATE 0x1e8480 // 串口波特率
+#define TCFG_AUDIO_SOMATOSENSORY_ENABLE 0x0 // 头部姿态检测
 // ------------音频配置.json------------
 #endif
 

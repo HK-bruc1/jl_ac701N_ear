@@ -76,13 +76,16 @@
 #endif
 #endif /*CONFIG_CODE_MOVABLE_ENABLE*/ 
 
+#if (AFx_SPATIAL_EFFECT_AT_RAM)
     . = ALIGN(4);
     *(.pSOUND360TD_cal_sparse_code)
     *(.pSOUND360TD_cal_code)
     *(.pSOUND360TD_cal_const)
     *(.spatial_mem)
     *(.TDSpatial.text)
-    *(.TDSpatial.text.cache.L2)
+    *(.TDSpatial.text.cache.L2.code)
+#endif
+
 #if (TCFG_CODE_RUN_RAM_FM_MODE)
     *(.sbc_eng_code)
     *(.pcm_code)

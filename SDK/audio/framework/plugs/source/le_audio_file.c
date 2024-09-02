@@ -11,6 +11,9 @@
 #include "source_node.h"
 #include "le_audio_stream.h"
 #include "reference_time.h"
+#include "app_config.h"
+
+#if LE_AUDIO_STREAM_ENABLE
 
 extern int CONFIG_LE_AUDIO_PLAY_LATENCY;
 struct le_audio_file_handle {
@@ -174,3 +177,6 @@ REGISTER_SOURCE_NODE_PLUG(le_audio_file_plug) = {
     .ioctl      = le_audio_file_ioctl,
     .release    = le_audio_file_release,
 };
+
+#endif/*LE_AUDIO_STREAM_ENABLE*/
+

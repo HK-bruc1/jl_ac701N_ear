@@ -1,4 +1,3 @@
-
 /**
 * 注意点：
 * 0.此文件变化，在工具端会自动同步修改到工具配置中
@@ -124,8 +123,8 @@ const struct touch_key_cfg lp_touch_key_table [] =  {
         .index = 0,
         .algo_cfg = {
             {
-                .algo_cfg0 = 10,
-                .algo_cfg1 = 15,
+                .algo_cfg0 = 20,
+                .algo_cfg1 = 25,
                 .algo_cfg2 = 80,
                 .algo_range_min = 50,
                 .algo_range_max = 500,
@@ -134,4 +133,3 @@ const struct touch_key_cfg lp_touch_key_table [] =  {
         }
     }
 };
-

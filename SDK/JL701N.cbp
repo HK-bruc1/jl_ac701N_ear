@@ -1025,7 +1025,6 @@
 <Unit filename="audio/CVP/audio_cvp_online.h" />
 <Unit filename="audio/CVP/audio_cvp_ref_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_sync.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/CVP/audio_cvp_sync.h" />
 <Unit filename="audio/anc/audio_anc_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.h" />
 <Unit filename="audio/anc/audio_anc_common_plug.c"><Option compilerVer="CC"/></Unit>

@@ -12,6 +12,7 @@
 #define AUD_TASK_INFO_DUMP_ENABLE		0	//任务运行信息跟踪使能
 #define AUD_JLSTREAM_MEM_DUMP_ENABLE	0	//jlstream内存跟踪
 #define AUD_BT_INFO_DUMP_ENABLE			0	//蓝牙音频流跟踪
+#define AUD_MEM_INFO_DUMP_ENABLE		1	//系统内存信息跟踪
 
 static void audio_config_trace(void *priv)
 {
@@ -39,6 +40,10 @@ static void audio_config_trace(void *priv)
 
 #if AUD_BT_INFO_DUMP_ENABLE
     printf("ESCO Tx Packet Num:%d", lmp_private_get_esco_tx_packet_num());
+#endif
+
+#if AUD_MEM_INFO_DUMP_ENABLE
+    mem_stats();
 #endif
 }
 

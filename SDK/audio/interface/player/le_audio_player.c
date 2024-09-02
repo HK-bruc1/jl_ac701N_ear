@@ -9,6 +9,8 @@
 #include "app_main.h"
 #include "le_audio_player.h"
 
+#if LE_AUDIO_STREAM_ENABLE
+
 struct le_audio_player {
     struct jlstream *stream;
     void *le_audio;
@@ -371,3 +373,6 @@ bool le_audio_player_is_playing(void)
     }
     return 0;
 }
+
+#endif /*LE_AUDIO_STREAM_ENABLE*/
+

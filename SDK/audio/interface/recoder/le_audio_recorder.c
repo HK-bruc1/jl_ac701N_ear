@@ -41,6 +41,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
         .bit_rate = le_audio_fmt->bit_rate,
         .sample_rate = le_audio_fmt->sample_rate,
         .frame_dms = le_audio_fmt->frame_dms,
+        .coding_type = le_audio_fmt->coding_type,
     };
     if (!g_mic_recorder) {
         g_mic_recorder = zalloc(sizeof(struct le_audio_mic_recorder));
@@ -71,7 +72,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
     }
 
     jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_CAPTURE_SYNC, NODE_IOC_SET_PARAM, latency);
-    err = jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_LE_AUDIO_SOURCE, NODE_IOC_SET_BTADDR, (int)le_audio);
+    jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_LE_AUDIO_SOURCE, NODE_IOC_SET_BTADDR, (int)le_audio);
     //设置中断点数
     /* jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS); */
     jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_VOCAL_TRACK_SYNTHESIS, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS);//四声道时，指定声道合并单个声道的点数

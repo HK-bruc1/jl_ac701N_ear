@@ -235,15 +235,8 @@ static u16 audio_enc_mpt_anc_mic_query(u8 mic_type, u16 mic_id, u8 *mic_en, u16 
 {
 #if TCFG_AUDIO_ANC_ENABLE
     u8 i;
-#if (defined CONFIG_CPU_BR28)
-    u8 mic_max = A_MIC3 + 1;
-#elif (defined CONFIG_CPU_BR50)
-    u8 mic_max = A_MIC4 + 1;
-#else
-    /*br36*/
-    u8 mic_max = A_MIC1 + 1;
-#endif
-    for (i = A_MIC0; i < mic_max; i++) {
+    //遍历最大模拟ADC个数
+    for (i = A_MIC0; i < AUDIO_ENC_MPT_MIC_NUM; i++) {
         if (mic_type == i) {
             if (!mic_en[i]) {
                 //此MIC没有开过，则使用ANC的MIC增益

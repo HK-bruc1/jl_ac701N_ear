@@ -74,6 +74,15 @@
     *(.aac_mem)
     *(.aac_ctrl_mem)
 #endif
+#if (AFx_SPATIAL_EFFECT_AT_RAM == 0)
+    . = ALIGN(4);
+    *(.pSOUND360TD_cal_sparse_code)
+    *(.pSOUND360TD_cal_code)
+    *(.pSOUND360TD_cal_const)
+    *(.spatial_mem)
+    *(.TDSpatial.text)
+    *(.TDSpatial.text.cache.L2.code)
+#endif
 
     . = ALIGN(4);
     *(.bt_audioplc_code)

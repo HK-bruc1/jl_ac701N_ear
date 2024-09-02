@@ -250,10 +250,6 @@ void board_init()
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
 #endif
 
-#if TCFG_LP_TOUCH_KEY_ENABLE
-    lp_touch_key_init(&lp_touch_key_pdata);
-#endif
-
 #if TCFG_OUTSIDE_EARTCH_ENABLE
     eartouch_init(&eartouch_cfg);
 #endif
@@ -262,4 +258,13 @@ void board_init()
     board_imu_sensor_init();
 #endif
 }
+
+#if TCFG_LP_TOUCH_KEY_ENABLE
+static int touch_key_init(void)
+{
+    lp_touch_key_init(&lp_touch_key_pdata);
+    return 0;
+}
+late_initcall(touch_key_init);//触摸按键的初始化要在pmu和充电初始化之后
+#endif
 
