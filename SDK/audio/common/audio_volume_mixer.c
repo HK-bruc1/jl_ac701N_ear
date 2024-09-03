@@ -679,9 +679,17 @@ int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
     mode = app_get_current_mode();
     int i = 0;
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-    if (le_audio_player_is_playing()) {
-        sprintf(node_name, "%s%s", "Vol_LE_", "Audio");
+    if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {
+        sprintf(node_name, "%s%s", "LEA_", "Media");
         return 0;
+    } else if (le_audio_player_get_stream_scene() == STREAM_SCENE_LEA_CALL) {
+        sprintf(node_name, "%s%s", "LEA_", "Call");
+        return 0;
+    } else {
+        if (le_audio_player_is_playing()) {
+            sprintf(node_name, "%s%s", "Vol_LE_", "Audio");
+            return 0;
+        }
     }
 #endif
 
