@@ -360,6 +360,11 @@ int connected_perip_connect_deal(void *priv)
         }
         if (!connected_hdl->cis_hdl_info[index].recorder) {
             //TODO:打开recorder
+#if TCFG_AUDIO_BIT_WIDTH
+            params.latency = 80 * 1000;//tx延时暂时先设置 50ms
+#else
+            params.latency = 50 * 1000;//tx延时暂时先设置 50ms
+#endif
             if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
                 connected_hdl->cis_hdl_info[index].recorder = le_audio_switch_ops->tx_le_audio_open(&params);
             }

@@ -59,7 +59,14 @@ int esco_recoder_open(u8 link_type, void *bt_addr)
     }
 
 
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+    recoder->stream = jlstream_pipeline_parse_by_node_name(uuid, "esco_adc");
+    if (!recoder->stream) {
+        recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+    }
+#else
     recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+#endif
     source_uuid = NODE_UUID_ADC;
     if (!recoder->stream) {
         recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_PDM_MIC);

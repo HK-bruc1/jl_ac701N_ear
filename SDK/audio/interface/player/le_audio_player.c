@@ -258,7 +258,12 @@ int le_audio_player_open(u8 *conn, struct le_audio_stream_params *lea_param)
     char lea_player_name[16];
     enum stream_scene lea_player_scene;
     struct le_audio_player *player = g_le_audio_player;
-    int uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio");
+    int uuid = 0;
+    if (lea_param->service_type == LEA_SERVICE_CALL) {
+        uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio_call");
+    } else {
+        uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio");
+    }
     player = zalloc(sizeof(*player));
     if (!player) {
         return -ENOMEM;

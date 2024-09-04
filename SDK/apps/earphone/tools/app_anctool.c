@@ -652,17 +652,15 @@ static void anctool_ack_write_file_start(u32 id, u32 data_len)
 
 static void anctool_ack_write_file_data(u32 offset, u8 *data, u32 data_len)
 {
-    if (__this->file_id) {
-        if (__this->file_hdl == NULL || ((offset + data_len) > __this->file_len)) {
-            app_anctool_send_ack(CMD_WRITE_FILE_DATA, FALSE, ERR_WRITE_FILE);
-            if (__this->file_hdl) {
-                free(__this->file_hdl);
-                __this->file_hdl = NULL;
-            }
-        } else {
-            memcpy(__this->file_hdl + offset, data, data_len);
-            app_anctool_send_ack(CMD_WRITE_FILE_DATA, TRUE, ERR_NO);
+    if (__this->file_hdl == NULL || ((offset + data_len) > __this->file_len)) {
+        app_anctool_send_ack(CMD_WRITE_FILE_DATA, FALSE, ERR_WRITE_FILE);
+        if (__this->file_hdl) {
+            free(__this->file_hdl);
+            __this->file_hdl = NULL;
         }
+    } else {
+        memcpy(__this->file_hdl + offset, data, data_len);
+        app_anctool_send_ack(CMD_WRITE_FILE_DATA, TRUE, ERR_NO);
     }
 }
 

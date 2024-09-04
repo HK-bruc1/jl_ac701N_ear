@@ -186,7 +186,7 @@ u8 auto_check_a2dp_play_control_qos(u16 cur_delay_timer,u16 delay_set_timer,u16 
 
 }
 #endif
-const int CONFIG_TWS_SUPER_TIMEOUT          = 8000;
+const int CONFIG_TWS_SUPER_TIMEOUT          = 4000;
 const int CONFIG_BTCTLER_QOS_ENABLE         = 1;
 const int CONFIG_A2DP_DATA_CACHE_LOW_AAC    = 100;
 const int CONFIG_A2DP_DATA_CACHE_HI_AAC     = 250;

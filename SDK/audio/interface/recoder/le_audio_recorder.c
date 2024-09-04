@@ -18,6 +18,8 @@
 #include "asm/dac.h"
 #include "audio_cvp.h"
 
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+
 struct le_audio_mic_recorder {
     void *stream;
 };
@@ -35,7 +37,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
     struct le_audio_stream_params *lea_params = params;
     struct le_audio_stream_format *le_audio_fmt = &lea_params->fmt;
     u16 source_uuid;
-    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"mic_le_audio");
+    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"mic_le_audio_call");
     struct stream_enc_fmt fmt = {
         .channel = le_audio_fmt->nch,
         .bit_rate = le_audio_fmt->bit_rate,
@@ -49,7 +51,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
             return -ENOMEM;
         }
     }
-    g_mic_recorder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+    g_mic_recorder->stream = jlstream_pipeline_parse_by_node_name(uuid, "le_audio_adc");
     source_uuid = NODE_UUID_ADC;
 
     if (!g_mic_recorder->stream) {
@@ -122,6 +124,8 @@ void le_audio_mic_recorder_close(void)
     }
     free(mic_recorder);
     g_mic_recorder = NULL;
-    jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio");
+    jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio_call");
 }
+
+#endif
 

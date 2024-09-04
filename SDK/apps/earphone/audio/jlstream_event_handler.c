@@ -163,11 +163,17 @@ static int get_pipeline_uuid(const char *name)
         return PIPELINE_UUID_MIC_EFFECT;
     }
 #endif
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
+#if LE_AUDIO_STREAM_ENABLE
+    if (!strcmp(name, "le_audio")) {
         clock_alloc("le_audio", 24 * 1000000UL);
         return PIPELINE_UUID_LE_AUDIO;
     }
+    if (!strcmp(name, "le_audio_call") || \
+        !strcmp(name, "mic_le_audio_call")) {
+        clock_alloc("le_audio", 24 * 1000000UL);
+        return PIPELINE_UUID_ESCO;
+    }
+#endif
     if (!strcmp(name, "adda_loop")) {
         clock_alloc("adda_loop", 24 * 1000000UL);
         return PIPELINE_UUID_A2DP_DUT;
