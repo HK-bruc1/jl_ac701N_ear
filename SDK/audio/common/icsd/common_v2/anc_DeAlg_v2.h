@@ -12,6 +12,7 @@ struct icsd_anc_buf_v2 {
     float Wz_fd_init[DE_FLEN * 2];
     float Wz_fd_g[DE_FLEN * 2];
     float perfm[DE_FLEN];
+    float perfm2[DE_FLEN];
     float mse[DE_FLEN * 2];
     float fitness_sv[60];
     float biquad_coef_g[31];
@@ -118,15 +119,14 @@ void anc_de_init();
 //void target_cmp_out(float *target, float *freqz, float *sz, int *tight_degree, int ear_mem_en);
 void get_weight_mse_by_tight_degree(struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree, int flen);
 void get_biquad_by_tight_degree(struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree, int iir_num_flex, int iir_num_fix);
-//void anc_core_main_ff_v2_3(float *target, float *freqz, float fs, int flen, float *total_gain, float *gfq_best, int tight_degree_MS, int tight_degree_self);
 
 
 void De_reconfig(float *target, int flen, struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree_MS, int tight_degree_self, struct icsd_anc_buf_v2 *_ANC_BUF);
 void DE_init(float *freqz, float fs, int flen, struct icsd_De_param_v2 *_de_param);
-void anc_core_main_ff_v2_3(float *total_gain, float *gfq_best, struct icsd_De_param_v2 *de_param, struct icsd_anc_buf_v2 *_ANC_BUF);
+u8 anc_core_main_ff_v2_3(float *total_gain, float *gfq_best, struct icsd_De_param_v2 *de_param, struct icsd_anc_buf_v2 *_ANC_BUF);
 
 void calWz_common(float *biquad_coef, int flen, int iir_num, float *exp_w1, float *exp_w2, float fs, float *Wz_fd, u8 *type);
-void DeAlorithm_v3(struct icsd_De_param_v2 *de_param, float *biquad_coef_best, float *fitness, int iir_dim, int swarm_num, int flen, struct icsd_anc_buf_v2 *_ANC_BUF);
+u8 DeAlorithm_v3(struct icsd_De_param_v2 *de_param, float *biquad_coef_best, float *fitness, int iir_dim, int swarm_num, int flen, struct icsd_anc_buf_v2 *_ANC_BUF);
 float cal_total_gain(int begin_idx, int end_idx, float *target, float *Wz_fd_init, float total_gain_default, float total_gain_limit_l, float total_gain_limit_h);
 
 #endif

@@ -37,6 +37,9 @@
 #define DAC_CH_FR                          (1UL << 1)
 #define DAC_CH_RL                          (1UL << 2)
 #define DAC_CH_RR                          (1UL << 3)
+
+#define DAC_UNMUTE                         (0)
+#define DAC_MUTE                           (1)
 /*
  *******************************************************************
  *						Class-D Driver Definitions

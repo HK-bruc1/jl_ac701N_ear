@@ -160,6 +160,9 @@ const struct task_info task_info_table[] = {
 #if ANC_REAL_TIME_ADAPTIVE_ENABLE
     {"rt_anc",              3,     1,   512,   128 },
 #endif
+#if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
+    {"afq_common",         	2,     1,   512,   128 },
+#endif
 #endif
 
 #if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)

@@ -136,9 +136,17 @@ struct _ancbox_info {
     u8 audio_enc_mpt_fre_ch;
 #endif/*AUDIO_ENC_MPT_SELF_ENABLE*/
     u8 fft_file_busy;  //MIC_FFT SZ_FFT run状态获取: 1 正在run,  0 已停止
+
+#if ANC_MULT_ORDER_ENABLE
+    u8 mult_scene_id;
+#endif/*AUDIO_ENC_MPT_SELF_ENABLE*/
     u8 anc_designer;
     u8 production_mode;
     u8 production_set_busy;
+#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
+    u8 *anc_ext_buff;
+    int anc_ext_len;
+#endif
     anc_train_para_t *para;
     u8 *coeff;
     u32 coeff_ptr;
@@ -233,6 +241,8 @@ enum {
     CMD_ANC_NEW_EQ_DATA,    //eq调试新指令
 
     CMD_ANC_AUDIO_DUT_DATA = 0xA0, //AUDIO_DUT数据传输
+
+    CMD_ANC_EXT_TOOL = 0XB0,
 
     //透传指令END
     CMD_ANC_FAIL = 0xFE,
@@ -1077,6 +1087,16 @@ int app_ancbox_event_handler(int *msg)
         __this->fft_file_busy = 0;
         break;
 #endif/*AUDIO_ENC_MPT_SELF_ENABLE*/
+#if ANC_MULT_ORDER_ENABLE
+    case CMD_MUTL_SCENE_SET:
+        cmd[0] = CMD_ANC_MODULE;
+        cmd[1] = CMD_MUTL_SCENE_SET;
+        if (audio_anc_mult_scene_update(__this->mult_scene_id)) {	//设置失败
+            cmd[1] = CMD_ANC_FAIL;
+        }
+        chargestore_api_write(cmd, 2);
+        break;
+#endif/*AUDIO_ENC_MPT_SELF_ENABLE*/
     case CMD_PRODUCTION_MODE_SET:
         if (__this->production_mode) {
             audio_anc_production_enter();
@@ -1085,6 +1105,14 @@ int app_ancbox_event_handler(int *msg)
         }
         __this->production_set_busy = 0;
         break;
+#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
+    case CMD_ANC_EXT_TOOL:
+        log_info("CMD_ANC_EXT_TOOL\n");
+        anc_ext_tool_cmd_deal(__this->anc_ext_buff, __this->anc_ext_len, ANC_EXT_UART_SEL_BOX);
+        free(__this->anc_ext_buff);
+        //ANC_EXT内部回复
+        break;
+#endif
     }
     return false;
 }
@@ -1457,11 +1485,9 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
 
 #if ANC_MULT_ORDER_ENABLE
     case CMD_MUTL_SCENE_SET:
-        if (audio_anc_mult_scene_update(buf[2])) {	//设置失败
-            sendbuf[1] = CMD_ANC_FAIL;
-        }
-        chargestore_api_write(sendbuf, 2);
-        return 1;
+        __this->mult_scene_id = buf[2];
+        chargestore_api_set_timeout(50);
+        break;
 #endif/*ANC_MULT_ORDER_ENABLE*/
     case CMD_FFT_FILE_BUSY_GET:
         sendbuf[2] = __this->fft_file_busy;
@@ -1499,6 +1525,14 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
         sendbuf[2] = __this->production_set_busy;
         chargestore_api_write(sendbuf, 3);
         return 1;
+#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
+    case CMD_ANC_EXT_TOOL:
+        __this->anc_ext_len = len - 2;
+        __this->anc_ext_buff = malloc(__this->anc_ext_len);
+        memcpy(__this->anc_ext_buff, buf + 2, __this->anc_ext_len);
+        chargestore_api_set_timeout(50);
+        break;
+#endif
     default:
         sendbuf[1] = CMD_ANC_FAIL;
         chargestore_api_write(sendbuf, 2);

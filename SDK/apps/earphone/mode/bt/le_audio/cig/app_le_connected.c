@@ -211,12 +211,14 @@ static int app_connected_conn_status_event_handler(int *msg)
         app_connected_mutex_pend(&mutex, __LINE__);
 
         hdl = (cig_hdl_t *)&event[1];
-
+        u8  dis_reason = hdl->flush_timeout_C_to_P;     //  复用了flush_timeout_C_to_P参数上传断开错误码
+        u16 acl_handle_for_disconnect_cis = 0;
         for (i = 0; i < CIG_MAX_NUMS; i++) {
             if (app_cig_conn_info[i].used && (app_cig_conn_info[i].cig_hdl == hdl->cig_hdl)) {
                 for (j = 0; j < CIG_MAX_CIS_NUMS; j++) {
                     if (app_cig_conn_info[i].cis_conn_info[j].cis_hdl == hdl->cis_hdl) {
                         app_cig_conn_info[i].cis_conn_info[j].cis_hdl = 0;
+                        acl_handle_for_disconnect_cis = app_cig_conn_info[i].cis_conn_info[j].acl_hdl;
                         app_cig_conn_info[i].cis_conn_info[j].acl_hdl = 0;
                         app_cig_conn_info[i].cis_conn_info[j].cis_status = APP_CONNECTED_STATUS_DISCONNECT;
                         app_cig_conn_info[i].cig_hdl = 0xFF;
@@ -252,6 +254,13 @@ static int app_connected_conn_status_event_handler(int *msg)
         }
 #endif
 
+        if (dis_reason == ERROR_CODE_CONNECTION_TIMEOUT) {
+            //测试播歌超距的时候，有一种状态是CIG超时了，ACL还没断开，
+            //这个时候靠近手机没有重新建立CIG的。---主动断开等手机重连
+            printf("CIG disconnect for timeout\n");
+            //le_audio_disconn_le_audio_link();
+            ll_hci_disconnect(acl_handle_for_disconnect_cis, 0x13);
+        }
         //释放互斥量
         app_connected_mutex_post(&mutex, __LINE__);
         break;

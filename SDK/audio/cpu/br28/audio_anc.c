@@ -59,9 +59,13 @@
 #include "audio_anc_mult_scene.h"
 #endif/*ANC_MULT_ORDER_ENABLE*/
 
-#if TCFG_AUDIO_FIT_DET_ENABLE
-#include "icsd_dot_app.h"
-#endif
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+#include "icsd_afq_app.h"
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/
 
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma   bss_seg(".anc_user.data.bss")
@@ -107,12 +111,6 @@ const u8 CONST_ANC_DUT_SZ_EN = 1;
 #else
 const u8 CONST_ANC_DUT_SZ_EN = 0;
 #endif/*TCFG_ANC_SELF_DUT_GET_SZ*/
-
-#if TCFG_AUDIO_FIT_DET_ENABLE
-const u8 CONST_ANC_DOT_EN = 1;
-#else
-const u8 CONST_ANC_DOT_EN = 0;
-#endif /*TCFG_AUDIO_FIT_DET_ENABLE*/
 
 #if ANC_HOWLING_DETECT_EN
 const u8 CONST_ANC_HOWLING_MSG_DEBUG = ANC_HOWLING_MSG_DEBUG;
@@ -539,7 +537,7 @@ static void anc_task(void *p)
 #endif
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
                 if ((anc_hdl->param.mode != ANC_OFF) && anc_hdl->param.anc_fade_en) {
-                    os_time_dly(6);	//延时避免切模式反馈有哒哒声
+                    os_time_dly(ANC_MODE_SWITCH_DELAY_MS / 10);	//延时避免切模式反馈有哒哒声
                 }
 #if ANC_ADAPTIVE_EN
                 audio_anc_power_adaptive_reset();
@@ -623,13 +621,11 @@ static void anc_task(void *p)
                 audio_anc_music_dynamic_gain_process();
                 break;
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
-#if TCFG_AUDIO_FIT_DET_ENABLE
-            case ANC_MSG_DOT:
-                printf("ANC_MSG_DOT\n");
-                icsd_dot_anctask_handle((u8)msg[2]);
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+            case ANC_MSG_AFQ_CMD:
+                icsd_afq_anctask_handler(&anc_hdl->param, msg);
                 break;
-#endif /*TCFG_AUDIO_FIT_DET_ENABLE*/
-
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
 #if ANC_EAR_ADAPTIVE_EN
             case ANC_MSG_ICSD_ANC_V2_CMD:
             case ANC_MSG_ICSD_ANC_V2_INIT:
@@ -919,13 +915,19 @@ void anc_init(void)
     anc_hdl->param.adt = zalloc(sizeof(anc_adt_param_t));
     ASSERT(anc_hdl->param.adt);
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
-#if TCFG_AUDIO_FIT_DET_ENABLE
-    anc_hdl->param.dot = zalloc(sizeof(anc_dot_param_t));
-    ASSERT(anc_hdl->param.dot);
-#endif/*TCFG_AUDIO_FIT_DET_ENABLE*/
+#if (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
+    audio_afq_common_init();
+#endif
 #if ANC_EAR_ADAPTIVE_EN
     anc_ear_adaptive_init(&anc_hdl->param);
 #endif/*ANC_EAR_ADAPTIVE_EN*/
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+    audio_icsd_afq_init();
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    audio_adaptive_eq_init();
+#endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/
+
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     anc_ext_tool_init();
 #endif
@@ -1083,10 +1085,6 @@ void anc_init(void)
     anc_hdl->param.ltrans_fb_yorder = sizeof(anc_trans_lfb_coeff) / 40;
     anc_hdl->param.rtrans_fb_yorder = sizeof(anc_trans_rfb_coeff) / 40;
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
-
-#if TCFG_AUDIO_FIT_DET_ENABLE
-    anc_hdl->param.dot->dma_done_cb = audio_icsd_dot_anc_dma_done;
-#endif/*TCFG_AUDIO_FIT_DET_ENABLE*/
 
     anc_hdl->param.biquad2ab = audio_icsd_biquad2ab_out;
 
@@ -1531,10 +1529,10 @@ void anc_mode_switch(u8 mode, u8 tone_play)
         user_anc_log("anc mode switch err:%d", mode);
         return;
     }
-#if ((defined TCFG_AUDIO_FIT_DET_ENABLE) && TCFG_AUDIO_FIT_DET_ENABLE)
-    //贴合度检测状态下不允许其他模式切换
-    if (audio_icsd_dot_is_running()) {
-        user_anc_log("audio_icsd_dot_is_running\n");
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+    //获取频响时 不允许其他模式切换
+    if (audio_icsd_afq_is_running()) {
+        user_anc_log("Error :audio_icsd_afq_is_runnin\n");
         return;
     }
 #endif

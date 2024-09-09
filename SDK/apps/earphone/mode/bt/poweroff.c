@@ -199,8 +199,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
     app_send_message(APP_MSG_POWER_OFF, reason);
 
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-    extern u8 le_audio_disconn_le_audio_link();
-    le_audio_disconn_le_audio_link();
+    le_audio_disconn_le_audio_link_no_reconnect();
 #endif
 
     bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);

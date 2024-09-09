@@ -90,12 +90,17 @@ typedef enum {
     ANC_L_ADAP_TARGET = 0x23,
     ANC_L_ADAP_GOLD_CURVE = 0x24,//自适应金机曲线
     ANC_L_ADAP_TARGET_CMP = 0x25,
+    ANC_L_ADAP_TARGET_BEFORE_CMP = 0x26,
+    ANC_L_ADAP_CMP_FORM_TRAIN = 0x27,
+
     ANC_R_ADAP_FRE = 0x30,
     ANC_R_ADAP_PZ = 0x31,
     ANC_R_ADAP_SZPZ = 0x32,
     ANC_R_ADAP_TARGET = 0x33,
     ANC_R_ADAP_GOLD_CURVE = 0x34,
     ANC_R_ADAP_TARGET_CMP = 0x35,
+    ANC_R_ADAP_TARGET_BEFORE_CMP = 0x36,
+    ANC_R_ADAP_CMP_FORM_TRAIN = 0x37,
 
 } ANC_config_seg_id_t;
 
@@ -316,10 +321,6 @@ typedef struct {
 } anc_adt_param_t;
 
 typedef struct {
-    void (*dma_done_cb)(void);
-} anc_dot_param_t;
-
-typedef struct {
     u8 mic_errmsg;
     u8 status;
     u32 dat[4];  //ff_num/ff_dat/fb_num/fb_dat
@@ -514,7 +515,6 @@ typedef struct {
     anc_train_para_t train_para;//训练参数结构体
     anc_ear_adaptive_param_t *adaptive;
     anc_adt_param_t *adt;
-    anc_dot_param_t *dot;
     struct anc_sz_fft_t sz_fft;
 
     void (*train_callback)(u8, u8);
@@ -864,5 +864,11 @@ void anc_dma_on(u8 out_sel, int *buf, int irq_point);
 	irq_point ANC DMA IRQ_POINT
  */
 void anc_dma_on_double(u8 out_sel, int *buf, int irq_point);
+
+/* 注册ANC DMA输出回调函数 */
+void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
+
+/* 删除ANC DMA输出回调函数 */
+void audio_anc_dma_del_output_handler(const char *name);
 
 #endif/*_ANC_H_*/

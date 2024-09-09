@@ -243,6 +243,13 @@
 #if TCFG_NORMAL_SET_DUT_MODE
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
 #define TCFG_LOWPOWER_LOWPOWER_SEL                0
+
+#undef  TCFG_AUTO_SHUT_DOWN_TIME
+#define TCFG_AUTO_SHUT_DOWN_TIME		          0
+
+#undef  TCFG_USER_TWS_ENABLE
+#define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
+
 #endif
 
 #else

@@ -21,6 +21,9 @@
 #include "audio_anc.h"
 #include "audio_anc_debug_tool.h"
 #include "icsd_anc_v2_app.h"
+#if TCFG_ANC_BOX_ENABLE
+#include "asm/chargestore.h"
+#endif
 
 #if 1
 #define anc_ext_log	printf
@@ -60,6 +63,8 @@ enum {
     CMD_FUNCTION_ENABLEBIT_GET	 = 0x08, //获取小机已打开的功能(同时表示工具在线标志)
     CMD_EAR_ADAPTIVE_DUT_SAVE	 = 0x09, //耳道自适应产测数据保存VM
     CMD_EAR_ADAPTIVE_SIGN_TRIM	 = 0x0A, //耳道自适应符号校准
+    CMD_EAR_ADAPTIVE_DUT_EN_SET	 = 0x0B, //耳道自适应产测使能
+    CMD_EAR_ADAPTIVE_DUT_CLEAR	 = 0x0C, //耳道自适应产测数据清0
 };
 
 #define EAR_ADAPTIVE_STR_OFFSET(x)		offsetof(struct anc_ext_ear_adaptive_param, x)
@@ -228,6 +233,7 @@ static struct __anc_ext_tool_hdl *tool_hdl = NULL;
 //ANC_EXT 初始化
 void anc_ext_tool_init(void)
 {
+    int ret;
     tool_hdl = zalloc(sizeof(struct __anc_ext_tool_hdl));
     INIT_LIST_HEAD(&tool_hdl->alloc_list);
     //解析anc_ext.bin
@@ -236,14 +242,26 @@ void anc_ext_tool_init(void)
     }
     //获取耳道自适应产测数据文件
     u8 *tmp_dut_buf = malloc(ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN);
-    int ret = syscfg_read(CFG_ANC_ADAPTIVE_DUT_ID, tmp_dut_buf, ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN);
+    ret = syscfg_read(CFG_ANC_ADAPTIVE_DUT_ID, tmp_dut_buf, ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN);
     if (ret > 0) {
         //解析申请buffer使用
         anc_ext_log("ANC EAR ADAPTIVE DUT DATA SUSS!, ret %d\n", ret);
         anc_ext_subfile_analysis_each(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP, tmp_dut_buf, ret, 1);
     } else {
         anc_ext_log("ANC EAR ADAPTIVE DUT DATA EMPTY!\n");
+        //填充0数据,避免产测读数异常
+        struct anc_ext_subfile_head dut_tmp;
+        dut_tmp.file_id = FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP;
+        dut_tmp.file_len = sizeof(struct anc_ext_subfile_head);
+        dut_tmp.version = 0;
+        dut_tmp.id_cnt = 0;
+        anc_ext_subfile_analysis_each(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP, (u8 *)&dut_tmp, dut_tmp.file_len, 1);
     }
+    /* ret = syscfg_read(CFG_ANC_ADAPTIVE_DUT_EN_ID, &tool_hdl->ear_adaptive.dut_cmp_en, 1); */
+
+    /* if (ret <= 0) { */
+    /* anc_ext_log("ANC EAR ADAPTIVE DUT EN EMPTY!\n"); */
+    /* } */
     free(tmp_dut_buf);
 }
 
@@ -255,20 +273,39 @@ void anc_ext_tool_init(void)
 */
 static void anc_ext_tool_send_buf(u8 cmd2pc, u8 *buf, int len)
 {
-    if (len > 512 - 4) {
-        printf("ERROR anc_ext_tool send_buf len = %d overflow\n", len);
-        return;
+    if (tool_hdl->uart_sel == ANC_EXT_UART_SEL_SPP) {
+        if (len > 512 - 4) {
+            printf("ERROR anc_ext_tool send_buf len = %d overflow\n", len);
+            return;
+        }
+        u8 *cmd = malloc(len + 4);
+        //透传命令标识
+        cmd[0] = 0xFD;
+        cmd[1] = 0x90;
+        //ANC_EXT命令标识
+        cmd[2] = 0xB0;
+        cmd[3] = cmd2pc;
+        memcpy(cmd + 4, buf, len);
+        anctool_api_write(cmd, len + 4);
+        free(cmd);
     }
-    u8 *cmd = malloc(len + 4);
-    //透传命令标识
-    cmd[0] = 0xFD;
-    cmd[1] = 0x90;
-    //ANC_EXT命令标识
-    cmd[2] = 0xB0;
-    cmd[3] = cmd2pc;
-    memcpy(cmd + 4, buf, len);
-    anctool_api_write(cmd, len + 4);
-    free(cmd);
+#if TCFG_ANC_BOX_ENABLE
+    else {
+        if (len > 32 - 3) {
+            printf("ERROR anc_ext_tool send_buf len = %d overflow\n", len);
+            return;
+        }
+        u8 *cmd = malloc(len + 3);
+        //透传命令标识
+        cmd[0] = 0x90;
+        //ANC_EXT命令标识
+        cmd[1] = 0xB0;
+        cmd[2] = cmd2pc;
+        memcpy(cmd + 3, buf, len);
+        chargestore_api_write(cmd, len + 3);
+        free(cmd);
+    }
+#endif
 }
 
 /*
@@ -279,27 +316,45 @@ static void anc_ext_tool_send_buf(u8 cmd2pc, u8 *buf, int len)
 */
 static void anc_ext_tool_cmd_ack(u8 cmd2pc, u8 ret, u8 err_num)
 {
-    u8 cmd[5];
-    //透传命令标识
-    cmd[0] = 0xFD;
-    cmd[1] = 0x90;
-    //ANC_EXT命令标识
-    cmd[2] = 0xB0;
-    if (ret == TRUE) {
-        cmd[3] = cmd2pc;
-        anctool_api_write(cmd, 4);
-    } else {
-        cmd[3] = 0xFE;
-        cmd[4] = err_num;
-        anctool_api_write(cmd, 5);
+    if (tool_hdl->uart_sel == ANC_EXT_UART_SEL_SPP) {
+        u8 cmd[5];
+        //透传命令标识
+        cmd[0] = 0xFD;
+        cmd[1] = 0x90;
+        //ANC_EXT命令标识
+        cmd[2] = 0xB0;
+        if (ret == TRUE) {
+            cmd[3] = cmd2pc;
+            anctool_api_write(cmd, 4);
+        } else {
+            cmd[3] = 0xFE;
+            cmd[4] = err_num;
+            anctool_api_write(cmd, 5);
+        }
     }
+#if TCFG_ANC_BOX_ENABLE
+    else {
+        u8 cmd[3];
+        //透传命令标识
+        cmd[0] = 0x90;
+        //ANC_EXT命令标识
+        cmd[1] = 0xB0;
+        if (ret == TRUE) {
+            cmd[2] = cmd2pc;
+        } else {
+            cmd[2] = 0xFE;
+        }
+        chargestore_api_write(cmd, 3);
+    }
+#endif
 }
 
 //ANC_EXT CMD事件处理
-void anc_ext_tool_cmd_deal(u8 *data, u16 len)
+void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
 {
     u8 cmd = data[0];
     int ret;
+    tool_hdl->uart_sel = uart_sel;
     switch (cmd) {
     case CMD_GET_VERSION:
         anc_ext_log("CMD_GET_VERSION\n");
@@ -312,6 +367,7 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len)
             tool_hdl->ear_adaptive.time_domain_buf = malloc(tool_hdl->ear_adaptive.time_domain_len);
             if (!tool_hdl->ear_adaptive.time_domain_buf) {
                 anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
+                break;
             }
         } else {
             free(tool_hdl->ear_adaptive.time_domain_buf);
@@ -374,6 +430,7 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len)
         anc_ext_tool_send_buf(cmd, (u8 *)&en, 2);
         break;
     case CMD_EAR_ADAPTIVE_DUT_SAVE:
+        anc_ext_log("CMD_EAR_ADAPTIVE_DUT_SAVE\n");
         struct anc_ext_alloc_bulk_t *bulk = anc_ext_tool_data_alloc_query(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP);
         if (bulk) {
             ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, bulk->alloc_addr, bulk->alloc_len);
@@ -382,6 +439,42 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len)
                 anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
                 break;
             }
+        }
+        /* ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_EN_ID, &tool_hdl->ear_adaptive.dut_cmp_en, 1); */
+        /* if (ret <= 0) { */
+        /* anc_ext_log("ANC_EAR_ADAPTIVE DUT_EN write to vm err, ret %d\n", ret); */
+        /* anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO); */
+        /* break; */
+        /* } */
+        anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
+        break;
+    case CMD_EAR_ADAPTIVE_DUT_EN_SET:
+        anc_ext_log("CMD_EAR_ADAPTIVE_DUT_EN_SET %d \n", data[1]);
+        tool_hdl->ear_adaptive.dut_cmp_en = data[1];
+        break;
+    case CMD_EAR_ADAPTIVE_DUT_CLEAR:
+        anc_ext_log("CMD_EAR_ADAPTIVE_DUT_CLEAR\n");
+        if (anc_ear_adaptive_busy_get()) {
+            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_EAR_FAIL);
+            break;
+        }
+        //填充0数据,避免产测读数异常
+        struct anc_ext_subfile_head dut_tmp;
+        dut_tmp.file_id = FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP;
+        dut_tmp.file_len = sizeof(struct anc_ext_subfile_head);
+        dut_tmp.version = 0;
+        dut_tmp.id_cnt = 0;
+        anc_ext_subfile_analysis_each(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP, (u8 *)&dut_tmp, dut_tmp.file_len, 1);
+        tool_hdl->ear_adaptive.ff_dut_pz_cmp = NULL;
+        tool_hdl->ear_adaptive.ff_dut_sz_cmp = NULL;
+        tool_hdl->ear_adaptive.rff_dut_pz_cmp = NULL;
+        tool_hdl->ear_adaptive.rff_dut_sz_cmp = NULL;
+
+        ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, (u8 *)&dut_tmp, dut_tmp.file_len);
+        if (ret <= 0) {
+            anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, ret %d\n", ret);
+            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
+            break;
         }
         anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         break;
@@ -494,9 +587,9 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
         break;
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP:
         if (alloc_flag) {
-            anc_ext_tool_data_alloc(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP, data, len);
+            u8 *dut_buf = anc_ext_tool_data_alloc(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP, data, len);
+            ret = anc_cfg_analysis_ear_adaptive(dut_buf, len, 0);
         }
-        ret = anc_cfg_analysis_ear_adaptive(data, len, 0);
         /* put_buf(data, len); */
         break;
     case FILE_ID_ANC_EXT_BIN:
@@ -514,14 +607,6 @@ int anc_ext_tool_write_end(u32 file_id, u8 *data, int len, u8 alloc_flag)
     //工具下发参数针对特殊ID做处理
     switch (file_id) {
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP:
-        //直接写入VM
-        if (!ret) {
-            int wlen = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, data, len);
-            if (wlen <= 0) {
-                ret = -1;
-                anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, wlen %d\n", wlen);
-            }
-        }
         break;
     }
     return ret;
@@ -546,6 +631,16 @@ int anc_ext_tool_read_file_start(u32 file_id, u8 **data, u32 *len)
         if (*data == NULL) {
             return 1;
         }
+        break;
+    case FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP:
+        struct anc_ext_alloc_bulk_t *bulk = anc_ext_tool_data_alloc_query(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP);
+        if (bulk) {
+            *len = bulk->alloc_len;
+            *data = bulk->alloc_addr;
+        } else {
+            return 1;
+        }
+        break;
     default:
         break;
     }
@@ -706,6 +801,9 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
 
     if (file) {
         anc_ext_log("file->cnt %d\n", file->id_cnt);
+        if (!file->id_cnt) {
+            return 1;
+        }
         struct anc_ext_id_head *id_head = (struct anc_ext_id_head *)file->data;
         temp_dat = file->data + (file->id_cnt * sizeof(struct anc_ext_id_head));
         for (i = 0; i < file->id_cnt; i++) {
@@ -720,7 +818,6 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
                                 anc_ext_log("Analysis tool_alloc err!! data_id %d\n", id_head->id);
                                 return -1;
                             }
-                            memcpy(temp, temp_dat + id_head->offset, id_head->len);
                             dat_p = (u32)temp;
                         }
                         //拷贝目标地址至对应参数结构体指针
@@ -810,6 +907,14 @@ u8 anc_ext_tool_online_get(void)
     return 0;
 }
 
+//ANC_EXT 工具断开连接
+void anc_ext_tool_disconnect(void)
+{
+    if (tool_hdl) {
+        /* tool_hdl->tool_online = 0; */
+    }
+}
+
 //获取耳道自适应训练模式
 enum ANC_EAR_ADPTIVE_MODE anc_ext_ear_adaptive_train_mode_get(void)
 {
@@ -827,6 +932,16 @@ u8 anc_ext_ear_adaptive_result_from(void)
         }
     }
     return EAR_ADAPTIVE_FAIL_RESULT_FROM_ADAPTIVE;
+}
+
+s8 anc_ext_ear_adaptive_sz_calr_sign_get(void)
+{
+    if (tool_hdl) {
+        if (tool_hdl->ear_adaptive.base_cfg) {
+            return tool_hdl->ear_adaptive.base_cfg->calr_sign[0];
+        }
+    }
+    return 0;
 }
 
 

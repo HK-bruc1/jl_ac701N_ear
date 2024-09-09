@@ -33,6 +33,15 @@ int audio_anc_production_exit(void);
 #define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		0
 #endif
 
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE || TCFG_AUDIO_FIT_DET_ENABLE
+//AUDIO(ANC)频响获取使能 - AFQ
+#define TCFG_AUDIO_FREQUENCY_GET_ENABLE		1
+#endif
+
+#ifndef TCFG_AUDIO_FREQUENCY_GET_ENABLE
+#define TCFG_AUDIO_FREQUENCY_GET_ENABLE		0
+#endif
+
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
 
 #endif/*_AUDIO_ANC_COMMON_H_*/

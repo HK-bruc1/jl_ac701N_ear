@@ -174,7 +174,7 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
     return rlen;
 }
 
-static int le_audio_stream_tx_data_handler(void *le_audio, void *data, int len, u32 timestamp)
+int le_audio_stream_tx_data_handler(void *le_audio, void *data, int len, u32 timestamp)
 {
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
 
@@ -408,9 +408,6 @@ int le_audio_stream_tx_write(void *stream, void *data, int len)
 {
     struct le_audio_tx_stream *tx_stream = (struct le_audio_tx_stream *)stream;
 
-    u8 offset = 0;
-
-
     int wlen = cbuf_write(&tx_stream->buf.cbuf, (u8 *)data, len);
 
     /* y_printf("w-tx : %d, %d-\n", len, wlen); */
@@ -521,9 +518,12 @@ get_frame:
 
 int le_audio_stream_get_frame_num(void *le_audio)
 {
+    if (!le_audio) {
+        return 0;
+    }
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
     struct le_audio_rx_stream *rx_stream = ctx->rx_stream;
-    if (!ctx || !rx_stream) {
+    if (!rx_stream) {
         return 0;
     }
 
@@ -532,9 +532,12 @@ int le_audio_stream_get_frame_num(void *le_audio)
 
 void le_audio_stream_free_frame(void *le_audio, struct le_audio_frame *frame)
 {
+    if (!le_audio) {
+        return;
+    }
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
     struct le_audio_rx_stream *rx_stream = ctx->rx_stream;
-    if (!ctx || !rx_stream) {
+    if (!rx_stream) {
         return;
     }
 

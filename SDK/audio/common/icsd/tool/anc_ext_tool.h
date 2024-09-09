@@ -134,6 +134,12 @@ enum ANC_EAR_ADAPTIVE_RESULT_MODE {
     EAR_ADAPTIVE_FAIL_RESULT_FROM_NORMAL,		//来源默认滤波器
 };
 
+// 工具协议来源
+enum ANC_EXT_UART_SEL {
+    ANC_EXT_UART_SEL_BOX = 0,
+    ANC_EXT_UART_SEL_SPP,
+};
+
 struct anc_ext_alloc_bulk_t {
     struct list_head entry;
     u32 alloc_id;			//申请ID
@@ -272,8 +278,9 @@ struct __anc_ext_ear_adaptive_dut_data {
 //耳道自适应工具参数
 struct anc_ext_ear_adaptive_param {
 
-    enum ANC_EAR_ADPTIVE_MODE train_mode;		//自适应训练模式
-    u8 time_domain_show_en;						//时域debug使能
+    enum ANC_EAR_ADPTIVE_MODE train_mode;	//自适应训练模式
+    u8 time_domain_show_en;					//时域debug使能
+    u8 dut_cmp_en;							//产测补偿使能
     u8 *time_domain_buf;					//时域debug buff
     int time_domain_len;					//时域debug buff len
 
@@ -338,9 +345,9 @@ struct anc_ext_ear_adaptive_param {
 };
 
 struct __anc_ext_tool_hdl {
-
-    u8 tool_online;					//工具在线连接标志
-    u8 tool_ear_adaptive_en;		//工具启动耳道自适应标志
+    enum ANC_EXT_UART_SEL  uart_sel;				//工具协议选择
+    u8 tool_online;									//工具在线连接标志
+    u8 tool_ear_adaptive_en;						//工具启动耳道自适应标志
     struct list_head alloc_list;
     struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
 };
@@ -362,6 +369,9 @@ u8 *anc_ext_rsfile_get(u32 *file_len);
 // 获取工具是否连接
 u8 anc_ext_tool_online_get(void);
 
+//ANC_EXT 工具断开连接
+void anc_ext_tool_disconnect(void);
+
 //获取耳道自适应参数
 struct anc_ext_ear_adaptive_param *anc_ext_ear_adaptive_cfg_get(void);
 
@@ -370,6 +380,9 @@ enum ANC_EAR_ADPTIVE_MODE anc_ext_ear_adaptive_train_mode_get(void);
 
 //获取耳道自适应-结果来源
 u8 anc_ext_ear_adaptive_result_from(void);
+
+//获取耳道自适应SZ校准符号
+s8 anc_ext_ear_adaptive_sz_calr_sign_get(void);
 
 // 检查是否有自适应参数, 0 正常/ 1 有参数为空
 u8 anc_ext_ear_adaptive_param_check(void);
@@ -385,7 +398,7 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
 
 /*-------------------ANCTOOL交互接口---------------------*/
 //事件处理
-void anc_ext_tool_cmd_deal(u8 *data, u16 len);
+void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel);
 
 //写文件结束
 int anc_ext_tool_write_end(u32 file_id, u8 *data, int len, u8 alloc_flag);

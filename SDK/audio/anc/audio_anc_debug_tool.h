@@ -22,5 +22,7 @@ void audio_anc_debug_tool_close(void);
 */
 int audio_anc_debug_send_data(u8 *buf, int len);
 
+u8 audio_anc_debug_busy_get(void);
+
 
 #endif/*_AUDIO_ANC_DEBUG_TOOL_H_*/

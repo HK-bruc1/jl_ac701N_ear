@@ -28,6 +28,10 @@
 #include "spatial_effects_process.h"
 #endif
 
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
+
 struct effect_default_hdl {
     u16 pitchV;
 };
@@ -342,6 +346,25 @@ int get_eff_default_param(int arg)
 #if TCFG_EQ_ENABLE
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
     if (spatial_effect_eq_default_parm_set(name->name, (struct eq_default_parm *)arg)) {
+        ret = 1;
+    }
+#endif
+#endif
+
+#ifdef TCFG_EQ_ENABLE
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    if (!strcmp(name->name, ADAPTIVE_EQ_TARGET_NODE_NAME)) { //音乐eq命名默认： MusicEq + 类型，例如蓝牙音乐eq：MusicEqBt
+        struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
+        /*
+         *默认系数使用eq文件内的哪个配置表
+         * */
+        char tar_cfg_index = 0;
+        get_cur_eq_num(&tar_cfg_index);//获取当前配置项序号
+        get_eq_parm->cfg_index = tar_cfg_index;
+
+        if (audio_icsd_adaptive_eq_read()) {
+            get_eq_parm->default_tab = *(audio_icsd_adaptive_eq_read());
+        }
         ret = 1;
     }
 #endif

@@ -6,6 +6,7 @@
 #endif
 #include "classic/hci_lmp.h"
 #include "btstack/avctp_user.h"
+#include "btstack/le/le_user.h"
 
 #include "app_config.h"
 #include "app_tone.h"
@@ -346,8 +347,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
 #endif
     app_send_message(APP_MSG_POWER_OFF, reason);
 #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-    extern u8 le_audio_disconn_le_audio_link();
-    le_audio_disconn_le_audio_link();
+    le_audio_disconn_le_audio_link_no_reconnect();
 #endif
     /* TWS同时关机,先断开手机  */
     if (reason == POWEROFF_NORMAL_TWS) {

@@ -43,6 +43,10 @@
 #include "audio_dut_control.h"
 #endif/*TCFG_AUDIO_DUT_ENABLE*/
 
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
+
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma const_seg(	".app_audio_const")
 #pragma code_seg(	".app_audio_code")
@@ -844,6 +848,9 @@ void audio_app_volume_set(u8 state, s16 volume, u8 fade)
     case APP_AUDIO_STATE_MUSIC:
         app_var.music_volume = volume;
         dvol_idx = MUSIC_DVOL;
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE && ADAPTIVE_EQ_VOLUME_GRADE_EN
+        audio_adaptive_eq_vol_update(volume);
+#endif
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume = volume;
