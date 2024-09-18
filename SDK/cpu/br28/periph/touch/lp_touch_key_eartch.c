@@ -14,7 +14,7 @@ extern u8 testbox_get_key_action_test_flag(void *priv);
 
 void lp_touch_key_eartch_parm_init(void)
 {
-    u32 ch_idx = lpctmu_get_idx_by_cur_ch(__this->pdata->eartch_ch);
+    u32 ch_idx = lp_touch_key_get_idx_by_cur_ch(__this->pdata->eartch_ch);
     const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
     const struct touch_key_algo_cfg *algo_cfg = &(key_cfg->algo_cfg[key_cfg->index]);
 

@@ -7,14 +7,6 @@
 #include "asm/sfc_norflash_api.h"
 #include "sdk_config.h"
 
-//====================可视化配置工具版本定义===========================
-#define CFG_TOOL_VER_NEW	                	(1) // 新配置工具，zhenyu提供
-#define CFG_TOOL_VER_VISUAL	                	(2) // 可视化配置工具，senhua提供
-//=====================================================================
-
-// 设置可视化配置工具版本
-#define CFG_TOOL_VER							CFG_TOOL_VER_VISUAL
-
 #define SPP_DATA_USED_LVT				0 		//1:旧调音lvt  0:可视化配置工具55 aa a5
 
 /*支持的工具通道 SPP*/
@@ -47,22 +39,6 @@
 #define CFG_TOOL_FILE		FLASH_APP_PATH"cfg_tool.bin"
 #endif
 
-#if (CFG_TOOL_VER == CFG_TOOL_VER_NEW)
-
-/*旧调音工具eq文件所属文件ID为1*/
-#define CFG_OLD_EQ_FILEID		0x00000001
-#define CFG_OLD_EQ_FILE			FLASH_RES_PATH"eq_cfg_hw.bin"
-
-/*旧调音工具混响文件所属文件ID为2*/
-#define CFG_OLD_EFFECT_FILEID	0x00000002
-#define CFG_OLD_EFFECT_FILE		FLASH_RES_PATH"effects_cfg.bin"
-
-/*新调音工具eq文件所属文件ID为3*/
-#define CFG_EQ_FILEID			0x00000003
-#define CFG_EQ_FILE				FLASH_RES_PATH"eq_cfg_hw.bin"
-
-#else
-
 /*可视化配置工具stream.bin文件所属文件ID为1*/
 #define CFG_STREAM_FILEID		0x00000001
 #define CFG_STREAM_FILE			FLASH_RES_PATH"stream.bin"
@@ -71,8 +47,6 @@
 #define CFG_EFFECT_CFG_FILEID	0x00000002
 #define CFG_EFFECT_CFG_FILE		FLASH_RES_PATH"effect_cfg.bin"
 
-#endif
-
 #define CFG_TOOL_READ_LIT_U16(a)   (*((u8*)(a))  + (*((u8*)(a)+1)<<8))
 #define CFG_TOOL_WRITE_LIT_U16(a,src)   {*((u8*)(a)+1) = (u8)(src>>8); *((u8*)(a)+0) = (u8)(src&0xff); }
 
@@ -80,11 +54,7 @@
 /****PC与小机使用到的CMD，CMD包含在DATA中，为DATA的前4个Byte******/
 /*****************************************************************/
 
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
 #define ONLINE_SUB_OP_QUERY_BASIC_INFO 			0x00000400	//查询固件的基本信息
-#else
-#define ONLINE_SUB_OP_QUERY_BASIC_INFO 			0x00000023	//查询固件的基本信息
-#endif
 #define ONLINE_SUB_OP_QUERY_FILE_SIZE 			0x0000000B	//查询文件大小
 #define ONLINE_SUB_OP_QUERY_FILE_CONTENT	 	0x0000000C	//读取文件内容
 #define ONLINE_SUB_OP_PREPARE_WRITE_FILE	    0x00000022	//准备写入文件
@@ -181,10 +151,9 @@ typedef struct {
     u8 sdkName[32]; 		//SDK名字，\0 结尾
     u8 pid[16];     		//PID，\0 结尾（注意最长是16字节，16字节的时候，末尾不需要0）
     u8 vid[16];     		//VID，\0 结尾
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
     u16 max_buffer_size;	// 每一包协议的总大小最大支持多少
     u8 support_node_merge;
-#endif
+    u8 comm_type;           //连接类型，0x01:C340, 0x02:usb, 0x03:蓝牙串口, 0x04:mass storage
 } S_QUERY_BASIC_INFO;
 
 //(2)查询文件大小

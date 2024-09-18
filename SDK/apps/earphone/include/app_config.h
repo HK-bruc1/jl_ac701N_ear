@@ -237,20 +237,9 @@
 //*********************************************************************************//
 //                                 测试模式配置                                    //
 //*********************************************************************************//
-#if (CONFIG_BT_MODE == BT_NORMAL)
+#if (CONFIG_BT_MODE == BT_NORMAL) && (!TCFG_NORMAL_SET_DUT_MODE)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
 // #define TCFG_NORMAL_SET_DUT_MODE                  0
-#if TCFG_NORMAL_SET_DUT_MODE
-#undef  TCFG_LOWPOWER_LOWPOWER_SEL
-#define TCFG_LOWPOWER_LOWPOWER_SEL                0
-
-#undef  TCFG_AUTO_SHUT_DOWN_TIME
-#define TCFG_AUTO_SHUT_DOWN_TIME		          0
-
-#undef  TCFG_USER_TWS_ENABLE
-#define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
-
-#endif
 
 #else
 #undef TCFG_BT_DUAL_CONN_ENABLE

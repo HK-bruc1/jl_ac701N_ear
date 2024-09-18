@@ -12,16 +12,16 @@
 // ------------提示音宏定义------------
 #define TCFG_TONE_EN_ENABLE 1
 #define TCFG_TONE_ZH_ENABLE 0
-#define TCFG_DEC_AAC_ENABLE 0 // AAC
-#define TCFG_DEC_F2A_ENABLE 0 // F2A
-#define TCFG_DEC_MP3_ENABLE 0 // MP3
-#define TCFG_DEC_MSBC_ENABLE 0 // MSBC
-#define TCFG_DEC_MTY_ENABLE 0 // MTY
-#define TCFG_DEC_SBC_ENABLE 0 // SBC
-#define TCFG_DEC_SIN_ENABLE 1 // SIN
-#define TCFG_DEC_WAV_ENABLE 0 // WAV
-#define TCFG_DEC_WTG_ENABLE 1 // WTG
-#define TCFG_DEC_WTS_ENABLE 0 // WTS
+#define TCFG_TONE_AAC_ENABLE 0 // AAC
+#define TCFG_TONE_F2A_ENABLE 0 // F2A
+#define TCFG_TONE_MP3_ENABLE 0 // MP3
+#define TCFG_TONE_MSBC_ENABLE 0 // MSBC
+#define TCFG_TONE_MTY_ENABLE 0 // MTY
+#define TCFG_TONE_SBC_ENABLE 0 // SBC
+#define TCFG_TONE_SIN_ENABLE 1 // SIN
+#define TCFG_TONE_WAV_ENABLE 0 // WAV
+#define TCFG_TONE_WTG_ENABLE 0 // WTG
+#define TCFG_TONE_WTS_ENABLE 1 // WTS
 // ------------提示音宏定义------------
 
 // ------------流程图宏定义------------
@@ -73,8 +73,9 @@
 #define TCFG_GAIN_NODE_ENABLE 0 // Gain
 #define TCFG_HARMONIC_EXCITER_NODE_ENABLE 0 // Harmonic Exciter
 #define TCFG_IIS_NODE_ENABLE 0 // IIS0_RX、IIS0_TX
-#define TCFG_INDICATOR_NODE_ENABL 0 // Indicator
+#define TCFG_INDICATOR_NODE_ENABLE 0 // Indicator
 #define TCFG_KEY_TONE_NODE_ENABLE 1 // 按键音
+#define TCFG_LE_AUDIO_SOURCE_NODE_ENABLE 0 // LE_Audio_Source
 #define TCFG_LIMITER_NODE_ENABLE 0 // Limiter
 #define TCFG_LLNS_NODE_ENABLE 0 // LLNS
 #define TCFG_MIXER_NODE_ENABLE 0 // MIXER

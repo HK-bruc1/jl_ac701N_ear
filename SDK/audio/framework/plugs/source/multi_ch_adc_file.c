@@ -24,6 +24,7 @@
 #endif/*log_en*/
 
 extern struct audio_adc_hdl adc_hdl;
+extern const struct adc_platform_cfg adc_platform_cfg_table[AUDIO_ADC_MAX_NUM];
 
 #define ESCO_ADC_BUF_NUM        2	//mic_adc采样buf个数
 
@@ -54,6 +55,7 @@ struct adc_file_common {
     u8 read_flag;				//读取配置的标志
     struct adc_file_hdl *hdl;	//当前ADC节点的句柄
     struct adc_file_cfg cfg;	//ADC的参数信息
+    struct adc_platform_cfg platform_cfg[AUDIO_ADC_MAX_NUM];
 };
 
 struct adc_file_global {
@@ -69,11 +71,15 @@ struct adc_file_cfg *audio_multi_ch_adc_file_get_cfg(void)
 {
     return &esco_adc_f.cfg;
 }
+struct adc_platform_cfg *audio_multi_ch_adc_platform_get_cfg(void)
+{
+    return &esco_adc_f.platform_cfg[0];
+}
 
 u8 audio_multi_ch_adc_file_get_esco_mic_num(void)
 {
     u8 mic_en = 0;
-    for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (esco_adc_f.cfg.mic_en_map & BIT(i)) {
             mic_en++;
         }
@@ -124,7 +130,7 @@ void audio_multi_ch_adc_fixed_digital_set_buffs(void)
 
 static void audio_multi_ch_all_adc_file_init(void)
 {
-    for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) { //默认按最大通道开ADC 数字
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) { //默认按最大通道开ADC 数字
         audio_adc_add_ch(&adc_hdl, i);
     }
 }
@@ -143,24 +149,19 @@ void audio_multi_ch_adc_file_init(void)  //通话的ADC节点配置
         if (len != sizeof(struct adc_file_cfg)) {
             printf("esco_adc_file read cfg data err !!!\n");
         }
+        memcpy(&esco_adc_f.platform_cfg, adc_platform_cfg_table, sizeof(struct adc_platform_cfg) * AUDIO_ADC_MAX_NUM);
 
         adc_file_log(" %s len %d, sizeof(cfg) %lu\n", __func__,  len, sizeof(struct adc_file_cfg));
 
 #if 0
         adc_file_log(" esco_adc_f.cfg.mic_en_map = %x\n", esco_adc_f.cfg.mic_en_map);
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_mode      = %d\n", i, esco_adc_f.cfg.param[i].mic_mode);
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             adc_file_log(" esco_adc_f.cfg.param[%d].mic_gain      = %d\n", i, esco_adc_f.cfg.param[i].mic_gain);
             adc_file_log(" esco_adc_f.cfg.param[%d].mic_pre_gain  = %d\n", i, esco_adc_f.cfg.param[i].mic_pre_gain);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_ain_sel   = %d\n", i, esco_adc_f.cfg.param[i].mic_ain_sel);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_bias_sel  = %d\n", i, esco_adc_f.cfg.param[i].mic_bias_sel);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_bias_rsel = %d\n", i, esco_adc_f.cfg.param[i].mic_bias_rsel);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_dcc       = %d\n", i, esco_adc_f.cfg.param[i].mic_dcc);
-            adc_file_log(" esco_adc_f.cfg.param[%d].power_io      = 0x%x\n", i, uuid2gpio(esco_adc_f.cfg.param[i].power_io));
         }
 #endif
         esco_adc_f.read_flag = 1;
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (esco_adc_f.cfg.mic_en_map & BIT(i)) {
                 audio_adc_add_ch(&adc_hdl, i);
             }
@@ -168,11 +169,11 @@ void audio_multi_ch_adc_file_init(void)  //通话的ADC节点配置
     }
 
 #if TCFG_MC_BIAS_AUTO_ADJUST
-    extern u8 mic_bias_rsel_use_save[AUDIO_ADC_MIC_MAX_NUM];
-    extern u8 save_mic_bias_rsel[AUDIO_ADC_MIC_MAX_NUM];
-    for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    extern u8 mic_bias_rsel_use_save[AUDIO_ADC_MAX_NUM];
+    extern u8 save_mic_bias_rsel[AUDIO_ADC_MAX_NUM];
+    for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (mic_bias_rsel_use_save[i]) {
-            esco_adc_f.cfg.param[i].mic_bias_rsel = save_mic_bias_rsel[i];
+            esco_adc_f.platform_cfg[i].mic_bias_rsel = save_mic_bias_rsel[i];
         }
     }
 #endif
@@ -193,22 +194,17 @@ static void audio_adc_cfg_init(struct adc_file_common *adc_f)  //通话外其他
         if (len != sizeof(struct adc_file_cfg)) {
             printf("adc_file read cfg data err !!!\n");
         }
+        memcpy(&adc_f->platform_cfg, adc_platform_cfg_table, sizeof(struct adc_platform_cfg) * AUDIO_ADC_MAX_NUM);
         adc_file_log(" %s len %d, sizeof(cfg) %lu\n", __func__,  len, sizeof(struct adc_file_cfg));
 #if 0
         adc_file_log(" adc_f->cfg.mic_en_map = %x\n", adc_f->cfg.mic_en_map);
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
-            adc_file_log(" adc_f->cfg.param[%d].mic_mode      = %d\n", i, adc_f->cfg.param[i].mic_mode);
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             adc_file_log(" adc_f->cfg.param[%d].mic_gain      = %d\n", i, adc_f->cfg.param[i].mic_gain);
             adc_file_log(" adc_f->cfg.param[%d].mic_pre_gain  = %d\n", i, adc_f->cfg.param[i].mic_pre_gain);
-            adc_file_log(" adc_f->cfg.param[%d].mic_ain_sel   = %d\n", i, adc_f->cfg.param[i].mic_ain_sel);
-            adc_file_log(" adc_f->cfg.param[%d].mic_bias_sel  = %d\n", i, adc_f->cfg.param[i].mic_bias_sel);
-            adc_file_log(" adc_f->cfg.param[%d].mic_bias_rsel = %d\n", i, adc_f->cfg.param[i].mic_bias_rsel);
-            adc_file_log(" adc_f->cfg.param[%d].mic_dcc       = %d\n", i, adc_f->cfg.param[i].mic_dcc);
-            adc_file_log(" adc_f->cfg.param[%d].power_io      = 0x%x\n", i, uuid2gpio(adc_f->cfg.param[i].power_io));
         }
 #endif
         adc_f->read_flag = 1;
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (adc_f->cfg.mic_en_map & BIT(i)) {
                 audio_adc_add_ch(&adc_hdl, i);
                 adc_f->hdl->ch_num++;
@@ -216,11 +212,11 @@ static void audio_adc_cfg_init(struct adc_file_common *adc_f)  //通话外其他
         }
     }
 #if TCFG_MC_BIAS_AUTO_ADJUST
-    extern u8 mic_bias_rsel_use_save[AUDIO_ADC_MIC_MAX_NUM];
-    extern u8 save_mic_bias_rsel[AUDIO_ADC_MIC_MAX_NUM];
-    for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    extern u8 mic_bias_rsel_use_save[AUDIO_ADC_MAX_NUM];
+    extern u8 save_mic_bias_rsel[AUDIO_ADC_MAX_NUM];
+    for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (mic_bias_rsel_use_save[i]) {
-            adc_f->cfg.param[i].mic_bias_rsel = save_mic_bias_rsel[i];
+            adc_f->platform_cfg[i].mic_bias_rsel = save_mic_bias_rsel[i];
         }
     }
 #endif
@@ -259,7 +255,7 @@ u8 audio_multi_ch_adc_file_get_gain(u8 mic_index)
 u8 audio_multi_ch_adc_file_get_mic_mode(u8 mic_index)
 {
     audio_multi_ch_adc_file_init();	//如果获取的时候没有初始化，则跑初始化流程
-    return esco_adc_f.cfg.param[mic_index].mic_mode;
+    return esco_adc_f.platform_cfg[mic_index].mic_mode;
 }
 __NODE_CACHE_CODE(adc)
 static void audio_multi_ch_adc_fade_in(struct adc_file_hdl *hdl, void *buf, int len, u8 ch_idx)
@@ -353,7 +349,7 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
         return;
     }
     hdl->timestamp = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
-    for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
             handler = (void (*)(void *, void *, int))adc_chx_handle[i];
             handler(_hdl, data, len);
@@ -436,16 +432,16 @@ int multi_ch_adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通
     int ch_index;
 
     u32 i = 0;
-    for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (ch & BIT(i)) {
             ch_index = i;
 
-            audio_adc_param_fill(&mic_param, &esco_adc_f.cfg.param[ch_index]);
+            audio_adc_param_fill(&mic_param, &esco_adc_f.platform_cfg[ch_index]);
             mic_gain                = esco_adc_f.cfg.param[ch_index].mic_gain;
             mic_pre_gain            = esco_adc_f.cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (esco_adc_f.cfg.param[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(esco_adc_f.cfg.param[ch_index].power_io);
+            if ((mic_param.mic_bias_sel == 0) && (esco_adc_f.platform_cfg[ch_index].power_io != 0)) {
+                u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io);
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -465,16 +461,16 @@ static int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file
     int ch_index;
 
     u32 i = 0;
-    for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+    for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (ch & BIT(i)) {
             ch_index = i;
 
-            audio_adc_param_fill(&mic_param, &adc_f->cfg.param[ch_index]);
+            audio_adc_param_fill(&mic_param, &adc_f->platform_cfg[ch_index]);
             mic_gain                = adc_f->cfg.param[ch_index].mic_gain;
             mic_pre_gain            = adc_f->cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (adc_f->cfg.param[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(adc_f->cfg.param[ch_index].power_io);
+            if ((mic_param.mic_bias_sel == 0) && (adc_f->platform_cfg[ch_index].power_io != 0)) {
+                u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -621,11 +617,11 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
         }
         audio_adc_del_output_handler(&adc_hdl, &hdl->adc_output);
 
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
-                if ((hdl->adc_f->cfg.param[i].mic_bias_sel == 0) && (hdl->adc_f->cfg.param[i].power_io != 0)) {
+                if ((hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) && (hdl->adc_f->platform_cfg[i].power_io != 0)) {
                     if (!audio_adc_is_active()) {
-                        u32 gpio = uuid2gpio(hdl->adc_f->cfg.param[i].power_io);
+                        u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
                         gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_LOW);
                     }
                 }
@@ -642,7 +638,7 @@ static int adc_file_ioc_update_parm(struct adc_file_hdl *hdl, int parm)
     int ret = false;
     struct adc_file_cfg *cfg = (struct adc_file_cfg *)parm;
     if (hdl) {
-        for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
                 //目前仅支持更新增益
                 audio_adc_mic_set_gain(&hdl->mic_ch, BIT(i), cfg->param[i].mic_gain);

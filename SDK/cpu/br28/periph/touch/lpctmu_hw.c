@@ -7,6 +7,7 @@
 #include "system/includes.h"
 #include "asm/power_interface.h"
 #include "asm/lpctmu_hw.h"
+#include "asm/charge.h"
 #include "gpadc.h"
 
 #if 1
@@ -157,15 +158,8 @@ void lpctmu_vsel_isel_trim(void)
 
     lpctmu_vsel_trim();
 
-    __this->ch_idx = 0;
-__isel_trim:
-
-    lpctmu_isel_trim(__this->ch_list[__this->ch_idx]);
-    __this->ch_idx ++;
-    if (__this->ch_idx < __this->ch_num) {
-        goto __isel_trim;
-    } else {
-        __this->ch_idx = 0;
+    for (u32 ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
+        lpctmu_isel_trim(__this->ch_list[ch_idx]);
     }
 }
 
@@ -218,16 +212,11 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         return;
     }
 
-    u32 ch_idx, ch;
-    u8 ch_en = 0;
-
-    for (ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
-        ch = __this->ch_list[ch_idx];
-        ch_en |= BIT(ch);
-        lpctmu_port_init(ch);
+    for (u32 ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
+        lpctmu_port_init(__this->ch_list[ch_idx]);
     }
 
-    M2P_CTMU_CH_ENABLE = ch_en;
+    M2P_CTMU_CH_ENABLE = __this->ch_en;
     M2P_CTMU_CH_WAKEUP_EN = __this->ch_wkp_en;
     M2P_CTMU_SCAN_TIME = __this->pdata->sample_scan_time;
     M2P_CTMU_LOWPOER_SCAN_TIME = __this->pdata->lowpower_sample_scan_time;
@@ -255,7 +244,7 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         SFR(P11_LPCTM->ANA0, 0, 1, 0);
         SFR(P11_LPCTM->ANA1, 0, 8, 0);
 
-        SFR(P11_LPCTM->CON1, 0, 5, ch_en);
+        SFR(P11_LPCTM->CON1, 0, 5, __this->ch_en);
 
         SFR(P11_LPCTM->CON0, 6, 1, 1);//CLR PEND
         SFR(P11_LPCTM->CON0, 2, 1, 1);//WKUP en
@@ -289,8 +278,30 @@ u32 lpctmu_is_sf_keep(void)
     if (!__this) {
         return 0;
     }
+
+    u32 lpctmu_softoff_keep_work;
+
     if (lpctmu_lptimer_is_working()) {
-        if (__this->softoff_keep_work == 0) {
+
+        switch (__this->softoff_wakeup_cfg) {
+        case LPCTMU_WAKEUP_DISABLE:
+            lpctmu_softoff_keep_work = 0;
+            break;
+        case LPCTMU_WAKEUP_EN_WITHOUT_CHARGE_ONLINE:
+            lpctmu_softoff_keep_work = 1;
+            if (get_charge_online_flag()) {
+                lpctmu_softoff_keep_work = 0;
+            }
+            break;
+        case LPCTMU_WAKEUP_EN_ALWAYS:
+            lpctmu_softoff_keep_work = 1;
+            break;
+        default :
+            lpctmu_softoff_keep_work = 1;
+            break;
+        }
+
+        if (lpctmu_softoff_keep_work == 0) {
             lpctmu_disable();
             return 0;
         } else {

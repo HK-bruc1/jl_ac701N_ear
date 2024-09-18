@@ -170,16 +170,9 @@ static void tws_online_spp_in_task(u8 *data)
         }
 #endif
 #if TCFG_CFG_TOOL_ENABLE
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
         cfg_tool_combine_rx_data(&data[4], data_len);
         free(data);
         return;
-#else
-        if (!online_cfg_tool_data_deal(&data[4], data_len)) {
-            free(data);
-            return;
-        }
-#endif
 #endif
         db_api->packet_handle(&data[4], data_len);
 

@@ -285,7 +285,7 @@ int audio_anc_mult_scene_id_check(u16 scene_id)
 }
 
 //目标场景, 转成IIR滤波器，并设置到lib coeff/gain变量
-int anc_mult_scene_set(u16 scene_id)
+static int anc_mult_scene_set_base(u16 scene_id)
 {
     int ret = 1;
     if (!mult_hdl) {
@@ -390,6 +390,21 @@ int anc_mult_scene_set(u16 scene_id)
 #endif/*ANC_EAR_ADAPTIVE_EN*/
     return ret;
 }
+
+int anc_mult_scene_set(u16 scene_id)
+{
+    int ret;
+    if (!mult_hdl) {
+        return 1;
+    }
+    if (mult_hdl->param->mode == ANC_TRANSPARENCY && ANC_MULT_TRANS_FB_ENABLE) {
+        ret = audio_anc_mult_trans_param_use_anc(mult_hdl->param, ANC_MULT_TRANS_FB_USB_ANC_ID);
+    } else {
+        ret = anc_mult_scene_set_base(scene_id);
+    }
+    return ret;
+}
+
 
 //释放IIR滤波器空间
 void audio_anc_mult_scene_coeff_free(void)
@@ -922,6 +937,51 @@ int audio_anc_mult_coeff_write(ANC_coeff_fill_t type, int *coeff, u16 len)
     }
     ret = audio_anc_mult_coeff_file_read();
     return ret;
+}
+
+//将降噪模式的参数赋值给通透模式
+int audio_anc_mult_trans_param_use_anc(audio_anc_t *param, u16 target_scene_id)
+{
+    int ret;
+    if (audio_anc_mult_scene_id_check(target_scene_id)) {
+        printf("Err: trans use anc id = %d\n", target_scene_id);
+        return 1;
+    }
+    ret = anc_mult_scene_set_base(target_scene_id);
+    if (ret) {
+        return ret;
+    }
+    u8 sign = param->gains.gain_sign;
+    param->ltrans_coeff = param->lff_coeff;
+    param->ltrans_fb_coeff = param->lfb_coeff;
+    param->ltrans_cmp_coeff = param->lcmp_coeff;
+
+    param->gains.l_transgain = param->gains.l_ffgain;
+    param->ltrans_fbgain = (sign & ANCL_FB_SIGN) ? (0 - param->gains.l_fbgain) : param->gains.l_fbgain;
+    param->ltrans_cmpgain = (sign & ANCL_CMP_SIGN) ? (0 - param->gains.l_cmpgain) : param->gains.l_cmpgain;
+
+    param->ltrans_yorder = param->lff_yorder;
+    param->ltrans_fb_yorder = param->lfb_yorder;
+    param->ltrans_cmp_yorder = param->lcmp_yorder;
+
+    param->rtrans_coeff = param->rff_coeff;
+    param->rtrans_fb_coeff = param->rfb_coeff;
+    param->rtrans_cmp_coeff = param->rcmp_coeff;
+
+    param->gains.r_transgain = param->gains.r_ffgain;
+    param->rtrans_fbgain = (sign & ANCR_FB_SIGN) ? (0 - param->gains.r_fbgain) : param->gains.r_fbgain;
+    param->rtrans_cmpgain = (sign & ANCR_CMP_SIGN) ? (0 - param->gains.r_cmpgain) : param->gains.r_cmpgain;
+
+    param->rtrans_yorder = param->rff_yorder;
+    param->rtrans_fb_yorder = param->rfb_yorder;
+    param->rtrans_cmp_yorder = param->rcmp_yorder;
+
+    //将TRANS替换成FF的SIGN
+    sign &= ~(ANCL_TRANS_SIGN | ANCR_TRANS_SIGN);
+    sign |= (sign & (ANCL_FF_SIGN | ANCR_FF_SIGN)) << 2;
+    param->gains.gain_sign = sign;
+
+    return 0;
 }
 
 

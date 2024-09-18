@@ -75,6 +75,7 @@ typedef struct __simple_task_info {
     u32 stack_used;										// 已使用栈大小
     u32 stack_max;										// 最大栈
     u32 task_usage;										// CPU占用
+    u32 stack_hwm;                                      // 历史使用最大栈
 } SIMPLE_TASK_INFO;
 /* --------------------------------------------------------------------------*/
 /**

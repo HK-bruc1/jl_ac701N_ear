@@ -409,6 +409,9 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
         oport->fmt.Qval = in_fmt->Qval;
         ret = NEGO_STA_CONTINUE;
     }
+
+    //固定输出单声道数据
+    oport->fmt.channel_mode = AUDIO_CH_MIX;
     return ret;
 }
 
@@ -542,6 +545,7 @@ REGISTER_STREAM_NODE_ADAPTER(cvp_node_adapter) = {
     .ioctl      = cvp_adapter_ioctl,
     .release    = cvp_adapter_release,
     .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
 };
 
 //注册工具在线调试

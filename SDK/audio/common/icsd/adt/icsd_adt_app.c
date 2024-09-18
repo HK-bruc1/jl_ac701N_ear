@@ -1402,6 +1402,8 @@ int anc_adt_init()
 {
     /*先创建任务，开关adt的操作在任务里面处理*/
     task_create(audio_icsd_adt_task, NULL, SPEAK_TO_CHAT_TASK_NAME);
+    /*注册DMA 中断回调*/
+    audio_anc_dma_add_output_handler("ANC_ADT", icsd_adt_dma_done);
     return 0;
 }
 
@@ -2105,6 +2107,56 @@ void audio_anc_wind_noise_process(u8 wind_lvl)
 static u8 audio_speak_to_chat_idle_query()
 {
     return speak_to_chat_hdl ? 0 : 1;
+}
+
+/*
+	通透模式 广域点击、风噪检测需打开FB功能
+	FB默认滤波器，CMP使用ANC 滤波器
+	V2后续可考虑优化掉
+*/
+float anc_trans_lfb_gain = 0.0625f;
+float anc_trans_rfb_gain = 0.0625f;
+const double anc_trans_lfb_coeff[] = {
+    0.195234751212410628795623779296875,
+    0.1007948522455990314483642578125,
+    0.0427739980514161288738250732421875,
+    -1.02504855208098888397216796875,
+    0.36385215423069894313812255859375,
+    /*
+    0.0508266850956715643405914306640625,
+    -0.1013386586564593017101287841796875,
+    0.0505129448720254004001617431640625,
+    -1.99860572628676891326904296875,
+    0.9986066981218755245208740234375,
+    */
+};
+const double anc_trans_rfb_coeff[] = {
+    0.195234751212410628795623779296875,
+    0.1007948522455990314483642578125,
+    0.0427739980514161288738250732421875,
+    -1.02504855208098888397216796875,
+    0.36385215423069894313812255859375,
+};
+
+void audio_icsd_adt_trans_fb_param_set(audio_anc_t *param)
+{
+    anc_gain_param_t *gains = &param->gains;
+
+    param->ltrans_fbgain = anc_trans_lfb_gain;
+    param->rtrans_fbgain = anc_trans_rfb_gain;
+    param->ltrans_fb_coeff = (double *)anc_trans_lfb_coeff;
+    param->rtrans_fb_coeff = (double *)anc_trans_rfb_coeff;
+
+    param->ltrans_fb_yorder = sizeof(anc_trans_lfb_coeff) / 40;
+    param->rtrans_fb_yorder = sizeof(anc_trans_rfb_coeff) / 40;
+    //use anc cmp param
+    param->ltrans_cmpgain = (gains->gain_sign & ANCL_CMP_SIGN) ? (0 - gains->l_cmpgain) : gains->l_cmpgain;
+    param->rtrans_cmpgain = (gains->gain_sign & ANCR_CMP_SIGN) ? (0 - gains->r_cmpgain) : gains->r_cmpgain;
+    param->ltrans_cmp_coeff = param->lcmp_coeff;
+    param->rtrans_cmp_coeff = param->rcmp_coeff;
+
+    param->ltrans_cmp_yorder = param->lcmp_yorder;
+    param->rtrans_cmp_yorder = param->rcmp_yorder;
 }
 
 REGISTER_LP_TARGET(speak_to_chat_lp_target) = {

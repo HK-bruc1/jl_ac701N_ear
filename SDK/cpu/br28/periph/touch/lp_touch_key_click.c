@@ -8,7 +8,7 @@
 static void lp_touch_key_short_click_time_out_handle(void *priv)
 {
     u8 ch = *((u8 *)priv);
-    u32 ch_idx = lpctmu_get_idx_by_cur_ch(ch);
+    u32 ch_idx = lp_touch_key_get_idx_by_cur_ch(ch);
     const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
     struct touch_key_arg *arg = &(__this->arg[ch_idx]);
 

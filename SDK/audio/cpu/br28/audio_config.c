@@ -51,12 +51,18 @@ const int WTS_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 //***********************
 //*		Audio Params    *
 //***********************
-void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_file_param *param)
+void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_platform_cfg *platform_cfg)
 {
-    mic_param->mic_mode      = param->mic_mode;
-    mic_param->mic_ain_sel   = param->mic_ain_sel;
-    mic_param->mic_bias_sel  = param->mic_bias_sel;
-    mic_param->mic_bias_rsel = param->mic_bias_rsel;
-    mic_param->mic_dcc       = param->mic_dcc;
+    mic_param->mic_mode      = platform_cfg->mic_mode;
+    mic_param->mic_ain_sel   = platform_cfg->mic_ain_sel;
+    mic_param->mic_bias_sel  = platform_cfg->mic_bias_sel;
+    mic_param->mic_bias_rsel = platform_cfg->mic_bias_rsel;
+    mic_param->mic_dcc       = platform_cfg->mic_dcc;
 }
 
+void audio_linein_param_fill(struct linein_open_param *linein_param, const struct adc_platform_cfg *platform_cfg)
+{
+    linein_param->linein_mode    = platform_cfg->mic_mode;
+    linein_param->linein_ain_sel = platform_cfg->mic_ain_sel;
+    linein_param->linein_dcc     = platform_cfg->mic_dcc;
+}

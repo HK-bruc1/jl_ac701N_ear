@@ -316,6 +316,17 @@ const int  WAV_DECODER_PCM_POINTS = 128;
 // 可以看打印中解码器需要的大小，一般输出每增加1长度增加4个字节
 int wav_mem_ext[(1336  + 3) / 4] SEC(.wav_mem); //超过128要增加这个数组的大小
 
+//wav解码声道配置，
+//0:不限制解码输出声道数，按照配置的支持最大解码声道(CONFIG_DEC_SUPPORT_CHANNELS)解码，超过就返回不支持。
+//1:无论声道数是多少，限制解码输出前面2个声道,多声道的文件可能跑不过来;
+const int WAV_DECODER_OUTPUT_CHANNEL_LIMIT = 0;
+
+const  int  const_audio_codec_wav_checkdst_enable = 1;       //如果wav解码前面有经过dts解码库做过格式检查，就把这个设成0
+const  int  const_audio_codec_wav_dec_support_aiff = 0;      //是否支持aif，因为get_aif_ops跟 wav解码 是 共用run函数（有分叉），所以需要通过const才能优化掉
+const  int  const_audio_codec_wav_dec_support_24bit = MEDIA_24BIT_ENABLE;  //24bit开关
+const  int 	const_audio_codec_wav_dec_support_AB_Repeat_en = 1;   //是否支持AB点跟循环
+const  int  const_audio_codec_wav_dec_supoort_POS_play = 1;  //是否支持指定位置播放
+
 //<ADPCM Type>
 const int const_sel_adpcm_type = 0;//1：使用imaen_adpcm,  0:msen_adpcm
 
@@ -329,10 +340,12 @@ const int const_audio_m4a_dec16_fifo_precision = 16;  //  24 或者 16
 //*		WMA Codec       *
 //***********************
 const int WMA_TWSDEC_EN = 0;   // wma tws 解码控制
+const int WMA_ABpoint_EN = 1;   //是否支持AB点以及AB点循
 // 解码一次输出点数，1代表32对点，n就是n*32对点
 // 超过1时，解码需要使用malloc，如config_mp3_dec_use_malloc=1
 const int WMA_OUTPUT_LEN = 1;
 
+const int const_audio_codec_wma_dec_support_24bit = MEDIA_24BIT_ENABLE;
 const int const_audio_wma_dec16_fifo_precision = 16;  //  24 或者 16
 //***********************
 //*		OPUS Codec      *

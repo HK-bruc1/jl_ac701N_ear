@@ -222,7 +222,7 @@ void adc_sample(enum AD_CH ch, u32 ie) //启动一次cpu模式的adc采样
         adc_pmu_ch_select(adc_ch_sel);
         break;
     case ADC_CH_TYPE_AUDIO:
-        adc_audio_ch_select(adc_ch_sel);
+        adc_audio_ch_select(ch);
         break;
     case ADC_CH_TYPE_LPCTM:
         break;

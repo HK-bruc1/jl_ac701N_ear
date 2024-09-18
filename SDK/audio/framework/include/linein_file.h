@@ -4,14 +4,12 @@
 #include "generic/typedef.h"
 #include "media/includes.h"
 #include "app_config.h"
+#include "audio_config.h"
 
-struct linein_platform_cfg {
-    u8 linein_mode;
-    u8 linein_gain;
-    u8 linein_pre_gain;   // 0:0dB   1:6dB
-    u8 linein_ain_sel;    // 0/1/2
-    u8 linein_dcc;        // DCC level
-};
+struct linein_file_cfg {
+    u32 mic_en_map;
+    struct adc_file_param param[AUDIO_ADC_LINEIN_MAX_NUM];
+} __attribute__((packed));
 
 struct linein_file_hdl {
     void *source_node;

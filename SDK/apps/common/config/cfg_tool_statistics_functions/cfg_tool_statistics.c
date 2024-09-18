@@ -6,8 +6,6 @@
 #endif
 #include "cfg_tool.h"
 #include "app_config.h"
-
-#if CFG_TOOL_VER == CFG_TOOL_VER_VISUAL
 #include "system/malloc.h"
 #include "system/task.h"
 #include "cpu.h"
@@ -16,13 +14,11 @@
 /* #include "asm/cache.h" */
 /* #endif */
 
-#endif
-
 #define TEMP_BUF_SIZE								256
 #define TASK_INFO_NUM_MAX_SIZE						5
 #define MAX_TASKS_INFO_LIST_NUM						32
 
-#if TCFG_CFG_TOOL_ENABLE && (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
+#if TCFG_CFG_TOOL_ENABLE
 
 static SIMPLE_TASK_INFO *_simple_task_info_list = NULL;
 static u16 _simple_task_info_list_valid_len;

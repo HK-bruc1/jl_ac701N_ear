@@ -96,10 +96,11 @@ struct lp_touch_key_platform_data {
     u8 eartch_ch;
     u8 eartch_ref_ch;
 
-    u8 ldo_wkp_reset;
-    u8 charge_online_reset;
+    u8 ldo_wkp_algo_reset;
     u8 charge_enter_algo_reset;
     u8 charge_exit_algo_reset;
+    u8 charge_online_algo_reset;
+    u8 charge_online_softoff_wakeup;
     u8 charge_mode_keep_touch;
 
     u8 key_num;
@@ -121,10 +122,11 @@ struct lp_touch_key_platform_data {
     const struct lp_touch_key_platform_data data = {
 
 #define LP_TOUCH_KEY_PLATFORM_DATA_END() \
-    .ldo_wkp_reset = 1,\
-    .charge_online_reset = 1,\
+    .ldo_wkp_algo_reset = 1,\
     .charge_enter_algo_reset = 0,\
     .charge_exit_algo_reset = 1,\
+    .charge_online_algo_reset = 1,\
+    .charge_online_softoff_wakeup = 0,\
     .softoff_wakeup_time = 1000, \
     .short_click_check_time = 500, \
     .long_click_check_time = 2000, \

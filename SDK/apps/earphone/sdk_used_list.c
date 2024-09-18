@@ -464,3 +464,7 @@ replace_node_adapter
 #if TCFG_VOCAL_REMOVER_NODE_ENABLE
 vocal_remover_node_adapter
 #endif
+
+#if TCFG_NOISEGATE_PRO_NODE_ENABLE
+noisegate_pro_node_adapter
+#endif

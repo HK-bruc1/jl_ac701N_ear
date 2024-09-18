@@ -133,7 +133,14 @@
 #define TCFG_1T2_VOL_RESUME_WHEN_NO_SUPPORT_VOL_SYNC	1	//1T2不支持音量同步的设备则恢复上次设置的音量值
 
 /*省电容mic模块使能*/
-#define TCFG_SUPPORT_MIC_CAPLESS		TCFG_AUDIO_CAPLESS_MIC_EN
+#if ((TCFG_ADC0_ENABLE && (TCFG_ADC0_MODE == 2)) || \
+        (TCFG_ADC1_ENABLE && (TCFG_ADC1_MODE == 2)) || \
+        (TCFG_ADC2_ENABLE && (TCFG_ADC2_MODE == 2)) || \
+        (TCFG_ADC3_ENABLE && (TCFG_ADC3_MODE == 2)))
+#define TCFG_SUPPORT_MIC_CAPLESS        1
+#else
+#define TCFG_SUPPORT_MIC_CAPLESS        0
+#endif
 
 /*省电容mic校准方式选择*/
 #define MC_BIAS_ADJUST_DISABLE			0	//省电容mic偏置校准关闭

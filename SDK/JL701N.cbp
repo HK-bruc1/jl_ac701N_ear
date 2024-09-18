@@ -336,6 +336,7 @@
 <Add option="cpu/br28/liba/le_audio_profile.a" />
 <Add option="cpu/br28/liba/jla_codec_lib.a" />
 <Add option="cpu/br28/liba/lib_lc3_codec.a" />
+<Add option="cpu/br28/liba/lib_noisegate_pro.a" />
 <Add option="cpu/br28/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br28/liba/lib_wtg_dec.a" />
 <Add option="cpu/br28/liba/bfilterfun_lib.a" />

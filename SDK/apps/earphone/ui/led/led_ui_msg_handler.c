@@ -6,6 +6,10 @@
 #include "pwm_led/led_ui_api.h"
 #include "a2dp_player.h"
 #include "esco_player.h"
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#include "cig.h"
+#include "app_le_connected.h"
+#endif
 
 
 #define LOG_TAG             "[LED_UI]"
@@ -83,7 +87,11 @@ static int ui_app_msg_handler(int *msg)
     case APP_MSG_BT_IN_PAIRING_MODE:
         // 等待手机连接状态
         log_info("APP_MSG_BT_IN_PAIRING_MODE\n");
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+        if (!bt_get_total_connect_dev() && !is_cig_phone_conn() && !is_cig_other_phone_conn()) {
+#else
         if (bt_get_total_connect_dev() == 0) {
+#endif
             led_ui_set_state(LED_STA_BLUE_FLASH_1TIMES_PER_1S, DISP_TWS_SYNC);
         }
         break;
@@ -104,6 +112,7 @@ static int ui_bt_stack_msg_handler(int *msg)
     }
 #endif
 
+    printf("ui_bt_stack_msg_handler:%d\n", bt->event);
     switch (bt->event) {
     case BT_STATUS_INIT_OK:
         break;
@@ -143,6 +152,49 @@ static int ui_bt_stack_msg_handler(int *msg)
     }
     return 0;
 }
+
+#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+/**
+ * @brief CIG连接状态事件处理函数
+ *
+ * @param msg:状态事件附带的返回参数
+ *
+ * @return
+ */
+static int led_ui_app_connected_conn_status_event_handler(int *msg)
+{
+    int *event = msg;
+    /* g_printf("led_ui_app_connected_conn_status_event_handler=%d", event[0]); */
+
+    switch (event[0]) {
+    case CIG_EVENT_PERIP_CONNECT:
+        /* log_info("CIG_EVENT_PERIP_CONNECT\n"); */
+        /* led_ui_set_state(LED_STA_ALL_OFF, 0); */
+        break;
+    case CIG_EVENT_PERIP_DISCONNECT:
+        break;
+    case CIG_EVENT_ACL_CONNECT:
+        break;
+    case CIG_EVENT_ACL_DISCONNECT:
+        break;
+    case CIG_EVENT_PHONE_CONNECT:
+        log_info("CIG_EVENT_PHONE_CONNECT\n");
+        led_ui_set_state(LED_STA_BLUE_ON_1S, DISP_NON_INTR);
+        break;
+    case CIG_EVENT_PHONE_DISCONNECT:
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+APP_MSG_PROB_HANDLER(app_le_connected_led_ui_msg_entry) = {
+    .owner = 0xff,
+    .from = MSG_FROM_CIG,
+    .handler = led_ui_app_connected_conn_status_event_handler,
+};
+#endif
 
 void ui_pwm_led_msg_handler(int *msg)
 {

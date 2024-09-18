@@ -1028,6 +1028,7 @@ LFLAGS := \
 	cpu/br28/liba/le_audio_profile.a \
 	cpu/br28/liba/jla_codec_lib.a \
 	cpu/br28/liba/lib_lc3_codec.a \
+	cpu/br28/liba/lib_noisegate_pro.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \

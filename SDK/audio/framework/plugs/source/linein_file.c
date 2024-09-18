@@ -20,17 +20,18 @@
 extern struct audio_adc_hdl adc_hdl;
 extern const u8 const_adc_async_en;
 
-extern const struct linein_platform_cfg linein_platform_cfg_table[];
+extern const struct adc_platform_cfg adc_platform_cfg_table[AUDIO_ADC_MAX_NUM];
 
 #define LINEIN_ADC_BUF_NUM        2	//linein_adc采样buf个数
 
+static struct linein_file_cfg linein_cfg_g;
 
 int adc_file_linein_open(struct adc_linein_ch *linein, int ch)
 {
     int ch_index = 0;
     int linein_gain;
     int linein_pre_gain;
-    const struct linein_platform_cfg *cfg_table = linein_platform_cfg_table;
+    const struct adc_platform_cfg *cfg_table = adc_platform_cfg_table;
     struct linein_open_param linein_param = {0};
 
     for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
@@ -39,13 +40,10 @@ int adc_file_linein_open(struct adc_linein_ch *linein, int ch)
             break;
         }
     }
-
-    linein_param.linein_mode      = cfg_table[ch_index].linein_mode;
-    linein_param.linein_ain_sel   = cfg_table[ch_index].linein_ain_sel;
-    linein_param.linein_dcc       = cfg_table[ch_index].linein_dcc;
-    linein_gain                   = cfg_table[ch_index].linein_gain;
-    linein_pre_gain               = cfg_table[ch_index].linein_pre_gain;
-
+    audio_linein_param_fill(&linein_param, &cfg_table[ch_index]);
+    linein_gain                   = linein_cfg_g.param[ch_index].mic_gain;
+    linein_pre_gain               = linein_cfg_g.param[ch_index].mic_pre_gain;
+    printf(">> linein %d, linein_ain_sel %d, linein_mode %d, linein_dcc %d, linein_gain %d, linein_pre_gain %d", ch_index, linein_param.linein_ain_sel, linein_param.linein_mode, linein_param.linein_dcc, linein_gain, linein_pre_gain);
     audio_adc_linein_open(linein, ch, &adc_hdl, &linein_param);
     audio_adc_linein_set_gain(linein, ch, linein_gain);
     audio_adc_linein_gain_boost(ch, linein_pre_gain);
@@ -57,9 +55,22 @@ int adc_file_linein_open(struct adc_linein_ch *linein, int ch)
 
 void audio_linein_file_init()
 {
-    const struct linein_platform_cfg *cfg_table = linein_platform_cfg_table;
+    char mode_index = 0;
+    char cfg_index = 0;//目标配置项序号
+    int len = jlstream_read_form_data(mode_index, "linein_adc", cfg_index, &linein_cfg_g);
+    if (len != sizeof(struct linein_file_cfg)) {
+        printf("linein_file read cfg data err !!!\n");
+    }
+    adc_file_log(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(struct linein_file_cfg));
+#if 1
+    adc_file_log(" linein_cfg_g.mic_en_map = %x\n", linein_cfg_g.mic_en_map);
     for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
-        if (cfg_table[i].linein_mode != 0xff) {
+        adc_file_log(" linein_cfg_g.param[%d].mic_gain      = %d\n", i, linein_cfg_g.param[i].mic_gain);
+        adc_file_log(" linein_cfg_g.param[%d].mic_pre_gain  = %d\n", i, linein_cfg_g.param[i].mic_pre_gain);
+    }
+#endif
+    for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
+        if (linein_cfg_g.mic_en_map & BIT(i)) {
             audio_adc_add_ch(&adc_hdl, i);
         }
     }
@@ -148,13 +159,12 @@ static void adc_linein_output_handler(void *_hdl, s16 *data, int len)
 
 static void *linein_init(void *source_node, struct stream_node *node)
 {
-    const struct linein_platform_cfg *cfg_table = linein_platform_cfg_table;
     struct linein_file_hdl *hdl = zalloc(sizeof(*hdl));
     hdl->source_node = source_node;
     node->type |= NODE_TYPE_IRQ;
 
     for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
-        if (cfg_table[i].linein_mode != 0xff) {
+        if (linein_cfg_g.mic_en_map & BIT(i)) {
             hdl->ch_num++;
         }
     }
@@ -191,11 +201,26 @@ static int adc_ioc_set_fmt(struct linein_file_hdl *hdl, struct stream_fmt *fmt)
     return 0;
 }
 
+static int linein_file_ioc_update_parm(struct linein_file_hdl *hdl, int parm)
+{
+    int ret = false;
+    struct linein_file_cfg *cfg = (struct linein_file_cfg *)parm;
+    if (hdl) {
+        for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
+            if (cfg->mic_en_map & BIT(i)) {
+                audio_adc_linein_set_gain(&hdl->linein_ch, BIT(i), cfg->param[i].mic_gain);
+                audio_adc_linein_gain_boost(BIT(i), cfg->param[i].mic_pre_gain);
+            }
+        }
+        ret = true;
+    }
+    return ret;
+}
+
 static int linein_ioctl(void *_hdl, int cmd, int arg)
 {
     int ret = 0;
     struct linein_file_hdl *hdl = (struct linein_file_hdl *)_hdl;
-    const struct linein_platform_cfg *cfg_table = linein_platform_cfg_table;
 
     switch (cmd) {
     case NODE_IOC_GET_FMT:
@@ -221,7 +246,7 @@ static int linein_ioctl(void *_hdl, int cmd, int arg)
             hdl->dump_cnt = 0;
             int linein_en_map = 0;
             for (int i = 0; i < AUDIO_ADC_LINEIN_MAX_NUM; i++) {
-                if (cfg_table[i].linein_mode != 0xff) {
+                if (linein_cfg_g.mic_en_map & BIT(i)) {
                     adc_file_linein_open(&hdl->linein_ch, BIT(i));
                     linein_en_map |= BIT(i);
                 }
@@ -262,6 +287,9 @@ static int linein_ioctl(void *_hdl, int cmd, int arg)
             audio_adc_del_output_handler(&adc_hdl, &hdl->adc_output);
         }
         break;
+    case NODE_IOC_SET_PARAM:
+        ret = linein_file_ioc_update_parm(hdl, arg);
+        break;
     }
 
     return ret;
@@ -282,5 +310,9 @@ REGISTER_SOURCE_NODE_PLUG(linein_file_plug) = {
     .init       = linein_init,
     .ioctl      = linein_ioctl,
     .release    = linein_release,
+};
+
+REGISTER_ONLINE_ADJUST_TARGET(linein) = {
+    .uuid = NODE_UUID_LINEIN,
 };
 #endif/*TCFG_AUDIO_LINEIN_ENABLE*/

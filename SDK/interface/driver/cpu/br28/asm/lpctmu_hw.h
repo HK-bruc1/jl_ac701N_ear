@@ -48,6 +48,13 @@ enum CTMU_M2P_CMD {
     RESET_IDENTIFY_ALGO,
 };
 
+enum lpctmu_wakeup_cfg {
+    LPCTMU_WAKEUP_DISABLE,
+    LPCTMU_WAKEUP_EN_WITHOUT_CHARGE_ONLINE,
+    LPCTMU_WAKEUP_EN_ALWAYS,
+};
+
+
 struct lpctmu_platform_data {
     u8 hv_level;
     u8 lv_level;
@@ -58,11 +65,11 @@ struct lpctmu_platform_data {
 };
 
 struct lpctmu_config_data {
-    u8 ch_idx;
     u8 ch_num;
     u8 ch_list[LPCTMU_CHANNEL_SIZE];
+    u8 ch_en;
     u8 ch_wkp_en;
-    u8 softoff_keep_work;
+    u8 softoff_wakeup_cfg;
     const struct lpctmu_platform_data *pdata;
 };
 

@@ -46,6 +46,10 @@
 
 #define ANC_MULT_ORDER_NORMAL_ID			1	/*ANC多滤波器-开机默认场景ID*/
 
+//通透+FB功能配置
+#define ANC_MULT_TRANS_FB_ENABLE			0	/*ANC多滤波器- 通透+FB 使能*/
+#define ANC_MULT_TRANS_FB_USB_ANC_ID		2	/*ANC多滤波器- 通透+FB 复用ANC场景ID*/
+
 //ANC多滤波器-耳道自适应ID匹配，选择0则跟随当前场景
 #define ANC_MULT_ADPTIVE_TRAIN_USE_ID		1	/*耳道自适应-训练使用的场景ID*/
 #define ANC_MULT_ADPTIVE_MATCH_USE_ID		1	/*耳道自适应-匹配使用的场景ID*/

@@ -482,12 +482,15 @@ static void cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
 #if RCSP_UPDATE_EN
             if (get_jl_update_flag()) {
                 break;
-            } else {
+            }
+#if TCFG_RCSP_DUAL_CONN_ENABLE
+            else {
                 extern u32 classic_update_task_exist_flag_get(void);
                 if (classic_update_task_exist_flag_get()) {
                     break;
                 }
             }
+#endif
 #endif
             // 设置广播需要放在解除绑定bt_rcsp_set_conn_info之后
             //cppcheck-suppress knownConditionTrueFalse

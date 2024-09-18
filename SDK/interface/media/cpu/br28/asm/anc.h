@@ -461,14 +461,20 @@ typedef struct {
     u8 adc_ch;						//adc数字通道
     u8 adaptive_mode;				//ANC场景自适应模式
     u8 anc_lvl;						//ANC等级
+    u8 trans_fb_en;					//通透FB使能控制
+
     u8 lff_yorder;					//LFF IIR NUM
     u8 lfb_yorder;					//LFB IIR NUM
     u8 lcmp_yorder;					//LTRANS IIR NUM
     u8 ltrans_yorder;               //LCMP IIR NUM
     u8 rff_yorder;					//RFF IIR NUM
     u8 rfb_yorder;                  //RFB IIR NUM
-    u8 rcmp_yorder;					//RTRANS IIR NUM
-    u8 rtrans_yorder;               //RCMP IIR NUM
+    u8 rcmp_yorder;					//RCMP IIR NUM
+    u8 rtrans_yorder;               //RTRANS IIR NUM
+    u8 ltrans_fb_yorder;            //LTRANS FB IIR NUM
+    u8 ltrans_cmp_yorder;           //LTRANS CMP IIR NUM
+    u8 rtrans_fb_yorder;			//RTRANS FB IIR NUM
+    u8 rtrans_cmp_yorder;			//RTRANS CMP IIR NUM
     u8 adap_ff_yorder;				//ANC耳道自适应FF IIR num
     u8 adap_fb_yorder;				//ANC耳道自适应FB IIR num
     u8 adap_cmp_yorder;				//ANC耳道自适应CMP IIR num
@@ -492,21 +498,23 @@ typedef struct {
     s32 *rfir_coeff;				//FZ补偿滤波器表
     double *lff_coeff;				//左耳FF滤波器
     double *lfb_coeff;				//左耳FB滤波器
-    double *lcmp_coeff;				//左耳cmp滤波器
+    double *lcmp_coeff;				//左耳CMP滤波器
     double *ltrans_coeff;			//左耳通透滤波器
     double *rff_coeff;				//右耳FF滤波器
     double *rfb_coeff;  	    	//右耳FB滤波器
-    double *rcmp_coeff;				//右耳cmp滤波器
+    double *rcmp_coeff;				//右耳CMP滤波器
     double *rtrans_coeff;			//右耳通透滤波器
-    double *trans_default_coeff;	//通透默认滤波器
+    double *ltrans_fb_coeff;        //左耳通透FB滤波器
+    double *ltrans_cmp_coeff;       //左耳通透CMP滤波器
+    double *rtrans_fb_coeff;        //右耳通透FB滤波器
+    double *rtrans_cmp_coeff;       //右耳通透CMP滤波器
+
+    float ltrans_fbgain;  			//ANCL 通透FB增益(携带符号)     range 0.0316(-30dB) - 31.62
+    float ltrans_cmpgain;  			//ANCL 通透CMP增益(携带符号)     range 0.0316(-30dB) - 31.62
+    float rtrans_fbgain;  			//ANCR 通透FB增益(携带符号)     range 0.0316(-30dB) - 31.62
+    float rtrans_cmpgain;  			//ANCR 通透CMP增益(携带符号)     range 0.0316(-30dB) - 31.62
+
     volatile u8 ch;					//ANC通道选择 ： ANC_L_CH | ANC_R_CH
-    /*开智能免摘开通透需要开fb*/
-    float ltrans_fbgain;  //ANCL FB通透增益                        range 0.0316(-30dB) - 31.62
-    float rtrans_fbgain;  //ANCR FB通透增益                        range 0.0316(-30dB) - 31.62
-    double *ltrans_fb_coeff;                   //左耳FB通透滤波器
-    double *rtrans_fb_coeff;                   //右耳FB通透滤波器
-    u8 ltrans_fb_yorder;               //LCMP IIR NUM
-    u8 rtrans_fb_yorder;
 
     anc_gain_param_t gains;
 

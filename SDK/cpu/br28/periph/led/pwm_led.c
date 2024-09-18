@@ -486,6 +486,7 @@ void pwm_led_hw_init(void *pdata)
 void pwm_led_hw_close(void)
 {
     JL_PLED->CON0 &= ~BIT(0);
+    SFR(P11_SYSTEM->P2M_CLK_CON0, 5, 3, 0);
     pwm_led_io_unmount();
     pwm_led_data_init = 0;
 }
