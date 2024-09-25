@@ -210,7 +210,7 @@
 #endif*/
 
 /*数字音量最大值定义*/
-#define DEFAULT_DIGITAL_VOLUME   (0.0f)
+#define DEFAULT_DIGITAL_VOLUME   (TCFG_AUDIO_DIGITAL_GAIN)
 #define IDLE_DEFAULT_MAX_VOLUME  100     //音量调节IDLE 状态的最大音量
 
 #define ANC_CLIPPING_MODE_MUSIC_LIMIT		1	//ANC防破音-限制音乐幅度，牺牲音乐

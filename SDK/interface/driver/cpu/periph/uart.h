@@ -110,7 +110,7 @@ s32 uart_send_bytes(uart_dev uart_num, const void *buffer, u32 size);
 s32 uart_wait_tx_idle(uart_dev uart_num, u32 timeout_ms);
 
 //阻塞式dma发送数据 要求src指向的地址是允许dma的，
-//函数会等到数据发送完成，再返回
+//函数会等到数据发送完成，再返回; 阻塞接口不可在中断调用
 //timeout_ms = 0就一直等直到发送完成
 //return 其他:error; =size:ok
 s32 uart_send_blocking(uart_dev uart_num, const void *buffer, u32 size, u32 timeout_ms);
@@ -124,7 +124,7 @@ s32 uart_get_recv_len(uart_dev uart_num);
 //return，返回实际读取的长度 <0:error; 0< <len:ok
 s32 uart_recv_bytes(uart_dev uart_num, void *buffer, u32 len);
 
-//从缓冲区读取数据，直到读取到有效长度的数据，或者超时
+//从缓冲区读取数据，直到读取到有效长度的数据，或者超时; 阻塞接口不可在中断调用
 //return，返回实际读取的长度 <0:error; 0< <len:ok
 s32 uart_recv_blocking(uart_dev uart_num, void *buffer, u32 len, u32 timeout_ms);
 

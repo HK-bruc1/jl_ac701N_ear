@@ -36,8 +36,14 @@
 #include "app_default_msg_handler.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
-
 #include "tws_dual_share.h"
+
+#if TCFG_USER_TWS_ENABLE
+#include "tws_dual_conn.h"
+#else
+#include "dual_conn.h"
+#endif
+
 #if RCSP_MODE
 #include "rcsp.h"
 #endif
@@ -224,12 +230,8 @@ void bredr_handle_register()
 #if TCFG_USER_TWS_ENABLE
 static void rx_dual_conn_info(u8 *data, int len)
 {
-    r_printf("tws_sync_dual_conn_info_func: %d, %d\n", data[0], data[1]);
-    if (data[0]) {
-        g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;
-    } else {
-        g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
-    }
+    r_printf("tws_sync_dual_conn_info_func: %d\n", data[0]);
+    g_bt_hdl.bt_dual_conn_config = data[0];
     syscfg_write(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
 
 }
@@ -264,6 +266,13 @@ void set_dual_conn_config(u8 *addr, u8 dual_conn_en)
 #if TCFG_BT_DUAL_CONN_ENABLE
     if (dual_conn_en) {
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;
+        g_printf(">>>>%s: dual_conn_en\n", __FUNCTION__);
+        // 如果是双连接，重新判断是否需要开启可发现可连接
+#if TCFG_USER_TWS_ENABLE
+        tws_dual_conn_state_handler();
+#else
+        dual_conn_state_handler();
+#endif
     } else {
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
         u8 *other_conn_addr;

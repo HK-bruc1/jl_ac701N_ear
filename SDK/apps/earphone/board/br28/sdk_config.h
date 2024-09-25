@@ -256,7 +256,8 @@
 #define TCFG_AUDIO_DAC_BUFFER_TIME_MS 80 // 缓冲长度（ms）
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x03 // L Channel
 #define TCFG_AUDIO_R_CHANNEL_GAIN 0x03 // R Channel
-#define TCFG_AUDIO_DAC_POWER_BOOST 0 // 音量增强模式
+#define TCFG_AUDIO_DIGITAL_GAIN 0 // Digital Gain
+#define TCFG_AUDIO_DAC_POWER_BOOST 0x0 //DAC功率增强
 
 #define TCFG_AUDIO_ADC_ENABLE 1 // ADC配置
 #if TCFG_AUDIO_ADC_ENABLE

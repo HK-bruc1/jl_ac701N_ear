@@ -15,6 +15,7 @@
 
 #include "audio_dvol.h"
 #include "system/spinlock.h"
+#include "effects/audio_eq.h"
 
 #if 0
 #define dvol_log	y_printf
@@ -37,13 +38,12 @@
 typedef struct {
     u8 bg_dvol_fade_out;
     u8 start;
-    OS_MUTEX mutex;
+    u16 digital_vol_max;
+    u16 *dig_vol_table;
     struct list_head dvol_head;
     spinlock_t lock;
 } dvol_t;
 static dvol_t dvol_attr;
-extern const int config_media_24bit_enable;
-extern float eq_db2mag(float x);
 /*
  *数字音量级数 DEFAULT_DIGITAL_VOL_MAX
  *数组长度 DEFAULT_DIGITAL_VOL_MAX + 1
@@ -84,8 +84,6 @@ const u16 default_dig_vol_table[DEFAULT_DIGITAL_VOL_MAX + 1] = {
     16384, // 31:0.00 db
 };
 
-static u16 digital_vol_max = DIGITAL_VOLUME_LEVEL_MAX;
-static u16 *dig_vol_table = (u16 *)default_dig_vol_table;
 
 /*
 *********************************************************************
@@ -100,12 +98,14 @@ int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
 {
     memset(&dvol_attr, 0, sizeof(dvol_attr));
     INIT_LIST_HEAD(&dvol_attr.dvol_head);
-    os_mutex_create(&dvol_attr.mutex);
     spin_lock_init(&dvol_attr.lock);
 
     if (vol_table != NULL) {
-        dig_vol_table = vol_table;
-        digital_vol_max = vol_max;
+        dvol_attr.dig_vol_table = vol_table;
+        dvol_attr.digital_vol_max = vol_max;
+    } else {
+        dvol_attr.dig_vol_table = (u16 *)default_dig_vol_table;
+        dvol_attr.digital_vol_max = DIGITAL_VOLUME_LEVEL_MAX;
     }
 
     return 0;
@@ -153,12 +153,12 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
         }
         dvol->vol_max 	= vol_max;
         if (vol_limit == -1) {
-            dvol->vol_limit = digital_vol_max;
+            dvol->vol_limit = dvol_attr.digital_vol_max;
         } else {
-            dvol->vol_limit = (vol_limit > digital_vol_max) ? digital_vol_max : vol_limit;
+            dvol->vol_limit = (vol_limit > dvol_attr.digital_vol_max) ? dvol_attr.digital_vol_max : vol_limit;
         }
         vol_level 		= dvol->vol * dvol->vol_limit / vol_max;
-        dvol->vol_target = dig_vol_table[vol_level];
+        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
         dvol->vol_fade 	= dvol->vol_target;
         dvol->fade_step 	= fade_step;
         dvol->toggle 	= 1;
@@ -183,7 +183,7 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
                     }
                     vol_level = hdl->vol * hdl->vol_limit / hdl->vol_max;
                     if (hdl->vol_table_default) {
-                        hdl->vol_target = dig_vol_table[vol_level];
+                        hdl->vol_target = dvol_attr.dig_vol_table[vol_level];
                     } else {
                         if (vol_level == 0) {
                             hdl->vol_target = 0;
@@ -234,7 +234,7 @@ void audio_digital_vol_close(dvol_handle  *dvol)
                 hdl->vol =  hdl->vol_bk;
                 u8 vol_level = hdl->vol_bk * hdl->vol_limit / hdl->vol_max;
                 if (hdl->vol_table_default) {
-                    hdl->vol_target = dig_vol_table[vol_level];
+                    hdl->vol_target = dvol_attr.dig_vol_table[vol_level];
                     hdl->vol_bk = -1;
                 } else {
                     if (vol_level == 0) {
@@ -277,9 +277,7 @@ void audio_digital_vol_mute_set(dvol_handle *dvol, u8 mute_en)
     if (dvol == NULL) {
         return;
     }
-    os_mutex_pend(&dvol_attr.mutex, 0);
     dvol->mute_en = mute_en;
-    os_mutex_post(&dvol_attr.mutex);
 }
 
 /*
@@ -309,7 +307,7 @@ void audio_digital_vol_set(dvol_handle *dvol, u16 vol)
     dvol->fade = DIGITAL_FADE_EN;
     u8 vol_level = dvol->vol * dvol->vol_limit / dvol->vol_max;
     if (dvol->vol_table_default) {
-        dvol->vol_target = dig_vol_table[vol_level];
+        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
     } else {
         if (vol_level == 0) {
             dvol->vol_target = 0;
@@ -356,7 +354,7 @@ void audio_digital_vol_set_no_fade(dvol_handle *dvol, u8 vol)
     dvol->fade = DIGITAL_FADE_EN;
     u8 vol_level = dvol->vol * dvol->vol_limit / dvol->vol_max;
     if (dvol->vol_table_default) {
-        dvol->vol_fade = dig_vol_table[vol_level];
+        dvol->vol_fade = dvol_attr.dig_vol_table[vol_level];
     } else {
         if (vol_level == 0) {
             dvol->vol_target = 0;
@@ -398,89 +396,81 @@ void audio_digital_vol_reset_fade(dvol_handle *dvol)
 __AUDIO_DIGITAL_VOL_CACHE_CODE
 int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
 {
+    u8 fade;
     s32 valuetemp;
     s16 *buf;
     s32 *buf32;
-    os_mutex_pend(&dvol_attr.mutex, 0);
     if ((!dvol) || (dvol->toggle == 0)) {
-        os_mutex_post(&dvol_attr.mutex);
         return -1;
-    }
-
-
-    if (dvol->bit_wide) {
-        buf32 = data;
-        len >>= 2;
-    } else {
-        buf = data;
-        len >>= 1; //byte to point
     }
 
     s16 vol_target = dvol->vol_target;
     if (dvol->mute_en) {
         vol_target = 0;
     }
-    for (u32 i = 0; i < len; i += 2) {
-        ///left channel
-        if (dvol->fade) {
-            if (dvol->vol_fade > vol_target) {
-                dvol->vol_fade -= dvol->fade_step;
-                if (dvol->vol_fade < vol_target) {
-                    dvol->vol_fade = vol_target;
-                }
-            } else if (dvol->vol_fade < vol_target) {
-                dvol->vol_fade += dvol->fade_step;
+
+    if ((dvol->vol_fade != vol_target) && dvol->fade) {
+        fade = 1;
+    } else {
+        dvol->vol_fade = vol_target;
+        fade = 0;
+    }
+
+    if (dvol->bit_wide) {
+        buf32 = data;
+        len >>= 2;
+        for (u32 i = 0; i < len; i += 1) {
+            if (fade) {
                 if (dvol->vol_fade > vol_target) {
-                    dvol->vol_fade = vol_target;
+                    dvol->vol_fade -= dvol->fade_step;
+                    if (dvol->vol_fade < vol_target) {
+                        dvol->vol_fade = vol_target;
+                    }
+                } else if (dvol->vol_fade < vol_target) {
+                    dvol->vol_fade += dvol->fade_step;
+                    if (dvol->vol_fade > vol_target) {
+                        dvol->vol_fade = vol_target;
+                    }
                 }
             }
-        } else {
-            dvol->vol_fade = vol_target;
+
+            valuetemp = buf32[i];
+            if (valuetemp < 0) {
+                /*负数先转换成正数，运算完再转换回去，是为了避免负数右移位引入1的误差，增加底噪*/
+                valuetemp = -valuetemp;
+                /*rounding处理（加入0.5），减少小信号时候的误差和谐波幅值*/
+                valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
+                valuetemp = -valuetemp;
+            } else {
+                valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
+            }
+#ifdef DIGITAL_VOLUME_SAT_ENABLE
+            /*饱和处理*/
+            if (valuetemp > 8388607) { //2^23 -1
+                valuetemp = 8388607;
+            } else if (valuetemp < -8388608) { //-2^23
+                valuetemp = -8388608;
+            }
+#endif
+            buf32[i] = valuetemp;
         }
-
-        if (dvol->bit_wide) {
-            if (config_media_24bit_enable) {
-                valuetemp = buf32[i];
-                if (valuetemp < 0) {
-                    /*负数先转换成正数，运算完再转换回去，是为了避免负数右移位引入1的误差，增加底噪*/
-                    valuetemp = -valuetemp;
-                    /*rounding处理（加入0.5），减少小信号时候的误差和谐波幅值*/
-                    valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
-                    valuetemp = -valuetemp;
-                } else {
-                    valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
+    } else {
+        buf = data;
+        len >>= 1; //byte to point
+        for (u32 i = 0; i < len; i += 1) {
+            if (fade) {
+                if (dvol->vol_fade > vol_target) {
+                    dvol->vol_fade -= dvol->fade_step;
+                    if (dvol->vol_fade < vol_target) {
+                        dvol->vol_fade = vol_target;
+                    }
+                } else if (dvol->vol_fade < vol_target) {
+                    dvol->vol_fade += dvol->fade_step;
+                    if (dvol->vol_fade > vol_target) {
+                        dvol->vol_fade = vol_target;
+                    }
                 }
-#ifdef DIGITAL_VOLUME_SAT_ENABLE
-                /*饱和处理*/
-                if (valuetemp > 8388607) { //2^23 -1
-                    valuetemp = 8388607;
-                } else if (valuetemp < -8388608) { //-2^23
-                    valuetemp = -8388608;
-                }
-#endif
-                buf32[i] = valuetemp;//
-
-                ///right channel
-                valuetemp = buf32[i + 1];
-                if (valuetemp < 0) {
-                    /*负数先转换成正数，运算完再转换回去，是为了避免负数右移位引入1的误差，增加底噪*/
-                    valuetemp = -valuetemp;
-                    valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
-                    valuetemp = -valuetemp;
-                } else {
-                    valuetemp = ((long long)valuetemp * (long long)dvol->vol_fade + (long long)(1 << 13)) >> DVOL_RESOLUTION ;
-                }
-#ifdef DIGITAL_VOLUME_SAT_ENABLE
-                /*饱和处理*/
-                if (valuetemp > 8388607) { //2^23 -1
-                    valuetemp = 8388607;
-                } else if (valuetemp < -8388608) { //-2^23
-                    valuetemp = -8388608;
-                }
-#endif
-                buf32[i + 1] = valuetemp;
             }
-        } else {
             valuetemp = buf[i];
             if (valuetemp < 0) {
                 /*负数先转换成正数，运算完再转换回去，是为了避免负数右移位引入1的误差，增加底噪*/
@@ -497,26 +487,9 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
 #else
             buf[i] = (s16)valuetemp;
 #endif
-
-            ///right channel
-            valuetemp = buf[i + 1];
-            if (valuetemp < 0) {
-                /*负数先转换成正数，运算完再转换回去，是为了避免负数右移位引入1的误差，增加底噪*/
-                valuetemp = -valuetemp;
-                valuetemp = (valuetemp * dvol->vol_fade + (1 << 13)) >> DVOL_RESOLUTION ;
-                valuetemp = -valuetemp;
-            } else {
-                valuetemp = (valuetemp * dvol->vol_fade + (1 << 13)) >> DVOL_RESOLUTION ;
-            }
-#ifdef DIGITAL_VOLUME_SAT_ENABLE
-            /*饱和处理*/
-            buf[i + 1] = (s16)data_sat_s16(valuetemp);
-#else
-            buf[i + 1] = (s16)valuetemp;
-#endif
         }
     }
-    os_mutex_post(&dvol_attr.mutex);
+
     return 0;
 }
 

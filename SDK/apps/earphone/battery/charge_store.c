@@ -30,6 +30,10 @@
 #include "classic/tws_api.h"
 #include "dual_bank_updata_api.h"
 
+#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#include "ble_rcsp_server.h"
+#endif
+
 #define LOG_TAG_CONST       APP_CHARGESTORE
 #define LOG_TAG             "[APP_CHARGESTORE]"
 #define LOG_ERROR_ENABLE
