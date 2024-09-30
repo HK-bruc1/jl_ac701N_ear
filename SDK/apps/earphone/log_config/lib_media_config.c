@@ -432,7 +432,7 @@ const int JLA_CODEC_SOFT_DECISION_ENABLE = 0;
 //***********************
 //* 	LE Audio        *
 //***********************
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 const int LE_AUDIO_TIME_ENABLE  = 1;
 #else
 const int LE_AUDIO_TIME_ENABLE  = 0;

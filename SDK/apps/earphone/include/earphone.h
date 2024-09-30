@@ -60,7 +60,7 @@
 
 #if (TCFG_USER_BLE_ENABLE && (CONFIG_BT_MODE == BT_NORMAL))
 
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 int tuya_earphone_state_init();
 int tuya_earphone_state_set_page_scan_enable();
 int tuya_earphone_state_get_connect_mac_addr();
@@ -84,7 +84,7 @@ int tuya_sys_event_handler_specific(struct sys_event *event);
 #define EARPHONE_STATE_ROLE_SWITCH(a)
 
 
-#elif ((BT_AI_SEL_PROTOCOL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN | SWIFT_PAIR_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN)) | LE_AUDIO_EN)
+#elif ((THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN | SWIFT_PAIR_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN)) | LE_AUDIO_EN)
 #define EARPHONE_STATE_INIT()                   do { } while(0)
 #define EARPHONE_STATE_SET_PAGE_SCAN_ENABLE()   do { } while(0)
 #define EARPHONE_STATE_GET_CONNECT_MAC_ADDR()   do { } while(0)

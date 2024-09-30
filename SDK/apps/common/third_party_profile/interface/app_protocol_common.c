@@ -19,7 +19,7 @@
 #include "tone_player.h"
 #include "app_main.h"
 
-#if (BT_AI_SEL_PROTOCOL & (TME_EN | GMA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (TME_EN | GMA_EN))
 
 #if 1
 #define APP_PROTOCOL_LOG    printf

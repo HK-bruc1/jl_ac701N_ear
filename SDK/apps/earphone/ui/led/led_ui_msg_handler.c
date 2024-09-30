@@ -6,7 +6,7 @@
 #include "pwm_led/led_ui_api.h"
 #include "a2dp_player.h"
 #include "esco_player.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "cig.h"
 #include "app_le_connected.h"
 #endif
@@ -87,7 +87,7 @@ static int ui_app_msg_handler(int *msg)
     case APP_MSG_BT_IN_PAIRING_MODE:
         // 等待手机连接状态
         log_info("APP_MSG_BT_IN_PAIRING_MODE\n");
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         if (!bt_get_total_connect_dev() && !is_cig_phone_conn() && !is_cig_other_phone_conn()) {
 #else
         if (bt_get_total_connect_dev() == 0) {
@@ -153,7 +153,7 @@ static int ui_bt_stack_msg_handler(int *msg)
     return 0;
 }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 /**
  * @brief CIG连接状态事件处理函数
  *

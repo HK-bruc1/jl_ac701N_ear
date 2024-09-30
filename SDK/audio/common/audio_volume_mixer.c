@@ -35,7 +35,7 @@
 #include "volume_node.h"
 #include "tone_player.h"
 #include "ring_player.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "le_audio_player.h"
 #endif
 
@@ -682,7 +682,7 @@ int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
     struct app_mode *mode;
     mode = app_get_current_mode();
     int i = 0;
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {
         sprintf(node_name, "%s%s", "LEA_", "Media");
         return 0;

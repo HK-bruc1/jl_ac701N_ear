@@ -29,7 +29,7 @@ extern "C" {
 #include <stdlib.h>
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 static const unsigned char base64_enc_map[64] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -198,7 +198,7 @@ ble_qiot_ret_status_t qcloud_iot_utils_base64decode(unsigned char *dst, size_t d
     return (BLE_QIOT_RS_OK);
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

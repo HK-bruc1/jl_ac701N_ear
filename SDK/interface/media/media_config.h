@@ -47,6 +47,16 @@ extern const int config_audio_dac_power_off_lite;
 
 
 
+/*
+ *******************************************************************
+ *						Audio Codec Configs
+ *******************************************************************
+ */
+extern const u8 config_flac_id3_enable;
+extern const u8 config_ape_id3_enable;
+extern const u8 config_m4a_id3_enable;
+extern const u8 config_wav_id3_enable;
+extern const u8 config_wma_id3_enable;
 
 
 

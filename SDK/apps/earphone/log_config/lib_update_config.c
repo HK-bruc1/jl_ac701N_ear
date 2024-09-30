@@ -9,7 +9,7 @@
 /*                                | UPDATE_STORAGE_DEV_EN | UPDATE_BLE_TEST_EN | UPDATE_APP_EN | UPDATE_UART_EN; */
 /* #endif */
 
-#if TCFG_BT_AI_ENABLE == 0
+#if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE == 0
 //是否采用双备份升级方案:0-单备份;1-双备份
 #if CONFIG_DOUBLE_BANK_ENABLE
 const int support_dual_bank_update_en = 1;

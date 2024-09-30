@@ -36,7 +36,7 @@ extern "C" {
 #include "ble_qiot_service.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 // llsync support data fragment, so we need to package all the data before parsing if the data is slice
 static ble_event_slice_t sg_ble_slice_data;
@@ -688,7 +688,7 @@ int ble_ota_msg_handle(const char *buf, uint16_t len)
 
 #endif  // BLE_QIOT_LLSYNC_STANDARD
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

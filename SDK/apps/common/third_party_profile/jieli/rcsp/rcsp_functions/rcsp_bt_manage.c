@@ -169,7 +169,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
 #if TCFG_USER_TWS_ENABLE
         if ((tws_api_get_role() == TWS_ROLE_MASTER) || (bt_rcsp_spp_conn_num() > 0)) {
             bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_CONNECTED, 1);
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
             rcsp_bt_ble_adv_enable(0);
             rcsp_bt_ble_adv_enable(1);
 #endif
@@ -179,7 +179,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
         }
 #else
         bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_CONNECTED, 1);
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
         rcsp_bt_ble_adv_enable(0);
         rcsp_bt_ble_adv_enable(1);
 #endif

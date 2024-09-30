@@ -16,7 +16,7 @@
 #include "asm/charge.h"
 #include "realme_platform_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 
 extern bool check_tws_master_role();
 

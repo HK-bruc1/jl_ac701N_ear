@@ -11,7 +11,7 @@
 #include "ble_iot_anc_manager.h"
 #include "ble_iot_msg_manager.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if 1
 #define log_info(x, ...)       printf("[LL_LOG_POWER]" x " ", ## __VA_ARGS__)
@@ -142,4 +142,4 @@ void iot_func_tws_sync_to_sibling(u16 types)
 
 #endif // TCFG_USER_TWS_ENABLE
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

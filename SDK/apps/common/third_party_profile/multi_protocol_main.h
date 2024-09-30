@@ -19,7 +19,7 @@ enum {
     MULTI_PROTOCOL_TASK_EXIT,
 };
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 extern const uint8_t rcsp_profile_data[];
 #endif
 

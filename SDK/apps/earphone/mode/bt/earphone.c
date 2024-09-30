@@ -47,7 +47,7 @@
 #if RCSP_MODE
 #include "rcsp.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
@@ -90,7 +90,7 @@
 
 #if TCFG_APP_BT_EN
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
 #include "multi_protocol_main.h"
 #endif
 
@@ -308,7 +308,7 @@ void user_read_remote_name_handle(u8 status, u8 *addr, u8 *name)
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
     rcsp_1t2_set_edr_info(addr, name);
 #endif
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     extern void realme_remote_name_callback(u8 status, u8 * addr, u8 * name);
     realme_remote_name_callback(status, addr, name);
 #endif
@@ -326,7 +326,7 @@ void bt_function_select_init()
     if (g_bt_hdl.bt_dual_conn_config != DUAL_CONN_SET_TWO) {
         set_tws_task_interval(120);
     }
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config_for_vm()) {
         g_printf("le_audio en");
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
@@ -383,7 +383,7 @@ void bt_function_select_init()
 
     bt_set_sbc_cap_bitpool(TCFG_BT_SBC_BITPOOL);
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config()) {
         bt_change_hci_class_type(BD_CLASS_WEARABLE_HEADSET | LE_AUDIO_CLASS);   //经典蓝牙地址跟le audio地址一样要置上BIT(14)
 
@@ -472,7 +472,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         anc_poweron();
 #endif
 
-#if (TCFG_USER_BLE_ENABLE || TCFG_BT_BLE_ADV_ENABLE || (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN))
+#if (TCFG_USER_BLE_ENABLE || TCFG_BT_BLE_ADV_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN))
         if (BT_MODE_IS(BT_BQB)) {
             ble_bqb_test_thread_init();
         } else {
@@ -483,7 +483,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
         multi_protocol_bt_init();
 #endif
 
@@ -868,7 +868,7 @@ static void bt_no_background_exit_check(void *priv)
     bt_ble_exit();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
     multi_protocol_bt_exit();
 #endif
 

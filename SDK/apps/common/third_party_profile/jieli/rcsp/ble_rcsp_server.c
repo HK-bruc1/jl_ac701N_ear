@@ -60,11 +60,11 @@
 #if ASSISTED_HEARING_CUSTOM_TRASNDATA
 #include "adv_hearing_aid_setting.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 #include "app_le_connected.h"
 #endif
 
-#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 
 
 //ANCS profile enable
@@ -221,7 +221,7 @@ static void send_request_connect_parameter(hci_con_handle_t connection_handle, u
 static void check_connetion_updata_deal(hci_con_handle_t connection_handle)
 {
     //cppcheck-suppress knownConditionTrueFalse
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     extern u8 le_audio_get_adv_conn_success();
     //le audio 连接之后不允许其他位置更新参数
     if (connection_update_enable && le_audio_get_adv_conn_success()) {
@@ -670,7 +670,7 @@ static void advertisements_setup_init()
     int   ret = 0;
     u16 adv_interval = ADV_INTERVAL_MIN;//0x30;
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (is_cig_phone_conn()) {
         adv_type = APP_ADV_SCAN_IND;
     }
@@ -792,7 +792,7 @@ static int set_adv_enable(void *priv, u32 en)
                 return APP_BLE_OPERATION_ERROR;
             }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
             if (!is_cig_phone_conn()) {
 #endif
                 // 防止ios只连上ble的情况下，android(spp)回连导致ble断开后重新开广播的情况
@@ -802,7 +802,7 @@ static int set_adv_enable(void *priv, u32 en)
                     return APP_BLE_OPERATION_ERROR;
                 }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
             }
 #endif
 
@@ -820,7 +820,7 @@ static int set_adv_enable(void *priv, u32 en)
     set_ble_work_state(next_state);
     if (en) {
         advertisements_setup_init();
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
         if (is_cig_phone_conn()) {
             app_ble_adv_enable(rcsp_server_ble_hdl, en);
             return APP_BLE_NO_ERROR;
@@ -919,7 +919,7 @@ void rcsp_bt_ble_adv_enable(u8 enable)
     uint32_t rets_addr;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
     printf("%s, rets=0x%x\n", __FUNCTION__, rets_addr);
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (enable) {
         if ((0 == is_cig_phone_conn()) && (0 == bt_get_total_connect_dev())) {
             printf("cig[%d] or edr[%d] is not connected\n", is_cig_phone_conn(), bt_get_total_connect_dev());

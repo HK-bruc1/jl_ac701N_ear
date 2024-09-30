@@ -11,7 +11,7 @@
 #include "ble_qiot_import.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 LL_PACKET_CONTROL LL_packet_c;
 
@@ -69,4 +69,4 @@ void tencent_ll_packet_recieve(void *buf, u16 len)
     os_sem_post(&(__this->ll_sem));
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

@@ -10,9 +10,9 @@
 #include "btstack/avctp_user.h"
 #include "app_main.h"
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
 #include "gfps_platform_api.h"
 #endif
 
@@ -50,7 +50,7 @@ void multi_protocol_bt_tws_poweroff_handler(void)
 
     multi_protocol_tws_sync_send();
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_sync_info_to_new_master();
 #endif
 

@@ -17,7 +17,7 @@
 #include "ble_qiot_template.h"
 #include "ble_user.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #define LOG_TAG             "[ll_sync]"
 #define LOG_ERROR_ENABLE
@@ -282,4 +282,4 @@ REGISTER_TWS_FUNC_STUB(ll_ble_state_sync) = {
     .func    = ll_ble_state_sync_func_t,
 };
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

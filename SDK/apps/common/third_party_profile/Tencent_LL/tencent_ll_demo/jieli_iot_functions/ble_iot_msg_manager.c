@@ -11,7 +11,7 @@
 #include "ble_iot_anc_manager.h"
 #include "ble_iot_tws_manager.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if 1
 #define log_info(x, ...)       printf("[LL_LOG_ANC]" x " ", ## __VA_ARGS__)
@@ -64,4 +64,4 @@ APP_MSG_HANDLER(iot_msg_entry) = {
     .handler    = iot_msg_handler,
 };
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

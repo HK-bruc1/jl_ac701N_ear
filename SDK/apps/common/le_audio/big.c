@@ -2,7 +2,7 @@
 #include "big.h"
 #include "wireless_trans_manager.h"
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 static int big_tx_init(void *priv)
 {
@@ -88,7 +88,7 @@ REGISTER_WIRELESS_DEV(big_tx_op) = {
 #endif
 
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
 
 static int big_rx_init(void *priv)
 {

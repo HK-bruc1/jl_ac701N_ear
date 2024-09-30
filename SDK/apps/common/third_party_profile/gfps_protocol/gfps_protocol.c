@@ -23,7 +23,7 @@
 #include "asm/charge.h"
 #include "gfps_platform_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
 
 extern u32 unactice_device_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 extern void tws_dual_conn_close();

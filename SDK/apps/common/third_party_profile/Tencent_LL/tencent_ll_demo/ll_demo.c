@@ -50,7 +50,7 @@
 #include "update_loader_download.h"
 #include "poweroff.h"
 
-#if (BT_AI_SEL_PROTOCOL&LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&LL_SYNC_EN)
 
 //TRANS ANCS
 #define TRANS_ANCS_EN  			  	 0
@@ -1403,6 +1403,6 @@ void ble_server_send_test_key_num(u8 key_num)
     ;
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 

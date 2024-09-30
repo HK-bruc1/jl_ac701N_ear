@@ -51,7 +51,7 @@
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
 #endif/*TCFG_USER_TWS_ENABLE*/
-#if BT_AI_SEL_PROTOCOL & LL_SYNC_EN
+#if THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN
 #include "ble_iot_anc_manager.h"
 #endif
 
@@ -413,7 +413,7 @@ static void anc_task(void *p)
                 /*APP增益设置*/
                 anc_hdl->param.anc_fade_gain = rcsp_adv_anc_voice_value_get(cur_anc_mode);
 #endif/*RCSP_ADV_EN && RCSP_ADV_ANC_VOICE*/
-#if BT_AI_SEL_PROTOCOL & LL_SYNC_EN
+#if THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN
                 /*APP增益设置*/
                 anc_hdl->param.anc_fade_gain = iot_anc_effect_value_get(cur_anc_mode);
 #endif

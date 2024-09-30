@@ -30,7 +30,7 @@
 #include "classic/tws_api.h"
 #include "dual_bank_updata_api.h"
 
-#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 #include "ble_rcsp_server.h"
 #endif
 
@@ -437,7 +437,7 @@ void chargestore_timeout_deal(void *priv)
 #endif
 
         }
-#elif (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             printf("charge_icon_ctl...\n");
 #if CONFIG_NO_DISPLAY_BUTTON_ICON
@@ -477,7 +477,7 @@ void chargestore_set_phone_disconnect(void)
     }
 #endif
     __this->pair_flag = 0;
-#elif (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 #if (!CONFIG_NO_DISPLAY_BUTTON_ICON)
     if (__this->pair_flag && get_tws_sibling_connect_state()) {
         //check ble inquiry
@@ -580,7 +580,7 @@ static int app_chargestore_event_handler(int *msg)
             if ((__this->bt_init_ok) && (tws_api_get_role() == TWS_ROLE_MASTER))  {
                 bt_ble_icon_close(1);
             }
-#elif (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
             if ((__this->bt_init_ok) && (tws_api_get_role() == TWS_ROLE_MASTER))  {
                 bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_DISMISS, 1);
             }

@@ -16,7 +16,7 @@
 #include "user_cfg.h"
 #include "resfile.h"
 
-#if (BT_AI_SEL_PROTOCOL & GMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GMA_EN)
 
 #if 1
 #define APP_GMA_LOG       printf

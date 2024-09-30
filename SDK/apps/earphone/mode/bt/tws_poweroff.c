@@ -23,7 +23,7 @@
 #include "audio_anc.h"
 #endif
 #include "app_chargestore.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 
@@ -75,7 +75,7 @@ void sys_auto_shut_down_disable(void)
 void sys_auto_shut_down_enable(void)
 {
 #if TCFG_AUTO_SHUT_DOWN_TIME
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         printf("is_cig_phone_conn not auto shut down");
         return;
@@ -319,7 +319,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
     app_var.goto_poweroff_cnt = 0;
     sys_auto_shut_down_disable();
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     extern void gfps_need_adv_close_icon_set(u8 en);
     extern void gfps_poweroff_adv_close_icon();
     if (get_charge_online_flag() && bt_get_total_connect_dev()) {
@@ -346,7 +346,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
     anc_poweroff();
 #endif
     app_send_message(APP_MSG_POWER_OFF, reason);
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     le_audio_disconn_le_audio_link_no_reconnect();
 #endif
     /* TWS同时关机,先断开手机  */

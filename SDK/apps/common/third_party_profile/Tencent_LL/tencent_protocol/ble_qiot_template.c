@@ -38,7 +38,7 @@ extern "C" {
 #include "bt_tws.h"
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 static int ble_property_leftear_battery_percentage_set(const char *data, uint16_t len)
 {
@@ -678,7 +678,7 @@ int ble_action_user_handle_output_param(uint8_t action_id, uint8_t output_id, ch
     }
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

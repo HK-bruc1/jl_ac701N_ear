@@ -18,7 +18,7 @@
 #include "wireless_trans.h"
 #include "debug.h"
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 /**************************************************************************************************
   Macros

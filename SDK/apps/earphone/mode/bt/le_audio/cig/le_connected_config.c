@@ -17,7 +17,7 @@
 #include "le_connected.h"
 #include "wireless_trans.h"
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
 /**************************************************************************************************
   Macros

@@ -8,7 +8,7 @@
 #include "tuya_ble_internal_config.h"
 #include "bt_profile_cfg.h"
 
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 
 #if (TUYA_BLE_PROTOCOL_VERSION_HIGN == 0x03)
 //

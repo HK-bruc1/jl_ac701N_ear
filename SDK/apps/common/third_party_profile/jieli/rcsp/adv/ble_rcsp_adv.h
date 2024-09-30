@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "bt_common.h"
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 
 /**
  * 开启BLE广播

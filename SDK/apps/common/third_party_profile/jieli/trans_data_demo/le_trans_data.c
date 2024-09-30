@@ -49,7 +49,7 @@
 #include "poweroff.h"
 #include "ble_user.h"
 
-#if (BT_AI_SEL_PROTOCOL&TRANS_DATA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&TRANS_DATA_EN)
 
 //TRANS ANCS
 #define TRANS_ANCS_EN  			  	 1

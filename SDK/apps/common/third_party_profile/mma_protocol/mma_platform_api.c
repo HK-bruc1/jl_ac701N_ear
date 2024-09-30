@@ -9,7 +9,7 @@
 #include "asm/charge.h"
 #include "app_chargestore.h"
 
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
 
 #if 0
 #define log_info(x, ...)       printf("[MMA PORT]" x " ", ## __VA_ARGS__)

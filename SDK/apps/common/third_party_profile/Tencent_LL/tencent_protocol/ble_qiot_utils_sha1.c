@@ -26,7 +26,7 @@ extern "C" {
 
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 /* Implementation that should never be optimized out by the compiler */
 static void utils_sha1_zeroize(void *v, size_t n)
@@ -333,7 +333,7 @@ void utils_sha1(const unsigned char *input, size_t ilen, unsigned char output[20
     utils_sha1_free(&ctx);
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

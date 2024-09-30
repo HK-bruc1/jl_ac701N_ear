@@ -49,7 +49,7 @@
 #include "JL_rcsp_api.h"
 #include "btstack/btstack_event.h"
 
-#if (BT_AI_SEL_PROTOCOL&ANCS_CLIENT_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&ANCS_CLIENT_EN)
 
 #define ANCS_SUBEVENT_CLIENT_CONNECTED                              0xF0
 #define ANCS_SUBEVENT_CLIENT_NOTIFICATION                           0xF1

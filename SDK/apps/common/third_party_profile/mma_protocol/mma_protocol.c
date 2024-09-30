@@ -15,7 +15,7 @@
 #include "mma_config.h"
 #include "mma_platform_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
 
 #if 1
 #define log_info(x, ...)       printf("[MMA PROTOCOL]" x " ", ## __VA_ARGS__)

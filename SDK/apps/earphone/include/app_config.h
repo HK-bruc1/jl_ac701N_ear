@@ -64,29 +64,46 @@
 #define    MMA_EN                   (1 << 10)
 #define    FMNA_EN                  (1 << 11)
 #define    SWIFT_PAIR_EN            (1 << 12)
-#define    LE_AUDIO_CIS_RX_EN       (1 << 13)
-#define    LE_AUDIO_CIS_TX_EN       (1 << 14)
-#define    LE_AUDIO_BIS_RX_EN       (1 << 15)
-#define    LE_AUDIO_BIS_TX_EN       (1 << 16)
-#define    HONOR_EN                 (1 << 17)
-#define    ONLINE_DEBUG_EN          (1 << 18)
-#define    CUSTOM_DEMO_EN           (1 << 19)   // 第三方协议的demo，用于示例客户开发自定义协议
+#define    HONOR_EN                 (1 << 13)
+#define    ONLINE_DEBUG_EN          (1 << 14)
+#define    CUSTOM_DEMO_EN           (1 << 15)   // 第三方协议的demo，用于示例客户开发自定义协议
 
-#if TCFG_BT_AI_ENABLE
-#define BT_AI_SEL_PROTOCOL  TCFG_BT_AI_SEL_PROTOCOL
-#undef TCFG_USER_BLE_ENABLE
-#define TCFG_USER_BLE_ENABLE 1
+#if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
+#define THIRD_PARTY_PROTOCOLS_SEL  TCFG_THIRD_PARTY_PROTOCOLS_SEL
 #else
-#define BT_AI_SEL_PROTOCOL  0
+#define THIRD_PARTY_PROTOCOLS_SEL  0
+#define TCFG_THIRD_PARTY_PROTOCOLS_SEL 0 // 第三方协议选择
+#endif
+
+#if THIRD_PARTY_PROTOCOLS_SEL && (TCFG_USER_BLE_ENABLE == 0)
+#error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
 #endif
 
 //*********************************************************************************//
 //                                  le_audio 配置                                       //
 //*********************************************************************************//
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#define    LE_AUDIO_UNICAST_SOURCE_EN           (1 << 0)
+#define    LE_AUDIO_UNICAST_SINK_EN             (1 << 1)
+#define    LE_AUDIO_AURACAST_SOURCE_EN          (1 << 2)
+#define    LE_AUDIO_AURACAST_SINK_EN            (1 << 3)
+#define    LE_AUDIO_JL_UNICAST_SOURCE_EN        (1 << 4)
+#define    LE_AUDIO_JL_UNICAST_SINK_EN          (1 << 5)
+#define    LE_AUDIO_JL_AURACAST_SOURCE_EN       (1 << 6)
+#define    LE_AUDIO_JL_AURACAST_SINK_EN         (1 << 7)
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
+#ifndef TCFG_LE_AUDIO_APP_CONFIG
+#define TCFG_LE_AUDIO_APP_CONFIG        (0)
+#endif
+
+#if TCFG_LE_AUDIO_APP_CONFIG && (TCFG_USER_BLE_ENABLE == 0)
+#error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
+#endif
+
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x0
 #endif
@@ -95,7 +112,7 @@
 // #define  TCFG_LOWPOWER_LOWPOWER_SEL 0x0//低功耗连接还有问题
 #endif
 
-#define LE_AUDIO_STREAM_ENABLE 	(BT_AI_SEL_PROTOCOL & (LE_AUDIO_CIS_RX_EN | LE_AUDIO_CIS_TX_EN | LE_AUDIO_BIS_RX_EN | LE_AUDIO_BIS_TX_EN))
+#define LE_AUDIO_STREAM_ENABLE 	(TCFG_LE_AUDIO_APP_CONFIG)
 
 // 公共配置.json
 #define LE_AUDIO_CODEC_TYPE AUDIO_CODING_LC3 //编解码格式
@@ -130,7 +147,7 @@
 #define TCFG_DEV_MANAGER_ENABLE					  			0
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & FMNA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
 //存放token信息
 #define CONFIG_FINDMY_INFO_ENABLE      		    1		//配置是否支持FINDMY存储
 #else
@@ -141,7 +158,7 @@
 //*********************************************************************************//
 //                          	文件系统相关配置                                   //
 //*********************************************************************************//
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #define CONFIG_FATFS_ENABLE                                 1
 #else
 #define CONFIG_FATFS_ENABLE                                 0
@@ -183,27 +200,27 @@
 #define MBEDTLS_AES_SELF_TEST   0
 #endif
 
-#if !(BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if !(THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 #define	   RCSP_MODE			     RCSP_MODE_OFF
 #endif
 
 //单双备份的配置在board_xxx_global_cfg里配置，需要注意只有RCSP才支持单双备份，其余升级都是只支持双备份升级
 //支持TWS同步升级，OTA_TWS_SAME_TIME_NEW宏需要配置为1，旧的流程已不再支持
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 
 #define	   RCSP_MODE			     RCSP_MODE_EARPHONE
 #include "rcsp_cfg.h"
 // 详细功能参考rcsp_cfg.h
 
-#elif ((BT_AI_SEL_PROTOCOL & (TME_EN | DMA_EN | GMA_EN)))
+#elif ((THIRD_PARTY_PROTOCOLS_SEL & (TME_EN | DMA_EN | GMA_EN)))
 #define    BT_MIC_EN                 1
 #define    TCFG_ENC_SPEEX_ENABLE     0
 #define    OTA_TWS_SAME_TIME_ENABLE  0     //是否支持TWS同步升级
-#elif (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 #define    OTA_TWS_SAME_TIME_ENABLE  1
 #define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
 #define    TCFG_ENC_SPEEX_ENABLE     0
-#elif (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 #define    OTA_TWS_SAME_TIME_ENABLE  1
 #define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
 #define    TCFG_ENC_SPEEX_ENABLE     0
@@ -819,12 +836,12 @@
 
 /************TCFG_AUDIO_CVP_DMS_DNS_MODE &&AI***********/
 #if TCFG_AUDIO_CVP_DMS_DNS_MODE
-#if TCFG_BT_AI_ENABLE
+#if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #undef TCFG_LOWPOWER_RAM_SIZE
 #define TCFG_LOWPOWER_RAM_SIZE              2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 #endif
 #endif
-#if ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)|| TCFG_AUDIO_BIT_WIDTH || TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC||TCFG_BT_SUPPORT_LDAC)&&(TCFG_LOWPOWER_RAM_SIZE>=2)
+#if (((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))|| TCFG_AUDIO_BIT_WIDTH || TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC||TCFG_BT_SUPPORT_LDAC)&&(TCFG_LOWPOWER_RAM_SIZE>=2)
 #undef TCFG_LOWPOWER_RAM_SIZE
 #define TCFG_LOWPOWER_RAM_SIZE              2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 
@@ -872,11 +889,11 @@
 #endif
 
 #if APP_ONLINE_DEBUG
-#undef BT_AI_SEL_PROTOCOL
-#if (TCFG_BT_AI_ENABLE && (TCFG_BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | LE_AUDIO_CIS_RX_EN)))
-#define BT_AI_SEL_PROTOCOL  (TCFG_BT_AI_SEL_PROTOCOL | ONLINE_DEBUG_EN)
+#undef THIRD_PARTY_PROTOCOLS_SEL
+#if (TCFG_THIRD_PARTY_PROTOCOLS_ENABLE && (TCFG_THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN))) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#define THIRD_PARTY_PROTOCOLS_SEL  (TCFG_THIRD_PARTY_PROTOCOLS_SEL | ONLINE_DEBUG_EN)
 #else
-#define BT_AI_SEL_PROTOCOL  (ONLINE_DEBUG_EN)
+#define THIRD_PARTY_PROTOCOLS_SEL  (ONLINE_DEBUG_EN)
 #endif
 #endif
 
@@ -896,6 +913,11 @@
 //合并 配置和board的协议宏，后续放到配置工具配置
 #define  TCFG_BT_SUPPORT_PNP 0x1
 #define  TCFG_BT_SUPPORT_PBAP 0x0
+#define TCFG_BT_SUPPORT_PBAP_LIST 0 // pbap单条查询
+#if TCFG_BT_SUPPORT_PBAP_LIST
+#undef  TCFG_BT_SUPPORT_PBAP
+#define  TCFG_BT_SUPPORT_PBAP 0x1
+#endif
 #define  TCFG_BT_SUPPORT_MAP 0x0
 #define  TCFG_BLE_BRIDGE_EDR_ENALBE 0x0   //ios 一键连接，ctkd
 #if TCFG_BLE_BRIDGE_EDR_ENALBE   //一键连接必须同地址

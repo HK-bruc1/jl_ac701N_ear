@@ -285,6 +285,9 @@ typedef enum {
     USER_CTRL_PBAP_READ_ALL,
     //电话本功能中断读取记录
     USER_CTRL_PBAP_STOP_READING,
+    USER_CTRL_PBAP_CONNECT,
+    //获取当前号码name
+    USER_CTRL_PBAP_READ_LIST,
 
     USER_CTRL_PBAP_CMD_END,
 
@@ -439,6 +442,7 @@ typedef enum {
     BT_STATUS_DONGLE_SPEAK_MIC_CLOSE,
 
     BT_STATUS_TRIM_OVER,        /*测试盒TRIM完成*/
+    BT_STATUS_PHONE_NAME,   /*获取来电号码name*/
 } STATUS_FOR_USER;
 
 typedef enum {

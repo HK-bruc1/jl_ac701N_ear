@@ -24,7 +24,7 @@
 #include "bt_event_func.h"
 #include "audio_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 /**************************************************************************************************
   Macros
@@ -266,7 +266,7 @@ void broadcast_init(void)
 
     broadcast_init_flag = 1;
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
     //初始化bis发送参数及注册回调
     ret = wireless_trans_init("big_tx", NULL);
     if (ret != 0) {
@@ -274,7 +274,7 @@ void broadcast_init(void)
     }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
     //初始化bis接收参数及注册回调
     ret = wireless_trans_init("big_rx", NULL);
     if (ret != 0) {
@@ -299,14 +299,14 @@ void broadcast_uninit(void)
 
     broadcast_init_flag = 0;
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
     ret = wireless_trans_uninit("big_tx", NULL);
     if (ret != 0) {
         log_error("wireless_trans_uninit fail:0x%x\n", ret);
     }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
     ret = wireless_trans_uninit("big_rx", NULL);
     if (ret != 0) {
         log_error("wireless_trans_uninit fail:0x%x\n", ret);
@@ -1070,7 +1070,7 @@ int broadcast_close(u8 big_hdl)
         clock_free("le_broadcast");
     }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)&&(LEA_BIG_FIX_ROLE==2)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))&&(LEA_BIG_FIX_ROLE==2)
     //如果广播固定是接收端，则可能是mute的情况下关闭广播接收, 关闭广播需要解mute
     u8 mute_mark = app_audio_get_mute_state(APP_AUDIO_STATE_MUSIC);
     if (mute_mark == 1) {

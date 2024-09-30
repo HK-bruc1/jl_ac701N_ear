@@ -16,7 +16,7 @@
 #define  UPAY_ONE_PROFILE          0
 #endif
 
-#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 
 static const uint8_t profile_data[1];
 

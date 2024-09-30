@@ -13,7 +13,7 @@
 #include "btstack_rcsp_user.h"
 #include "ble_rcsp_server.h"
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN|LE_AUDIO_CIS_RX_EN|LE_AUDIO_BIS_RX_EN|LE_AUDIO_BIS_RX_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 #define ATT_LOCAL_PAYLOAD_SIZE    (517)//(517)              //note: need >= 20
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
@@ -30,7 +30,7 @@ typedef struct {
 #define SDP_RECORD_REGISTER(handler) \
 	const sdp_protocal_item_t  handler sec(.sdp_record_item)
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 
 extern const u8 sdp_spp_service_data[];
 SDP_RECORD_REGISTER(rcsp_sdp_record_item) = {
@@ -79,11 +79,11 @@ const uint8_t rcsp_profile_data[] = {
 };
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 extern u8 get_bt_le_audio_config();
 extern void le_audio_sm_setup_init(io_capability_t io_type, u8 auth_req, uint8_t min_key_size, u8 security_en);
 #endif
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
 
 #include "gfps_platform_api.h"
 
@@ -106,7 +106,7 @@ static const char google_private_key_used[32] = {
     0xE9, 0xC5, 0x82, 0x28, 0x1B, 0xD7, 0xF5, 0xBE
 };
 #endif
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
 
 extern void *xm_app_ble_hdl;
 
@@ -134,7 +134,7 @@ SDP_RECORD_REGISTER(xm_record_item) = {
 };
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 
 extern const u8 sdp_realme_melody_spp_service_data[];
 extern const u8 sdp_realme_link_spp_service_data[];
@@ -156,7 +156,7 @@ extern int realme_protocol_exit(void);
 
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
 extern int dma_protocol_init(void);
 extern int dma_protocol_exit(void);
 
@@ -172,7 +172,7 @@ SDP_RECORD_REGISTER(dma_ota_record_item) = {
 };
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & ONLINE_DEBUG_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
 extern const u8 sdp_spp_service_data[];
 SDP_RECORD_REGISTER(spp_sdp_record_item) = {
     .service_record = (u8 *)sdp_spp_service_data,
@@ -180,7 +180,7 @@ SDP_RECORD_REGISTER(spp_sdp_record_item) = {
 };
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & CUSTOM_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
 
 extern void custom_demo_all_init(void);
 extern void custom_demo_all_exit(void);
@@ -237,19 +237,19 @@ static void multi_protocol_loop_process(void *parm)
         switch (msg[0]) {
         case MULTI_PROTOCOL_RX_DATA_EVENT:
             /* printf("multi rx loop\n"); */
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
             mma_protocol_loop_process();
 #endif
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
             dueros_process();
 #endif
             break;
         case MULTI_PROTOCOL_TX_DATA_EVENT:
             /* printf("multi tx loop\n"); */
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
             mma_protocol_loop_process();
 #endif
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
             dueros_send_process();
 #endif
             break;
@@ -266,7 +266,7 @@ static void multi_protocol_loop_process(void *parm)
 
 static void multi_protocol_profile_init(void)
 {
-    printf("multi_protocol_profile_init 0x%x %d %d\n", BT_AI_SEL_PROTOCOL, TCFG_BT_SUPPORT_SPP, TCFG_USER_BLE_ENABLE);
+    printf("multi_protocol_profile_init 0x%x %d %d\n", THIRD_PARTY_PROTOCOLS_SEL, TCFG_BT_SUPPORT_SPP, TCFG_USER_BLE_ENABLE);
 
     // BLE/SPP 公共的状态回调
 
@@ -278,13 +278,13 @@ static void multi_protocol_profile_init(void)
 #if TCFG_USER_BLE_ENABLE
     le_device_db_init();
 
-#if (BT_AI_SEL_PROTOCOL & FMNA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING, 7, 0);
 #else
 
 #if TCFG_BLE_BRIDGE_EDR_ENALBE
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_BONDING, 7, 0);
-#elif (BT_AI_SEL_PROTOCOL&LE_AUDIO_CIS_RX_EN)
+#elif (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING | SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_MITM_PROTECTION, 7, 0);
     le_audio_sm_setup_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING | SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_MITM_PROTECTION, 7, 0);
 #else
@@ -300,22 +300,22 @@ static void multi_protocol_profile_init(void)
     ble_op_multi_att_send_init(att_ram_buffer, ATT_RAM_BUFSIZE, ATT_LOCAL_PAYLOAD_SIZE);
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     bt_rcsp_interface_init(rcsp_profile_data);
     rcsp_ble_profile_init();
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (get_bt_le_audio_config()) { // RCSP 与 CIS 共用 ACL
         app_ble_no_profile_flag_set(rcsp_server_ble_hdl, 1);
     }
 #endif
 #endif
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_ble_profile_init();
     gfps_is_tws_master_callback_register(check_tws_master_role);
     gfps_message_callback_register(gfps_message_deal_handler);
 #endif
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
     xm_ble_profile_init();
     mma_is_tws_master_callback_register(check_tws_master_role);
     mma_message_callback_register(xm_message_deal_handler);
@@ -324,18 +324,18 @@ static void multi_protocol_profile_init(void)
     mma_rx_resume_register(multi_protocol_resume);
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     realme_protocol_init();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & FMNA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
     extern void ancs_ams_set_ios_pair_request_enable(u8 enable);
     ancs_ams_set_ios_pair_request_enable(0);
     extern void fmy_bt_ble_init(void);
     fmy_bt_ble_init();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (MMA_EN | DMA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (MMA_EN | DMA_EN))
     task_create(multi_protocol_loop_process, NULL, "app_proto");
 #endif
 
@@ -347,11 +347,11 @@ void multi_protocol_bt_init(void)
 
     multi_protocol_profile_init();
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     rcsp_bt_ble_init();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_set_model_id((uint8_t *)google_model_id_used);
     gfps_set_anti_spoofing_public_key((char *)google_public_key_used);
     gfps_set_anti_spoofing_private_key((char *)google_private_key_used);
@@ -361,25 +361,25 @@ void multi_protocol_bt_init(void)
 #endif
     gfps_all_init();
 #endif
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
     xm_all_init();
 #endif
-#if (BT_AI_SEL_PROTOCOL & SWIFT_PAIR_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & SWIFT_PAIR_EN)
     swift_pair_all_init();
     swift_pair_enter_pair_mode();
 #endif
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
     dma_tx_resume_register(multi_protocol_send_resume);
     dma_rx_resume_register(multi_protocol_resume);
     dma_protocol_init();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & ONLINE_DEBUG_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
     extern void online_spp_init(void);
     online_spp_init();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & CUSTOM_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_init();
 #endif
 }
@@ -387,53 +387,53 @@ void multi_protocol_bt_init(void)
 void multi_protocol_bt_exit(void)
 {
     printf("################# multi_protocol exit");
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     rcsp_bt_ble_exit();
     bt_rcsp_interface_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_all_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & MMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & MMA_EN)
     xm_all_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     realme_protocol_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & FMNA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
     extern void fmy_bt_ble_exit(void);
     fmy_bt_ble_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & SWIFT_PAIR_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & SWIFT_PAIR_EN)
     swift_pair_exit_pair_mode();
     swift_pair_all_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
     dma_protocol_exit();
 #endif
-#if (BT_AI_SEL_PROTOCOL & ONLINE_DEBUG_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
     extern void online_spp_exit(void);
     online_spp_exit();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & CUSTOM_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_exit();
 #endif
 
     app_ble_exit();
     app_spp_exit();
 
-#if (BT_AI_SEL_PROTOCOL & (MMA_EN | DMA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (MMA_EN | DMA_EN))
     task_kill("app_proto");
 #endif
 }
 
 void bt_ble_adv_enable(u8 enable)
 {
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     rcsp_bt_ble_adv_enable(enable);
 #endif
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_bt_ble_adv_enable(enable);
 #endif
 }

@@ -33,7 +33,7 @@ extern "C" {
 #include "ble_qiot_llsync_event.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 // report device info
 ble_qiot_ret_status_t ble_event_report_device_info(uint8_t type)
@@ -275,7 +275,7 @@ ble_qiot_ret_status_t ble_event_post(uint8_t event_id)
 }
 #endif //BLE_QIOT_LLSYNC_STANDARD
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

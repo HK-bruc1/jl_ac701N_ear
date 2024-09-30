@@ -165,7 +165,7 @@ static void testbox_ble_update_state_cbk(int type, u32 state, void *priv)
 
                 ble_update_ready_jump_flag = 1;
                 /* ble_app_disconnect(); */
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
                 extern void le_hci_disconnect_all_connections(void);
                 extern void bt_le_audio_adv_enable(u8 enable);
                 le_hci_disconnect_all_connections();

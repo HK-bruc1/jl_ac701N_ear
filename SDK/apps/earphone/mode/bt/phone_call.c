@@ -37,7 +37,7 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
@@ -139,7 +139,7 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #else
     g_bt_hdl.inband_ringtone = 0 ;
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (is_cig_phone_conn()) {
         g_bt_hdl.inband_ringtone = 1;
     }
@@ -516,6 +516,9 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_NUMBER:
         log_info("BT_STATUS_PHONE_NUMBER\n");
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_READ_LIST, 0, NULL);
+#endif
 #if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
         if (g_bt_hdl.phone_num_flag == 1) {
@@ -539,6 +542,11 @@ static int bt_phone_status_event_handler(int *msg)
             log_info("PHONE_NUMBER len err\n");
         }
 #endif
+        break;
+    case BT_STATUS_PHONE_NAME:
+        log_info("BT_STATUS_PHONE_NAME\n");
+        u8 *phone_name = (u8 *)bt->value;
+        log_info(">>name:%s\n", phone_name);
         break;
     case BT_STATUS_INBAND_RINGTONE:
         log_info("BT_STATUS_INBAND_RINGTONE\n");
@@ -641,6 +649,11 @@ static int bt_phone_status_event_handler(int *msg)
     case BT_STATUS_SCO_CONNECTION_REQ :
         g_printf(" BT_STATUS_SCO_CONNECTION_REQ");
         put_buf(bt->args, 6);
+        break;
+    case BT_STATUS_RECONN_OR_CONN :
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_CONNECT, 0, NULL);
+#endif
         break;
     default:
         log_info(" BT STATUS DEFAULT\n");

@@ -202,7 +202,7 @@ wma_dec_plug
 fat_vfs_ops
 #endif
 
-#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 sdfile_vfs_ops
 #endif
 

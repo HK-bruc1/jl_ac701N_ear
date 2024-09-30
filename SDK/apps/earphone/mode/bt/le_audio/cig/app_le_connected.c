@@ -34,11 +34,11 @@
 #include "classic/tws_api.h"
 extern void tws_dual_conn_state_handler();
 #endif
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 #include "ble_rcsp_server.h"
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 struct le_audio_var {
     u8 le_audio_profile_ok;
     u8 le_audio_en_config;
@@ -267,7 +267,7 @@ static int app_connected_conn_status_event_handler(int *msg)
 
     case CIG_EVENT_ACL_CONNECT:
         g_printf("CIG_EVENT_ACL_CONNECT");
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         rcsp_bt_ble_adv_enable(0);
 #endif
         acl_info = (cis_acl_info_t *)&event[1];
@@ -307,7 +307,7 @@ static int app_connected_conn_status_event_handler(int *msg)
 
     case CIG_EVENT_ACL_DISCONNECT:
         g_printf("CIG_EVENT_ACL_DISCONNECT");
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         if (tws_api_get_role() != TWS_ROLE_SLAVE) {
             rcsp_bt_ble_adv_enable(1);
         }
@@ -364,7 +364,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         play_tone_file(get_tone_files()->bt_connect);
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         if (tws_api_get_role() != TWS_ROLE_SLAVE) {
             rcsp_bt_ble_adv_enable(1);
         }
@@ -864,7 +864,7 @@ u8 le_audio_get_user_sirk(u8 *sirk)
 void le_audio_profile_init()
 {
     if (get_bt_le_audio_config() && g_le_audio_hdl.le_audio_profile_ok == 0) {
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         le_audio_user_server_profile_init(rcsp_profile_data);
 #endif
         g_le_audio_hdl.le_audio_profile_ok = 1;

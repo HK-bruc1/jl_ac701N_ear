@@ -11,7 +11,7 @@
 #include "bt_tws.h"
 #include "asm/charge.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if 0
 #define log_info(x, ...)       printf("[LL_LOG_POWER]" x " ", ## __VA_ARGS__)
@@ -253,4 +253,4 @@ u8 iot_get_box_battery_percentage()
 }
 
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

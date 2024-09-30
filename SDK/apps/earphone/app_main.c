@@ -116,7 +116,7 @@ const struct task_info task_info_table[] = {
     {"usb_stack",          	1,     0,   512,   128 },
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN))
     {"app_proto",           2,     0,   768,   64  },
 #endif
     //{"ui",                  3,     0,   384 - 64,  128  },
@@ -132,7 +132,7 @@ const struct task_info task_info_table[] = {
 #if TCFG_KEY_TONE_EN
     {"key_tone",            5,     0,   256,   32  },
 #endif
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
     {"tuya",                2,     0,   640,   256},
 #endif
 #if CONFIG_P11_CPU_ENABLE
@@ -552,7 +552,7 @@ static void app_task_loop(void *p)
 
     mode = app_task_init();
 
-#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #if (VFS_ENABLE == 1)
     if (mount(NULL, "mnt/sdfile", "sdfile", 0, NULL)) {
         log_debug("sdfile mount succ");

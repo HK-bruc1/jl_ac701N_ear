@@ -26,7 +26,7 @@ extern "C" {
 #include <string.h>
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #define HEX_DUMP_BYTE_PER_LINE 16
 
@@ -88,7 +88,7 @@ void ble_qiot_log_hex(e_ble_qiot_log_level level, const char *hex_name, const ch
 }
 #endif  // BLE_QIOT_USER_DEFINE_HEXDUMP
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }
