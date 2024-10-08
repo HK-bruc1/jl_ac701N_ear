@@ -6,7 +6,7 @@
 #include "btstack/avctp_user.h"
 #include "swift_pair_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & SWIFT_PAIR_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & SWIFT_PAIR_EN)
 
 static int swift_pair_bt_status_event_handler(int *msg)
 {

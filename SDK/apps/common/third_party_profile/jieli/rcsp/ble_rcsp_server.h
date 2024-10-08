@@ -16,7 +16,7 @@
 #define  UPAY_ONE_PROFILE          0
 #endif
 
-#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 
 static const uint8_t profile_data[1];
 
@@ -101,8 +101,11 @@ enum {
     TWS_UPDATE_INFO,
 };
 
+void rcsp_ble_profile_init(void);
 void bt_ble_init(void);
 void bt_ble_exit(void);
+void rcsp_bt_ble_init(void);
+void rcsp_bt_ble_exit(void);
 void rcsp_bt_ble_adv_enable(u8 enable);
 void ble_module_enable(u8 en);
 

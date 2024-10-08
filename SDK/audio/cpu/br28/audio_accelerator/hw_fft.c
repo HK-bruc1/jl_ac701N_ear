@@ -14,10 +14,12 @@
  */
 #include "system/includes.h"
 #include "hw_fft.h"
+#include "audio_config_def.h"
+
+const int JL_HW_FFT_V = HW_FFT_VERSION ;    //FFT硬件版本
 
 #define __FFT_CACHE  __attribute__((section(".hw_fft.text.cache.L1")))
 
-const int JL_HW_FFT_V = FFT_EXT ;    //FFT硬件版本
 /*FFT模块资源互斥方式配置*/
 #define CRITICAL_NULL 		0
 #define CRITICAL_IRQ 		1

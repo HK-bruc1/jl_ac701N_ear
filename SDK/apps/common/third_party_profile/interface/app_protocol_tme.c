@@ -18,7 +18,7 @@
 #include "classic/tws_event.h"
 #include "resfile.h"
 
-#if (BT_AI_SEL_PROTOCOL & TME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TME_EN)
 
 extern void TME_set_edr_connected(u8 flag);
 

@@ -9,7 +9,7 @@
 #include "realme_config.h"
 
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 
 #if (!CONFIG_DOUBLE_BANK_ENABLE) || (!CONFIG_ONLY_GRENERATE_ALIGN_4K_CODE)
 #ERROR  "realme OTA 需要开启这些功能"

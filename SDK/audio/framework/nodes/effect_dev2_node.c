@@ -174,8 +174,10 @@ static void effect_dev2_ioc_start(struct effect_dev2_node_hdl *hdl)
     /*
      *获取在线调试的临时参数
      * */
-    if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &hdl->cfg, sizeof(hdl->cfg))) {
-        log_debug("get effect dev2 online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &hdl->cfg, sizeof(hdl->cfg))) {
+            log_debug("get effect dev2 online param\n");
+        }
     }
     printf("effect dev2 name : %s \n", hdl->name);
     for (int i = 0 ; i < 8; i++) {
@@ -199,6 +201,7 @@ static void effect_dev2_ioc_stop(struct effect_dev2_node_hdl *hdl)
 {
     audio_effect_dev2_exit();
 #if EFFECT_DEV2_FRAME_POINTS
+    hdl->remain_len = 0;
     if (hdl->remain_buf) {
         free(hdl->remain_buf);
         hdl->remain_buf = NULL;

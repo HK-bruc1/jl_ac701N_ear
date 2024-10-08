@@ -135,6 +135,121 @@ extern "C" {
     extern void hci_event_callback_set(void(*cbk_ph)(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size));
     extern void ll_hci_connection_updata(u8 *data);
 
+
+
+    /*************************************************************************************************/
+//le_audio_profile.a的对外接口说明
+//unicast是连接状态的le audio播放，走CIS链路传输音频数据
+//broadcast，auracast是广播的le audio叫法，走BIS链路传输音频数据
+    /*************************************************************************************************/
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      配置广播包的名字，一般开了le audio unicast使用的是双模同地址，一般配置成经典蓝牙名字就行
+     *              配置不同名字手机设置界面可能会有两个名字切换显示
+     *  \function   void le_audio_name_reset(u8 *name, u8 len)
+     *  \param      [in] name      名字buffer缓存指针 .
+     *              [in] len       名字长度
+     *  \return     void.
+     */
+    /*************************************************************************************************/
+    extern void le_audio_name_reset(u8 *name, u8 len);
+
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      le audio 协议流程初始化。
+     *  \function   void le_audio_init(u8 mode);
+     *  \param      [in] mode  用于以后控制协议的初始化，目前只支持 1，unicast receiver相关协议配置
+     *  \return     void.
+     */
+    /*************************************************************************************************/
+    extern void le_audio_init(u8 mode);
+
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      配置一个全局变量，用于控制广播包中flag中discover位，能不能被手机搜索到
+     *  \function   void le_audio_set_discover_mode(u8 flag);
+     *  \param      [in] flag  1 是可以在手机设置界面显示，0是不能在手机设置界面显示。但也还是能被NRF搜索到
+     *  \return     void.
+     */
+    /*************************************************************************************************/
+    extern void le_audio_set_discover_mode(u8 flag);
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      获取le audio连接手机的真实地址
+     *  \function  u8 get_sm_peer_address(u8 *addr);
+     *  \param      [in] add    用于存放6个byte地址的buffer地址，空间至少6个byte
+     *  \return      1 获取成功， 0 获取失败
+     */
+    /*************************************************************************************************/
+    extern u8 get_sm_peer_address(u8 *addr);
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      le audio 标准的characteristic uuid和handle定义是一个数据表，
+     *              用户如果还要接ble app的话使用该接口注册characteristic uuid和handle
+     *  \function   void le_audio_user_server_profile_init(const uint8_t *profile_tb);
+     *  \param      [in] profile_tb    生成信息表的数值buffer指针
+     *  \return     void
+     */
+    /*************************************************************************************************/
+    extern void le_audio_user_server_profile_init(const uint8_t *profile_tb);
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief     开关le audio广播的接口
+     *  \function   void bt_le_audio_adv_enable(u8 enable);
+     *  \param      [in] enable   1:开广播   0：关广播
+     *  \return     void
+     */
+    /*************************************************************************************************/
+    extern void bt_le_audio_adv_enable(u8 enable);
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief    库里面是一个weak函数，默认返回了1,
+     *            应用层重写这个接口,返回1是广播请求手机主动来连接le audio耳机。返回1广播是不想手机来连接le audio耳机
+     *  \function   u8 le_audio_need_requesting_phone_connection();
+     *  \param      void
+     *  \return     u8   1 希望手机自动来连接le audio， 0 不希望手机自动连接le audio
+     */
+    /*************************************************************************************************/
+    //u8 le_audio_need_requesting_phone_connection();
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief    提供两个接口在耳机端断开连接，两个接口的错误码不一样，会导致手机有点行为差异
+     *  \param      void
+     *  \return     u8   0 断开操作成功， 1 断开出错
+     */
+    /*************************************************************************************************/
+    u8 le_audio_disconn_le_audio_link();                              //断开le_audio连接，手机会有回连行为
+    u8 le_audio_disconn_le_audio_link_no_reconnect();             //断开le_audio连接,手机会没有回连行为
+
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      类似 le_audio_need_requesting_phone_connection的功能，用于配置广播包的标记，开一次广播之后会清除标记
+     *  \function   void le_audio_set_requesting_a_connection_flag(u8 flag);
+     *  \param      [flag] 1 希望手机自动来连接le audio， 0 不希望手机自动连接le audio
+     *  \return     void
+     */
+    /*************************************************************************************************/
+    extern void le_audio_set_requesting_a_connection_flag(u8 flag);
+
+
+    /*************************************************************************************************/
+    /*!
+     *  \brief      提供接口获取连接le audio链路的vcs协议音量值，播歌的时候获取是播歌的，通话的时候获取是通话的
+     *  \function   u8 vcs_server_get_volume(u16 con_handle);
+     *  \param      [con_handle] ble 连接链路的hci handle值
+     *  \return     u8 音量值，范围是0-255，要获取之后要转换一下
+     */
+    /*************************************************************************************************/
+    extern u8 vcs_server_get_volume(u16 con_handle);
+
+
 #endif
-
-

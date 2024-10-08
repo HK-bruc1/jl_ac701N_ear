@@ -63,7 +63,7 @@ void vol_sys_tab_init(void)
 
 #endif
 
-#if 1
+#if 0
     for (i = 0; i < 17; i++) {
         g_printf("[%d]:%d ", i, vol_sys_tab[i]);
     }

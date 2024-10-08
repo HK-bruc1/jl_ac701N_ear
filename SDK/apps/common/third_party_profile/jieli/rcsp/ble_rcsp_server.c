@@ -52,15 +52,19 @@
 #include "bt_tws.h"
 #endif
 #include "app_ble_spp_api.h"
+#include "btstack_rcsp_user.h"
+#include "rcsp_manage.h"
+#include "rcsp.h"
+#include "rcsp_ch_loader_download.h"
 
 #if ASSISTED_HEARING_CUSTOM_TRASNDATA
 #include "adv_hearing_aid_setting.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 #include "app_le_connected.h"
 #endif
 
-#if (BT_AI_SEL_PROTOCOL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 
 
 //ANCS profile enable
@@ -91,15 +95,6 @@ static const char user_tag_string[] = {EIR_TAG_STRING};
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
 #define ATT_RAM_BUFSIZE           (ATT_CTRL_BLOCK_SIZE + ATT_LOCAL_PAYLOAD_SIZE + ATT_SEND_CBUF_SIZE)                   //note:
 static u8 att_ram_buffer[ATT_RAM_BUFSIZE] __attribute__((aligned(4)));
-
-extern void *rcsp_server_ble_hdl;
-extern void *rcsp_server_ble_hdl1;
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
-// 获取当前已连接ble数目
-extern u8 bt_rcsp_ble_conn_num(void);
-// 获取当前已连接spp数目
-extern u8 bt_rcsp_spp_conn_num(void);
 
 //---------------
 //---------------
@@ -157,15 +152,7 @@ static void (*app_recieve_callback)(void *priv, void *buf, u16 len) = NULL;
 static void (*ble_resume_send_wakeup)(void) = NULL;
 static u32 channel_priv;
 
-extern u8 get_rcsp_connect_status(void);
-extern const int config_btctler_le_hw_nums;
 
-/* static const char *const phy_result[] = { */
-/*     "None", */
-/*     "1M", */
-/*     "2M", */
-/*     "Coded" */
-/* }; */
 //------------------------------------------------------
 //ANCS
 #if TRANS_ANCS_EN
@@ -209,7 +196,6 @@ const char *ams_get_entity_attribute_name(u8 entity_id, u8 attr_id);
 //------------------------------------------------------
 //广播参数设置
 static void advertisements_setup_init();
-extern const char *bt_get_local_name();
 static int get_buffer_vaild_len(void *priv);
 //------------------------------------------------------
 static void send_request_connect_parameter(hci_con_handle_t connection_handle, u8 table_index)
@@ -235,7 +221,7 @@ static void send_request_connect_parameter(hci_con_handle_t connection_handle, u
 static void check_connetion_updata_deal(hci_con_handle_t connection_handle)
 {
     //cppcheck-suppress knownConditionTrueFalse
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     extern u8 le_audio_get_adv_conn_success();
     //le audio 连接之后不允许其他位置更新参数
     if (connection_update_enable && le_audio_get_adv_conn_success()) {
@@ -289,7 +275,6 @@ void notify_update_connect_parameter(u8 table_index)
 /*     log_info("conn_timeout = %d\n", conn_timeout); */
 /* } */
 
-extern void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag);
 static void set_ble_work_state(ble_state_e state)
 {
     log_info("ble_work_st:%x->%x\n", ble_work_state, state);
@@ -353,7 +338,6 @@ u8 ble_update_get_ready_jump_flag(void)
 }
 
 static bool g_close_inquiry_scan = false;
-extern void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_addr);
 void rcsp_ble_adv_enable_with_con_dev();
 /**
  * @brief 一定时间设置是否关闭可发现可连接
@@ -429,7 +413,6 @@ void rcsp_ble_adv_enable_with_con_dev()
 #endif
 }
 
-extern void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn);
 /* LISTING_START(packetHandler): Packet Handler */
 static void cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
@@ -499,12 +482,15 @@ static void cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
 #if RCSP_UPDATE_EN
             if (get_jl_update_flag()) {
                 break;
-            } else {
+            }
+#if TCFG_RCSP_DUAL_CONN_ENABLE
+            else {
                 extern u32 classic_update_task_exist_flag_get(void);
                 if (classic_update_task_exist_flag_get()) {
                     break;
                 }
             }
+#endif
 #endif
             // 设置广播需要放在解除绑定bt_rcsp_set_conn_info之后
             //cppcheck-suppress knownConditionTrueFalse
@@ -684,7 +670,7 @@ static void advertisements_setup_init()
     int   ret = 0;
     u16 adv_interval = ADV_INTERVAL_MIN;//0x30;
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (is_cig_phone_conn()) {
         adv_type = APP_ADV_SCAN_IND;
     }
@@ -806,7 +792,7 @@ static int set_adv_enable(void *priv, u32 en)
                 return APP_BLE_OPERATION_ERROR;
             }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
             if (!is_cig_phone_conn()) {
 #endif
                 // 防止ios只连上ble的情况下，android(spp)回连导致ble断开后重新开广播的情况
@@ -816,7 +802,7 @@ static int set_adv_enable(void *priv, u32 en)
                     return APP_BLE_OPERATION_ERROR;
                 }
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
             }
 #endif
 
@@ -834,7 +820,7 @@ static int set_adv_enable(void *priv, u32 en)
     set_ble_work_state(next_state);
     if (en) {
         advertisements_setup_init();
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
         if (is_cig_phone_conn()) {
             app_ble_adv_enable(rcsp_server_ble_hdl, en);
             return APP_BLE_NO_ERROR;
@@ -845,6 +831,7 @@ static int set_adv_enable(void *priv, u32 en)
         } else {
             app_ble_adv_enable(rcsp_server_ble_hdl, en);
         }
+        bt_ble_rcsp_adv_enable();
     } else {
         app_ble_adv_enable(rcsp_server_ble_hdl, en);
         app_ble_adv_enable(rcsp_server_ble_hdl1, en);
@@ -932,7 +919,7 @@ void rcsp_bt_ble_adv_enable(u8 enable)
     uint32_t rets_addr;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
     printf("%s, rets=0x%x\n", __FUNCTION__, rets_addr);
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (enable) {
         if ((0 == is_cig_phone_conn()) && (0 == bt_get_total_connect_dev())) {
             printf("cig[%d] or edr[%d] is not connected\n", is_cig_phone_conn(), bt_get_total_connect_dev());
@@ -943,7 +930,6 @@ void rcsp_bt_ble_adv_enable(u8 enable)
     set_adv_enable(0, enable);
 }
 
-extern void ble_client_module_enable(u8 en);
 void ble_module_enable(u8 en)
 {
     uint32_t rets_addr;
@@ -974,6 +960,7 @@ void rcsp_bt_ble_init(void)
     upay_new_adv_enable = 0;
 
 #if UPAY_ONE_PROFILE
+    extern const int config_btctler_le_hw_nums;
     if (config_btctler_le_hw_nums < 2) {
         log_info("error:need add hw to adv new device!!!\n");
         ASSERT(0);
@@ -1009,7 +996,6 @@ void rcsp_bt_ble_init(void)
     app_ble_set_mac_addr(rcsp_server_ble_hdl1, tmp_ble_addr);
 
     ble_module_enable(1);
-    bt_ble_rcsp_adv_enable();
 
     ble_init_flag = 1;
 }
@@ -1027,7 +1013,6 @@ void rcsp_bt_ble_exit(void)
         ble_disconnect(NULL);
     }
 #if RCSP_MODE
-    extern void rcsp_exit(void);
     rcsp_exit();
 #endif
 

@@ -214,6 +214,36 @@ struct audio_decoder {
     u32 magic;
 };
 
+#define  MEDIA_FRAMEID_NUM     6
+
+// const u8 media_frame_id_list[MEDIA_FRAMEID_NUM][4]=
+//{
+//	"TIT2",	// 标题    frame_id_att[0] & BIT(0)
+//	"TPE1",	// 作者    frame_id_att[0] & BIT(1)
+//	"TALB",	// 专辑
+//	"TYER",	// 年代
+//	"TCON",	// 类型
+//	"COMM",	// 备注
+//};
+struct media_info_set {
+    void *ptr;           // 设置media_info buffer.      len_list + maindata
+    int max_len;         // buffer_size.
+    unsigned char n_items;         // MEDIA_FRAMEID_NUM 可扩展.
+    unsigned char item_limit_len;  // 每个条目限制长度(字节)
+    unsigned char frame_id_att[1];    //对应n_items  media_frame_id_list是否需要解析  1比特表示   0_不解析,1_解析.
+};
+
+struct media_info_data {
+    unsigned char mode;        //0:att..bit_set__ReturnValue      1:free. key+value.       2:需要外部解析标准ID3_v2(返回文件偏移地址存在len_list[0~3]_u32)
+    unsigned char *len_list;   //n_items    len_list = ptr.       len_list[0~(MEDIA_FRAMEID_NUM-1)] = {default_0}   非0表示对应字段长度.
+    unsigned char *mptr[MEDIA_FRAMEID_NUM];  //maindata_ptr[MEDIA_FRAMEID_NUM]
+};
+
+struct id3_info {
+    struct media_info_set  set;
+    struct media_info_data data;
+};
+
 #define AUDIO_DEC_ORIG_CH       AUDIO_CH_LR
 #define AUDIO_DEC_L_CH          AUDIO_CH_L
 #define AUDIO_DEC_R_CH          AUDIO_CH_R

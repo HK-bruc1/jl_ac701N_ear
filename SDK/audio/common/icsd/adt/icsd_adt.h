@@ -7,7 +7,7 @@
 #include "classic/tws_api.h"
 #include "math.h"
 #include "stdlib.h"
-#include "icsd_common.h"
+//#include "icsd_common.h"
 
 #if 0
 #define _adt_printf printf                  //打开智能免摘库打印信息
@@ -56,6 +56,7 @@ extern int printf_off(const char *format, ...);
 #define ADT_PATH_3M_EN         		BIT(4)
 
 #define ICSD_WIND_MIC_DATA 			BIT(0)
+#define ICSD_WIND_RUN_DATA 			BIT(1)
 extern u8 ICSD_WIND_DEBUG;
 
 #define ADT_INF_1					BIT(0)//state
@@ -69,6 +70,7 @@ extern u8 ICSD_WIND_DEBUG;
 #define ADT_INF_9					BIT(9)//PNC 原始数据
 #define ADT_INF_10					BIT(10)//ANC 原始数据
 #define ADT_INF_11					BIT(11)//TRANS 原始数据
+#define ADT_INF_12					BIT(12)//open talk mic
 
 extern u8 ADT_PATH_CONFIG;
 #define ICSD_TWS_STA_SIBLING_CONNECTED TWS_STA_SIBLING_CONNECTED//tws已连接
@@ -78,6 +80,28 @@ typedef struct {
     u8 wind_lvl;
     u8 wat_result;
     u8 ein_state;
+
+    s16 wind_hz50;
+    s16 wind_hz300;
+    s16 wind_thr;
+
+    s16 wind_refpwr;
+    s16 wind_errpwr;
+    s16 wind_refpwr100;
+    s16 wind_errpwr100;
+    s16 wind_ref2err;
+    s16 wind_pwr_diff;
+    s16 wind_maxmin;
+
+    u8 corr_flag;
+    u8 micpwr_flag;
+    u8 rel_flag;
+    u8 time_flag;
+
+    int refadr;
+    int erradr;
+    float pwr_div;
+
 } __adt_result;
 
 struct icsd_acoustic_detector_infmt {
@@ -189,6 +213,11 @@ enum {
     ADT_EIN_HEADSET_V0,
 };
 
+
+extern const u8 pwr_inside_even_flag0_thr_T;
+extern const u8 angle_talk_even_flag0_thr_T;
+extern const u8 final_speech_even_thr_T;
+extern const u8 final_speech_even_thr_env_T;
 extern const u16 adt_dov_thr;
 extern const u16 adt_dov_diff_thr;
 extern const u8 ana_len_start;
@@ -232,6 +261,8 @@ extern void icsd_adt_tws_s2m(u8 cmd);
 //LIB调用的算术函数
 extern float sin_float(float x);
 extern float cos_float(float x);
+extern float cos_hq(float x);
+extern float sin_hq(float x);
 extern float log10_float(float x);
 extern float exp_float(float x);
 extern float root_float(float x);
@@ -245,14 +276,14 @@ extern int  audio_acoustic_detector_updata();
 extern void tws_tx_unsniff_req(void);
 extern int  tws_api_get_role(void);
 extern int  tws_api_get_tws_state();
-// extern u8   anc_dma_done_ppflag();
-// extern void anc_core_dma_stop(void);
-// extern void anc_core_dma_ie(u8 en);
+extern u8   anc_dma_done_ppflag();
+extern void anc_core_dma_ie(u8 en);
+extern void anc_core_dma_stop(void);
 extern int  os_task_create(void (*task_func)(void *p_arg), void *p_arg, u8 prio, u32 stksize, int qsize, const char *name);
 extern int  os_task_del(const char *name);
 extern int  os_taskq_post_msg(const char *name, int argc, ...);
 extern int  os_taskq_pend(const char *fmt, int *argv, int argc);
-// extern void anc_dma_on_double(u8 out_sel, int *buf, int len);
+extern void anc_dma_on_double(u8 out_sel, int *buf, int len);
 extern int  audio_resample_hw_push_data_out(void *resample);
 extern void audio_resample_hw_close(void *resample);
 extern void *audio_resample_hw_open(u8 channel, int in_rate, int out_rate, u8 type);
@@ -374,6 +405,17 @@ extern int icsd_adt_get_mic_sr();
 extern const u8 wind_stable_cnt_thr;
 extern const u8 wind_corr_select;
 extern const u8 wind_fcorr_fpoint;
+extern const float wind_pwr_bw_thr0;
+extern const float wind_pwr_bw_thr1;
+extern const float wind_tppwr_bw_thr0;
+extern const float wind_tppwr_bw_thr1;
+extern const float wind_errpwr_100hz_thr;
+extern const float wind_refpwr_100hz_thr;
+extern const u8 wind_cxy_cnt_thr1 ;
+extern const u8 wind_cxy_cnt_thr2 ;
+extern const float pwr_div_thr;
+
+extern const u8 wind_mic_sel;
 extern const float wind_fcorr_min_thr;
 extern void icsd_adt_init_pre();
 extern void icsd_envnl_output(int result);
@@ -391,18 +433,23 @@ extern u8 ICSD_WIND_MODE;
 #define WIND_MIC_DATA       BIT(4)
 extern const u8 DEBUG_ADT_WIND_EN;
 extern const u8 DEBUG_ADT_ENVNL_EN;
+extern const u8 DEBUG_ADT_VDT_EN;
 //==============================================//
 extern const u8  ICSD_WIND_3MIC;
 extern void icsd_debug_adt_en();
 extern const float env_alpha;
 extern const u8 wind_lvl_scale;
 extern const u8 icsd_wind_num_thr2;
+extern const u8 icsd_wind_num_thr1;
 extern const u8 wind_out_mode;
 extern void icsd_wind_output(u8 wind_lvl);
 extern void icsd_srctask_cmd_check(u8 cmd);
 extern void icsd_anctask_cmd_check(u8 cmd);
 extern void icsd_post_srctask_msg_wait(u8 cmd);
 
+double adt_log10_anc(double x);
+float adt_anc_pow10(float n);
+void adt_icsd_anc_fft256(int *in, int *out);
 //ICSD SRC TASK命令
 enum {
     ICSD_MIC_REF_SRC_DOWN = 0,
@@ -416,5 +463,11 @@ enum {
     ICSD_ADT_RESET,
     ICSD_DREAD_DEBUGCMD,
 };
+
+
+extern const u8 cepst_en;
+extern const float icsd_cepst_thr;
+extern const float cepst_1p_thr;
+extern const u8 cepst_debug;
 
 #endif

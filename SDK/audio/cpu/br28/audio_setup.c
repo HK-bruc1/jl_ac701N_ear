@@ -123,15 +123,15 @@ void audio_dac_initcall(void)
 #endif
 
     dac_data.bit_width = audio_general_out_dev_bit_width();
+    if (dac_data.mode == DAC_MODE_H2_SINGLE) {
+        dac_data.power_boost = TCFG_AUDIO_DAC_POWER_BOOST;
+        dac_data.ldo_volt = dac_data.power_boost ? 2 : 0;
+    } else {
+        dac_data.power_boost = 0;
+        dac_data.ldo_volt = 0;
+    }
     dac_data.max_sample_rate    = AUDIO_DAC_MAX_SAMPLE_RATE;
     audio_dac_init(&dac_hdl, &dac_data);
-
-    u8 mode = TCFG_AUDIO_DAC_DEFAULT_VOL_MODE;
-    if (1 != syscfg_read(CFG_VOLUME_ENHANCEMENT_MODE, &mode, 1)) {
-        printf("vm no CFG_VOLUME_ENHANCEMENT_MODE !\n");
-    }
-    /* printf("enter audio_init.c %d,%d\n",mode,__LINE__); */
-    //app_audio_dac_vol_mode_set(mode);
 
 #if defined(TCFG_AUDIO_DAC_24BIT_MODE) && TCFG_AUDIO_DAC_24BIT_MODE
     audio_dac_set_bit_mode(&dac_hdl, 1);
@@ -192,34 +192,46 @@ struct audio_adc_private_param adc_private_param = {
     .lowpower_lvl = 0,
 };
 
-#if TCFG_AUDIO_LINEIN_ENABLE
-#include "linein_file.h"
-const struct linein_platform_cfg linein_platform_cfg_table[] = {
-#if TCFG_LINEIN0_ENABLE
+#if TCFG_AUDIO_ADC_ENABLE
+const struct adc_platform_cfg adc_platform_cfg_table[AUDIO_ADC_MAX_NUM] = {
+#if TCFG_ADC0_ENABLE
     [0] = {
-        .linein_mode        = TCFG_LINEIN0_MODE,
-        .linein_gain        = TCFG_LINEIN0_GAIN,
-        .linein_pre_gain    = TCFG_LINEIN0_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = AUDIO_LINEIN0_CH0,
-        .linein_dcc         = TCFG_LINEIN0_DCC,
-    },
-#else
-    [0] = {
-        .linein_mode        = 0xff,
+        .mic_mode           = TCFG_ADC0_MODE,
+        .mic_ain_sel        = TCFG_ADC0_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC0_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC0_BIAS_RSEL,
+        .power_io           = TCFG_ADC0_POWER_IO,
+        .mic_dcc            = TCFG_ADC0_DCC_LEVEL,
     },
 #endif
-
-#if TCFG_LINEIN1_ENABLE
+#if TCFG_ADC1_ENABLE
     [1] = {
-        .linein_mode        = TCFG_LINEIN1_MODE,
-        .linein_gain        = TCFG_LINEIN1_GAIN,
-        .linein_pre_gain    = TCFG_LINEIN1_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = AUDIO_LINEIN1_CH0,
-        .linein_dcc         = TCFG_LINEIN1_DCC,
+        .mic_mode           = TCFG_ADC1_MODE,
+        .mic_ain_sel        = TCFG_ADC1_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC1_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC1_BIAS_RSEL,
+        .power_io           = TCFG_ADC1_POWER_IO,
+        .mic_dcc            = TCFG_ADC1_DCC_LEVEL,
     },
-#else
-    [1] = {
-        .linein_mode        = 0xff,
+#endif
+#if TCFG_ADC2_ENABLE
+    [2] = {
+        .mic_mode           = TCFG_ADC2_MODE,
+        .mic_ain_sel        = TCFG_ADC2_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC2_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC2_BIAS_RSEL,
+        .power_io           = TCFG_ADC2_POWER_IO,
+        .mic_dcc            = TCFG_ADC2_DCC_LEVEL,
+    },
+#endif
+#if TCFG_ADC3_ENABLE
+    [3] = {
+        .mic_mode           = TCFG_ADC3_MODE,
+        .mic_ain_sel        = TCFG_ADC3_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC3_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC3_BIAS_RSEL,
+        .power_io           = TCFG_ADC3_POWER_IO,
+        .mic_dcc            = TCFG_ADC3_DCC_LEVEL,
     },
 #endif
 };

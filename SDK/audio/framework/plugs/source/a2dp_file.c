@@ -321,7 +321,7 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
         hdl->channel_num = (fmt->channel_mode == AUDIO_CH_LR) ? 2 : 1;
 
         printf("a2dp  format %s, sample_rate %d, bit_wide %d, codec_version %d\n",
-               "LHDC_v5", hdl->sample_rate, fmt->bit_wide, fmt->codec_version);
+               "LHDC_v5", hdl->sample_rate, fmt->dec_bit_wide, fmt->codec_version);
         return 0;
         break;
 #endif
@@ -337,8 +337,8 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
         hdl->sample_rate = fmt->sample_rate;
         hdl->channel_num = (fmt->channel_mode == AUDIO_CH_LR) ? 2 : 1;
 
-        printf("a2dp  format %s, sample_rate %d, bit_wide %d, codec_version %d\n",
-               "LHDC", hdl->sample_rate, fmt->bit_wide, fmt->codec_version);
+        printf("a2dp  format %s, sample_rate %d, bit_wide %d, codec_version %s\n",
+               "LHDC", hdl->sample_rate, fmt->dec_bit_wide, ((fmt->codec_version == 500) ? "LLAC" : "LHDC V3/V4"));
         return 0;
 #endif
     default:

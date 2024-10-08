@@ -17,7 +17,6 @@ ${OBJCOPY} -O binary -j .psr_data_code $1.elf psr_data_code.bin
 ${OBJDUMP} -section-headers -address-mask=0x7ffffff $1.elf > segment_list.txt
 ${OBJSIZEDUMP} -lite -skip-zero -enable-dbg-info $1.elf | sort -k 1 >  symbol_tbl.txt
 
-cat segment_list.txt
 
 /opt/utils/report_segment_usage --sdk_path ${ROOT} \
 --tbl_file symbol_tbl.txt \
@@ -27,6 +26,7 @@ cat segment_list.txt
 
 cat text.bin data.bin mov_slot.bin data_code.bin aec.bin aac.bin psr_data_code.bin > app.bin
 
+cat segment_list.txt
 /* if [ -f version ]; then */
     /* host-client -project ${NICKNAME}$2 -f app.bin version $1.elf p11_code.bin br28loader.bin br28loader.uart uboot.boot uboot.boot_debug ota.bin ota_debug.bin isd_config.ini */
 /* else */
@@ -101,7 +101,7 @@ set TONE_ZH_ENABLE=0
 set RCSP_EN=1
 #endif
 
-#ifdef CONIFG_EARPHONE_CASE
+#ifdef CONFIG_EARPHONE_CASE
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 copy anc_ext.bin download\earphone\ALIGN_DIR\.
 #else
@@ -110,7 +110,7 @@ del download\earphone\ALIGN_DIR\anc_ext.bin
 call download/earphone/download.bat
 #endif
 
-#ifdef CONIFG_SOUNDBOX_CASE
+#ifdef CONFIG_SOUNDBOX_CASE
 call download/soundbox/download.bat
 #endif
 #endif

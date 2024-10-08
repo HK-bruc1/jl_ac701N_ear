@@ -35,7 +35,7 @@
 #include "multi_protocol_main.h"
 
 #include "multi_protocol_main.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 #if TCFG_AUDIO_ANC_ENABLE
@@ -595,7 +595,7 @@ int bt_tws_poweroff()
 {
     log_info("bt_tws_poweroff\n");
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
     multi_protocol_bt_tws_poweroff_handler();
 #endif
 
@@ -851,7 +851,7 @@ int bt_tws_connction_status_event_handler(int *msg)
             put_buf(addr[2], 6);
         }
         u8 comm_mac_addr_memcmp = 1;
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         u8 comm_mac_addr[12];
         int ret = syscfg_read(CFG_TWS_COMMON_ADDR, comm_mac_addr, 12);
         if (ret == 12) {
@@ -920,7 +920,16 @@ int bt_tws_connction_status_event_handler(int *msg)
 #endif
 
         tws_sync_bat_level(); //同步电量到对耳
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        u32 slave_info =  evt->args[3] | (evt->args[4] << 8) | (evt->args[5] << 16) | (evt->args[6] << 24) ;
+        printf("====slave_info:%x\n", slave_info);
+        if (!(slave_info & TWS_STA_LE_AUDIO_PLAYING)) {
+            //only set to slave while slave not playing
+            bt_tws_sync_volume();
+        }
+#else
         bt_tws_sync_volume();
+#endif
         tws_sync_dual_conn_info();
 
 #if TCFG_EAR_DETECT_ENABLE
@@ -1080,7 +1089,7 @@ bool get_tws_sibling_connect_state(void)
 static void bt_tws_enter_sniff(void *parm)
 {
     int interval;
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         goto __exit;
     }

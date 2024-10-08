@@ -51,7 +51,7 @@
 #include "bt_common.h"
 #include "btstack/avctp_user.h"
 
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 
 //TRANS ANCS
 #define TRANS_ANCS_EN  			  	 0

@@ -612,6 +612,36 @@ int file_dec_set_start_play(u32 start_time, u32 coding_type)
 }
 #endif
 
+/*----------------------------------------------------------------------------*/
+/**@brief    获取id3信息
+   @return   true：成功
+   @return   false：失败
+   @note
+*/
+/*----------------------------------------------------------------------------*/
+int file_dec_id3_post(struct file_player *player)
+{
+    if (!player) {
+        return false;
+    }
+    u32 id3_buf[8 + 13 + 8];
+    struct id3_info info = {0};
+    info.set.ptr = id3_buf;
+    info.set.max_len = sizeof(id3_buf);
+    info.set.n_items = 6;
+    info.set.item_limit_len = 64;
+    info.set.frame_id_att[0] = 0x3f; // 0x3E;  0x3f;
+    int ret = jlstream_node_ioctl(player->stream, NODE_UUID_DECODER, NODE_IOC_GET_ID3, (int)&info);
+    if (ret == 0) {
+        for (int i = 0; i < info.set.n_items; i++) {
+            if ((info.data.len_list[i] != 0) && info.data.mptr[i] != 0) {
+                printf("%d\t :  %s\n", i, info.data.mptr[i]);        //显示字符串.
+                put_buf(info.data.mptr[i], info.data.len_list[i]);  //HEX
+            }
+        }
+    }
+    return true;
+}
 
 static int music_file_player_start(struct file_player *player)
 {
@@ -661,6 +691,10 @@ static int music_file_player_start(struct file_player *player)
             id3_obj_post(&player->p_mp3_id3_v2);
         }
         player->p_mp3_id3_v2 = id3_v2_obj_get(player->file);
+#endif
+    } else {
+#if (TCFG_DEC_ID3_V1_ENABLE || TCFG_DEC_ID3_V2_ENABLE)
+        file_dec_id3_post(player);
 #endif
     }
 

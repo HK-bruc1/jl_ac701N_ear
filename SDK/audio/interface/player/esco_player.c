@@ -80,11 +80,11 @@ int esco_player_open(u8 *bt_addr)
     jlstream_set_scene(player->stream, STREAM_SCENE_ESCO);
     jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE, NODE_IOC_SET_BTADDR, (int)bt_addr);
 
-#ifdef TCFG_NS_NODE_ENABLE
+#if TCFG_NS_NODE_ENABLE
     jlstream_node_ioctl(player->stream, NODE_UUID_NOISE_SUPPRESSOR, NODE_IOC_SET_BTADDR, (int)bt_addr);
 #endif
 
-#ifdef TCFG_DNS_NODE_ENABLE
+#if TCFG_DNS_NODE_ENABLE
     jlstream_node_ioctl(player->stream, NODE_UUID_DNS_NOISE_SUPPRESSOR, NODE_IOC_SET_BTADDR, (int)bt_addr);
 #endif
 

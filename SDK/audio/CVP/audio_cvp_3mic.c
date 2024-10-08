@@ -58,22 +58,6 @@
 /*CVP_TOGGLE:AEC模块使能开关，Disable则数据完全不经过处理，AEC模块不占用资源*/
 #define CVP_TOGGLE				1	/*回音消除模块开关*/
 
-#ifdef CONFIG_FPGA_ENABLE
-const u8 CONST_AEC_ENABLE = 1;
-#else
-const u8 CONST_AEC_ENABLE = 1;
-#endif/*CONFIG_FPGA_ENABLE*/
-
-/*
- * 串口写卡数据导出
- * 0 : 关闭数据导出
- * 1 : 导出 mic0 mic1 mic2 far out
- */
-#if (defined TCFG_AUDIO_DATA_EXPORT_DEFINE) && (TCFG_AUDIO_DATA_EXPORT_DEFINE == AUDIO_DATA_EXPORT_VIA_UART)
-const u8 CONST_AEC_EXPORT = 1;
-#else
-const u8 CONST_AEC_EXPORT = 0;
-#endif
 
 //*********************************************************************************//
 //                                预处理配置(Pre-process Config)               	   //
@@ -96,12 +80,6 @@ const u8 CONST_AEC_EXPORT = 0;
  *其他的暂时不需要做
  */
 const u8 CONST_AEC_DLY_EST = 0;
-
-#if TCFG_AEC_SIMPLEX
-const u8 CONST_AEC_SIMPLEX = 1;
-#else
-const u8 CONST_AEC_SIMPLEX = 0;
-#endif/*TCFG_AEC_SIMPLEX*/
 
 /*
  * 非线性压制模式选择
@@ -127,16 +105,9 @@ const u8 CONST_JLSP_WD_MODE = JLSP_WD_MODE1;
 #ifdef TCFG_3MIC_MODE_SEL
 const u8 CONST_JLSP_3MIC_MODE = TCFG_3MIC_MODE_SEL;
 #else
-const u8 CONST_JLSP_3MIC_MODE = JLSP_3MIC_MODE1;
+const u8 CONST_JLSP_3MIC_MODE = JLSP_3MIC_MODE2;
 #endif
 
-/*参考数据变采样处理*/
-#if TCFG_BT_DONGLE_ENABLE || TCFG_ESCO_DL_CVSD_SR_USE_16K || (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC) || TCFG_USB_SLAVE_AUDIO_MIC_ENABLE \
-|| ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN) && (defined TCFG_LEA_CALL_DL_GLOBAL_SR) && (TCFG_LEA_CALL_DL_GLOBAL_SR != 0x01))
-const u8 CONST_REF_SRC = 1;
-#else
-const u8 CONST_REF_SRC = 0;
-#endif /*TCFG_USB_MIC_CVP_ENABLE*/
 
 /* 通过蓝牙spp发送风噪信息
  * 需要同时打开USER_SUPPORT_PROFILE_SPP和APP_ONLINE_DEBUG*/
@@ -205,7 +176,9 @@ struct audio_aec_hdl {
     u8 EnableBit;			//aec使能模块
     u8 input_clear;			//清0输入数据标志
     u16 dump_packet;		//前面如果有杂音，丢掉几包
+#if TCFG_SUPPORT_MIC_CAPLESS
     void *dcc_hdl;
+#endif
     struct tms_attr attr;	//aec模块参数属性
     struct audio_cvp_pre_param_t pre;	//预处理配置
     float *TransferFunc;
@@ -273,9 +246,11 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_
         GainProcess_16Bit(talk_ref_mic, talk_ref_mic, aec_hdl->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
         GainProcess_16Bit(talk_fb_mic, talk_fb_mic, aec_hdl->pre.talk_fb_mic_gain, 1, 1, 1, len >> 1);
     }
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (aec_hdl->dcc_hdl) {
         audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
     }
+#endif
 
 #if CVP_LOUDNESS_TRACE_ENABLE
     loudness_meter_short(&mic_loudness, talk_mic, len >> 1);
@@ -726,9 +701,11 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
         aec_param->hw_delay_offset = 55;
     }
 
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
         aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
+#endif
 
     //aec_param_dump(aec_param);
     aec_hdl->EnableBit = aec_param->EnableBit;
@@ -863,10 +840,12 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
+#if TCFG_SUPPORT_MIC_CAPLESS
         if (aec_hdl->dcc_hdl) {
             audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
             aec_hdl->dcc_hdl = NULL;
         }
+#endif
 
         if (aec_hdl->TransferFunc) {
             free(aec_hdl->TransferFunc);

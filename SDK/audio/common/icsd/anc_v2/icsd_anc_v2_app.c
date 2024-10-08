@@ -61,9 +61,6 @@ u8 icsd_anc_v2_train_result_get(struct icsd_anc_v2_tool_data *TOOL_DATA)
         if (TOOL_DATA->anc_combination & ANC_TFB) {
             result |= ANC_ADAPTIVE_RESULT_LFB | ANC_ADAPTIVE_RESULT_RFB;
         }
-        if (TOOL_DATA->anc_combination & ANC_TCMP) {
-            result |= (ANC_ADAPTIVE_RESULT_LCMP | ANC_ADAPTIVE_RESULT_RCMP);
-        }
     }
     return result;
 }
@@ -101,6 +98,7 @@ void icsd_anc_v2_output(struct icsd_anc_v2_tool_data *_TOOL_DATA, u8 OUTPUT_STAT
         switch (OUTPUT_STATE) {
         case ANC_V2_OUTPUT_NORMAL://正常输出
             printf("\n\nANC_V2_OUTPUT_NORMAL\n");
+
 #if TCFG_USER_TWS_ENABLE
             printf("ANC_ADAPTIVE result :%s\n", anc_adaptive_result_str[_TOOL_DATA->result_l]);
 #else

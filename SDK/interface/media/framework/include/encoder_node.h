@@ -60,5 +60,6 @@ void encoder_plug_put_output_frame(void *_hdl, struct stream_frame *);
 void encoder_plug_free_frame(void *_hdl, struct stream_frame *);
 int encoder_plug_get_bit_width(void *_hdl);
 
+int encoder_plug_get_bit_width(void *_hdl);
 #endif
 

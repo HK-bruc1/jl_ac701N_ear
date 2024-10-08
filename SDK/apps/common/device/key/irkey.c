@@ -7,7 +7,7 @@
 #include "key_driver.h"
 #include "irkey.h"
 #include "gpio.h"
-#include "asm/irflt.h"
+#include "ir_decoder.h"
 #include "app_config.h"
 
 #if TCFG_IRKEY_ENABLE
@@ -31,7 +31,8 @@ u8 ir_get_key_value(void)
 {
     u8 tkey = 0xff;
     u8 key_value = 0xff;
-    tkey = get_irflt_value();
+    /* tkey = ir_decoder_get_command_value(); */
+    tkey = ir_decoder_get_command_value_uncheck();
     if (tkey == 0xff) {
         return tkey;
     }
@@ -69,7 +70,18 @@ int irkey_init(void)
     }
     printf("irkey_init ");
 
-    irflt_config(__this->port);
+    const struct gptimer_config ir_decode_config = {
+        .capture.filter = 0,//38000,
+        .capture.max_period = 110 * 1000, //110ms
+        .capture.port = PORTA,
+        .capture.pin = BIT(1),
+        .irq_cb = NULL,
+        .irq_priority = 3,
+        //根据红外模块的 idle 电平状态，选择边沿触发方式
+        .mode = GPTIMER_MODE_CAPTURE_EDGE_FALL,
+        /* .mode = GPTIMER_MODE_CAPTURE_EDGE_RISE, */
+    };
+    ir_decoder_init(&ir_decode_config); //红外信号接收IO_PORTA_O1
 
     ir_timeout_set();
 

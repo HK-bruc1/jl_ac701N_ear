@@ -62,6 +62,8 @@
 #define NODE_UUID_CAPTURE_SYNC      0xFF09
 #define NODE_UUID_SPDIF_MASTER      0x9412
 #define NODE_UUID_SWITCH            0x2357
+#define NODE_UUID_LOCAL_TWS_SOURCE  0xD45F
+#define NODE_UUID_LOCAL_TWS_SINK  	0x7303
 
 /*通话CVP子模块UUID*/
 #define NODE_UUID_AEC				0xA9CE
@@ -174,6 +176,8 @@
 
 #define NODE_UUID_UPMIX_2TO5               0XB542
 
-#define NODE_UUID_VIRTUAL_SURROUND_PRO     0X191f
+#define NODE_UUID_REPLACE                  0xb5e1
+#define NODE_UUID_SIGNAL_GENERATOR         0x225d
+#define NODE_UUID_REVERB                   0x24AB//混响V2
 
 #endif

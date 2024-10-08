@@ -24,6 +24,8 @@
 #include "rcsp_device_status.h"
 #include "JL_rcsp_protocol.h"
 #include "rcsp_config.h"
+#include "rcsp_ch_loader_download.h"
+#include "btstack_rcsp_user.h"
 #if RCSP_ADV_EN
 #include "rcsp_setting_opt.h"
 #endif
@@ -70,10 +72,7 @@ extern const int support_dual_bank_update_en;
 extern void ble_app_disconnect(void);
 extern void updata_parm_set(UPDATA_TYPE up_type, void *priv, u32 len);
 extern u8 check_le_pakcet_sent_finish_flag(void);
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
-// 获取当前ble连接设备的mac地址
-u8 *rcsp_get_ble_hdl_remote_mac_addr(u16 ble_con_handle);
+extern void rcsp_update_ancs_disconn_handler(void);
 
 static u8 update_flag = 0;
 static u8 tws_need_update = 0;             //标志耳机是否需要强制升级
@@ -314,8 +313,14 @@ u32 rcsp_update_status_response(void *priv, u8 status);
 u32 rcsp_update_data_read(void *priv, u32 offset_addr, u16 len);
 extern void rcsp_update_handle(u8 state, void *buf, int len);
 extern void rcsp_update_data_api_register(u32(*data_send_hdl)(void *priv, u32 offset, u16 len), u32(*send_update_handl)(void *priv, u8 state));
-extern void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms);
 extern void bt_ble_rcsp_adv_disable(void);
+
+#if RCSP_MODE == RCSP_MODE_EARPHONE
+extern void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms);
+#elif RCSP_MODE == RCSP_MODE_SOUNDBOX
+extern void bt_set_low_latency_mode(int enable);
+#endif
+
 void JL_resp_inquire_device_if_can_update(u8 OpCode, u8 OpCode_SN, u8 update_sta, u16 ble_con_handle, u8 *spp_remote_addr);
 void JL_rcsp_resp_dev_update_file_info_offest(u8 OpCode, u8 OpCode_SN, u16 ble_con_handle, u8 *spp_remote_addr);
 int JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
@@ -430,7 +435,12 @@ int JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 l
         break;
     case JL_OPCODE_ENTER_UPDATE_MODE:
         rcsp_printf("JL_OPCODE_ENTER_UPDATE_MODE\n");
+#if RCSP_MODE == RCSP_MODE_EARPHONE
         bt_set_low_latency_mode(0, 0, 0);
+#elif RCSP_MODE == RCSP_MODE_SOUNDBOX
+        bt_set_low_latency_mode(0);
+#endif
+
 #if TCFG_USER_TWS_ENABLE
         if (support_dual_bank_update_en && !tws_api_get_role()) {
 #else
@@ -762,8 +772,10 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
     printf("---%s --- %d   %d\n", __func__, __LINE__, event);
     switch (event) {
     case MSG_JL_DEV_DISCONNECT:
-        if (rcsp_send_list_is_empty() && check_ble_all_packet_sent()) {
-            rcsp_printf("MSG_JL_DEV_DISCONNECT\n");
+        rcsp_printf("MSG_JL_DEV_DISCONNECT\n");
+        static u8 wait_cnt = 0;
+        if ((10 == wait_cnt) || (rcsp_send_list_is_empty() && check_ble_all_packet_sent())) {
+            wait_cnt = 0;
             ble_app_disconnect();
             if (check_edr_is_disconnct()) {
                 puts("-need discon edr\n");
@@ -771,6 +783,7 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
             }
             ble_discon_timeout = sys_timeout_add(NULL, ble_discon_timeout_handle, 1000);
         } else {
+            wait_cnt++;
             wait_response_timeout = sys_timeout_add(NULL, wait_response_and_disconn_ble, 100);
         }
         break;
@@ -796,11 +809,16 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
         break;
 
     case MSG_JL_UPDATE_START:
+        rcsp_printf("MSG_JL_UPDATE_START\n");
+        static u8 update_wait_cnt = 0;
         // loader加载完成，开始进入loader升级
-        if (check_edr_is_disconnct()) {
+        if ((100 < update_wait_cnt) && check_edr_is_disconnct()) {
             rcsp_printf("b");
+            update_wait_cnt++;
             JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
             break;
+        } else {
+            update_wait_cnt = 0;
         }
 
         // 单备份的loader都是使用ble

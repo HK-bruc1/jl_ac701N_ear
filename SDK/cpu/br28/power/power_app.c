@@ -24,6 +24,7 @@
 static u32 usb_io_con = 0;
 void sleep_enter_callback()
 {
+    u32 value = 0xffff;
     putchar('<');
 
     //USB IO打印引脚特殊处理
@@ -32,14 +33,13 @@ void sleep_enter_callback()
     (TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_USB_COMM)) || \
     TCFG_USB_HOST_ENABLE || TCFG_PC_ENABLE
     usb_io_con = JL_USB_IO->CON0;
-#endif
-
 #if TCFG_CHARGESTORE_PORT == IO_PORT_DP
     //fix: 串口升级配了DP脚下拉唤醒，进低功耗的时候把DP拉低了又唤醒了，就一直没怎么进低功耗
-    gpio_close(PORTUSB, 0xfffe);
-#else
-    gpio_close(PORTUSB, 0xffff);
+    value &= ~BIT(0);
 #endif
+#endif
+
+    gpio_close(PORTUSB, value);
 }
 
 void sleep_exit_callback()

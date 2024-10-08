@@ -186,31 +186,33 @@ static void volume_ioc_start(struct volume_hdl *hdl)
     /*
        *获取在线调试的临时参数
        * */
-    u32 online_cfg_len = sizeof(struct volume_cfg) + DIGITAL_VOLUME_LEVEL_MAX * sizeof(float);
-    struct volume_cfg *online_vol_cfg = zalloc(online_cfg_len);
-    if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, online_vol_cfg, online_cfg_len)) {
-        /* printf("cfg_level_max = %d\n", online_vol_cfg->cfg_level_max); */
-        /* printf("cfg_vol_min = %d\n", online_vol_cfg->cfg_vol_min); */
-        /* printf("cfg_vol_max = %d\n", online_vol_cfg->cfg_vol_max); */
-        /* printf("vol_table_custom = %d\n", online_vol_cfg->vol_table_custom); */
-        /* printf("cur_vol = %d\n", online_vol_cfg->cur_vol); */
-        /* printf("tab_len = %d\n", online_vol_cfg->tab_len); */
-        hdl->vol_cfg-> cfg_vol_max =  online_vol_cfg->cfg_vol_max;
-        hdl->vol_cfg-> cfg_vol_min = online_vol_cfg->cfg_vol_min;
-        hdl->vol_cfg-> bypass = online_vol_cfg->bypass;
+    if (config_audio_cfg_online_enable) {
+        u32 online_cfg_len = sizeof(struct volume_cfg) + DIGITAL_VOLUME_LEVEL_MAX * sizeof(float);
+        struct volume_cfg *online_vol_cfg = zalloc(online_cfg_len);
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, online_vol_cfg, online_cfg_len)) {
+            /* printf("cfg_level_max = %d\n", online_vol_cfg->cfg_level_max); */
+            /* printf("cfg_vol_min = %d\n", online_vol_cfg->cfg_vol_min); */
+            /* printf("cfg_vol_max = %d\n", online_vol_cfg->cfg_vol_max); */
+            /* printf("vol_table_custom = %d\n", online_vol_cfg->vol_table_custom); */
+            /* printf("cur_vol = %d\n", online_vol_cfg->cur_vol); */
+            /* printf("tab_len = %d\n", online_vol_cfg->tab_len); */
+            hdl->vol_cfg-> cfg_vol_max =  online_vol_cfg->cfg_vol_max;
+            hdl->vol_cfg-> cfg_vol_min = online_vol_cfg->cfg_vol_min;
+            hdl->vol_cfg-> bypass = online_vol_cfg->bypass;
 #if VOL_TAB_CUSTOM_EN
-        if (hdl->vol_cfg->tab_len == online_vol_cfg->tab_len && hdl->vol_cfg->tab_len) {
-            for (int i = 0; i < hdl->vol_cfg->cfg_level_max ; i++) {//重新计算音量表的值
-                log_debug("custom dvol [%d] = %d / 100 dB", i, (int)(online_vol_cfg->vol_table[i] * 100));
-                float dvol_gain = eq_db2mag(online_vol_cfg->vol_table[i]);//dB转换倍数
-                hdl->vol_cfg->vol_table [i]  = (s16)(DVOL_MAX_FLOAT  * dvol_gain + 0.5f);
-                log_debug("custom dvol[%d] = %d", i, (int)online_vol_cfg->vol_table[i]);
+            if (hdl->vol_cfg->tab_len == online_vol_cfg->tab_len && hdl->vol_cfg->tab_len) {
+                for (int i = 0; i < hdl->vol_cfg->cfg_level_max ; i++) {//重新计算音量表的值
+                    log_debug("custom dvol [%d] = %d / 100 dB", i, (int)(online_vol_cfg->vol_table[i] * 100));
+                    float dvol_gain = eq_db2mag(online_vol_cfg->vol_table[i]);//dB转换倍数
+                    hdl->vol_cfg->vol_table [i]  = (s16)(DVOL_MAX_FLOAT  * dvol_gain + 0.5f);
+                    log_debug("custom dvol[%d] = %d", i, (int)online_vol_cfg->vol_table[i]);
+                }
             }
-        }
 #endif
-        log_debug("get volume online param\n");
+            log_debug("get volume online param\n");
+        }
+        free(online_vol_cfg);
     }
-    free(online_vol_cfg);
     hdl->bypass = vol_cfg->bypass;
     switch (hdl->scene) {
     case STREAM_SCENE_TONE:
@@ -257,6 +259,7 @@ static void volume_ioc_start(struct volume_hdl *hdl)
     case STREAM_SCENE_HEARING_AID:
     case STREAM_SCENE_MIC_EFFECT2:
     case STREAM_SCENE_LE_AUDIO:
+    case STREAM_SCENE_LOCAL_TWS:
         /*puts("set_a2dp_volume\n");*/
         hdl->state = APP_AUDIO_STATE_MUSIC;
         params.vol        = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);

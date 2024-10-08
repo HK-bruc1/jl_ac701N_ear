@@ -26,7 +26,7 @@ extern "C" {
 #include "ble_qiot_config.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if BLE_QIOT_LLSYNC_STANDARD
 
@@ -353,7 +353,7 @@ end:
 
 #endif  // BLE_QIOT_LLSYNC_STANDARD
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

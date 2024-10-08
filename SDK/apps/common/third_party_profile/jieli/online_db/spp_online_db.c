@@ -18,6 +18,7 @@
 #include "classic/tws_api.h"
 #include "cfg_tool.h"
 #include "app_ble_spp_api.h"
+#include "app_main.h"
 
 #if (TCFG_ANC_TOOL_DEBUG_ONLINE && TCFG_AUDIO_ANC_ENABLE)
 #include "app_anctool.h"
@@ -46,7 +47,16 @@ static u8 spp_state;
 void tws_online_spp_send(u8 cmd, u8 *_data, u16 len, u8 tx_do_action);
 int online_spp_send_data(u8 *data, u16 len)
 {
-    return app_spp_data_send(online_debug_spp_hdl, data, len);
+#if TCFG_USER_TWS_ENABLE
+    // TWS 从机不需要回复
+    printf("online_spp_send_data role:%d\n", tws_api_get_role());
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        printf("online_spp slave dont send\n");
+        return -1;
+    }
+#endif
+    int ret = app_spp_data_send(online_debug_spp_hdl, data, len);
+    return ret;
 }
 
 int online_spp_send_data_check(u16 len)
@@ -65,6 +75,7 @@ static void online_spp_state_cbk(void *hdl, void *remote_addr, u8 state)
     switch (state) {
     case SPP_USER_ST_CONNECT:
         log_info("SPP_USER_ST_CONNECT ~~~\n");
+        app_spp_set_filter_remote_addr(online_debug_spp_hdl, remote_addr);
         tws_online_spp_send(ONLINE_SPP_CONNECT, &state, 1, 1);
         break;
 
@@ -92,6 +103,12 @@ static void online_spp_recieve_cbk(void *hdl, void *remote_addr, u8 *buf, u16 le
     tws_online_spp_send(ONLINE_SPP_DATA, buf, len, 1);
 }
 
+#define ONLINE_SPP_HDL_UUID \
+	(((u8)('O' + 'N') << (3 * 8)) | \
+	 ((u8)('L' + 'I' + 'N' + 'E') << (2 * 8)) | \
+	 ((u8)('S' + 'P' + 'P') << (1 * 8)) | \
+	 ((u8)('H' + 'D' + 'L') << (0 * 8)))
+
 void online_spp_init(void)
 {
     log_info("spp_file: %s", __FILE__);
@@ -104,6 +121,7 @@ void online_spp_init(void)
             return;
         }
     }
+    app_spp_hdl_uuid_set(online_debug_spp_hdl, ONLINE_SPP_HDL_UUID);
     app_spp_recieve_callback_register(online_debug_spp_hdl, online_spp_recieve_cbk);
     app_spp_state_callback_register(online_debug_spp_hdl, online_spp_state_cbk);
     app_spp_wakeup_callback_register(online_debug_spp_hdl, online_spp_send_wakeup);
@@ -152,16 +170,9 @@ static void tws_online_spp_in_task(u8 *data)
         }
 #endif
 #if TCFG_CFG_TOOL_ENABLE
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
         cfg_tool_combine_rx_data(&data[4], data_len);
         free(data);
         return;
-#else
-        if (!online_cfg_tool_data_deal(&data[4], data_len)) {
-            free(data);
-            return;
-        }
-#endif
 #endif
         db_api->packet_handle(&data[4], data_len);
 
@@ -204,6 +215,39 @@ REGISTER_TWS_FUNC_STUB(tws_online_spp_player_stub) = {
     .func_id = 0x096A5E82,
     .func = tws_online_spp_data_in_irq,
 };
+
+// TWS 配对成功需要同步spp连接状态
+static int online_debug_tws_status_event_handler(int *msg)
+{
+    struct tws_event *evt = (struct tws_event *)msg;
+    u8 role = evt->args[0];
+    u8 state;
+    log_info("online debug tws status callback 0x%x role:%x\n", evt->event, role);
+    switch (evt->event) {
+    case TWS_EVENT_CONNECTED:
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            if (db_get_active_state() == DB_COM_TYPE_SPP) {
+                log_info("send spp connection to slave\n");
+                state = SPP_USER_ST_CONNECT;
+                tws_online_spp_send(ONLINE_SPP_CONNECT, &state, 1, 0);
+            }
+        }
+        break;
+    case TWS_EVENT_PHONE_LINK_DETACH:
+        break;
+    case TWS_EVENT_CONNECTION_DETACH:
+        break;
+    case TWS_EVENT_ROLE_SWITCH:
+        break;
+    }
+    return 0;
+}
+
+APP_MSG_HANDLER(online_debug_tws_msg_handler_stub) = {
+    .owner      = 0xff,
+    .from       = MSG_FROM_TWS,
+    .handler    = online_debug_tws_status_event_handler,
+};
 #endif
 
 void tws_online_spp_send(u8 cmd, u8 *_data, u16 len, u8 tx_do_action)
@@ -214,6 +258,11 @@ void tws_online_spp_send(u8 cmd, u8 *_data, u16 len, u8 tx_do_action)
     little_endian_store_16(data, 2, len);
     memcpy(data + 4, _data, len);
 #if TCFG_USER_TWS_ENABLE
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        // TWS 从机不需要同步给主机
+        tws_online_spp_in_task(data);
+        return;
+    }
     int err = tws_api_send_data_to_sibling(data, len + 4, 0x096A5E82);
     if (err) {
         tws_online_spp_in_task(data);

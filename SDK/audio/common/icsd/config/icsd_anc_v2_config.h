@@ -2,6 +2,7 @@
 #define _ANC_V2_CONFIG_H
 
 extern const u8 ICSD_EP_TYPE_V2;
+extern const u8 ICSD_ANC_TOOL_PRINTF;
 extern const int FF_objFunc_type;
 extern const float target_cmp_dat[];
 extern const u8 ICSD_ANC_V2_BYPASS_ON_FIRST;
@@ -51,8 +52,8 @@ extern const int ICSD_CMP_IIR_COEF;
 extern const float CMP_FSTOP_IDX;
 extern const float CMP_FSTOP_IDX2;
 extern const int   CMP_objFunc_type;
-
-
+extern const u8 msedif_en;
+extern const u8 target_diff_en;
 //
 extern const float pz_table[];
 extern const float sz_table[];
@@ -83,6 +84,12 @@ struct icsd_anc_v2_tool_data {
     float *data_out13;//float *tool_target_out_l;
     float *data_out14;//float *tool_target_out_r;
     float *wz_temp;
+
+    float *target_before_cmp_l;
+    float *target_before_cmp_r;
+    float *cmp_form_anc_train_l;
+    float *cmp_form_anc_train_r;
+
     u8 *lff_iir_type;
     u8 *lfb_iir_type;
     u8 *lcmp_iir_type;

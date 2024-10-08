@@ -122,6 +122,14 @@ void rcsp_config(struct RcspModel *rcspModel);
 struct RcspModel *rcsp_handle_get(void);
 u8 get_defalut_bt_channel_sel(void);
 u8 get_curr_platform(void);
+/**
+ * @brief 动态设置rcsp的认证
+ */
+void rcsp_set_auth_support_en(u8 en);
+/**
+ * @brief 获取rcsp的认证
+ */
+u8 rcsp_get_auth_support();
 
 #endif // __RCSP_CONFIG_H__
 

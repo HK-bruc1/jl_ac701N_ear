@@ -84,7 +84,6 @@ void rcsp_protocol_set_bound_hdl(JL_rcsp_bound_hdl *hdl, JL_rcsp_bound_hdl *hdl1
  */
 void rcsp_protocol_get_bound_hdl(JL_rcsp_bound_hdl *hdl, JL_rcsp_bound_hdl *hdl1);
 
-extern u32 rcsp_fw_ready(void);
 extern u32 rcsp_protocol_need_buf_size(void);
 
 extern void JL_protocol_init(u8 *buf, u32 len);

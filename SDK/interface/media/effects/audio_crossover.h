@@ -17,6 +17,7 @@ typedef struct _CrossOverParam_TOOL_SET {
 
 //分频器 crossover:
 typedef struct _CrossOverParam_EFF_TOOL_SET {
+    int is_bypass;     //打开时，只通过低频端口做输出，输出全频的信号,其余端口输出0数据
     CrossOverUpdateParam parm;
 } crossover_param_tool_set;
 

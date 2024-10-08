@@ -13,6 +13,36 @@
 #define ICSD_DRPPNT   	10// 0,46,92,138,184
 #define ICSD_FLEN 		((ICSD_TARLEN+ICSD_TARLEN_L-ICSD_DRPPNT)/2)  //96
 
+struct icsd_anc_buf {
+    float Wz_fd_init[ICSD_FLEN * 2];
+    float Wz_fd_g[ICSD_FLEN * 2];
+    float perfm[ICSD_FLEN];
+    float mse[ICSD_FLEN * 2];
+    float a_fd[ICSD_FLEN * 2];
+    float b_fd[ICSD_FLEN * 2];
+    float fitness_sv[60];
+    float biquad_coef_g[25];
+    float biquad_coef_co_g[25];
+    float biquad_coef_List_i[SWARM_NUM][25];
+};
+
+struct icsd_De_param {
+    float Vrange[50];
+    float target[ICSD_FLEN * 2];
+    float weight[ICSD_FLEN];
+    float exp_w1[ICSD_FLEN * 2];
+    float exp_w2[ICSD_FLEN * 2];
+    float biquad_init_lcl[25];
+    int fstop_idx1;
+    int fstop_idx2;
+    int iter_max;
+    int iir_coef;
+    int iir_num;
+    int ObjFunc_type;
+    int type_anc[8];
+    float mse_tar[ICSD_FLEN];
+};
+
 typedef struct icsd_nmss_config_inst {
     int flex_seq[6];
     int n;
@@ -50,6 +80,10 @@ extern float icsd_pow10(float n);
 extern float icsd_cos_hq(float x);
 extern float icsd_sin_hq(float x);
 extern void  icsd_complex_div(float *input1, float *input2, float *out, int len);
+extern void  icsd_biquad2ab_double(float gain, float f, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, int type);
+extern void  icsd_DeAlorithm(struct icsd_De_param *e_param, float *biquad_coef_best, float *fitness, int iir_dim, int swarm_num, int flen, struct icsd_anc_buf *_ANC_BUF);
+extern void  icsd_calObjFitness(float *biquad_coef, int flen, struct icsd_De_param *de_param, float *fitness, struct icsd_anc_buf *_ANC_BUF);
+extern void  icsd_nmss_music_cmp(float *xfix, icsd_nmss_conf *nmss_config, struct icsd_De_param *de_param, int flen, int iir_num, float *nmss_out, struct icsd_anc_buf *_ANC_BUF);
 
 
 extern void  icsd_FFT_radix1024(int *in, int *out);
@@ -60,7 +94,6 @@ extern void  icsd_common_version();
 
 
 
-extern float abs_float(float f);
 extern void HanningWin_pwr(s16 *input, int *output, int len);
 extern void FFT_radix1024(int *in_cur, int *out);
 extern void FFT_radix256(int *in_cur, int *out);
@@ -87,7 +120,7 @@ extern void complex_muln_2(float *input1, float *input2, float *input3, float *o
 extern void complex_div(float *input1, float *input2, float *out, int len);
 extern void biquad2ab(float gain, float f, float q, float *a0, float *a1, float *a2, float *b0, float *b1, float *b2, int type);
 extern void biquad2ab_double(float gain, float f, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, int type);
-extern void icsd_biquad2ab_out(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, int type);
+extern void icsd_biquad2ab_out_v1(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, int type);
 extern void biquad2ab_double_pn(float gain, float f, float q, double *a0, double *a1, double *a2,
                                 double *b0, double *b1, double *b2, int type);
 

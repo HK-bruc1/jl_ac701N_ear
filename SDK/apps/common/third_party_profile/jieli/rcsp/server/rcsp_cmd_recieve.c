@@ -41,7 +41,7 @@
 #include "asm/debug_record.h"
 #endif
 
-#include "fs/sdfile.h"
+#include "fs/resfile.h"
 
 ////<<<<<<<<APP 下发命令响应处理
 #if (RCSP_MODE)
@@ -352,7 +352,7 @@ static void find_device_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u1
 
 #endif // RCSP_ADV_FIND_DEVICE_ENABLE
 
-#define RES_MD5_FILE	SDFILE_RES_ROOT_PATH"md5.bin"
+#define RES_MD5_FILE	FLASH_RES_PATH"md5.bin"
 static void get_md5_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -360,21 +360,21 @@ static void get_md5_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 le
         return ;
     }
     u8 md5[32] = {0};
-    FILE *fp = fopen(RES_MD5_FILE, "r");
+    RESFILE *fp = resfile_open(RES_MD5_FILE);
     if (!fp) {
         JL_CMD_response_send(OpCode, JL_PRO_STATUS_FAIL, OpCode_SN, NULL, 0, ble_con_handle, spp_remote_addr);
         return;
     }
-    u32 r_len = fread((void *)md5, 32, 1, fp);
+    u32 r_len = resfile_read(fp, (void *)md5, 32);
     if (r_len != 32) {
         JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, NULL, 0, ble_con_handle, spp_remote_addr);
-        fclose(fp);
+        resfile_close(fp);
         return;
     }
     /* rcsp_printf("get [md5] succ:"); */
     /* rcsp_put_buf(md5, 32); */
     JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, md5, 32, ble_con_handle, spp_remote_addr);
-    fclose(fp);
+    resfile_close(fp);
 }
 
 static void get_low_latency_param(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)

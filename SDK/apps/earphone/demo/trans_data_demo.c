@@ -20,7 +20,7 @@
 #include "bt_common.h"
 
 
-#if (BT_AI_SEL_PROTOCOL & TRANS_DATA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TRANS_DATA_EN)
 
 #define LOG_TAG             "[TRANS_DATA]"
 #define LOG_ERROR_ENABLE

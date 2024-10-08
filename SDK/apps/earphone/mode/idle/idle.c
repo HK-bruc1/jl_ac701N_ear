@@ -13,7 +13,6 @@
 #include "asm/charge.h"
 #include "app_charge.h"
 #include "app_main.h"
-#include "led/led_ui_manager.h"
 #include "vm.h"
 #include "app_chargestore.h"
 #include "app_testbox.h"
@@ -21,6 +20,9 @@
 #include "key/key_driver.h"
 #include "audio_config.h"
 #include "app_default_msg_handler.h"
+#include "pwm_led/led_ui_api.h"
+
+
 #if TCFG_SMART_VOICE_ENABLE
 #include "smart_voice.h"
 #endif
@@ -40,6 +42,11 @@
 #include "debug.h"
 
 
+static void wait_led_ui_stop_timeout(void *p)
+{
+    app_send_message(APP_MSG_SOFT_POWEROFF, 0);
+}
+
 
 static void app_idle_enter_softoff(void)
 {
@@ -48,6 +55,13 @@ static void app_idle_enter_softoff(void)
     if (get_lvcmp_det() && (0 == get_charge_full_flag())) {
         log_info("charge inset, system reset!\n");
         cpu_reset();
+    }
+#endif
+
+#if TCFG_PWMLED_ENABLE
+    if (!led_ui_state_is_idle()) {
+        sys_timeout_add(NULL, wait_led_ui_stop_timeout, 50);
+        return;
     }
 #endif
 
@@ -61,15 +75,10 @@ static void app_idle_enter_softoff(void)
 }
 
 
-void app_power_off(void *priv)
-{
-    app_idle_enter_softoff();
-}
-
 static int app_power_off_tone_cb(void *priv, enum stream_event event)
 {
     if (event == STREAM_EVENT_STOP) {
-        app_idle_enter_softoff();
+        app_send_message(APP_MSG_SOFT_POWEROFF, 0);
     }
     return 0;
 }
@@ -92,8 +101,7 @@ static int idle_mode_enter(int param)
             printf("power_off tone play ret:%d", ret);
             if (ret) {
                 if (app_var.goto_poweroff_flag) {
-                    log_info("power_off tone play err,enter soft poweroff");
-                    app_idle_enter_softoff();
+                    app_send_message(APP_MSG_SOFT_POWEROFF, 0);
                 }
             }
         }
@@ -106,7 +114,7 @@ static int idle_mode_enter(int param)
                 vm_flush2flash(1);
             }
             os_taskq_flush();
-            app_idle_enter_softoff();
+            app_send_message(APP_MSG_SOFT_POWEROFF, 0);
         }
         break;
     case IDLE_MODE_WAIT_POWEROFF:
@@ -128,6 +136,11 @@ int idle_app_msg_handler(int *msg)
 
     switch (msg[0]) {
     case APP_MSG_POWER_OFF:
+        break;
+    case APP_MSG_SOFT_POWEROFF:
+        if (app_var.goto_poweroff_flag) {
+            app_idle_enter_softoff();
+        }
         break;
     default:
         break;

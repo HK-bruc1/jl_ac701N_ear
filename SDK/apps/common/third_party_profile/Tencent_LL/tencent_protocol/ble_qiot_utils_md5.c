@@ -31,7 +31,7 @@ extern "C" {
 
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 /* Implementation that should never be optimized out by the compiler */
 static void _utils_md5_zeroize(void *v, size_t n)
@@ -307,7 +307,7 @@ void utils_md5(const unsigned char *input, unsigned int ilen, unsigned char outp
     utils_md5_free(&ctx);
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

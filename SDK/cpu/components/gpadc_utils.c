@@ -28,6 +28,9 @@ float adc_value_update(enum AD_CH ch, float adc_value_old, float adc_value_new) 
 
 void adc_init(void) //adc初始化
 {
+    if (adc_queue[0].sample_period) { //避免重复初始化adc
+        return;
+    }
     adc_close();
     adc_hw_init();
 }

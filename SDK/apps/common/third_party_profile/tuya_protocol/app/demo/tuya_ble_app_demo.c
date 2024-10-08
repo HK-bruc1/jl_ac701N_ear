@@ -28,7 +28,7 @@
 #define TUYA_BLE_PROTOCOL_VERSION_HIGN   0x04
 #endif
 
-#if (BT_AI_SEL_PROTOCOL&TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL&TUYA_DEMO_EN)
 
 extern tuya_ble_parameters_settings_t tuya_ble_current_para;
 
@@ -906,7 +906,7 @@ void tuya_ble_app_init(void)
     //printf("demo project version : "TUYA_BLE_DEMO_VERSION_STR);
     printf("app version : "TY_APP_VER_STR);
 }
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 
 int get_triple_info_result()
 {

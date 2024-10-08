@@ -217,7 +217,7 @@ static void tws_tone_play_in_task(struct tws_tone_message *msg)
     if (msg->scene == STREAM_SCENE_RING) {
         ring_player_start(&player->player);
     } else {
-        if (!tone_player_runing()) {
+        if (!tone_player_runing() || player->player.coexist == STREAM_COEXIST_DISABLE) {
             tone_player_add(&player->player);
             g_tws_tone_adding = 0;
         } else {

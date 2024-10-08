@@ -86,6 +86,7 @@ enum {
     FS_IOCTL_INSERT_FILE, //插入文件
     FS_IOCTL_DIVISION_FILE, //分割文件
     FS_IOCTL_STORE_CLUST_RANG, //存储CLUST_RANG 信息
+    FS_IOCTL_GET_RSV_INFO,  //获取预留区域和fat表2的信息
 };
 
 
@@ -1065,6 +1066,14 @@ struct vfs_devinfo {
     void *private_data;
 };
 
+typedef struct {
+    void *p;
+} FILE;
+
+struct vfscan {
+    void *p;
+};
+
 #endif  /* #if (VFS_ENABLE == 1) */
 
 //*********************************************************************************//
@@ -1117,6 +1126,21 @@ int Unicode2UTF8(char *utf8_buf, u16 *pUniBuf, int uni_len);
  */
 /* ----------------------------------------------------------------------------*/
 bool utf8_check(const char *str, int length);
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief 获取文件系统中预留区域和fat表2的信息
+ *
+ * @param path 相关分区的路径 “storage/sd0/C”
+ * @param rsv_addr 预留区域地址
+ * @param rsv_len 预留区域长度
+ * @param fat2_addr fat2的地址
+ * @param fat2_len fat2的长度
+ *
+ * @return  0 表示成功 , 其他 表示失败
+ */
+/* ----------------------------------------------------------------------------*/
+int fget_rsv_info(const char *path, int *rsv_addr, int *rsv_len, int *fat2_addr, int *fat2_len);
 
 #endif /* #ifndef __FS_H__ */
 

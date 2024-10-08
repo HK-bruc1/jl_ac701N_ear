@@ -5,7 +5,6 @@
 #pragma code_seg(".key_driver.text")
 #endif
 #include "system/timer.h"
-#include "asm/timer.h"
 #include "asm/power_interface.h"
 #include "key_driver.h"
 

@@ -13,7 +13,6 @@
 #include "rcsp_setting_opt.h"
 
 #include "ui_manage.h"
-#include "asm/pwm_led.h"
 #include "color_led_app.h"
 #define IS_COLOR_LED_LEGAL(color_led) \
 	((color_led.open_status <= 2) && \

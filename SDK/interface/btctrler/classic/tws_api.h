@@ -30,6 +30,7 @@
 #define TWS_STA_MONITOR_START               0x00004000
 #define TWS_STA_HAVE_PAGE_INFO              0x00008000
 #define TWS_STA_LE_AUDIO_CONNECTED          0x00010000
+#define TWS_STA_LE_AUDIO_PLAYING            0x00020000
 
 #define TWS_SYNC_CALL_TX                1
 #define TWS_SYNC_CALL_RX                2
@@ -295,4 +296,6 @@ void tws_api_set_quick_rxtx_time(u16 time_msec);
 void tws_api_cancel_search_sibling(void);
 extern u32 tws_conn_get_mclkn(u32 *timebase);
 extern int bredr_clkn2offset(int clkn_begin, int clkn_end);
+
+u32 bt_audio_reference_clock_time(u8 network);
 #endif

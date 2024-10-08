@@ -25,7 +25,7 @@ const int audio_eq_core_sel = 1;
 const int audio_eq_core_sel = 0;
 #endif
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 
 #define   mSECTION_MAX   eq_get_table_nsection(eq_mode)
 #define EQ_FADE_TIME 10   //新版sdk该宏定义只是本文件内eq淡入更新系数相关应用的使能位，旧版本则是更新系数timer的运行周期单位ms

@@ -12,16 +12,16 @@
 // ------------提示音宏定义------------
 #define TCFG_TONE_EN_ENABLE 1
 #define TCFG_TONE_ZH_ENABLE 0
-#define TCFG_DEC_AAC_ENABLE 0 // AAC
-#define TCFG_DEC_F2A_ENABLE 0 // F2A
-#define TCFG_DEC_MP3_ENABLE 0 // MP3
-#define TCFG_DEC_MSBC_ENABLE 0 // MSBC
-#define TCFG_DEC_MTY_ENABLE 0 // MTY
-#define TCFG_DEC_SBC_ENABLE 0 // SBC
-#define TCFG_DEC_SIN_ENABLE 1 // SIN
-#define TCFG_DEC_WAV_ENABLE 0 // WAV
-#define TCFG_DEC_WTG_ENABLE 1 // WTG
-#define TCFG_DEC_WTS_ENABLE 0 // WTS
+#define TCFG_TONE_AAC_ENABLE 0 // AAC
+#define TCFG_TONE_F2A_ENABLE 0 // F2A
+#define TCFG_TONE_MP3_ENABLE 0 // MP3
+#define TCFG_TONE_MSBC_ENABLE 0 // MSBC
+#define TCFG_TONE_MTY_ENABLE 0 // MTY
+#define TCFG_TONE_SBC_ENABLE 0 // SBC
+#define TCFG_TONE_SIN_ENABLE 1 // SIN
+#define TCFG_TONE_WAV_ENABLE 0 // WAV
+#define TCFG_TONE_WTG_ENABLE 0 // WTG
+#define TCFG_TONE_WTS_ENABLE 1 // WTS
 // ------------提示音宏定义------------
 
 // ------------流程图宏定义------------
@@ -55,7 +55,10 @@
 #define TCFG_DAC_NODE_ENABLE 1 // DAC
 #define TCFG_DATA_EXPORT_NODE_ENABLE 0 // data export
 #define TCFG_DNS_NODE_ENABLE 0 // DNS Noise Suppressor
+#define TCFG_DYNAMIC_EQ_EXT_DETECTOR_NODE_ENABLE 0 // Dynamic EQ  Ext Detector
 #define TCFG_DYNAMIC_EQ_NODE_ENABLE 0 // Dynamic EQ
+#define TCFG_DYNAMIC_EQ_PRO_EXT_DETECTOR_NODE_ENABLE 0 // Dynamic EQ  Pro Ext Detector
+#define TCFG_DYNAMIC_EQ_PRO_NODE_ENABLE 0 // Dynamic EQ Pro
 #define TCFG_ECHO_NODE_ENABLE 0 // Echo
 #define TCFG_EFFECT_DEV0_NODE_ENABLE 0 // EffectDev0
 #define TCFG_EFFECT_DEV1_NODE_ENABLE 0 // EffectDev1
@@ -69,15 +72,19 @@
 #define TCFG_FREQUENCY_SHIFT_HOWLING_NODE_ENABLE 0 // Frequency Shift
 #define TCFG_GAIN_NODE_ENABLE 0 // Gain
 #define TCFG_HARMONIC_EXCITER_NODE_ENABLE 0 // Harmonic Exciter
-#define TCFG_IIS_NODE_ENABLE 0 // IIS
-#define TCFG_INDICATOR_NODE_ENABL 0 // Indicator
+#define TCFG_IIS_NODE_ENABLE 0 // IIS0_RX、IIS0_TX
+#define TCFG_INDICATOR_NODE_ENABLE 0 // Indicator
 #define TCFG_KEY_TONE_NODE_ENABLE 1 // 按键音
+#define TCFG_LE_AUDIO_SOURCE_NODE_ENABLE 0 // LE_Audio_Source
 #define TCFG_LIMITER_NODE_ENABLE 0 // Limiter
 #define TCFG_LLNS_NODE_ENABLE 0 // LLNS
-#define TCFG_MIXER_NODE_ENABLE 1 // MIXER
+#define TCFG_MIXER_NODE_ENABLE 0 // MIXER
 #define TCFG_MULTI_BAND_DRC_NODE_ENABLE 0 // MDRC
 #define TCFG_MULTI_BAND_LIMITER_NODE_ENABLE 0 // MB Limiter
+#define TCFG_MULTI_CH_IIS_NODE_ENABLE 0 // MULTI CH IIS0 TX
+#define TCFG_MULTI_CH_IIS_RX_NODE_ENABLE 0 // MULTI CH IIS0 RX
 #define TCFG_NOISEGATE_NODE_ENABLE 0 // NoiseGate
+#define TCFG_NOISEGATE_PRO_NODE_ENABLE 0 // NoiseGate Pro
 #define TCFG_NOTCH_HOWLING_NODE_ENABLE 0 // Howling Suppress
 #define TCFG_NS_NODE_ENABLE 0 // Noise Suppressor
 #define TCFG_PCM_DELAY_NODE_ENABLE 0 // PCM Delay
@@ -85,7 +92,9 @@
 #define TCFG_PLATE_REVERB_ADVANCE_NODE_ENABLE 0 // Plate Reverb Advance
 #define TCFG_PLATE_REVERB_NODE_ENABLE 0 // Plate Reverb
 #define TCFG_PLC_NODE_ENABLE 1 // 丢包修复PLC
+#define TCFG_REPLACE_NODE_ENABLE 0 // Replace
 #define TCFG_RING_TONE_NODE_ENABLE 1 // 铃声
+#define TCFG_SIGNAL_GENERATOR_NODE_ENABLE 0 // SignalGen
 #define TCFG_SINK_DEV0_NODE_ENABLE 0 // Sink_Dev0
 #define TCFG_SINK_DEV1_NODE_ENABLE 0 // Sink_Dev1
 #define TCFG_SINK_DEV2_NODE_ENABLE 0 // Sink_Dev2
@@ -103,16 +112,18 @@
 #define TCFG_STEROMIX_NODE_ENABLE 0 // SteroMix
 #define TCFG_SURROUND_DEMO_NODE_ENABLE 0 // Surround Demo、环绕音demo
 #define TCFG_SURROUND_NODE_ENABLE 0 // Surround Effect
+#define TCFG_SWITCH_NODE_ENABLE 0 // Switch
 #define TCFG_THREE_D_EFFECT_NODE_ENABLE 0 // ThreeD
 #define TCFG_TONE_NODE_ENABLE 1 // 提示音
 #define TCFG_UART_NODE_ENABLE 0 // 串口打印
 #define TCFG_VBASS_NODE_ENABLE 0 // Virtual Bass
+#define TCFG_VOCAL_REMOVER_NODE_ENABLE 0 // Vocal Remover
 #define TCFG_VOCAL_TRACK_SEPARATION_NODE_ENBALE 0 // 声道拆分
 #define TCFG_VOCAL_TRACK_SYNTHESIS_NODE_ENABLE 0 // 声道组合
 #define TCFG_VOICE_CHANGER_ADV_NODE_ENABLE 0 // Voice Changer Adv
 #define TCFG_VOICE_CHANGER_NODE_ENABLE 0 // Voice Changer
 #define TCFG_WDRC_NODE_ENABLE 0 // DRC
-#define EQ_SECTION_MAX 0xa // EQ_SECTION_MAX
+#define EQ_SECTION_MAX 0xc // EQ_SECTION_MAX
 // ------------流程图宏定义------------
 #endif
 

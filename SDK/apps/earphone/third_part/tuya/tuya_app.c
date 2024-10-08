@@ -6,7 +6,7 @@
 #endif
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
 
 #include "earphone.h"
 #include "app_main.h"

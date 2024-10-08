@@ -12,7 +12,6 @@
 #include "inv_imu_defs.h"
 #include "inv_imu_driver.h"
 #include "imuSensor_manage.h"
-#include "asm/timer.h"
 #include "clock.h"
 /* #include "inv_imu_extfunc.h" */
 /* #include "inv_imu_regmap.h" */
@@ -46,7 +45,6 @@ u32 icm42670p_I2C_Read_NBytes(unsigned char devAddr,
                               u32 readLen)
 {
     u32 i = 0;
-    local_irq_disable();
     iic_start(icm42670p_info->iic_hdl);
     if (0 == iic_tx_byte(icm42670p_info->iic_hdl, devAddr)) {
         log_error("icm42670p iic read err1");
@@ -76,7 +74,6 @@ u32 icm42670p_I2C_Read_NBytes(unsigned char devAddr,
     }
 __iic_exit_r:
     iic_stop(icm42670p_info->iic_hdl);
-    local_irq_enable();
 
     return i;
 }
@@ -89,7 +86,6 @@ u32 icm42670p_I2C_Write_NBytes(unsigned char devAddr,
                                u32 writeLen)
 {
     u32 i = 0;
-    local_irq_disable();
     iic_start(icm42670p_info->iic_hdl);
     if (0 == iic_tx_byte(icm42670p_info->iic_hdl, devAddr)) {
         log_error("icm42670p iic write err1");
@@ -110,7 +106,6 @@ u32 icm42670p_I2C_Write_NBytes(unsigned char devAddr,
     }
 __iic_exit_w:
     iic_stop(icm42670p_info->iic_hdl);
-    local_irq_enable();
     return i;
 }
 IMU_read    icm42670p_read     = icm42670p_I2C_Read_NBytes;

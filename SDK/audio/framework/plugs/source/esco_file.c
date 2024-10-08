@@ -11,6 +11,7 @@
 #include "reference_time.h"
 #include "system/timer.h"
 
+#define ESCO_DISCONNECTED_FILL_PACKET_NUMBER    5 //esco 链路断开时，补包的数量
 
 struct esco_file_hdl {
     u8 start;
@@ -19,6 +20,7 @@ struct esco_file_hdl {
     u8 first_timestamp;
     u8 frame_time;
     u8 reference;
+    u8 fill_packet_num; //记录断连时的补包数量
     u16 timer;
     u32 clkn;
     u32 coding_type;
@@ -91,14 +93,18 @@ static enum stream_node_state esco_get_frame(void *_hdl, struct stream_frame **_
         if (check_esco_conn_exist(hdl->bt_addr)) {
             return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
         } else { //esco链路已经关闭，补丢包数据进行淡出。
-            len = hdl->frame_time == 12 ? 60 : 30;
-            frame_clkn = hdl->clkn + hdl->frame_time;
-            if (hdl->timer) {
-                int timeout = ((hdl->frame_time + 1) * 625) / 1000 - 1;
-                sys_hi_timer_modify(hdl->timer, timeout);
+            if (hdl->fill_packet_num < ESCO_DISCONNECTED_FILL_PACKET_NUMBER) {
+                len = hdl->frame_time == 12 ? 60 : 30;
+                frame_clkn = hdl->clkn + hdl->frame_time;
+                if (hdl->timer) {
+                    int timeout = ((hdl->frame_time + 1) * 625) / 1000 - 1;
+                    sys_hi_timer_modify(hdl->timer, timeout);
+                }
+                hdl->fill_packet_num ++;
+            } else {
+                return NODE_STA_RUN | NODE_STA_DEC_END;
             }
         }
-        /* return NODE_STA_RUN | NODE_STA_DEC_END; */
     }
     frame = jlstream_get_frame(hdl->node->oport, len);
     frame->len = len;
@@ -231,6 +237,7 @@ static int esco_ioctl(void *_hdl, int cmd, int arg)
         }
         break;
     case NODE_IOC_START:
+        hdl->fill_packet_num = 0;
         esco_stop_abandon_data(hdl);
         lmp_esco_set_rx_notify(hdl->bt_addr, hdl, esco_packet_rx_notify);
         esco_file_timestamp_setup(hdl);

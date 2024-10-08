@@ -33,14 +33,16 @@
 #include "asm/anc.h"
 #include "icsd_anc_v2_interactive.h"
 #include "anc_ext_tool.h"
+#include "icsd_common_v2_app.h"
 
 //#define ICSD_ANC_MODE     				HEADSET_4CH_TONE_BYPASS_PZ	//TWS_TONE_BYPASS_MODE
 #define ANC_ADAPTIVE_FF_ORDER			10	    	/*ANC自适应FF滤波器阶数, 原厂指定*/
 #define ANC_ADAPTIVE_FB_ORDER			5			/*ANC自适应FB滤波器阶数，原厂指定*/
-#define ANC_ADAPTIVE_CMP_ORDER			8			/*ANC自适应CMP滤波器阶数，原厂指定*/
+#define ANC_ADAPTIVE_CMP_ORDER			6			/*ANC自适应CMP滤波器阶数，原厂指定*/
 #define ANC_ADAPTIVE_RECORD_FF_ORDER	10  		/*ANC自适应耳道记忆FF滤波器阶数，原厂指定*/
 #define ANC_EARPHONE_CHECK_EN           0
-#define ANC_ADAPTIVE_CMP_EN             0 			//自适应CMP补偿
+#define ANC_ADAPTIVE_CMP_EN             1 			//自适应CMP补偿
+#define ANC_ADAPTIVE_FB_EN				0 			//自适应FB 使能（待开发）
 #define ANC_ADAPTIVE_TONE_DELAY	        700//900
 
 

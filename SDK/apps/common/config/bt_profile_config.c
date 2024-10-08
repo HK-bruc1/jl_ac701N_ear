@@ -50,7 +50,7 @@ extern service_record_item_t  sdp_record_item_end[];
 const int config_stack_modules = BT_BTSTACK_LE;
 #else /* TCFG_BLE_AUDIO_TEST_EN */
 
-#if ((BT_AI_SEL_PROTOCOL==0)&&TCFG_USER_BLE_ENABLE)
+#if ((THIRD_PARTY_PROTOCOLS_SEL==0)&&TCFG_USER_BLE_ENABLE)
 const int config_stack_modules = (BT_BTSTACK_CLASSIC | BT_BTSTACK_LE_ADV);
 #else
 const int config_stack_modules = BT_BTSTACK_CLASSIC | BT_BTSTACK_LE;
@@ -156,7 +156,7 @@ const u8 adt_profile_support = 0;
 const u8 more_hfp_cmd_support = 0;
 #else
 
-#if ((BT_AI_SEL_PROTOCOL==0)&&TCFG_USER_BLE_ENABLE)
+#if ((THIRD_PARTY_PROTOCOLS_SEL==0)&&TCFG_USER_BLE_ENABLE)
 const u8 pbg_support_enable = 1;
 const u8 adt_profile_support = 1;
 #else

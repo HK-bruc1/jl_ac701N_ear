@@ -13,6 +13,7 @@
 #include "JL_rcsp_protocol.h"
 #include "ble_rcsp_server.h"
 #include "app_ble_spp_api.h"
+#include "btstack_rcsp_user.h"
 
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
 
@@ -50,11 +51,6 @@ void rcsp_device_edr_info_dump()
     put_buf(device_edr_info1.addr, 6);
     put_buf(device_edr_info1.name, device_edr_info1.name_len);
 }
-
-extern u8 bt_rcsp_device_conn_num(void);
-
-// 获取ble hdl对应的地址
-extern u8 *rcsp_get_ble_hdl_remote_mac_addr(u16 ble_con_handle);
 
 /**
  * @brief 获取rcsp_1t2开关

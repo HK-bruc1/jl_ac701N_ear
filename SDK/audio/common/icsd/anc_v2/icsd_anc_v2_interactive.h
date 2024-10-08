@@ -40,6 +40,8 @@ void anc_ear_adaptive_power_off_save_data(void);
 u8 anc_ear_adaptive_tws_sync_en_get(void);
 void anc_ear_adaptive_seq_set(u8 seq);
 u8 anc_ear_adaptive_seq_get(void);
+void anc_ear_adaptive_sz_output(__afq_output *output);
+void *anc_ear_adaptive_iir_get(void);
 
 /* 判断当前是否处于训练中 */
 u8 anc_ear_adaptive_busy_get(void);
@@ -84,6 +86,7 @@ void icsd_set_adaptive_run_busy(u8 busy);
 
 int audio_anc_ear_adaptive_a2dp_suspend_cb(void);
 
+int anc_ear_adaptive_close(void);
 
 #endif/*_ICSD_ANC_INTERACTIVE_H_*/
 

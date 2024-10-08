@@ -17,7 +17,7 @@
 #include "realme_platform_api.h"
 #include "fs/sdfile.h"
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 
 int realme_platform_feature_switch(u8 *remote_addr, u8 feature_id, u8 state)
 {

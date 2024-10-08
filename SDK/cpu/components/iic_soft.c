@@ -240,9 +240,9 @@ u8 soft_iic_tx_byte(soft_iic_dev iic, u8 byte)
 {
     u32 delay_cnt;
     u32 dly_t = iic_get_delay(iic);
-    u8 i;
+    local_irq_disable();
     IIC_SCL_L(soft_iic_cfg_cache[iic].scl_io);
-    for (i = 0; i < 8; i++) {  //MSB FIRST
+    for (u32 i = 0; i < 8; i++) {  //MSB FIRST
         if ((byte << i) & 0x80) {
             IIC_SDA_H(soft_iic_cfg_cache[iic].sda_io);
         } else {
@@ -256,6 +256,7 @@ u8 soft_iic_tx_byte(soft_iic_dev iic, u8 byte)
         IIC_SCL_L(soft_iic_cfg_cache[iic].scl_io);
         soft_iic_delay(dly_t);
     }
+    local_irq_enable();
     return soft_iic_check_ack(iic);//1:有应答, 0:无
 }
 
@@ -263,11 +264,13 @@ u8 soft_iic_rx_byte(soft_iic_dev iic, u8 ack)
 {
     u32 delay_cnt;
     u32 dly_t = iic_get_delay(iic);
-    u8 byte = 0, i;
+    u8 byte = 0;
+
+    local_irq_disable();
 
     IIC_SDA_DIR(soft_iic_cfg_cache[iic].sda_io, 1);
 
-    for (i = 0; i < 8; i++) {
+    for (u32 i = 0; i < 8; i++) {
         soft_iic_delay(dly_t);
 
         IIC_SCL_H(soft_iic_cfg_cache[iic].scl_io);
@@ -290,18 +293,19 @@ u8 soft_iic_rx_byte(soft_iic_dev iic, u8 ack)
         soft_iic_rx_nack(iic);
     }
 
+    local_irq_enable();
+
     return byte;
 }
 
 //return: =len:ok
 int soft_iic_read_buf(soft_iic_dev iic, void *buf, int len)
 {
-    int i = 0;
 
     if (!buf || !len) {
         return IIC_ERROR_PARAM_ERROR;
     }
-    for (i = 0; i < len - 1; i++) {
+    for (u32 i = 0; i < len - 1; i++) {
         ((u8 *)buf)[i] = soft_iic_rx_byte(iic, 1);
     }
     ((u8 *)buf)[len - 1] = soft_iic_rx_byte(iic, 0);
@@ -311,7 +315,7 @@ int soft_iic_read_buf(soft_iic_dev iic, void *buf, int len)
 //return: =len:ok
 int soft_iic_write_buf(soft_iic_dev iic, const void *buf, int len)
 {
-    int i;
+    u32 i;
     u8 ack;
 
     if (!buf || !len) {

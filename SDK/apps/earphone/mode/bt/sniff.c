@@ -15,6 +15,8 @@
 #endif
 #if (RCSP_ADV_EN)
 #include "ble_rcsp_adv.h"
+#include "btstack_rcsp_user.h"
+#include "ble_rcsp_server.h"
 #endif
 
 #if TCFG_APP_BT_EN
@@ -84,7 +86,10 @@ void bt_check_enter_sniff()
 #endif
 
 #if (RCSP_ADV_EN)
-    if (get_ble_adv_modify() || get_ble_adv_notify()) {
+    u8 rcsp_max_con_dev = rcsp_max_support_con_dev_num();
+    u8 rcsp_conn_num = bt_rcsp_device_conn_num();
+    if (get_ble_adv_modify() || ((rcsp_conn_num < rcsp_max_con_dev) && get_ble_adv_notify())) {
+        // rcsp需要通知信息到手机 || rcsp未连接且需要通过广播信息到手机
         return;
     }
 #endif

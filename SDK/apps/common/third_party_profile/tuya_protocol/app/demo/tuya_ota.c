@@ -65,7 +65,7 @@ int tuya_ota_boot_info_cb(int err)
 
 int tuya_clk_resume(int priv)
 {
-    clock_free("sys");     //恢复时钟
+    clock_free("tuya");     //恢复时钟
     return 0;
 }
 
@@ -84,11 +84,7 @@ int tuya_ota_file_end_response(void *priv)
     }
 #endif
 
-    old_sys_clk = clk_get("sys");
-    printf("old_sys_clk:%d", old_sys_clk);
-    if (160 * 1000000L - old_sys_clk > 0) {
-        clock_alloc("sys", 160 * 1000000L - old_sys_clk);     //提升系统时钟提高校验速度
-    }
+    clock_alloc("tuya", 160 * 1000000L);     //提升系统时钟提高校验速度
     if (dual_bank_update_verify_without_crc(tuya_clk_resume) == 0) {
         printf("UPDATE SUCCESS");
 #if (OTA_TWS_SAME_TIME_ENABLE)

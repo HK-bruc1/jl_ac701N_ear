@@ -6,7 +6,6 @@
 #endif
 #include "app_config.h"
 #include "asm/charge.h"
-#include "asm/pwm_led_hw.h"
 #include "asm/power_interface.h"
 #include "system/event.h"
 #include "system/includes.h"

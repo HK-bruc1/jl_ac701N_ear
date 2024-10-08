@@ -17,6 +17,7 @@ enum audio_channel {
     AUDIO_CH_DUAL_L     = (2 << 4) | 6,  		//双声道都为左
     AUDIO_CH_DUAL_R     = (2 << 4) | 7,  		//双声道都为右
     AUDIO_CH_DUAL_LR    = (2 << 4) | 8,  		//双声道为左右混合
+    AUDIO_CH_TRIPLE     = (3 << 4) | 1,  		//3声道
     AUDIO_CH_QUAD       = (4 << 4) | 9,  		//四声道（LRLR）
 
     AUDIO_CH_MAX = 0xff,

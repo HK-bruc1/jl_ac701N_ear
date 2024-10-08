@@ -173,7 +173,7 @@ __check:
         /* printf("energy: %d, %d, %d,%d\n", seqn, energy, detect->unmute_packet_cnt, btstack_get_dev_type_for_addr(detect->bt_addr)); */
 
         if (energy >= 10) {
-#if TCFG_A2DP_PREEMPTED_ENABLE
+#if TCFG_BT_DUAL_CONN_ENABLE &&  TCFG_A2DP_PREEMPTED_ENABLE
             /* printf("g_dual_detect->is_receive_avrcp_play_cmd = %d\n", g_dual_detect->is_receive_avrcp_play_cmd); */
             if (!g_dual_detect->use_bt_background_detect_delay_time) {
                 if (++detect->unmute_packet_cnt < unmute_packet_num) {
@@ -284,7 +284,7 @@ void bt_start_a2dp_slience_detect(u8 *bt_addr, int ingore_packet_num)
     g_printf("bt_start_a2dp_slience_detect:");
     put_buf(bt_addr,  6);
 
-#if TCFG_A2DP_PREEMPTED_ENABLE
+#if TCFG_BT_DUAL_CONN_ENABLE && TCFG_A2DP_PREEMPTED_ENABLE
     if (!g_dual_detect) {
         g_dual_detect = (struct dual_detect_handler *)zalloc(sizeof(struct dual_detect_handler));
     }
@@ -332,7 +332,7 @@ void bt_stop_a2dp_slience_detect(u8 *bt_addr)
         detect = NULL;
     }
 
-#if TCFG_A2DP_PREEMPTED_ENABLE
+#if TCFG_BT_DUAL_CONN_ENABLE && TCFG_A2DP_PREEMPTED_ENABLE
     if (g_dual_detect) {
         free(g_dual_detect);
         g_dual_detect = NULL;

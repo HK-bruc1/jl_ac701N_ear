@@ -1,5 +1,5 @@
 
-#include "jlstream.h"
+#include "le_audio_player.h"
 #include "classic/tws_api.h"
 #include "media/audio_base.h"
 #include "media/bt_audio_timestamp.h"
@@ -7,7 +7,8 @@
 #include "scene_switch.h"
 #include "volume_node.h"
 #include "app_main.h"
-#include "le_audio_player.h"
+
+#if LE_AUDIO_STREAM_ENABLE
 
 struct le_audio_player {
     struct jlstream *stream;
@@ -109,7 +110,6 @@ void *get_cur_le_audio_player_handle()
 
 int le_audio_player_create(u8 *conn)
 {
-    int err;
     int uuid;
     char lea_player_name[16];
 
@@ -166,13 +166,12 @@ static void le_audio_volume_change(u32 le_audio_num)
 
 int le_audio_set_dvol(u8 le_audio_num, u8 vol)
 {
-    int err = 0;
     char *vol_name = le_audio_num ? "Vol_WMic1" : "Vol_WMic0";
     struct volume_cfg cfg = {0};
     cfg.bypass = VOLUME_NODE_CMD_SET_VOL;
     cfg.cur_vol = vol;
     if (g_le_audio_player_file[le_audio_num].inused) {
-        int err = jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, vol_name, (void *)&cfg, sizeof(struct volume_cfg)) ;
+        jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, vol_name, (void *)&cfg, sizeof(struct volume_cfg)) ;
         printf("le audo dvol name: %s, le audo dvol:%d\n", vol_name, vol);
         if (vol != g_le_audio_player_file[le_audio_num].dvol) {
             g_le_audio_player_file[le_audio_num].dvol = vol;
@@ -218,14 +217,15 @@ void le_audio_dvol_down(u8 le_audio_num)
 
 static void le_audio_player_callback(void *private_data, int event)
 {
-    struct le_audio_player *player = g_le_audio_player;
 #if TCFG_KBOX_1T3_MODE_EN
-    player = (struct le_audio_player *)private_data;
+    struct le_audio_player *player = (struct le_audio_player *)private_data;
+#else
+    struct le_audio_player *player = g_le_audio_player;
 #endif
     printf("le audio player callback : %d\n", event);
     switch (event) {
     case STREAM_EVENT_START:
-#ifdef TCFG_VOCAL_REMOVER_NODE_ENABLE
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
         musci_vocal_remover_update_parm();
 #endif
 #if TCFG_KBOX_1T3_MODE_EN
@@ -247,10 +247,6 @@ static void le_audio_player_callback(void *private_data, int event)
 int le_audio_player_open(u8 *conn, struct le_audio_stream_params *lea_param)
 {
     int err;
-    int uuid;
-    char lea_player_name[16];
-    enum stream_scene lea_player_scene;
-
 #if TCFG_KBOX_1T3_MODE_EN
     err = le_audio_player_create(conn);
     struct le_audio_player *player = get_le_audio_player_handle(conn);
@@ -259,8 +255,15 @@ int le_audio_player_open(u8 *conn, struct le_audio_stream_params *lea_param)
     }
     jlstream_set_scene(player->stream, STREAM_SCENE_WIRELESS_MIC);
 #else
+    char lea_player_name[16];
+    enum stream_scene lea_player_scene;
     struct le_audio_player *player = g_le_audio_player;
-    uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio");
+    int uuid = 0;
+    if (lea_param->service_type == LEA_SERVICE_CALL) {
+        uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio_call");
+    } else {
+        uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"le_audio");
+    }
     player = zalloc(sizeof(*player));
     if (!player) {
         return -ENOMEM;
@@ -314,6 +317,9 @@ int le_audio_player_open(u8 *conn, struct le_audio_stream_params *lea_param)
         }
 #endif
         err = jlstream_start(player->stream);
+        if (err) {
+            return err;
+        }
     } else {
         jlstream_release(player->stream);
         free(player);
@@ -371,3 +377,20 @@ bool le_audio_player_is_playing(void)
     }
     return 0;
 }
+
+/**
+ * @brief 获取leaudio播放器的情景
+ *
+ * @return STREAM_SCENE_LE_AUDIO:leaudio 播歌; STREAM_SCENE_LEA_CALL:leaudio 通话;
+ * 				STREAM_SCENE_NONE: leaudio player没有开启
+ */
+enum stream_scene le_audio_player_get_stream_scene(void)
+{
+    if (g_le_audio_player && g_le_audio_player->stream) {
+        return g_le_audio_player->stream->scene;
+    }
+    return STREAM_SCENE_NONE;
+}
+
+#endif /*LE_AUDIO_STREAM_ENABLE*/
+

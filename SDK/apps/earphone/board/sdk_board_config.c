@@ -105,7 +105,7 @@ IMU_SENSOR_PLATFORM_DATA_END();
 
 void board_imu_sensor_init()
 {
-#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     extern void imu_sensor_power_ctl(u32 gpio, u8 value);
     extern void imu_sensor_ad0_selete(u32 gpio, u8 value);
 #ifdef TCFG_IMU_SENSOR_PWR_PORT
@@ -155,7 +155,7 @@ void board_imu_sensor_init()
     imu_sensor_io_ctl("icm42670p", IMU_SENSOR_SLEEP, NULL);
 #endif
 
-#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE*/
+#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE*/
 }
 
 
@@ -208,28 +208,35 @@ int gpio_config_uninit()
 }
 
 
+// *INDENT-OFF*
 #if TCFG_LP_TOUCH_KEY_ENABLE
-const struct lp_touch_key_platform_data lp_touch_key_config = {
+LPCTMU_PLATFORM_DATA_BEGIN(lpctmu_pdata)
+#if LPCTMU_ANA_CFG_ADAPTIVE
+    .aim_vol_delta              = TCFG_LP_KEY_LIMIT_VOLTAGE_DELTA,
+    .aim_charge_khz             = TCFG_LP_KEY_CHARGE_FREQ_KHz,
+#else
     .hv_level                   = TCFG_LP_KEY_UPPER_LIMIT_VOLTAGE,
     .lv_level                   = TCFG_LP_KEY_LOWER_LIMIT_VOLTAGE,
     .cur_level                  = TCFG_LP_KEY_CURRENT_LEVEL,
-    .charge_mode_keep_touch     = TCFG_LP_KEY_ENABLE_IN_CHARGE,
+#endif
+LPCTMU_PLATFORM_DATA_END();
+
+LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
     .slide_mode_en              = TCFG_LP_KEY_SLIDE_ENABLE,
     .slide_mode_key_value       = TCFG_LP_KEY_SLIDE_VALUE,
     .eartch_en                  = TCFG_LP_EARTCH_KEY_ENABLE,
     .eartch_ch                  = TCFG_LP_EARTCH_DETECT_CH,
     .eartch_ref_ch              = TCFG_LP_EARTCH_REF_CH,
-    .eartch_soft_inear_val      = TCFG_LP_EARTCH_INEAR_VAL,
-    .eartch_soft_outear_val     = TCFG_LP_EARTCH_OUTEAR_VAL,
+    .charge_mode_keep_touch     = TCFG_LP_KEY_ENABLE_IN_CHARGE,
 #if TCFG_LP_KEY_LONG_PRESS_RESET
     .long_press_reset_time      = TCFG_LP_KEY_LONG_PRESS_RESET_TIME,
 #else
     .long_press_reset_time      = 0,
 #endif
-    .softoff_long_time          = TCFG_LP_KEY_SOFTOFF_TIME,
-    .ch                         = lp_touch_key_table,
-    .channel_num                = ARRAY_SIZE(lp_touch_key_table),
-};
+    .key_cfg                    = lp_touch_key_table,
+    .key_num                    = ARRAY_SIZE(lp_touch_key_table),
+    .lpctmu_pdata               = &lpctmu_pdata,
+LP_TOUCH_KEY_PLATFORM_DATA_END();
 #endif
 
 
@@ -243,16 +250,21 @@ void board_init()
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
 #endif
 
-#if TCFG_LP_TOUCH_KEY_ENABLE
-    lp_touch_key_init(&lp_touch_key_config);
-#endif
-
 #if TCFG_OUTSIDE_EARTCH_ENABLE
     eartouch_init(&eartouch_cfg);
 #endif
 
-#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE)
+#if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE) || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     board_imu_sensor_init();
 #endif
 }
+
+#if TCFG_LP_TOUCH_KEY_ENABLE
+static int touch_key_init(void)
+{
+    lp_touch_key_init(&lp_touch_key_pdata);
+    return 0;
+}
+late_initcall(touch_key_init);//触摸按键的初始化要在pmu和充电初始化之后
+#endif
 

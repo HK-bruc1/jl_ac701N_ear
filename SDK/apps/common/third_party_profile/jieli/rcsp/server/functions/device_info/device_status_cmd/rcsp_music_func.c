@@ -11,6 +11,8 @@
 #include "rcsp_config.h"
 #include "key_event_deal.h"
 #include "music/music_player.h"
+#include "JL_rcsp_attr.h"
+#include "JL_rcsp_api.h"
 
 #if (RCSP_MODE && TCFG_APP_MUSIC_EN)
 #define MUSIC_INFO_ATTR_STATUS                 (0)

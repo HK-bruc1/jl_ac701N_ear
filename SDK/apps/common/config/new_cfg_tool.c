@@ -19,13 +19,10 @@
 #include "bt_tws.h"
 #include "timer.h"
 #include "sniff.h"
-
-#if CFG_TOOL_VER == CFG_TOOL_VER_VISUAL
 #include "system/malloc.h"
 #include "system/task.h"
 #include "cfg_tool_statistics.h"
 #include "cfg_tool_cdc.h"
-#endif
 
 #define LOG_TAG_CONST       APP_CFG_TOOL
 #define LOG_TAG             "[APP_CFG_TOOL]"
@@ -93,15 +90,12 @@ void local_packet_free()
 extern const char *sdk_version_info_get(void);
 extern u8 *sdfile_get_burn_code(u8 *len);
 extern int norflash_erase(u32 cmd, u32 addr);
+extern void flash_w_region_check_en(u8 en);
 extern void doe(u16 k, void *pBuf, u32 lenIn, u32 addr);
 extern void go_mask_usb_updata();
 static void tws_sync_cfg_tool_data(struct cfg_tool_event *cfg_tool_dev);
 
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
 const char fa_return[] = "ER";	//失败
-#else
-const char fa_return[] = "FA";	//失败
-#endif
 const char ok_return[] = "OK";	//成功
 const char er_return[] = "ER";	//不能识别的命令
 static u32 size_total_write = 0;
@@ -164,19 +158,10 @@ RESFILE *cfg_open_file(u32 file_id)
     RESFILE *cfg_fp = NULL;
     if (file_id == CFG_TOOL_FILEID) {
         cfg_fp = resfile_open(CFG_TOOL_FILE);
-#if (CFG_TOOL_VER != CFG_TOOL_VER_VISUAL)
-    } else if (file_id == CFG_OLD_EQ_FILEID) {
-        cfg_fp = resfile_open(CFG_OLD_EQ_FILE);
-    } else if (file_id == CFG_OLD_EFFECT_FILEID) {
-        cfg_fp = resfile_open(CFG_OLD_EFFECT_FILE);
-    } else if (file_id == CFG_EQ_FILEID) {
-        cfg_fp = resfile_open(CFG_EQ_FILE);
-#else
     } else if (file_id == CFG_STREAM_FILEID) {
         cfg_fp = resfile_open(CFG_STREAM_FILE);
     } else if (file_id == CFG_EFFECT_CFG_FILEID) {
         cfg_fp = resfile_open(CFG_EFFECT_CFG_FILE);
-#endif
     }
     return cfg_fp;
 }
@@ -437,7 +422,6 @@ APP_MSG_HANDLER(tws_msg_entry) = {
 };
 #endif//#if TCFG_USER_TWS_ENABLE
 
-#if CFG_TOOL_VER == CFG_TOOL_VER_VISUAL
 // 在线检测设备
 static u32 _device_online_timeout = 0;
 static u16 _timer_id = 0;
@@ -476,10 +460,17 @@ CFG_TOOL_ONLINE_STATUS cfg_tool_online_status()
 {
     return _cfg_tool_online_status;
 }
-#else
-CFG_TOOL_ONLINE_STATUS cfg_tool_online_status()
+
+#if (TCFG_COMM_TYPE == TCFG_SPP_COMM)
+u8 bt_rcsp_spp_can_send(void)
 {
-    return CFG_TOOL_ONLINE_STATUS_ONLINE;
+    //y_printf(">>>>_cfg_tool_online_status %d\n", _cfg_tool_online_status) ;
+    //调音工具spp在线时rcsp不能spp发送
+    if (_cfg_tool_online_status) {
+        y_printf("cfg_tool_online,rcsp_spp_can_not_send/n");
+        return 0;
+    }
+    return 1;
 }
 #endif
 
@@ -498,7 +489,6 @@ u8 *send_buf_malloc(u32 send_buf_size)
  */
 static u16 cfg_tool_get_protocol_buf_max_size()
 {
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
 #if TCFG_COMM_TYPE == TCFG_USB_COMM
     return cfg_tool_cdc_rx_max_mtu();
 #elif TCFG_COMM_TYPE == TCFG_UART_COMM
@@ -507,9 +497,6 @@ static u16 cfg_tool_get_protocol_buf_max_size()
 #else // spp
 
     return 256;//l2cap_max_mtu();
-#endif
-#else
-    return 256;
 #endif
 }
 
@@ -556,12 +543,10 @@ static void cfg_tool_callback(u8 *packet, u32 size)
                 __this->s_basic_info.pid[i] = 0x00;
             }
         }
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
         __this->s_basic_info.max_buffer_size = cfg_tool_get_protocol_buf_max_size();
         printf("cfg_tool max_buffer_size:%d\n", __this->s_basic_info.max_buffer_size);
-#endif
         __this->s_basic_info.support_node_merge = EFF_SUPPORT_NODE_MERGE;
-
+        __this->s_basic_info.comm_type = TCFG_COMM_TYPE;
         send_len = sizeof(__this->s_basic_info);
         buf = send_buf_malloc(send_len);
         memcpy(buf, &(__this->s_basic_info), send_len);
@@ -684,7 +669,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
 
         for (u8 i = 0; i < (__this->r_erase_addr_range.size / __this->s_prepare_write_file.earse_unit); i ++) {
+            flash_w_region_check_en(0);
             u8 ret = norflash_erase(erase_cmd, __this->r_erase_addr_range.addr + (i * __this->s_prepare_write_file.earse_unit));
+            flash_w_region_check_en(1);
             if (ret) {
                 send_len = sizeof(fa_return);
                 buf = send_buf_malloc(send_len);
@@ -709,7 +696,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
         memcpy(buf_temp, cfg_packet.packet + 16, __this->r_write_addr_range.size);
         encode_data_by_user_key(boot_info.chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - boot_info.sfc.sfc_base_addr, 0x20);
+        flash_w_region_check_en(0);
         write_len = norflash_write(NULL, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr);
+        flash_w_region_check_en(1);
 
         if (write_len != __this->r_write_addr_range.size) {
             send_len = sizeof(fa_return);
@@ -725,16 +714,6 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             free(buf_temp);
         }
 
-#if (CFG_TOOL_VER != CFG_TOOL_VER_VISUAL)
-        if (__this->r_prepare_write_file.file_id == CFG_TOOL_FILEID) {
-            size_total_write += __this->r_write_addr_range.size;
-            if (size_total_write >= __this->r_erase_addr_range.size) {
-                size_total_write = 0;
-                log_info("cpu_reset\n");
-                sys_timeout_add(NULL, delay_cpu_reset, 500);
-            }
-        }
-#endif
         int a = __this->r_write_addr_range.addr + __this->r_write_addr_range.size;
         int b = __this->s_prepare_write_file.file_addr + __this->s_prepare_write_file.file_size;
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
@@ -770,18 +749,11 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         break;
 
     default: // DEFAULT_ACTION
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
         if (buf) {
             free(buf);
             buf = NULL;
         }
         return;
-#else
-        log_error("invalid data\n");
-        send_len = sizeof(er_return);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, er_return, sizeof(er_return));//不认识的命令返回ER
-#endif
         break;
 _exit_:
         send_len = sizeof(fa_return);
@@ -798,17 +770,10 @@ _exit_:
 }
 
 
-#if (CFG_TOOL_VER == CFG_TOOL_VER_VISUAL)
 REGISTER_DETECT_TARGET(cfg_tool_target) = {
     .id         		= VISUAL_CFG_TOOL_CHANNEL_STYLE,
     .tool_message_deal  = cfg_tool_callback,
 };
-#else
-REGISTER_DETECT_TARGET(cfg_tool_target) = {
-    .id         		= INITIATIVE_STYLE,
-    .tool_message_deal  = cfg_tool_callback,
-};
-#endif
 
 //在线调试不进power down
 static u8 cfg_tool_idle_query(void)

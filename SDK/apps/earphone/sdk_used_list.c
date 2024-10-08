@@ -42,7 +42,7 @@ msbc_encoder_soft_plug
 msbc_encoder_hw_plug
 #endif
 
-#if TCFG_BT_SUPPORT_AAC
+#if TCFG_BT_SUPPORT_AAC || TCFG_DEC_AAC_ENABLE || TCFG_TONE_AAC_ENABLE
 aac_dec_plug
 #endif
 
@@ -53,11 +53,11 @@ lhdc_dec_plug
 #if TCFG_BT_SUPPORT_LHDC_V5
 lhdc_v5_dec_plug
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN||BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+
+#if LE_AUDIO_STREAM_ENABLE
 lc3_encoder_plug
 lc3_dec_plug
 capture_sync_adapter
-le_audio_file_plug
 #endif
 
 #if TCFG_BT_SUPPORT_LDAC
@@ -163,19 +163,19 @@ ns_node_adapter
 dns_node_adapter
 #endif
 
-#if TCFG_DEC_WTG_ENABLE
+#if TCFG_DEC_WTG_ENABLE || TCFG_TONE_WTG_ENABLE
 g729_dec_plug
 #endif
 
-#if TCFG_DEC_F2A_ENABLE
+#if TCFG_DEC_F2A_ENABLE || TCFG_TONE_F2A_ENABLE
 f2a_dec_plug
 #endif
 
-#if TCFG_DEC_MTY_ENABLE
+#if TCFG_DEC_MTY_ENABLE || TCFG_TONE_MTY_ENABLE
 mty_dec_plug
 #endif
 
-#if TCFG_DEC_WAV_ENABLE
+#if TCFG_DEC_WAV_ENABLE || TCFG_TONE_WAV_ENABLE
 wav_dec_plug
 #endif
 
@@ -186,19 +186,23 @@ opus_dec_plug
 opus_encoder_plug
 #endif
 
-#if TCFG_DEC_WTS_ENABLE
+#if TCFG_DEC_WTS_ENABLE || TCFG_TONE_WTS_ENABLE
 wts_dec_plug
 #endif
 
-#if TCFG_DEC_MP3_ENABLE
+#if TCFG_DEC_MP3_ENABLE || TCFG_TONE_MP3_ENABLE
 mp3_dec_plug
+#endif
+
+#if TCFG_DEC_WMA_ENABLE || TCFG_TONE_WMA_ENABLE
+wma_dec_plug
 #endif
 
 #if CONFIG_FATFS_ENABLE
 fat_vfs_ops
 #endif
 
-#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 sdfile_vfs_ops
 #endif
 
@@ -234,16 +238,16 @@ effect_dev4_node_adapter
 dynamic_eq_node_adapter
 #endif
 
-#ifdef TCFG_DYNAMIC_EQ_EXT_DETECTOR_NODE_ENABLE
+#if TCFG_DYNAMIC_EQ_EXT_DETECTOR_NODE_ENABLE
 dynamic_eq_ext_detector_node_adapter
 #endif
 
 
-#ifdef TCFG_DYNAMIC_EQ_PRO_NODE_ENABLE
+#if TCFG_DYNAMIC_EQ_PRO_NODE_ENABLE
 dynamic_eq_pro_node_adapter
 #endif
 
-#ifdef TCFG_DYNAMIC_EQ_PRO_EXT_DETECTOR_NODE_ENABLE
+#if TCFG_DYNAMIC_EQ_PRO_EXT_DETECTOR_NODE_ENABLE
 dynamic_eq_pro_ext_detector_node_adapter
 #endif
 
@@ -432,20 +436,35 @@ debug_system_record
 debug_task_record
 #endif
 
-#ifdef TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
+#if TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
 mulit_ch_iis0_file_plug
 mulit_ch_iis1_file_plug
 #endif
 
-#ifdef TCFG_MULTI_CH_IIS_NODE_ENABLE
+#if TCFG_MULTI_CH_IIS_NODE_ENABLE
 multi_ch_iis0_node_adapter
 multi_ch_iis1_node_adapter
 #endif
 
-#ifdef TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE
 iis_node_adapter
 iis1_node_adapter
 iis_file_plug
 iis1_file_plug
 #endif
 
+#if TCFG_SIGNAL_GENERATOR_NODE_ENABLE
+signal_generator_file_plug
+#endif
+
+#if TCFG_REPLACE_NODE_ENABLE
+replace_node_adapter
+#endif
+
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
+vocal_remover_node_adapter
+#endif
+
+#if TCFG_NOISEGATE_PRO_NODE_ENABLE
+noisegate_pro_node_adapter
+#endif

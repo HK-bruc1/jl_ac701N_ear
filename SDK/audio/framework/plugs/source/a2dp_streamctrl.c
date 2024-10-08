@@ -261,12 +261,12 @@ void *a2dp_stream_control_plan_select(void *stream, int low_latency, u32 codec_t
         break;
     }
 
-    a2dp_media_update_delay_report_time(ctrl->stream, ctrl->adaptive_latency);
     ctrl->low_latency = low_latency;
     ctrl->first_in = 1;
     ctrl->codec_type = codec_type;
     ctrl->plan = plan;
     ctrl->stream = stream;
+    a2dp_media_update_delay_report_time(ctrl->stream, ctrl->adaptive_latency);
     return ctrl;
 }
 

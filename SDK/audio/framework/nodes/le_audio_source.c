@@ -11,6 +11,9 @@
 #include "jlstream.h"
 #include "sync/audio_syncts.h"
 #include "le_audio_stream.h"
+#include "app_config.h"
+
+#if LE_AUDIO_STREAM_ENABLE
 
 #define LE_AUDIO_TX_SOURCE      0
 #define LE_AUDIO_LOCAL_SOURCE   1
@@ -21,9 +24,6 @@ static int get_le_audio_source_buffer_delay_time(void *iport, void *ch);
 
 struct master_dev {
     struct list_head entry;
-    void *hdl;
-    void *ch;
-    int (*get_delay)(void *hdl, void *ch);
 };
 
 struct le_audio_source_syncts {
@@ -43,9 +43,8 @@ struct le_audio_source_context {
     u32 coding_type;
     struct list_head syncts_list;
     spinlock_t lock;
-    u32 tick_usec;
-    u32 latch_time_state;
-    u32 usec_offset;
+    u32 le_audio_start_usec;
+    u32 local_start_usec;
     struct master_dev dev;
 };
 
@@ -135,45 +134,26 @@ static void le_audio_source_handle_frame(struct stream_iport *iport, struct stre
 extern uint32_t bb_le_clk_get_time_us(void);
 static u32 le_audio_usec_to_local_usec(struct le_audio_source_context *ctx, u32 usec)
 {
-    u32 time = bb_le_clk_get_time_us();//le_audio_stream_tx_time(hdl->stream);
-    u32 local_usec = audio_jiffies_usec();
+    u32 local_usec;
 
-    if (ctx->latch_time_state == 0) {
-        ctx->latch_time_state = 1;
-        ctx->usec_offset = time - local_usec;
-    } else {
-        /*校准*/
-        u32 expect_time = (local_usec + ctx->usec_offset) & 0xfffffff;
-        int diff = 0;
-        if (time != expect_time) {
-            if (time > expect_time) {
-                if (time > 0x7ffffff && expect_time < 0x7ffffff) {
-                    diff = -(int)((u32)(expect_time - time) & 0x7ffffff);
-                } else {
-                    diff = time - expect_time;
-                }
-            } else {
-                if (time < 0x7ffffff && expect_time > 0x7ffffff) {
-                    diff = (int)((u32)(time - expect_time) & 0x7ffffff);
-                } else {
-                    diff = time - expect_time;
-                }
-            }
-            ctx->usec_offset += diff;
-        }
+    int time_diff = (usec - ctx->le_audio_start_usec) & 0xfffffff;
 
-        if (usec < ctx->tick_usec) {
-            ctx->usec_offset -= 0x10000000;
-        }
-    }
+    local_usec = ctx->local_start_usec + time_diff;
 
-    ctx->tick_usec = usec;
+    ctx->le_audio_start_usec = usec;
+    ctx->local_start_usec = local_usec;
 
-    local_usec = usec - ctx->usec_offset;
-
-    /*printf("<%u, %u, %u, %lu>\n", usec, time, local_usec, audio_jiffies_usec());*/
     return local_usec;
 }
+
+static void le_audio_to_local_usec_init(struct le_audio_source_context *ctx)
+{
+    spin_lock(&ctx->lock);
+    ctx->le_audio_start_usec = bb_le_clk_get_time_us();
+    ctx->local_start_usec = audio_jiffies_usec();
+    spin_unlock(&ctx->lock);
+}
+
 static int le_audio_tx_tick_handler(void *priv, int period, u32 send_timestamp)
 {
     struct le_audio_source_context *ctx = (struct le_audio_source_context *)priv;
@@ -200,21 +180,15 @@ static int le_audio_tx_tick_handler(void *priv, int period, u32 send_timestamp)
 
 static void le_audio_source_open_iport(struct stream_iport *iport)
 {
+    struct le_audio_source_context *ctx = (struct le_audio_source_context *)iport->node->private_data;
+
     iport->handle_frame = le_audio_source_handle_frame;
-}
 
-static void le_audio_source_close_iport(struct stream_iport *iport)
-{
-    struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
-
-    if (hdl) {
-        free(hdl);
-    }
+    le_audio_to_local_usec_init(ctx);
 }
 
 static void le_audio_source_set_bt_addr(struct stream_iport *iport, int arg)
 {
-    struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
     struct le_audio_source_context *ctx = (struct le_audio_source_context *)iport->node->private_data;
 
     ctx->le_audio = (void *)arg;
@@ -314,7 +288,6 @@ static int le_audio_source_ioc_fmt_nego(struct stream_iport *iport)
 
 static int le_audio_source_buffer_delay_time(struct stream_iport *iport)
 {
-    struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
     struct le_audio_source_context *ctx = (struct le_audio_source_context *)iport->node->private_data;
 
     if (ctx->tx_stream) {
@@ -423,7 +396,6 @@ static int le_audio_source_ioctl(struct stream_iport *iport, int cmd, int arg)
         le_audio_source_open_iport(iport);
         break;
     case NODE_IOC_CLOSE_IPORT:
-        le_audio_source_close_iport(iport);
         break;
     case NODE_IOC_SET_BTADDR:
         le_audio_source_set_bt_addr(iport, arg);
@@ -464,3 +436,7 @@ REGISTER_STREAM_NODE_ADAPTER(le_audio_source_adapter) = {
     .hdl_size = sizeof(struct le_audio_source_context),
     .iport_size = sizeof(struct le_audio_source_iport),
 };
+
+
+#endif/*LE_AUDIO_STREAM_ENABLE*/
+

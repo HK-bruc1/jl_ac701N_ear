@@ -20,7 +20,7 @@
 #include "app_config.h"
 #include "audio_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & (TME_EN | GMA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (TME_EN | GMA_EN))
 
 static int app_protocol_demo_init(int match_id);
 static int app_protocol_ama_init(int match_id);
@@ -474,12 +474,12 @@ void app_protocol_init(int handler_id)
             __this->running_protocol_number++;
         }
 #endif
-#if (BT_AI_SEL_PROTOCOL & GMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GMA_EN)
         if (app_protocol_gma_init(handler_id)) {
             __this->running_protocol_number++;
         }
 #endif
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
         if (app_protocol_dma_init(handler_id)) {
             __this->running_protocol_number++;
         }
@@ -490,7 +490,7 @@ void app_protocol_init(int handler_id)
         }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & TME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TME_EN)
         if (app_protocol_tme_init(handler_id)) {
             __this->running_protocol_number++;
         }
@@ -754,7 +754,7 @@ static int app_protocol_ama_init(int match_id)
     return 0;
 }
 #endif
-#if (BT_AI_SEL_PROTOCOL & GMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GMA_EN)
 #if TCFG_USER_TWS_ENABLE//GMA_TWS_SUPPORTED
 u8 gma_tws_support = 1;
 #endif
@@ -871,7 +871,7 @@ static int app_protocol_gma_init(int match_id)
 }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
 //u8 dma_tws_support = 1;
 extern const char *dma_notice_tab[];
 extern const u8 sdp_dueros_spp_service_data[];
@@ -979,7 +979,7 @@ static int app_protocol_dma_init(int match_id)
 }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & TME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TME_EN)
 extern const char *tme_notice_tab[APP_RROTOCOL_TONE_MAX];
 extern const u8 sdp_tme_service_data[];
 extern struct app_protocol_private_handle_t tme_private_handle;
@@ -1272,12 +1272,12 @@ static int app_protocol_gfps_init(int match_id)
 
 int app_protocol_get_version_by_id(int id)
 {
-#if (BT_AI_SEL_PROTOCOL & GMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GMA_EN)
     if (id == GMA_HANDLER_ID) {
         return app_protocol_gma_get_version();
     }
 #endif
-#if (BT_AI_SEL_PROTOCOL & TME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TME_EN)
     if (id == TME_HANDLER_ID) {
         return app_protocol_tme_get_version();
     }

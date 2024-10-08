@@ -81,7 +81,6 @@ extern int anc_v2_printf_off(const char *format, ...);
 #define ANC_ERR_SOUND_PRESSURE      BIT(1)//低声压
 #define ANC_ERR_SHAKE               BIT(2)//抖动
 //icsd_anc_function-----------------------
-#define ANC_ADAPTIVE_CMP            BIT(0)
 #define ANC_EARPHONE_CHECK          BIT(1)
 
 //icsd_anc_contral
@@ -99,7 +98,6 @@ typedef struct {
     float tool_target[TARLEN2 + TARLEN2_L];
     float ff_fgq[ANC_MAX_ORDER * 3 + 1];
     float fb_fgq[1 * 3 + 1];
-    float cmp_fgq[ANC_MAX_ORDER * 3 + 1];
 } __anc_tool;
 
 struct icsd_anc_v2_tws_packet {
@@ -111,10 +109,8 @@ struct icsd_anc_v2_tws_packet {
 struct icsd_iir_ab_inf {
     double *ff_iir_ab;
     double *fb_iir_ab;
-    double *music_iir_ab;
     float ff_iir_gain;
     float fb_iir_gain;
-    float music_iir_gain;
 };
 extern struct icsd_iir_ab_inf *IIR_INF_L_V2;
 extern struct icsd_iir_ab_inf *IIR_INF_R_V2;
@@ -130,6 +126,10 @@ struct icsd_anc_v2_infmt {
     float fb_gain;
     s8 tool_ffgain_sign;
     s8 tool_fbgain_sign;
+    float *target_out_l;
+    float *target_out_r;
+    float *ff_fgq_l;
+    float *ff_fgq_r;
 };
 
 // anc tool buffer
@@ -173,6 +173,8 @@ typedef struct {
     u8    mem_curve_nums;
     float *pz_table;
     float *sz_table;
+    float *pz_table_cmp;
+    float *sz_table_cmp;
 } adpt_anc_cfg;
 
 typedef struct {
@@ -199,7 +201,6 @@ typedef struct {
     s8 	  tool_fbgain_sign;
     u8 	  ff_yorder;
     u8    fb_yorder;
-    u8    cmp_yorder;
     u8    normal_out_sel_l;
     u8    normal_out_sel_r;
     u8    tone_out_sel_l;
@@ -259,6 +260,8 @@ struct anc_function {
     void (*icsd_anc_v2_cmd)(u8 cmd);
     int (*jiffies_usec2offset)(unsigned long begin, unsigned long end);
     unsigned long (*jiffies_usec)(void);
+    int (*audio_anc_debug_send_data)(u8 *buf, int len);
+    u8(*audio_anc_debug_busy_get)(void);
     //tws
     int (*tws_api_get_role)(void);
     int (*icsd_anc_v2_get_tws_state)();
@@ -272,6 +275,7 @@ struct anc_function {
     void (*icsd_anc_v2_dma_4ch_on)(u8 out_sel_ch01, u8 out_sel_ch23, int *buf, int len);
 
 
+    void (*icsd_anc_sz_output)(__afq_output *output);
     void (*icsd_anc_v2_output)(struct icsd_anc_v2_tool_data *_TOOL_DATA, u8 OUTPUT_STATE);
     void (*icsd_anc_v2_end)(void *_param);
 };
@@ -289,6 +293,8 @@ typedef struct {
     int v2_user_train_state;
     void *anc_v2_ram_addr;
     __icsd_time_data *anc_time_data;
+    float *lff_fgq_last;
+    float *rff_fgq_last;
 } __icsd_anc_REG;
 extern __icsd_anc_REG *ICSD_REG;
 
@@ -317,7 +323,7 @@ void icsd_anc_v2_mode_init();
 
 //DEBUG 函数
 void icsd_anc_v2_time_data_debug();
-
+extern const u8 EAR_ADAPTIVE_MODE_SIGN_TRIM_VEL;
 
 
 #endif/*_SD_ANC_LIB_V2_H*/

@@ -18,6 +18,7 @@
 #include "JL_rcsp_api.h"
 #include "JL_rcsp_protocol.h"
 #include "JL_rcsp_attr.h"
+#include "btstack_rcsp_user.h"
 
 #if (RCSP_MODE && RCSP_ADV_EN)
 
@@ -264,8 +265,6 @@ int JL_rcsp_adv_event_handler(struct rcsp_event *rcsp)
     return 0;
 }
 
-// 获取当前已连接spp数目
-extern u8 bt_rcsp_spp_conn_num(void);
 // 下面是弹窗的其他设置
 int app_core_data_for_send(u8 *packet, u16 size)
 {

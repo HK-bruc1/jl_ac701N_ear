@@ -86,6 +86,8 @@ struct jlstream;
 #define NODE_IOC_ENC_RESET          0x0002002d
 #define NODE_IOC_FORCE_DUMP_PACKET  0x0002002e
 #define NODE_IOC_GET_MIXER_INFO     0x0002002f
+#define NODE_IOC_TWS_TX_SWITCH      0x00020030
+#define NODE_IOC_GET_ID3      		0x00020031
 
 #define NODE_IOC_START              (0x00040000 | NODE_STA_RUN)
 #define NODE_IOC_PAUSE              (0x00040000 | NODE_STA_PAUSE)
@@ -148,12 +150,15 @@ enum stream_scene : u8 {
     STREAM_SCENE_LEA_CALL,//LE Audio CALL
     STREAM_SCENE_ADDA_LOOP,
     STREAM_SCENE_WIRELESS_MIC,  //16 wireless mic
+    STREAM_SCENE_LOCAL_TWS,
 
 
     //最大32个场景，如果大于32个场景，需把tone、ring, key_tone场景号往后挪
     STREAM_SCENE_TONE = 0x20,
     STREAM_SCENE_RING = 0x60,
     STREAM_SCENE_KEY_TONE = 0xa0,
+
+    STREAM_SCENE_NONE = 0xff,
 };
 
 enum stream_coexist : u8 {
@@ -405,6 +410,7 @@ struct stream_node_adapter {
     u8 ability_channel_convert;
     u8 ability_resample;
     u8 ability_bit_wide;
+    u8 fixed_oport;
 
     int (*bind)(struct stream_node *, u16 uuid);
 
@@ -478,6 +484,7 @@ struct jlstream {
     u8 ref;
     u8 run_cnt;
     u8 delay;
+    u8 usage;
     u8 incr_sys_clk;
     u8 thread_run;
     u8 thread_num;
@@ -655,7 +662,7 @@ int jlstream_fade_in_32bit(int value, s16 step, s32 *data, int len, u8 channel);
 /*
  * 获取节点和设置节点参数接口
  */
-void *jlstream_get_node(u16 node_uuid, const char *name);
+void *jlstream_get_node(u16 node_uuid, const char *name, u16 max_param_len);
 
 int jlstream_set_node_param_s(void *node, void *param, u16 param_len);
 
@@ -723,6 +730,8 @@ jlstream_breaker_t jlstream_insert_breaker(struct jlstream *stream,
 int jlstream_delete_breaker(jlstream_breaker_t breaker, bool restore);
 
 void jlstream_return_frame(struct stream_iport *iport, struct stream_frame *frame);
+
+int jlstream_get_cpu_usage();
 
 void stream_mem_unfree_dump();
 #endif

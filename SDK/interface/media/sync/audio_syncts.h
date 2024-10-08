@@ -111,4 +111,6 @@ u8 audio_syncts_get_trigger_timestamp(void *syncts, u32 *timestamp);
 u8 audio_syncts_support_use_trigger_timestamp(void *syncts);
 
 int audio_syncts_frame_resample(void *syncts, struct resample_frame *in_frame, struct resample_frame *out_frame);
+
+void audio_syncts_compensate_filter_latency(void *syncts, u8 enable);
 #endif

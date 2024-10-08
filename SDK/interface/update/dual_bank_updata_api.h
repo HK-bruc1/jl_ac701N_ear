@@ -78,11 +78,9 @@ u32 dual_bank_passive_update_get_target_update_addr(void);
 extern u32 dual_bank_update_exist_flag_get(void);
 extern u32 classic_update_task_exist_flag_get(void);
 
-u32 dual_bank_curr_write_offset_get(void);
-int dual_bank_curr_write_offset_set(u32 offset);
-
 int dual_bank_update_info_get(u32 *start_addr, u32 *len);
-int dual_bank_erase_other_bank(void);
+int dual_bank_erase_other_bank(u8 opt);
+void dual_bank_check_flash_update_area(u8 opt);
 
 #endif
 

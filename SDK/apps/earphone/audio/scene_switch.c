@@ -9,6 +9,7 @@
 #include "node_param_update.h"
 #include "scene_switch.h"
 #include "app_main.h"
+#include "effects/audio_vocal_remove.h"
 
 static u8 music_scene = 0; //记录场景序号
 static u8 music_eq_preset_index = 0; //记录 Eq0Media EQ配置序号
@@ -155,3 +156,45 @@ void effect_scene_switch()
     effect_scene_set(music_scene);
 }
 
+static u8 vocla_remove_mark = 0xff;//
+//实时更新media数据流中人声消除bypass参数,启停人声消除功能
+void music_vocal_remover_switch(void)
+{
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
+    vocal_remover_param_tool_set cfg = {0};
+    char *vocal_node_name = "VocalRemovMedia";
+    int ret = jlstream_read_form_data(0, vocal_node_name, 0, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, vocal_node_name);
+        return;
+    }
+    if (vocla_remove_mark == 0xff) {
+        vocla_remove_mark = cfg.is_bypass;
+    }
+    vocla_remove_mark ^= 1;
+    cfg.is_bypass = vocla_remove_mark | USER_CTRL_BYPASS;
+    jlstream_set_node_param(NODE_UUID_VOCAL_REMOVER, vocal_node_name, &cfg, sizeof(cfg));
+#endif
+}
+//media数据流启动后更新人声消除bypass参数
+void musci_vocal_remover_update_parm()
+{
+#if TCFG_VOCAL_REMOVER_NODE_ENABLE
+    vocal_remover_param_tool_set cfg = {0};
+    char *vocal_node_name = "VocalRemovMedia";
+    int ret = jlstream_read_form_data(0, vocal_node_name, 0, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, vocal_node_name);
+        return;
+    }
+    if (vocla_remove_mark == 0xff) {
+        vocla_remove_mark = cfg.is_bypass;
+    }
+    cfg.is_bypass = vocla_remove_mark | USER_CTRL_BYPASS;
+    jlstream_set_node_param(NODE_UUID_VOCAL_REMOVER, vocal_node_name, &cfg, sizeof(cfg));
+#endif
+}
+u8 get_music_vocal_remover_statu(void)
+{
+    return vocla_remove_mark ;
+}

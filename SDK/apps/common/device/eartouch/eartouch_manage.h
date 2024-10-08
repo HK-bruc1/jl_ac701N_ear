@@ -12,6 +12,8 @@
 typedef enum {
     EARTOUCH_STATE_IN_EAR,
     EARTOUCH_STATE_OUT_EAR,
+    EARTOUCH_STATE_TRIM_OK,
+    EARTOUCH_STATE_TRIM_ERR,
 } eartouch_state;
 
 typedef struct _eartouch_platform_data {

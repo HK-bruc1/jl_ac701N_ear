@@ -262,6 +262,7 @@ REGISTER_LP_TARGET(audio_mic_capless_device_lp_target) = {
 void mic_capless_trim_open(u8 mic_idx)
 {
     struct adc_file_cfg *adc_cfg = audio_adc_file_get_cfg();
+    struct adc_platform_cfg *platform_cfg = audio_adc_platform_get_cfg();
     log_info("mic_capless_trim_open:%d\n", mic_idx);
     u16 mic_ldo_tab[8] = {1300, 1400, 1500, 2000, 2200, 2400, 2600, 2800};
     u8 cur_bias_res = 0;
@@ -270,13 +271,13 @@ void mic_capless_trim_open(u8 mic_idx)
     mc_trim = zalloc(sizeof(MicCapless_trim_t));
     if (mc_trim) {
         if (mic_idx & AUDIO_ADC_MIC_0) {
-            mc_trim->cur_bias_res = adc_cfg->param[0].mic_bias_rsel;
-            cur_bias_res = adc_cfg->param[0].mic_bias_rsel;
+            mc_trim->cur_bias_res = platform_cfg[0].mic_bias_rsel;
+            cur_bias_res = platform_cfg[0].mic_bias_rsel;
             mic_ldo = mic_ldo_tab[adc_private_param.mic_ldo_vsel];
         }
         if (mic_idx & AUDIO_ADC_MIC_1) {
-            mc_trim->cur_bias1_res = adc_cfg->param[1].mic_bias_rsel;
-            cur_bias_res = adc_cfg->param[1].mic_bias_rsel;
+            mc_trim->cur_bias1_res = platform_cfg[1].mic_bias_rsel;
+            cur_bias_res = platform_cfg[1].mic_bias_rsel;
             mic_ldo = mic_ldo_tab[adc_private_param.mic_ldo_vsel];
         }
         os_sem_create(&mc_trim->sem, 0);
@@ -324,12 +325,12 @@ void mic_capless_trim_open(u8 mic_idx)
             }
         }
         if (mic_idx & AUDIO_ADC_MIC_0) {
-            adc_cfg->param[0].mic_bias_rsel = cur_bias_res;
+            platform_cfg[0].mic_bias_rsel = cur_bias_res;
             /* SFR(JL_AUDIO->DAC_DTB,  0,   16,  dtb_default);	//dac dtb0 */
             mc_var.save_dtb = dtb_default;
         }
         if (mic_idx & AUDIO_ADC_MIC_1) {
-            adc_cfg->param[1].mic_bias_rsel = cur_bias_res;
+            platform_cfg[1].mic_bias_rsel = cur_bias_res;
             /* SFR(JL_AUDIO->DAC_DTB,  16,  16,  dtb_default);	//dac dtb1 */
             mc_var.save_dtb1 = dtb_default;
         }
@@ -344,13 +345,14 @@ void mic_capless_trim_open(u8 mic_idx)
 void mic_capless_trim_exit(u8 trim_result)
 {
     struct adc_file_cfg *adc_cfg = audio_adc_file_get_cfg();
+    struct adc_platform_cfg *platform_cfg = audio_adc_platform_get_cfg();
     audio_adc_mic_trim_close(adc_cfg->mic_en_map);
 
     if (trim_result) {
-        log_info("save trim value,bias_res:%d,dtb0:%d,dtb1:%d\n", adc_cfg->param[0].mic_bias_rsel, mc_var.save_dtb, mc_var.save_dtb1);
+        log_info("save trim value,bias_res:%d,dtb0:%d,dtb1:%d\n", platform_cfg[0].mic_bias_rsel, mc_var.save_dtb, mc_var.save_dtb1);
         log_info("save trim value,save_bias:%d,complete:%d\n", mc_trim->save_bias_res, mc_var.adjust_complete);
         if (mc_trim->save_bias_res) {
-            syscfg_write(CFG_MC_BIAS, &adc_cfg->param[0].mic_bias_rsel, 1);
+            syscfg_write(CFG_MC_BIAS, &platform_cfg[0].mic_bias_rsel, 1);
         }
         if (mc_var.adjust_complete) {
             save_capless_DTB();
@@ -373,12 +375,13 @@ void mic_capless_trim_exit(u8 trim_result)
 void mic_capless_trim_result(u8 result)
 {
     struct adc_file_cfg *adc_cfg = audio_adc_file_get_cfg();
+    struct adc_platform_cfg *platform_cfg = audio_adc_platform_get_cfg();
     if (mc_trim) {
         /*预收敛*/
         log_info("mc_pre_auto_adjust_result:%d\n", result);
         if (mc_trim->trim && (mc_trim->trim < (MC_TRIM_P | MC_TRIM_N))) {
             mc_trim->save_bias_res = 1;
-            adc_cfg->param[0].mic_bias_rsel = mc_trim->cur_bias_res;
+            platform_cfg[0].mic_bias_rsel = mc_trim->cur_bias_res;
         }
         os_sem_post(&mc_trim->sem);
     } else {
@@ -390,9 +393,10 @@ void mic_capless_trim_result(u8 result)
 void mic_capless_trim_init(int update)
 {
     struct adc_file_cfg *adc_cfg = audio_adc_file_get_cfg();
+    struct adc_platform_cfg *platform_cfg = audio_adc_platform_get_cfg();
     u8 por_flag = 0;
     u8 cur_por_flag = 0;
-    if (adc_cfg->param[0].mic_mode != AUDIO_MIC_CAPLESS_MODE) {
+    if (platform_cfg[0].mic_mode != AUDIO_MIC_CAPLESS_MODE) {
         return;
     }
     /*
@@ -418,12 +422,13 @@ void mic_capless_trim_init(int update)
 void mic_capless_trim_run(void)
 {
     struct adc_file_cfg *adc_cfg = audio_adc_file_get_cfg();
+    struct adc_platform_cfg *platform_cfg = audio_adc_platform_get_cfg();
 
     if (!(adc_cfg->mic_en_map & (AUDIO_ADC_MIC_0 | AUDIO_ADC_MIC_1))) {
         return;
     }
 
-    if (adc_cfg->param[0].mic_mode != AUDIO_MIC_CAPLESS_MODE) {
+    if (platform_cfg[0].mic_mode != AUDIO_MIC_CAPLESS_MODE) {
         return;
     }
 

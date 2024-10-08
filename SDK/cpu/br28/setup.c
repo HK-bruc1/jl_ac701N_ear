@@ -215,7 +215,7 @@ void setup_arch()
 
 #endif
     log_i("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    log_i("         setup_arch %s %s", __DATE__, __TIME__);
+    log_i("         setup_arch");
     log_i("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
     clock_dump();

@@ -7,6 +7,14 @@
 #include "timer.h"
 #include "asm/math_fast_function.h"
 
+
+unsigned long jiffies_usec(void);
+
+enum {
+    ANC_PZ = 0,
+    ANC_SZ,
+};
+
 enum {
     DEBUG_ADT_STATE = 0,
     DEBUG_ADT_WIND,
@@ -29,6 +37,40 @@ enum {
     ICSD_BR28,
 };
 
+typedef struct {
+    int len;	//float points
+    float *out;
+    float *msc;
+} __afq_data;
+
+//算法参数输出结构
+typedef struct {
+    u8 state;
+    __afq_data *sz_l;
+    __afq_data *sz_r;
+} __afq_output;
+typedef struct {
+    float spl_db;
+    float spl_db_err;
+    float spl_min;
+    u8	  spl_st;
+    u8	  spl_jt;
+    int   spl_freq;
+} spl_parm;
+
+// target pre process
+struct icsd_target_param {
+    int cmp_idx_begin;
+    int cmp_idx_end;
+    int cmp_en;
+    int cmp_total_len;
+    int target_cmp_num;
+
+    float  pz_gain;
+    float *target_sv;
+    float *target_cmp_dat;
+};
+
 #define ADT_DMA_BUF_LEN     	512
 #define ADT_FFT_LENS   			256
 
@@ -43,6 +85,15 @@ enum {
 #define FFTLEN_L 				4096
 #define SWARM_NUM 60
 #define FLEN_V2 ((TARLEN2+TARLEN2_L-DRPPNT2)/2)  //96
+
+//ANC_TRAIN
+#define FREQ_POINT 25
+
+typedef struct {
+    float pzh_out[TARLEN2 / 2];
+    float pzm_out[TARLEN2 / 2];
+    float pzl_out[TARLEN2 / 2];
+} __icsd_pnc_cmp;
 
 #include "anc_DeAlg_v2.h"
 //LIB调用的算术函数
@@ -87,7 +138,11 @@ void icsd_fgq_2_aabb(float *iir_ab, float *ff_fgq, u8 *ff_type, float fs, int or
 void icsd_fgq2hz(float gain, float *ff_fgq, u8 *ff_type, int order, float *freq, float *hz, float *w1, float *w2, int len, float fs, int downsample);
 void icsd_gfq2hz(float gain, float *ff_gfq, u8 *ff_type, int order, float *freq, float *hz, float *w1, float *w2, int len, float fs, int downsample);
 void icsd_cal_wz(double *ab, float gain, int tap, float *freq, float fs, float *wz, int len);
+void icsd_cal_wz_float(float *ab, float gain, int tap, float *freq, float fs, float *wz, int len);
+//
 void icsd_fgq2hz_v2(float total_gain, float *fgq, u8 *type, u8 order, float *freq, float *hz, int len, float fs);
+void icsd_gfq2hz_v2(float total_gain, float *gfq, u8 *type, u8 order, float *freq, float *hz, int len, float fs);
+
 void icsd_biquad2ab_out_2(float gain, float f, float q, u8 type, float fs, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2);
 void icsd_biquad2ab_double_v2(float gain, float f, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type, float fs);
 void icsd_biquad2ab_out_v2(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
@@ -98,6 +153,8 @@ void icsd_biquad2ab_double_pn(float gain, float f, float q, double *a0, double *
 //--------------------------------------------
 // freq_response
 //--------------------------------------------
+float hz_diff_db(float *_src1, float *_src2, int sp, int ep);
+void fre_resp_resample_v3(float *_src, float *_dest);
 void icsd_anc_h_freq_init(float *freq, u8 mode);
 void icsd_hz2pxdB(float *hz, float *px, int len);
 void icsd_HanningWin_pwr(s16 *input, int *output, int len);
@@ -136,6 +193,12 @@ void icsd_cic8_4ch(int *ptr, int len, int *dbufa, int *cbufa, s16 *output1, s16 
 void icsd_cic8_2ch(int *ptr, int len, int *dbufa, int *cbufa, s16 *output1, s16 *output2);
 void icsd_cic8_2ch_4order(int *ptr, int len, int *dbufa, int *cbufa, s16 *output1, s16 *output2);
 float icsd_abs_float(float f);
+void biquad2ab_common(float gain, float f, float q, float fs, float *a0, float *a1, float *a2, float *b0, float *b1, float *b2, u8 type);
+
+void target_preprocess_v2(float *target, float *target_flt, int len);
+int icsd_printf_off(const char *format, ...);
+void DeAlorithm_enable();
+void DeAlorithm_disable();
 
 extern const u8 ICSD_ANC_CPU;
 

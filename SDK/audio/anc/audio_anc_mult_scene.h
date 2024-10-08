@@ -26,4 +26,6 @@ int audio_anc_mult_gains_id_get(u8 gain_id, int *data);
 
 int audio_anc_mult_scene_id_check(u16 scene_id);
 
+int audio_anc_mult_trans_param_use_anc(audio_anc_t *param, u16 target_scene_id);
+
 #endif/*AUDIO_ANC_MULT_SCENE_H*/

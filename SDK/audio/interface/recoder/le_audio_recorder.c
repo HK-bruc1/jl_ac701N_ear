@@ -18,6 +18,8 @@
 #include "asm/dac.h"
 #include "audio_cvp.h"
 
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+
 struct le_audio_mic_recorder {
     void *stream;
 };
@@ -35,12 +37,13 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
     struct le_audio_stream_params *lea_params = params;
     struct le_audio_stream_format *le_audio_fmt = &lea_params->fmt;
     u16 source_uuid;
-    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"mic_le_audio");
+    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"mic_le_audio_call");
     struct stream_enc_fmt fmt = {
         .channel = le_audio_fmt->nch,
         .bit_rate = le_audio_fmt->bit_rate,
         .sample_rate = le_audio_fmt->sample_rate,
         .frame_dms = le_audio_fmt->frame_dms,
+        .coding_type = le_audio_fmt->coding_type,
     };
     if (!g_mic_recorder) {
         g_mic_recorder = zalloc(sizeof(struct le_audio_mic_recorder));
@@ -48,7 +51,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
             return -ENOMEM;
         }
     }
-    g_mic_recorder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+    g_mic_recorder->stream = jlstream_pipeline_parse_by_node_name(uuid, "le_audio_adc");
     source_uuid = NODE_UUID_ADC;
 
     if (!g_mic_recorder->stream) {
@@ -71,7 +74,7 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
     }
 
     jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_CAPTURE_SYNC, NODE_IOC_SET_PARAM, latency);
-    err = jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_LE_AUDIO_SOURCE, NODE_IOC_SET_BTADDR, (int)le_audio);
+    jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_LE_AUDIO_SOURCE, NODE_IOC_SET_BTADDR, (int)le_audio);
     //设置中断点数
     /* jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS); */
     jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_VOCAL_TRACK_SYNTHESIS, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS);//四声道时，指定声道合并单个声道的点数
@@ -121,6 +124,8 @@ void le_audio_mic_recorder_close(void)
     }
     free(mic_recorder);
     g_mic_recorder = NULL;
-    jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio");
+    jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio_call");
 }
+
+#endif
 

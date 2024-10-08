@@ -20,7 +20,7 @@
 #include "btstack/avctp_user.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 // 杰理防丢器
 /* #define PRODUCT_ID  "YSI2RECEHM" */
@@ -348,4 +348,4 @@ ble_qiot_ret_status_t ble_timer_delete(ble_timer_t timer_id)
     return BLE_QIOT_RS_OK;
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

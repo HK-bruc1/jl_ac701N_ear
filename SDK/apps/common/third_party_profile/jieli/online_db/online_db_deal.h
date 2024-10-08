@@ -90,6 +90,7 @@ void app_online_db_register_handle(db_pkt_e type, int (*db_parse_data)(u8 *packe
  */
 struct db_online_api_t *app_online_get_api_table(void);
 
+u8 db_get_active_state(void);
 
 //debug printf,提供简单打印接口
 void app_online_putchar(char a);

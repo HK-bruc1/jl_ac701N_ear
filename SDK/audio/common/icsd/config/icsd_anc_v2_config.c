@@ -16,8 +16,9 @@
 #include "icsd_common_v2.h"
 
 const u8 ICSD_ANC_VERSION = 2;
-
-
+const u8 ICSD_ANC_TOOL_PRINTF = 1;
+const u8 msedif_en = 0;
+const u8 target_diff_en = 0;
 
 struct icsd_anc_v2_tool_data *TOOL_DATA = NULL;
 

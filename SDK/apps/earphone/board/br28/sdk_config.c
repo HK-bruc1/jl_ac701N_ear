@@ -1,4 +1,3 @@
-
 /**
 * 注意点：
 * 0.此文件变化，在工具端会自动同步修改到工具配置中
@@ -7,15 +6,6 @@
 * 3.修改该文件出现工具同步异常或者导出异常时，请先检查文件内语法是否正常
 **/
 
-
-// ------------蓝牙配置.json------------
-const int CONFIG_LE_AUDIO_PLAY_LATENCY = 0x7530; // le_audio延时（us）
-const int CONFIG_JL_DONGLE_PLAYBACK_LATENCY = 0x28; // dongle下行播放延时(msec)
-// ------------蓝牙配置.json------------
-
-// ------------音频配置.json------------
-const int CONFIG_SPATIAL_EFFECT_VERSION = 0x1; // 音效算法版本选择
-// ------------音频配置.json------------
 
 #if TCFG_BATTERY_CURVE_ENABLE
 const struct battery_curve g_battery_curve_table [] =  {
@@ -125,18 +115,19 @@ const struct adkey_info g_adkey_data =  {
 };
 #endif // TCFG_ADKEY_ENABLE
 
-const struct ctmu_ch_cfg lp_touch_key_table [] =  {
+const struct touch_key_cfg lp_touch_key_table [] =  {
     {
         .key_ch = LPCTMU_CH1_PB1,
         .key_value = KEY_POWER,
         .wakeup_enable = 1,
-        .algo_range_max = 500,
         .index = 0,
         .algo_cfg = {
             {
-                .algo_cfg0 = 10,
-                .algo_cfg1 = 15,
+                .algo_cfg0 = 20,
+                .algo_cfg1 = 25,
                 .algo_cfg2 = 80,
+                .algo_range_min = 50,
+                .algo_range_max = 500,
                 .range_sensity = 6
             }
         }

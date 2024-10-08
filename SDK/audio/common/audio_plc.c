@@ -179,16 +179,16 @@ int audio_plc_close(void *_plc)
     return 0;
 }
 #else
-audio_plc_t *audio_plc_open(u16 sr, u16 ch_num, af_DataType *dataTypeobj)
+void *audio_plc_open(u16 sr, u16 ch_num, af_DataType *dataTypeobj)
 {
     return 0;
 }
 
-void audio_plc_run(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
+void audio_plc_run(void *_plc, s16 *data, u16 len, u8 repair)
 {
 }
 
-int audio_plc_close(audio_plc_t *plc)
+int audio_plc_close(void *_plc)
 {
     return 0;
 }

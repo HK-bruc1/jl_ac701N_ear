@@ -3,6 +3,7 @@
 
 #include "typedef.h"
 #include "icsd_anc_user.h"
+#include "asm/anc.h"
 // #include "icsd_adt_client_board.h"
 
 #define SPEAK_TO_CHAT_TASK_NAME     "speak_to_chat"
@@ -184,6 +185,9 @@ u8 set_adt_switch_trans_state(u8 state);
 u8 get_adt_switch_trans_state();
 
 void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_result);
+
+/*设置ADT 通透模式下的FB/CMP 参数*/
+void audio_icsd_adt_trans_fb_param_set(audio_anc_t *param);
 
 extern void set_anc_adt_state(u8 state);
 extern void *get_anc_lfb_coeff();

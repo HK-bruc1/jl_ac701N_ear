@@ -45,11 +45,3 @@ void board_power_init(void)
 
 }
 
-#if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
-     && TCFG_CHARGESTORE_PORT != IO_PORT_LDOIN)
-static void chargestore_port_uninit()
-{
-    power_wakeup_index_enable(TCFG_CHARGESTORE_WAKEUP_INDEX, 0);
-}
-platform_uninitcall(chargestore_port_uninit);
-#endif

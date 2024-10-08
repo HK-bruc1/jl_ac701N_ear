@@ -313,7 +313,8 @@ int usb_cdc_background_standby(const usb_dev usbfd)
 #else
 #if TCFG_PC_ENABLE
 #if TWFG_APP_POWERON_IGNORE_DEV
-    if (jiffies_to_msecs(jiffies) < TWFG_APP_POWERON_IGNORE_DEV) {
+    if ((jiffies_to_msecs(jiffies) < TWFG_APP_POWERON_IGNORE_DEV)\
+        && (!app_in_mode(APP_MODE_IDLE))) {
         usb_cdc_background_run(usbfd);
     } else
 #endif
@@ -361,11 +362,7 @@ int pc_device_event_handler(int *msg)
 static void otg_sof_check_before_hook()
 {
     log_debug("sof_check_before");
-#if defined(CONFIG_CPU_BR28) || defined(CONFIG_CPU_BR36)
-    power_wakeup_index_enable(TCFG_CHARGESTORE_WAKEUP_INDEX, 0);
-#else
     p33_io_wakeup_enable(TCFG_CHARGESTORE_PORT, 0);
-#endif
     chargestore_api_stop();
 }
 
@@ -373,11 +370,7 @@ static void otg_sof_check_after_hook()
 {
     log_debug("sof_check_after");
     chargestore_api_restart();
-#if defined(CONFIG_CPU_BR28) || defined(CONFIG_CPU_BR36)
-    power_wakeup_index_enable(TCFG_CHARGESTORE_WAKEUP_INDEX, 1);
-#else
     p33_io_wakeup_enable(TCFG_CHARGESTORE_PORT, 1);
-#endif
 }
 
 static int otg_sof_check_hook_register()

@@ -11,6 +11,7 @@
 #include "rcsp_browser.h"
 #include "rcsp_config.h"
 #include "rcsp_extra_flash_opt.h"
+#include "rcsp/JL_rcsp_protocol.h"
 
 
 #if (RCSP_MODE && TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)

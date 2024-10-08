@@ -296,5 +296,6 @@ extern bool is_master_device_tws_share_conn_tx(u8 *addr);
 void lp_winsize_init(const struct lp_ws_t *lp);
 
 void bt_max_pwr_set(u8 pwr, u8 pg_pwr, u8 iq_pwr, u8 ble_pwr);
+void lmp_esco_set_tx_notify(u8 *addr, void *priv, void (*notify)(void *, u32 clk));
 
 #endif

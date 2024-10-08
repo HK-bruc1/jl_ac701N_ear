@@ -15,7 +15,7 @@
 
 
 
-#if (BT_AI_SEL_PROTOCOL & (TME_EN | DMA_EN | GMA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (TME_EN | DMA_EN | GMA_EN))
 #include "app_protocol_api.h"
 #endif
 

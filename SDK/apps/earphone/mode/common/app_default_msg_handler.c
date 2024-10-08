@@ -223,6 +223,27 @@ static void app_common_app_event_handler(int *msg)
     case APP_MSG_ANC_TRANS:
         anc_mode_switch(ANC_TRANSPARENCY, 1);
         break;
+#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    case APP_MSG_SPEAK_TO_CHAT_SWITCH:
+        audio_speak_to_chat_demo();
+        break;
+#endif
+#if (defined TCFG_AUDIO_WIDE_AREA_TAP_ENABLE) && TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
+    case APP_MSG_WAT_CLICK_SWITCH:
+        audio_wat_click_demo();
+        break;
+#endif
+#if (defined TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE) && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    case APP_MSG_WIND_DETECT_SWITCH:
+        audio_icsd_wind_detect_demo();
+        break;
+#endif
+#if (defined ANC_EAR_ADAPTIVE_EN) && ANC_EAR_ADAPTIVE_EN
+    case APP_MSG_EAR_ADAPTIVE_OPEN:
+        audio_anc_mode_ear_adaptive(1);
+        break;
+#endif
+
 #endif
     case APP_MSG_MIC_OPEN:
         audio_common_mic_mute_en_set(0);
@@ -246,6 +267,16 @@ static void app_common_app_event_handler(int *msg)
             audio_esco_ul_voice_change(VOICE_CHANGER_GODDESS);//女声
         }
         esco_eff_goddess = !esco_eff_goddess;
+        break;
+#endif
+#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+    case APP_MSG_SPATIAL_EFFECT_SWITCH:
+        u8 mode = get_a2dp_spatial_audio_mode();
+        if (++mode > 2) {
+            mode = 0;
+        }
+        printf("%s : %d", __func__, mode);
+        audio_spatial_effects_mode_switch(mode);
         break;
 #endif
     default:

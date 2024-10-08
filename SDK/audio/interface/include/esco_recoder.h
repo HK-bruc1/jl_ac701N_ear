@@ -7,7 +7,7 @@
 
 
 
-int esco_recoder_open(u8 link_type);
+int esco_recoder_open(u8 link_type, void *bt_addr);
 
 void esco_recoder_close();
 

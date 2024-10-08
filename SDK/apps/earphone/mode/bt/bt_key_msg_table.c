@@ -14,6 +14,9 @@
 #include "poweroff.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 
 
 #define LOG_TAG             "[EARPHONE]"
@@ -32,7 +35,7 @@ const int adkey_msg_table[10][KEY_ACTION_MAX] = {
     //按住3s, 按住5s
     [0] = {
         APP_MSG_MUSIC_PP,   APP_MSG_CALL_HANGUP,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_GOTO_NEXT_MODE,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_POWER_OFF,
     },
     [1] = {
@@ -184,7 +187,12 @@ int bt_key_power_msg_remap(int *msg)
     } else {
         /* 非通话相关状态 */
         int tws_state = tws_api_get_tws_state();
-        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        int tws_cig_state = is_cig_phone_conn();
+        if (tws_state & TWS_STA_PHONE_CONNECTED || tws_cig_state) { //已连接手机经典蓝牙或者cig
+#else
+        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
+#endif
             char channel = tws_api_get_local_channel();
             switch (key_action) {
             case KEY_ACTION_CLICK:
@@ -269,7 +277,7 @@ int bt_key_power_msg_remap(int *msg)
     default:
         break;
     }
-
+    printf("bt_key_msg_remap, key_action: %d, app_msg: %d\n", key_action, app_msg);
     return app_msg;
 }
 

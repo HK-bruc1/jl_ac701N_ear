@@ -9,6 +9,7 @@
 #include "in_ear_detect/in_ear_manage.h"
 #include "audio_anc_common.h"
 #include "audio_config_def.h"
+#include "audio_anc_common.h"
 #if (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V1)
 #include "icsd_anc_app.h"
 #elif (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
@@ -28,6 +29,14 @@
 #define ANC_MODE_FADE_LVL			1	/*降噪模式淡入步进*/
 #define ANC_LR_LOWPOWER_EN	  	    0	/*ANC立体声省功耗使能, 开启之后ANC可用滤波器数会减少*/
 
+#if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
+/*立体声方案*/
+#define ANC_MODE_SWITCH_DELAY_MS	400	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */
+#else
+/*TWS方案*/
+#define ANC_MODE_SWITCH_DELAY_MS	60	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */
+#endif
+
 /*
    ANC多场景滤波器配置
  */
@@ -36,6 +45,10 @@
 #define ANC_MULT_ORDER_TRANS_ONLY_USE_ID1	0	/*ANC多滤波器-通透模式仅使用场景ID1的参数*/
 
 #define ANC_MULT_ORDER_NORMAL_ID			1	/*ANC多滤波器-开机默认场景ID*/
+
+//通透+FB功能配置
+#define ANC_MULT_TRANS_FB_ENABLE			0	/*ANC多滤波器- 通透+FB 使能*/
+#define ANC_MULT_TRANS_FB_USB_ANC_ID		2	/*ANC多滤波器- 通透+FB 复用ANC场景ID*/
 
 //ANC多滤波器-耳道自适应ID匹配，选择0则跟随当前场景
 #define ANC_MULT_ADPTIVE_TRAIN_USE_ID		1	/*耳道自适应-训练使用的场景ID*/
@@ -81,7 +94,7 @@
 #define ANC_HOWLING_DETECT_EN				0		/*啸叫检测使能*/
 #define ANC_HOWLING_MSG_DEBUG				0		/*啸叫调试流程打印*/
 
-#define ANC_HOWLING_DETECT_CHANNEL			1		/*啸叫检测通道；0 FF MIC ; 1 FB MIC*/
+#define ANC_HOWLING_DETECT_CHANNEL			0		/*啸叫检测通道；0 FF MIC ; 1 FB MIC*/
 /*1、检测配置*/
 #define ANC_HOWLING_DETECT_CORR_THR			200		/*啸叫灵敏度设置, 越小(越灵敏，容易误触发), range [100 - 255]; default 200 */
 #define ANC_HOWLING_DETECT_PWR_THR			1200	/*啸叫阈值设置, 用于解决小声啸叫不触发的问题，越小(容易误触发),  range [100 - 32767]; default 1200*/
@@ -137,7 +150,7 @@ static const char *anc_mode_str[] = {
     "ANC_ON",		/*降噪模式*/
     "Transparency",	/*通透模式*/
     "ANC_BYPASS",	/*BYPASS模式*/
-    "ANC_EXT"		/*ANC扩展模式-针对使用ANC DMA通路做算法的场景*/
+    "ANC_EXT",		/*ANC扩展模式-针对使用ANC DMA通路做算法的场景*/
     "ANC_TRAIN",	/*训练模式*/
     "ANC_TRANS_TRAIN",	/*通透训练模式*/
 };
@@ -177,6 +190,7 @@ enum {
     ANC_MSG_ADT,
     ANC_MSG_DOT,
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
+    ANC_MSG_AFQ_CMD,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -204,12 +218,12 @@ typedef struct {
 #if ANC_EAR_ADAPTIVE_EN
 
 typedef struct {
-#if ANC_EAR_RECORD_EN
-    float record_FL[EAR_RECORD_MAX][ANC_VMDATA_FF_RECORD_SIZE];
-    float record_FR[EAR_RECORD_MAX][ANC_VMDATA_FF_RECORD_SIZE];
-    int record_num;
-    // u8 record_num;
-#endif/*ANC_EAR_RECORD_EN*/
+#if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
+    float l_target[TARLEN2 + TARLEN2_L];
+#endif
+#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+    float r_target[TARLEN2 + TARLEN2_L];
+#endif
     u8 result;
 #if ANC_CONFIG_LFF_EN
     float lff_gain;
@@ -356,7 +370,6 @@ void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
 
 /* 获取ANC MIC param 参数信息 */
 audio_adc_mic_mana_t *audio_anc_mic_param_get(void);
-
 
 void audio_anc_post_msg_music_dyn_gain(void);
 

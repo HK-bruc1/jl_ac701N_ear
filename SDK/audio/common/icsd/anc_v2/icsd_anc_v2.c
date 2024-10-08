@@ -20,12 +20,15 @@
 #include "audio_anc.h"
 #include "asm/audio_src.h"
 #include "clock_manager/clock_manager.h"
-
+#include "anc_ext_tool.h"
+#include "audio_anc_debug_tool.h"
 
 #define EXT_PRINTF_DEBUG 0 //前期调试工具使用，后期上传该宏定义相关删除
 u8 const ICSD_ANC_TOOL_DEBUG = 0;
 OS_SEM icsd_anc_sem;
 
+
+const u8 EAR_ADAPTIVE_MODE_SIGN_TRIM_VEL =  EAR_ADAPTIVE_MODE_SIGN_TRIM;
 struct anc_function	ANC_FUNC;
 __icsd_anc_REG *ICSD_REG = NULL;
 
@@ -162,7 +165,6 @@ static void icsd_anc_config_data_init(void *config_ptr, struct icsd_anc_v2_infmt
         //其他配置
         SD_CFG->ff_yorder  = ANC_ADAPTIVE_FF_ORDER;
         SD_CFG->fb_yorder  = ANC_ADAPTIVE_FB_ORDER;
-        SD_CFG->cmp_yorder = ANC_ADAPTIVE_CMP_ORDER;
         SD_CFG->tool_ffgain_sign = fmt->tool_ffgain_sign;
         SD_CFG->tool_fbgain_sign = fmt->tool_fbgain_sign;
         if (ICSD_ANC_CPU == ICSD_BR28) {
@@ -292,7 +294,16 @@ static void icsd_anc_config_data_init(void *config_ptr, struct icsd_anc_v2_infmt
         SD_CFG->adpt_cfg.mem_curve_nums = ext_cfg->ff_ear_mem_param->mem_curve_nums;
         SD_CFG->adpt_cfg.sz_table = ext_cfg->ff_ear_mem_sz->data;
         SD_CFG->adpt_cfg.pz_table = ext_cfg->ff_ear_mem_pz->data;
-
+        if (ext_cfg->ff_dut_pz_cmp) {
+            SD_CFG->adpt_cfg.pz_table_cmp = ext_cfg->ff_dut_pz_cmp->data;
+        } else {
+            SD_CFG->adpt_cfg.pz_table_cmp = NULL;
+        }
+        if (ext_cfg->ff_dut_sz_cmp) {
+            SD_CFG->adpt_cfg.sz_table_cmp = ext_cfg->ff_dut_sz_cmp->data;
+        } else {
+            SD_CFG->adpt_cfg.sz_table_cmp = NULL;
+        }
 #if EXT_PRINTF_DEBUG
         for (int i = 0; i < 60; i++) {
             printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_H[i], (int)SD_CFG->adpt_cfg.Weight_H[i]);
@@ -419,7 +430,16 @@ static void icsd_anc_config_data_init(void *config_ptr, struct icsd_anc_v2_infmt
         SD_CFG->adpt_cfg_r.mem_curve_nums = ext_cfg->rff_ear_mem_param->mem_curve_nums;
         SD_CFG->adpt_cfg_r.sz_table = ext_cfg->rff_ear_mem_sz->data;
         SD_CFG->adpt_cfg_r.pz_table = ext_cfg->rff_ear_mem_pz->data;
-
+        if (ext_cfg->rff_dut_pz_cmp) {
+            SD_CFG->adpt_cfg_r.pz_table_cmp = ext_cfg->rff_dut_pz_cmp->data;
+        } else {
+            SD_CFG->adpt_cfg_r.pz_table_cmp = NULL;
+        }
+        if (ext_cfg->rff_dut_sz_cmp) {
+            SD_CFG->adpt_cfg_r.sz_table_cmp = ext_cfg->rff_dut_sz_cmp->data;
+        } else {
+            SD_CFG->adpt_cfg_r.sz_table_cmp = NULL;
+        }
 #if EXT_PRINTF_DEBUG
         for (int i = 0; i < 60; i++) {
             printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_H[i], (int)SD_CFG->adpt_cfg.Weight_H[i]);
@@ -446,13 +466,36 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
     icsd_anc_v2_get_libfmt(&libfmt);
     if (ICSD_REG->anc_v2_ram_addr == 0) {
         ICSD_REG->anc_v2_ram_addr = zalloc(libfmt.lib_alloc_size);
+        printf("anc_v2_ram_addr:%d>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", (int)ICSD_REG->anc_v2_ram_addr);
     }
-    struct icsd_anc_v2_infmt infmt;
+    struct icsd_anc_v2_infmt infmt = {0};
     infmt.alloc_ptr = ICSD_REG->anc_v2_ram_addr;
     infmt.ff_gain = 3;
     infmt.fb_gain = icsd_anc_v2_readfbgain();
     infmt.tool_ffgain_sign = 1;
     infmt.tool_fbgain_sign = 1;
+    anc_adaptive_iir_t *anc_iir = (anc_adaptive_iir_t *)anc_ear_adaptive_iir_get();
+#if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
+    if (anc_iir->result & ANC_ADAPTIVE_RESULT_LFF) {
+        ICSD_REG->lff_fgq_last = (float *)zalloc(((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
+        ICSD_REG->lff_fgq_last[0] = anc_iir->lff_gain;
+        for (int i = 0; i < ANC_ADAPTIVE_FF_ORDER; i++) {
+            memcpy((u8 *)(ICSD_REG->lff_fgq_last + 1 + (i * 3)), (u8 *)(anc_iir->lff[i].a), 12);
+        }
+        infmt.ff_fgq_l = ICSD_REG->lff_fgq_last;
+        infmt.target_out_l = anc_iir->l_target;
+    }
+#endif
+#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+    if (anc_iir->result & ANC_ADAPTIVE_RESULT_RFF) {
+        ICSD_REG->rff_fgq_last = (float *)zalloc(((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
+        for (int i = 0; i < ANC_ADAPTIVE_FF_ORDER; i++) {
+            memcpy((u8 *)(ICSD_REG->rff_fgq_last + 1 + (i * 3)), (u8 *)(anc_iir->rff[i].a), 12);
+        }
+        infmt.ff_fgq_r = ICSD_REG->rff_fgq_last;
+        infmt.target_out_r = anc_iir->r_target;
+    }
+#endif
     if (param->gains.gain_sign & ANCL_FF_SIGN) {
         infmt.tool_ffgain_sign = -1;
     }
@@ -474,6 +517,14 @@ void icsd_anc_v2_end(void *_param)
     audio_anc_t *param = _param;
     mem_stats();
     if (ICSD_REG) {
+        if (ICSD_REG->lff_fgq_last) {
+            free(ICSD_REG->lff_fgq_last);
+            ICSD_REG->lff_fgq_last = NULL;
+        }
+        if (ICSD_REG->rff_fgq_last) {
+            free(ICSD_REG->rff_fgq_last);
+            ICSD_REG->rff_fgq_last = NULL;
+        }
         ICSD_REG->v2_user_train_state &= ~ANC_USER_TRAIN_DMA_EN;
         ICSD_REG->icsd_anc_v2_contral = 0;
         anc_v2_printf("ICSD ANC V2 END train time finish:%dms\n", (int)((jiffies - ICSD_REG->train_time_v2) * 10));
@@ -486,6 +537,7 @@ void icsd_anc_v2_forced_exit()
     if (ICSD_REG) {
         if (!(ICSD_REG->icsd_anc_v2_contral & ICSD_ANC_FORCED_EXIT)) {
             anc_v2_printf("icsd_anc_forced_exit\n");
+            DeAlorithm_disable();
             if (ICSD_REG->icsd_anc_v2_contral & ICSD_ANC_INITED) {
                 ICSD_REG->icsd_anc_v2_contral |= ICSD_ANC_FORCED_EXIT;
                 ANC_FUNC.icsd_anc_v2_cmd(ANC_V2_CMD_FORCED_EXIT);
@@ -509,6 +561,8 @@ static void anc_function_init()
     ANC_FUNC.local_irq_enable = local_irq_enable;
     ANC_FUNC.jiffies_usec = jiffies_usec;
     ANC_FUNC.jiffies_usec2offset = jiffies_usec2offset;
+    ANC_FUNC.audio_anc_debug_send_data = audio_anc_debug_send_data;
+    ANC_FUNC.audio_anc_debug_busy_get = audio_anc_debug_busy_get;
 
     ANC_FUNC.icsd_anc_v2_get_tws_state = icsd_anc_v2_get_tws_state;
 #if TCFG_USER_TWS_ENABLE
@@ -525,6 +579,7 @@ static void anc_function_init()
     ANC_FUNC.icsd_anc_v2_dma_4ch_on = icsd_anc_v2_dma_4ch_on;
     ANC_FUNC.icsd_anc_v2_end = icsd_anc_v2_end;
     ANC_FUNC.icsd_anc_v2_output = icsd_anc_v2_output;
+    ANC_FUNC.icsd_anc_sz_output = anc_ear_adaptive_sz_output;
 }
 
 void icsd_anc_v2_init(void *_hdl, struct anc_ext_ear_adaptive_param *ext_cfg)
@@ -560,9 +615,7 @@ void icsd_anc_v2_init(void *_hdl, struct anc_ext_ear_adaptive_param *ext_cfg)
 #if ANC_USER_TRAIN_TONE_MODE
     ICSD_REG->v2_user_train_state |=	ANC_USER_TRAIN_TONEMODE;
 #endif
-#if ANC_ADAPTIVE_CMP_EN
-    ICSD_REG->icsd_anc_v2_function |= ANC_ADAPTIVE_CMP;
-#endif
+
 #if ANC_EARPHONE_CHECK_EN
     ICSD_REG->icsd_anc_v2_function |= ANC_EARPHONE_CHECK;
 #endif

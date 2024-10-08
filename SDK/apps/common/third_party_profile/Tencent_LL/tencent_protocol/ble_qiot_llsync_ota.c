@@ -22,7 +22,7 @@ extern "C" {
 #include "ble_qiot_config.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if BLE_QIOT_LLSYNC_STANDARD
 //#include <stdbool.h>
@@ -666,7 +666,7 @@ ble_qiot_ret_status_t ble_ota_data_handle(const char *in_buf, int buf_len)
 
 #endif //BLE_QIOT_LLSYNC_STANDARD
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

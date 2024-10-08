@@ -27,7 +27,7 @@
 /*数据写卡导出使能
  #define TCFG_AUDIO_DATA_EXPORT_DEFINE	AUDIO_DATA_EXPORT_VIA_UART时才可用
  不能和通话上行写卡同时使用，即CONST_AEC_EXPORT = 0*/
-u8 CONST_NS_DATA_EXPORT = 0;
+const u8 CONST_NS_DATA_EXPORT = 0;
 
 extern void aec_code_movable_load(void);
 extern void aec_code_movable_unload(void);

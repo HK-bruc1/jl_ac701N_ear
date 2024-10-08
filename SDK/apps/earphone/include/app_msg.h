@@ -102,6 +102,7 @@ enum {
     APP_MSG_SYS_TIMER,
     APP_MSG_POWER_ON,
     APP_MSG_POWER_OFF,
+    APP_MSG_SOFT_POWEROFF,
     APP_MSG_GOTO_MODE,
     APP_MSG_GOTO_NEXT_MODE,
     APP_MSG_CHANGE_MODE,
@@ -119,6 +120,7 @@ enum {
     APP_MSG_BT_A2DP_PLAY,
     APP_MSG_BT_A2DP_START,
     APP_MSG_BT_PAGE_DEVICE,
+    APP_MSG_BT_IN_PAGE_MODE,
     APP_MSG_BT_IN_PAIRING_MODE,
     APP_MSG_BT_A2DP_OPEN_MEDIA_SUCCESS,
     APP_MSG_BT_STOP_A2DP_SLIENCE,
@@ -255,7 +257,7 @@ void app_send_message2(int _msg, int arg1, int arg2);
 
 void app_send_message_from(int from, int argc, int *msg);
 
-int app_key_event_remap(const struct key_remap_table *table, int *_event);
+int app_key_event_remap(const struct key_remap_table *table, int *event);
 
 int app_get_message(int *msg, int max_num, const struct key_remap_table *key_table);
 

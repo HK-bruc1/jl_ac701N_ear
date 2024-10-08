@@ -17,16 +17,16 @@
 
 // rcsp认证lib开关
 #if (!BT_CONNECTION_VERIFY)
-const u8 rcsp_auth_support = 1;
+u8 rcsp_auth_support = 1;
 #else
-const u8 rcsp_auth_support = 0;
+u8 rcsp_auth_support = 0;
 #endif
 
 // rcsp一拖二lib开关
 #if (TCFG_RCSP_DUAL_CONN_ENABLE)
-const u8 rcsp_dual_support = 1;
+u8 rcsp_dual_support = 1;
 #else
-const u8 rcsp_dual_support = 0;
+u8 rcsp_dual_support = 0;
 #endif
 
 /* #define RCSP_DEBUG_EN */
@@ -39,6 +39,20 @@ const u8 rcsp_dual_support = 0;
 #define rcsp_printf(...)
 #define rcsp_put_buf(...)
 #endif
+
+void rcsp_set_auth_support_en(u8 en)
+{
+    if (en) {
+        rcsp_auth_support = 1;
+    } else {
+        rcsp_auth_support = 0;
+    }
+}
+
+u8 rcsp_get_auth_support()
+{
+    return rcsp_auth_support;
+}
 
 u8 get_defalut_bt_channel_sel(void)
 {

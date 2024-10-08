@@ -87,10 +87,10 @@ const struct key_remap_table idle_mode_key_table[] = {
 #endif
 #if TCFG_IOKEY_ENABLE
     { .key_value = KEY_POWER,   .remap_table = key_idle_io_num0_msg_table },
-    { .key_value = KEY_NEXT,    .remap_table = key_idle_io_num1_msg_table },
-    { .key_value = KEY_PREV,    .remap_table = key_idle_io_num2_msg_table },
-    { .key_value = KEY_MODE,    .remap_table = key_idle_io_num3_msg_table },
-    { .key_value = KEY_SLIDER,  .remap_table = key_idle_io_num4_msg_table },
+    // { .key_value = KEY_NEXT,    .remap_table = key_idle_io_num1_msg_table },
+    // { .key_value = KEY_PREV,    .remap_table = key_idle_io_num2_msg_table },
+    // { .key_value = KEY_MODE,    .remap_table = key_idle_io_num3_msg_table },
+    // { .key_value = KEY_SLIDER,  .remap_table = key_idle_io_num4_msg_table },
 #endif
     { .key_value = 0xff }
 };

@@ -168,7 +168,7 @@ void uac_speaker_stream_open(u32 samplerate, u32 ch, u32 bitwidth)
     speaker_stream_is_open = 1;
 
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
-    y_printf(">> Case : USB_AUDIO_PLAY_OPEN\n");
+    log_info(">> Case : USB_AUDIO_PLAY_OPEN\n");
 #if TCFG_USER_EMITTER_ENABLE
     app_send_message(APP_MSG_PC_AUDIO_PLAY_OPEN, (int)((ch << 24) | samplerate));
 #endif
@@ -197,7 +197,7 @@ void uac_speaker_stream_close_delay(void *priv)
         uac_speaker = NULL;
     }
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
-    y_printf(">> Case : USB_AUDIO_PLAY_CLOSE\n");
+    log_info(">> Case : USB_AUDIO_PLAY_CLOSE\n");
     if (release) {
         pc_spk_player_close();
     } else {
@@ -259,7 +259,7 @@ void uac_mute_volume(u32 type, u32 l_vol, u32 r_vol)
             return;
         }
         last_mic_vol = l_vol;
-        //TODO
+        pc_mic_set_volume_by_taskq(l_vol);
         break;
     case SPK_FEATURE_UNIT_ID: //SPK
         if (speaker_stream_is_open == 0) {
@@ -271,7 +271,7 @@ void uac_mute_volume(u32 type, u32 l_vol, u32 r_vol)
         last_spk_l_vol = l_vol;
         last_spk_r_vol = r_vol;
 
-        //left and right seperate
+        //TODO
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
         printf(">> PC, r_vol:%d, l_vol:%d\n", r_vol, l_vol);
         /* app_audio_set_volume(APP_AUDIO_STATE_MUSIC, (r_vol + l_vol) / 2, 1); */
@@ -435,7 +435,7 @@ u32 uac_mic_stream_open(u32 samplerate, u32 ch, u32 bitwidth)
     mic_stream_is_open = 1;
 
 #if TCFG_USB_SLAVE_AUDIO_MIC_ENABLE
-    y_printf("## Func:%s, Line:%d, Open Mic!!\n", __func__, __LINE__);
+    log_info("## Func:%s, Line:%d, Open Mic!!\n", __func__, __LINE__);
 #if TCFG_USER_EMITTER_ENABLE
     app_send_message(APP_MSG_PC_AUDIO_MIC_OPEN, (int)((ch << 24) | samplerate));
 #endif
@@ -454,7 +454,7 @@ static void uac_mic_stream_close_delay(void *priv)
     mic_stream_is_open = 0;
 
 #if TCFG_USB_SLAVE_AUDIO_MIC_ENABLE
-    y_printf("## Func:%s, Line:%d, Close Mic!!\n", __func__, __LINE__);
+    log_info("## Func:%s, Line:%d, Close Mic!!\n", __func__, __LINE__);
     if (release) {
         pc_mic_recoder_close();
     } else {

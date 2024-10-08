@@ -4,24 +4,21 @@
 #pragma const_seg(".lp_touch_key.text.const")
 #pragma code_seg(".lp_touch_key.text")
 #endif
-/**@file        lp_touch_key.c
-* @brief        低功耗内置触摸驱动
-* @details
-* @author
-* @date         2021-8-26
-* @version      V1.0
-* @copyright    Copyright:(c)JIELI  2011-2020  @ , All Rights Reserved.
- */
 #include "system/includes.h"
 #include "app_config.h"
 #include "app_msg.h"
 #include "key_driver.h"
-#include "asm/lp_touch_key_alog.h"
+#include "key_event_deal.h"
+#include "asm/power_interface.h"
+#include "asm/lp_touch_key_range_algo.h"
 #include "asm/lp_touch_key_api.h"
 #include "asm/lp_touch_key_tool.h"
-#include "asm/lp_touch_key_hw.h"
 #include "asm/charge.h"
 #include "app_charge.h"
+#include "btstack/avctp_user.h"
+
+
+
 
 #define LOG_TAG_CONST       LP_KEY
 #define LOG_TAG             "[LP_KEY]"
@@ -32,329 +29,70 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+
+
 #if TCFG_LP_TOUCH_KEY_ENABLE
 
 
-#define CTMU_CHECK_LONG_CLICK_BY_RES    1
+VM_MANAGE_ID_REG(touch_key0_algo_cfg, VM_LP_TOUCH_KEY0_ALOG_CFG);
+VM_MANAGE_ID_REG(touch_key1_algo_cfg, VM_LP_TOUCH_KEY1_ALOG_CFG);
+VM_MANAGE_ID_REG(touch_key2_algo_cfg, VM_LP_TOUCH_KEY2_ALOG_CFG);
+VM_MANAGE_ID_REG(touch_key3_algo_cfg, VM_LP_TOUCH_KEY3_ALOG_CFG);
+VM_MANAGE_ID_REG(touch_key4_algo_cfg, VM_LP_TOUCH_KEY4_ALOG_CFG);
 
-/*************************************************************************************************************************
-  										lp_touch_key driver
-*************************************************************************************************************************/
-
-#define LP_TOUCH_KEY_TIMER_MAGIC_NUM        0xFFFF
-
-struct ctmu_key _ctmu_key = {
-    .slide_dir = TOUCH_KEY_EVENT_MAX,
-    .click_cnt = {0, 0, 0, 0, 0},
-    .last_key = {CTMU_KEY_NULL, CTMU_KEY_NULL, CTMU_KEY_NULL, CTMU_KEY_NULL, CTMU_KEY_NULL},
-    .short_timer = {LP_TOUCH_KEY_TIMER_MAGIC_NUM, LP_TOUCH_KEY_TIMER_MAGIC_NUM, LP_TOUCH_KEY_TIMER_MAGIC_NUM, LP_TOUCH_KEY_TIMER_MAGIC_NUM, LP_TOUCH_KEY_TIMER_MAGIC_NUM},
-};
-
-#define __this      (&_ctmu_key)
 
 static volatile u8 is_lpkey_active = 0;
+static volatile u8 touch_irq_before_init = 0;
+static struct lp_touch_key_config_data lp_touch_key_cfg_data;
+#define __this (&lp_touch_key_cfg_data)
 
-
-extern u8 testbox_get_key_action_test_flag(void *priv);
-extern void eartch_state_update(u8 state);
-
-
-static const u8 lpctmu_ana_vh_table[4] = {
-    LPCTMU_VH_065V,
-    LPCTMU_VH_070V,
-    LPCTMU_VH_075V,
-    LPCTMU_VH_080V,
-};
-static const u8 lpctmu_ana_vl_table[4] = {
-    LPCTMU_VL_020V,
-    LPCTMU_VL_025V,
-    LPCTMU_VL_030V,
-    LPCTMU_VL_035V,
-};
-static const u8 lpctmu_ana_cur_table[8] = {
-    LPCTMU_ISEL_036UA,
-    LPCTMU_ISEL_072UA,
-    LPCTMU_ISEL_108UA,
-    LPCTMU_ISEL_144UA,
-    LPCTMU_ISEL_180UA,
-    LPCTMU_ISEL_216UA,
-    LPCTMU_ISEL_252UA,
-    LPCTMU_ISEL_288UA
-};
-
-u8 get_lpctmu_ana_level(void)
-{
-    if (__this->config) {
-        return ((lpctmu_ana_vh_table[__this->config->hv_level]) | \
-                (lpctmu_ana_vl_table[__this->config->lv_level]) | \
-                (lpctmu_ana_cur_table[__this->config->cur_level]));
-    }
-    return ((lpctmu_ana_vh_table[3]) | \
-            (lpctmu_ana_vl_table[0]) | \
-            (lpctmu_ana_cur_table[7]));
-}
-
-struct lp_touch_key_alog_cfg {
-    u16 ready_flag;
-    u16 range;
-    s32 sigma;
-};
-static struct lp_touch_key_alog_cfg alog_cfg[5];
-static u32 alog_sta_cnt[5];
-static u8 ch_range_sensity[5] = {7, 7, 7, 7, 7};
-static u16 save_alog_cfg_timeout[5] = {0, 0, 0, 0, 0};
-static u16 ctmu_res_scan_time_add = 0;
-#define TOUCH_RANGE_MIN     50
-#define TOUCH_RANGE_MAX     500
-static u16 lp_touch_range_max = 500;
-
-#define CTMU_RES_BUF_SIZE   15
-static u16 ctmu_res_buf[5][CTMU_RES_BUF_SIZE];
-static u16 ctmu_res_buf_in[5] = {0, 0, 0, 0, 0};
-static u16 falling_res_avg[5] = {0, 0, 0, 0, 0};
-static u16 long_event_res_avg[5] = {0, 0, 0, 0, 0};
-
-static const u8 _ch_priv[5] = {0, 1, 2, 3, 4};
-
-/***********************************************************************************************************************************
-                                                        event api
-***********************************************************************************************************************************/
-int __attribute__((weak)) lp_touch_key_event_remap(struct key_event *e)
-{
-    return true;
-}
-
-static void __ctmu_notify_key_event(struct key_event *event, u8 ch)
-{
-
-#if CFG_DISABLE_KEY_EVENT
-    return;
-#endif
-
-    event->init = 1;
-    event->type = KEY_DRIVER_TYPE_CTMU_TOUCH;
-
-    if (__this->key_ch_msg_lock) {//锁住期间不能发消息
-        return;
-    }
 
 #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-    if (lp_touch_key_online_debug_key_event_handle(ch, event)) {
-        return;
-    }
-#endif /* #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE */
 
-    if (lp_touch_key_event_remap(event)) {
-        /* app_send_message_from(MSG_FROM_KEY, sizeof(*event), (int *)event); */
-        key_event_handler(event);
-    }
-}
-
-__attribute__((weak)) u8 remap_ctmu_short_click_event(u8 ch, u8 click_cnt, u8 event)
+static u8 touch_bt_tool_enable = 0;
+static int (*touch_bt_online_debug_init)(void) = NULL;
+static int (*touch_bt_online_debug_send)(u8, u16) = NULL;
+static int (*touch_bt_online_debug_key_event_handle)(u8, void *) = NULL;
+void lp_touch_key_debug_init(u32 bt_debug_en, void *bt_debug_init, void *bt_debug_send, void *bt_debug_event)
 {
-    return event;
-}
-
-static void __ctmu_short_click_time_out_handle(void *priv)
-{
-    u8 ch = *((u8 *)priv);
-    struct key_event e;
-    switch (__this->click_cnt[ch]) {
-    case 0:
-        return;
-        break;
-    case 1:
-        e.event = KEY_ACTION_CLICK;
-        break;
-    case 2:
-        e.event = KEY_ACTION_DOUBLE_CLICK;
-        break;
-    case 3:
-        e.event = KEY_ACTION_TRIPLE_CLICK;
-        break;
-    case 4:
-        e.event = KEY_ACTION_FOURTH_CLICK;
-        break;
-    case 5:
-        e.event = KEY_ACTION_FIRTH_CLICK;
-        break;
-    case 6:
-        e.event = KEY_ACTION_SEXTUPLE_CLICK;
-        break;
-    case 7:
-        e.event = KEY_ACTION_SEPTUPLE_CLICK;
-        break;
-    default:
-        e.event = KEY_ACTION_NO_KEY;
-        break;
-    }
-
-    e.event = remap_ctmu_short_click_event(ch, __this->click_cnt[ch], e.event);
-    e.value = __this->config->ch[ch].key_value;
-
-    log_debug("notify key%d short event, cnt: %d", ch, __this->click_cnt[ch]);
-    __ctmu_notify_key_event(&e, ch);
-
-    __this->short_timer[ch] = LP_TOUCH_KEY_TIMER_MAGIC_NUM;
-    __this->last_key[ch] = CTMU_KEY_NULL;
-    __this->click_cnt[ch] = 0;
-}
-
-static void ctmu_short_click_handle(u8 ch)
-{
-    static u8 pre_ch = 0xff;
-    __this->slide_dir = TOUCH_KEY_EVENT_MAX;
-    __this->last_key[ch] = CTMU_KEY_SHORT_CLICK;
-    if (__this->short_timer[ch] == LP_TOUCH_KEY_TIMER_MAGIC_NUM) {
-        __this->click_cnt[ch] = 1;
-        if (__this->config->slide_mode_en) {
-            __this->short_timer[ch] = usr_timeout_add((void *)&_ch_priv[ch], __ctmu_short_click_time_out_handle, CTMU_SHORT_CLICK_DELAY_TIME +  150, 1);
-        } else {
-            __this->short_timer[ch] = usr_timeout_add((void *)&_ch_priv[ch], __ctmu_short_click_time_out_handle, CTMU_SHORT_CLICK_DELAY_TIME, 1);
-        }
-    } else {
-        __this->click_cnt[ch]++;
-        usr_timer_modify(__this->short_timer[ch], CTMU_SHORT_CLICK_DELAY_TIME);
-    }
-}
-
-static void ctmu_raise_click_handle(u8 ch)
-{
-    struct key_event e = {0};
-    if (__this->last_key[ch] >= CTMU_KEY_LONG_CLICK) {
-        e.event = KEY_ACTION_UP;
-        e.value = __this->config->ch[ch].key_value;
-        __ctmu_notify_key_event(&e, ch);
-
-        __this->last_key[ch] = CTMU_KEY_NULL;
-        log_debug("notify key HOLD UP event");
-    } else {
-        ctmu_short_click_handle(ch);
-    }
-}
-
-static void ctmu_long_click_handle(u8 ch)
-{
-    __this->last_key[ch] = CTMU_KEY_LONG_CLICK;
-
-    struct key_event e;
-    e.event = KEY_ACTION_LONG;
-    e.value = __this->config->ch[ch].key_value;
-
-    __ctmu_notify_key_event(&e, ch);
-}
-
-static void ctmu_hold_click_handle(u8 ch)
-{
-    __this->last_key[ch] = CTMU_KEY_HOLD_CLICK;
-
-    struct key_event e;
-    e.event = KEY_ACTION_HOLD;
-    e.value = __this->config->ch[ch].key_value;
-
-    __ctmu_notify_key_event(&e, ch);
-}
-
-
-#if TCFG_LP_EARTCH_KEY_ENABLE
-
-__attribute__((weak))
-void ear_lptouch_update_state(u8 state)
-{
-    return;
-}
-
-static void __ctmu_ear_in_timeout_handle(void *priv)
-{
-#if CFG_DISABLE_INEAR_EVENT
-    return;
-#endif
-    if (__this->config->ch[__this->config->eartch_ch].key_value == 0xFF) {
-        //使用外部自定义流程
-        if (__this->eartch_last_state == EAR_IN) {
-            ear_lptouch_update_state(0);
-        } else {
-            ear_lptouch_update_state(1);
-        }
-        return;
-    }
-
-#if TCFG_EARTCH_EVENT_HANDLE_ENABLE
-    u8 state;
-    if (__this->eartch_last_state == EAR_IN) {
-        state = EARTCH_STATE_IN;
-    } else if (__this->eartch_last_state == EAR_OUT) {
-        state = EARTCH_STATE_OUT;
-    } else {
-        return;
-    }
-    eartch_state_update(state);
-#endif /* #if TCFG_EARTCH_EVENT_HANDLE_ENABLE */
-}
-
-static void __ctmu_key_unlock_timeout_handle(void *priv)
-{
-    __this->key_ch_msg_lock = false;
-    __this->key_ch_msg_lock_timer = 0;
-}
-
-static void ctmu_eartch_event_handle(u8 eartch_state)
-{
-    __this->eartch_last_state = eartch_state;
-
-#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-    struct key_event e;
-    if (eartch_state == EAR_IN) {
-        e.event = 10;
-    } else if (eartch_state == EAR_OUT) {
-        e.event = 11;
-    }
-    if (lp_touch_key_online_debug_key_event_handle(__this->config->eartch_ch, &e)) {
-        return;
-    }
-#endif /* #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE */
-
-    __this->key_ch_msg_lock = true;
-
-    if (__this->key_ch_msg_lock_timer == 0) {
-        __this->key_ch_msg_lock_timer = sys_hi_timeout_add(NULL, __ctmu_key_unlock_timeout_handle, ERATCH_KEY_MSG_LOCK_TIME);
-    } else {
-        sys_hi_timer_modify(__this->key_ch_msg_lock_timer, ERATCH_KEY_MSG_LOCK_TIME);
-    }
-    __ctmu_ear_in_timeout_handle(NULL);
+    touch_bt_tool_enable = bt_debug_en;
+    touch_bt_online_debug_init = bt_debug_init;
+    touch_bt_online_debug_send = bt_debug_send;
+    touch_bt_online_debug_key_event_handle = bt_debug_event;
 }
 
 #endif
 
-/*************************************************************************************************************************
-                                        lp_touch_key driver
-*************************************************************************************************************************/
+
 #if CTMU_CHECK_LONG_CLICK_BY_RES
 
-static void lp_touch_key_ctmu_res_buf_clear(u8 ch)
+static void lp_touch_key_ctmu_res_buf_clear(u32 ch_idx)
 {
-    ctmu_res_buf_in[ch] = 0;
-    for (u8 i = 0; i < CTMU_RES_BUF_SIZE; i ++) {
-        ctmu_res_buf[ch][i] = 0;
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    arg->ctmu_res_buf_in = 0;
+    for (u32 i = 0; i < CTMU_RES_BUF_SIZE; i ++) {
+        arg->ctmu_res_buf[i] = 0;
     }
 }
 
 static void lp_touch_key_ctmu_res_all_buf_clear(void)
 {
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        lp_touch_key_ctmu_res_buf_clear(ch);
+    for (u32 ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        lp_touch_key_ctmu_res_buf_clear(ch_idx);
     }
 }
 
-static u32 lp_touch_key_ctmu_res_buf_avg(u8 ch)
+static u32 lp_touch_key_ctmu_res_buf_avg(u32 ch_idx)
 {
 #if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
     u32 res_sum = 0;
-    u8 j = 0;
-    u8 cnt = ctmu_res_buf_in[ch];
-    for (u8 i = 0; i < (CTMU_RES_BUF_SIZE - 5); i ++) {
-        if (ctmu_res_buf[ch][cnt]) {
-            res_sum += ctmu_res_buf[ch][cnt];
+    u32 i, j = 0;
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    u32 cnt = arg->ctmu_res_buf_in;
+    u16 *res_buf = arg->ctmu_res_buf;
+    for (i = 0; i < (CTMU_RES_BUF_SIZE - 5); i ++) {
+        if (res_buf[cnt]) {
+            res_sum += res_buf[cnt];
             j ++;
         } else {
             return 0;
@@ -371,25 +109,32 @@ static u32 lp_touch_key_ctmu_res_buf_avg(u8 ch)
     return 0;
 }
 
-static u8 lp_touch_key_check_long_click_by_ctmu_res(u8 ch)
+static u32 lp_touch_key_check_long_click_by_ctmu_res(u32 ch_idx)
 {
 #if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-    long_event_res_avg[ch] = lp_touch_key_ctmu_res_buf_avg(ch);
-    log_debug("long_event_res_avg: %d\n", long_event_res_avg[ch]);
-    if ((falling_res_avg[ch] < 2000)  || \
-        (falling_res_avg[ch] > 20000) || \
-        (long_event_res_avg[ch] < 2000) || \
-        (long_event_res_avg[ch] > 20000)) {
-    } else {
-        u16 cfg2 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8);
-        u16 diff = (falling_res_avg[ch] > long_event_res_avg[ch]) ? (falling_res_avg[ch] - long_event_res_avg[ch]) : (long_event_res_avg[ch] - falling_res_avg[ch]);
+
+    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    arg->long_event_res_avg = lp_touch_key_ctmu_res_buf_avg(ch_idx);
+    log_debug("long_event_res_avg: %d\n", arg->long_event_res_avg);
+    log_debug("falling_res_avg: %d\n", arg->falling_res_avg);
+
+    if ((arg->falling_res_avg == 0) || (arg->long_event_res_avg == 0)) {
+        return 0;
+    }
+
+    u16 cfg2 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8);
+    if (arg->falling_res_avg >= arg->long_event_res_avg) {
+        u32 diff = arg->falling_res_avg - arg->long_event_res_avg;
         if (diff < (cfg2 / 2)) {
             log_debug("long event return ! diff: %d  <  cfg2/2: %d\n", diff, (cfg2 / 2));
-
-            //复位算法
-            lp_touch_key_send_cmd(CTMU_M2P_RESET_ALGO);
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
             return 1;
         }
+    } else {
+        log_debug("long event return ! falling_res_avg < long_event_res_avg\n");
+        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        return 1;
     }
 #endif
     return 0;
@@ -397,22 +142,23 @@ static u8 lp_touch_key_check_long_click_by_ctmu_res(u8 ch)
 
 #endif
 
-u8 lp_touch_key_alog_range_display(u8 *display_buf)
+u32 lp_touch_key_alog_range_display(u8 *display_buf)
 {
-    if (__this->init == 0) {
+    if (!__this->pdata) {
         return 0;
     }
-    u8 tmp_buf[32], i = 0;
+    u8 tmp_buf[32];
+    u32 range, i = 0;
+    struct touch_key_arg *arg;
     memset(tmp_buf, 0, sizeof(tmp_buf));
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            u16 range = alog_cfg[ch].range % 1000;
-            tmp_buf[0 + i * 4] = (range / 100) + '0';
-            tmp_buf[1 + i * 4] = ((range % 100) / 10) + '0';
-            tmp_buf[2 + i * 4] = (range % 10) + '0';
-            tmp_buf[3 + i * 4] = ' ';
-            i ++;
-        }
+    for (u32 ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        arg = &(__this->arg[ch_idx]);
+        range = arg->algo_data.range % 1000;
+        tmp_buf[0 + i * 4] = (range / 100) + '0';
+        tmp_buf[1 + i * 4] = ((range % 100) / 10) + '0';
+        tmp_buf[2 + i * 4] = (range % 10) + '0';
+        tmp_buf[3 + i * 4] = ' ';
+        i ++;
     }
     if (i) {
         display_buf[0] = i * 4 + 1;
@@ -424,39 +170,75 @@ u8 lp_touch_key_alog_range_display(u8 *display_buf)
     return 0;
 }
 
-
-#if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-
-void lp_touch_key_save_alog_cfg(void *priv)
+static void lp_touch_key_identify_algorithm_init(void)
 {
-    printf("save alog cfg\n");
-    u8 ch = *((u8 *)priv);
-    int ret = syscfg_write(VM_LP_TOUCH_KEY0_ALOG_CFG + ch, (void *)&alog_cfg[ch], sizeof(struct lp_touch_key_alog_cfg));
-    if (ret != sizeof(struct lp_touch_key_alog_cfg)) {
-        log_info("write vm alog cfg ready flag error !\n");
-    }
-    save_alog_cfg_timeout[ch] = 0;
+    lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
 }
 
-void lp_touch_key_ctmu_cfg2_check_update(u8 ch, u16 touch_range)
+static void lp_touch_key_identify_algo_set_edge_down_th(u32 ch_idx, u32 cfg2_new)
 {
-    u16 cfg2_new = touch_range * (10 - ch_range_sensity[ch]) / 10;
+    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
+
     u16 cfg0 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8);
-    u16 cfg2_old = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8);
-    if ((cfg2_old != cfg2_new) && (cfg2_new > (3 * cfg0))) {
-        printf("ctmu ch%d cfg2_old = %d  cfg2_new = %d\n", ch, cfg2_old, cfg2_new);
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = cfg2_new & 0xff;
+    u16 cfg1 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8);
+    u16 cfg2 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8);
+    if (cfg2_new < (3 * cfg0)) {
+        cfg2_new = (3 * cfg0);
+    }
+    if (cfg2 != cfg2_new) {
+        log_debug("ctmu ch%d cfg2_old = %d  cfg2_new = %d\n", ch, cfg2, cfg2_new);
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = (cfg2_new >> 0) & 0xff;
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) = (cfg2_new >> 8) & 0xff;
-        u16 cfg1 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) << 8) | (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8));
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8) = cfg1 & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8) = (cfg1 >> 0) & 0xff;
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) = (cfg1 >> 8) & 0xff;
     }
 }
 
-static u16 get_lp_ctmu_res_value(u8 ch)
+static void lp_touch_key_save_range_algo_data(u32 ch_idx)
+{
+    log_debug("save algo rfg\n");
+
+    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
+    struct touch_key_range_algo_data *algo_data;
+    algo_data = &(__this->arg[ch_idx].algo_data);
+
+    int ret = syscfg_write(VM_LP_TOUCH_KEY0_ALOG_CFG + ch, (void *)algo_data, sizeof(struct touch_key_range_algo_data));
+    if (ret != sizeof(struct touch_key_range_algo_data)) {
+        log_debug("write vm algo cfg error !\n");
+    }
+}
+
+static u32 lp_touch_key_get_range_sensity_threshold(u32 sensity, u32 range)
+{
+    u32 cfg2_new = range * (10 - sensity) / 10;
+    return cfg2_new;
+}
+
+static void lp_touch_key_range_algo_cfg_check_update(u32 ch_idx, u32 touch_range, s32 touch_sigma)
+{
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    struct touch_key_range_algo_data *algo_data = &(arg->algo_data);
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    const struct touch_key_algo_cfg *algo_cfg = &(key_cfg->algo_cfg[key_cfg->index]);
+
+    if (touch_range != algo_data->range) {
+        algo_data->range = touch_range;
+        algo_data->sigma = touch_sigma;
+        u32 cfg2_new = lp_touch_key_get_range_sensity_threshold(algo_cfg->range_sensity, touch_range);
+        lp_touch_key_identify_algo_set_edge_down_th(ch_idx, cfg2_new);
+        int msg[3];
+        msg[0] = (int)lp_touch_key_save_range_algo_data;
+        msg[1] = 1;
+        msg[2] = (int)ch_idx;
+        os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
+    }
+}
+
+static u32 lp_touch_key_get_lpctmu_res_value(u32 ch_idx)
 {
     u16 ctmu_res0;
     u16 ctmu_res1;
+    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
 __read_res:
     ctmu_res0 = (P2M_MESSAGE_ACCESS(P2M_MASSAGE_CTMU_CH0_H_RES + ch * 2) << 8) | P2M_MESSAGE_ACCESS(P2M_MASSAGE_CTMU_CH0_L_RES + ch * 2);
     delay_nops(100);
@@ -467,268 +249,228 @@ __read_res:
     return ctmu_res0;
 }
 
-void lp_touch_key_alog_cfg_check_update(u8 ch, u16 touch_range, s32 touch_sigma)
+static void lp_touch_key_range_algo_analyze(u32 ch_idx, u32 ch_res)
 {
-    if (touch_range != alog_cfg[ch].range) {
-        alog_cfg[ch].range = touch_range;
-        alog_cfg[ch].sigma = touch_sigma;
-        if (save_alog_cfg_timeout[ch] == 0) {
-            save_alog_cfg_timeout[ch] = sys_timeout_add((void *)&_ch_priv[ch], lp_touch_key_save_alog_cfg, 1);
-        }
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    struct touch_key_range_algo_data *algo_data = &(arg->algo_data);
+
+    /* log_debug("key%d res:%d\n", ch_idx, ch_res); */
+
+    //数据范围过滤
+    if ((ch_res < 1000) || (ch_res > 20000)) {
+        return;
     }
-}
 
-static void lp_touch_key_ctmu_res_scan(void *priv)
-{
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            if (__this->config->eartch_en && (__this->config->eartch_ch == ch)) {
-            } else {
+    //算法的启动标志检查
+    if (algo_data->ready_flag == 0) {
+        return;
+    }
 
-//获取通道的触摸实时值
-                u16 ctmu_res = get_lp_ctmu_res_value(ch);
-//数据范围过滤
-                if ((ctmu_res < 2000) || (ctmu_res > 20000)) {
-                    continue;
-                }
+    //开机预留稳定的时间
+    if (arg->algo_sta_cnt < 50) {
+        arg->algo_sta_cnt ++;
+        return;
+    }
 
 #if CTMU_CHECK_LONG_CLICK_BY_RES
-//缓存res的值
-                ctmu_res_buf[ch][ctmu_res_buf_in[ch]] = ctmu_res;
-                ctmu_res_buf_in[ch] ++;
-                if (ctmu_res_buf_in[ch] >= CTMU_RES_BUF_SIZE) {
-                    ctmu_res_buf_in[ch] = 0;
-                }
+    arg->ctmu_res_buf[arg->ctmu_res_buf_in] = ch_res;
+    arg->ctmu_res_buf_in ++;
+    if (arg->ctmu_res_buf_in >= CTMU_RES_BUF_SIZE) {
+        arg->ctmu_res_buf_in = 0;
+    }
 #endif
 
+    //变化量训练算法输入
+    TouchRangeAlgo_Update(ch_idx, ch_res);
 
-//算法的启动标志检查
-                if (alog_cfg[ch].ready_flag == 0) {
-                    continue;
-                }
-//开机预留稳定的时间
-                if (alog_sta_cnt[ch] < 50) {
-                    alog_sta_cnt[ch] ++;
-                    continue;
-                }
-//变化量训练算法输入
-                TouchAlgo_Update(ch, ctmu_res);
-//获取算法结果
-                u8 range_valid = 0;
-                u16 touch_range = TouchAlgo_GetRange(ch, (u8 *)&range_valid);
-                s32 touch_sigma = TouchAlgo_GetSigma(ch);
-//算法结果的处理
-                /* printf("ch%d res:%d range:%d val:%d sigma:%d\n", ch, ctmu_res0, touch_range, range_valid, touch_sigma); */
-                if ((range_valid) && (touch_range > TOUCH_RANGE_MIN) && (touch_range < lp_touch_range_max)) {
-                    lp_touch_key_ctmu_cfg2_check_update(ch, touch_range);
-                    lp_touch_key_alog_cfg_check_update(ch, touch_range, touch_sigma);
-                } else if ((range_valid) && (touch_range >= lp_touch_range_max)) {
-                    TouchAlgo_SetRange(ch, alog_cfg[ch].range);
-                }
-            }
+    //获取算法结果
+    u8 range_valid = 0;
+    u16 touch_range = TouchRangeAlgo_GetRange(ch_idx, (u8 *)&range_valid);
+    s32 touch_sigma = TouchRangeAlgo_GetSigma(ch_idx);
+
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    const struct touch_key_algo_cfg *algo_cfg = &(key_cfg->algo_cfg[key_cfg->index]);
+    //算法结果的处理
+    /* log_debug("key%d res:%d range:%d val:%d sigma:%d\n", ch_idx, ch_res, touch_range, range_valid, touch_sigma); */
+    if ((range_valid) && (touch_range >= algo_cfg->algo_range_min) && (touch_range <= algo_cfg->algo_range_max)) {
+        lp_touch_key_range_algo_cfg_check_update(ch_idx, touch_range, touch_sigma);
+    } else if ((range_valid) && (touch_range > algo_cfg->algo_range_max)) {
+        TouchRangeAlgo_SetRange(ch_idx, algo_data->range);
+    }
+}
+
+static void lp_touch_key_range_algo_analyze_scan(void *priv)
+{
+    u32 ch_res, ch_idx;
+    for (ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        ch_res = lp_touch_key_get_lpctmu_res_value(ch_idx);
+        lp_touch_key_range_algo_analyze(ch_idx, ch_res);
+    }
+}
+
+static void lp_touch_key_range_algo_init(u32 ch_idx, const struct touch_key_algo_cfg *algo_cfg)
+{
+    __this->arg[ch_idx].algo_sta_cnt = 0;
+    TouchRangeAlgo_Init(ch_idx, algo_cfg->algo_range_min, algo_cfg->algo_range_max);
+
+    log_debug("read vm algo cfg\n");
+
+    struct touch_key_range_algo_data *algo_data;
+    algo_data = &(__this->arg[ch_idx].algo_data);
+
+    int ret = syscfg_read(VM_LP_TOUCH_KEY0_ALOG_CFG + ch_idx, (void *)algo_data, sizeof(struct touch_key_range_algo_data));
+
+    if ((ret == (sizeof(struct touch_key_range_algo_data)))
+        && (algo_data->ready_flag)
+        && (algo_data->range >= algo_cfg->algo_range_min)
+        && (algo_data->range <= algo_cfg->algo_range_max)) {
+        log_debug("vm read key:%d algo ready:%d sigma:%d range:%d\n",
+                  ch_idx,
+                  algo_data->ready_flag,
+                  algo_data->sigma,
+                  algo_data->range);
+
+        TouchRangeAlgo_SetSigma(ch_idx, algo_data->sigma);
+        TouchRangeAlgo_SetRange(ch_idx, algo_data->range);
+
+        u32 cfg2_new = lp_touch_key_get_range_sensity_threshold(algo_cfg->range_sensity, algo_data->range);
+        lp_touch_key_identify_algo_set_edge_down_th(ch_idx, cfg2_new);
+    } else {
+
+        if (get_charge_online_flag()) {
+            log_debug("check charge online !\n");
+            algo_data->ready_flag = 1;
+            lp_touch_key_save_range_algo_data(ch_idx);
         }
     }
 }
 
-void lp_touch_key_alog_ready_flag_check_and_set(void)
+static u32 lp_touch_key_get_cur_ch_by_idx(u32 ch_idx)
 {
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            if (__this->config->eartch_en && (__this->config->eartch_ch == ch)) {
-            } else {
-                alog_cfg[ch].ready_flag = 0;
-                syscfg_read(VM_LP_TOUCH_KEY0_ALOG_CFG + ch, (void *)&alog_cfg[ch], sizeof(struct lp_touch_key_alog_cfg));
-                if (alog_cfg[ch].ready_flag == 0) {
-                    alog_cfg[ch].ready_flag = 1;
-                    lp_touch_key_save_alog_cfg((void *)&ch);
-                }
-            }
+    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
+    return ch;
+}
+
+static u32 lp_touch_key_get_idx_by_cur_ch(u32 cur_ch)
+{
+    u32 ch_idx, ch;
+    for (ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        ch = __this->pdata->key_cfg[ch_idx].key_ch;
+        if (cur_ch == ch) {
+            return ch_idx;
         }
     }
+    return 0;
 }
 
-void lp_touch_key_alog_init(u8 ch, u16 max_value)
-{
-    TouchAlgo_Init(ch, TOUCH_RANGE_MIN, max_value);
-    lp_touch_range_max = max_value;
-    alog_sta_cnt[ch] = 0;
-    ch_range_sensity[ch] = __this->config->ch[ch].range_sensity;
-    log_info("read vm alog cfg\n");
-    int ret = syscfg_read(VM_LP_TOUCH_KEY0_ALOG_CFG + ch, (void *)&alog_cfg[ch], sizeof(struct lp_touch_key_alog_cfg));
-    if ((ret == (sizeof(struct lp_touch_key_alog_cfg))) && (alog_cfg[ch].range > TOUCH_RANGE_MIN) && (alog_cfg[ch].range < lp_touch_range_max)) {
-        log_info("vm read ch%d alog ready:%d sigma:%d range:%d\n", ch, alog_cfg[ch].ready_flag, alog_cfg[ch].sigma, alog_cfg[ch].range);
-        u16 cfg0 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) << 8) | (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8));
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8) = (cfg0 + 5) & 0xff;
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) = ((cfg0 + 5) >> 8) & 0xff;
-        u16 cfg2_new = alog_cfg[ch].range * (10 - ch_range_sensity[ch]) / 10;
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = cfg2_new & 0xff;
-        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) = (cfg2_new >> 8) & 0xff;
-        TouchAlgo_SetSigma(ch, alog_cfg[ch].sigma);
-        TouchAlgo_SetRange(ch, alog_cfg[ch].range);
-    }
-}
-
-#endif
-
-
-static void ctmu_port_init(u8 port)
-{
-    gpio_set_mode(port / 16, BIT(port % 16), PORT_HIGHZ);
-}
-
-void lp_touch_key_send_cmd(enum CTMU_M2P_CMD cmd)
-{
-    M2P_CTMU_CMD = cmd;
-    P11_M2P_INT_SET = BIT(M2P_CTMU_INDEX);
-}
-
-#define IO_RESET_PORTB_01 			18
-void lp_touch_key_init(const struct lp_touch_key_platform_data *config)
+void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
 {
     log_info("%s >>>>", __func__);
 
-    ASSERT(config && (__this->init == 0));
-    __this->config = config;
+    u32 ch_idx, ch;
+    const struct touch_key_cfg *key_cfg;
+    const struct touch_key_algo_cfg *algo_cfg;
 
-    u8 pinr_io;
-    if (P33_CON_GET(P3_PINR_CON) & BIT(0)) {
-        pinr_io = P33_CON_GET(P3_PORT_SEL0);
-        if (pinr_io == IO_RESET_PORTB_01) {
-            P33_CON_SET(P3_PINR_CON, 0, 8, 0);
-            P33_CON_SET(P3_PINR_CON1, 0, 8, 0x16);
-            P33_CON_SET(P3_PINR_CON1, 0, 1, 1);
-            log_info("reset pin change: old: %d, P3_PINR_CON1 = 0x%x", pinr_io, P33_CON_GET(P3_PINR_CON1));
-        }
+    memset(__this, 0, sizeof(struct lp_touch_key_config_data));
+    __this->pdata = pdata;
+    if (!__this->pdata) {
+        return;
     }
 
-    u8 ch_enable = 0;
-    u8 ch_wakeup_en = 0;
-    u8 ch_debug = 0;
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            ch_enable |= BIT(ch);
-            if (__this->config->ch[ch].wakeup_enable) {
-                ch_wakeup_en |= BIT(ch);
-            }
-            if (CFG_CHx_DEBUG_ENABLE & BIT(ch)) {
-                ch_debug |= BIT(ch);
-            }
+    __this->lpctmu_cfg.pdata = __this->pdata->lpctmu_pdata;
+    for (ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+        ch = key_cfg->key_ch;
+        __this->lpctmu_cfg.ch_num = __this->pdata->key_num;
+        __this->lpctmu_cfg.ch_list[ch_idx] = ch;
+        __this->lpctmu_cfg.ch_en |= BIT(ch);
+        if (key_cfg->wakeup_enable) {
+            __this->lpctmu_cfg.ch_wkp_en |= BIT(ch);
         }
     }
-    if (is_reset_source(MSYS_P2M_RST) == 0 || get_charge_online_flag() || (!(ch_wakeup_en)) || (is_ldo5v_wakeup())) {
-        for (u32 m2p_addr = 0x18; m2p_addr < 0x56; m2p_addr ++) {
-            M2P_MESSAGE_ACCESS(m2p_addr) = 0;
+    if (__this->lpctmu_cfg.ch_wkp_en) {
+        __this->lpctmu_cfg.softoff_wakeup_cfg = LPCTMU_WAKEUP_EN_WITHOUT_CHARGE_ONLINE;
+        if (__this->pdata->charge_online_softoff_wakeup) {
+            __this->lpctmu_cfg.softoff_wakeup_cfg = LPCTMU_WAKEUP_EN_ALWAYS;
         }
-        for (u32 p2m_addr = 0x10; p2m_addr < 0x24; p2m_addr ++) {
-            P2M_MESSAGE_ACCESS(p2m_addr) = 0;
-        }
+    } else {
+        __this->lpctmu_cfg.softoff_wakeup_cfg = LPCTMU_WAKEUP_DISABLE;
     }
 
-    M2P_CTMU_MSG = 0;
+
+    M2P_CTMU_CMD = 0;
+    M2P_CTMU_CH_DEBUG = 0;
     M2P_CTMU_CH_CFG = 0;
-    M2P_CTMU_TIME_BASE = CTMU_SAMPLE_RATE_PRD;
 
-    M2P_CTMU_LONG_TIMEL = (CTMU_LONG_KEY_DELAY_TIME & 0xFF);
-    M2P_CTMU_LONG_TIMEH = ((CTMU_LONG_KEY_DELAY_TIME >> 8) & 0xFF);
-    M2P_CTMU_HOLD_TIMEL = (CTMU_HOLD_CLICK_DELAY_TIME & 0xFF);
-    M2P_CTMU_HOLD_TIMEH = ((CTMU_HOLD_CLICK_DELAY_TIME >> 8) & 0xFF);
-
-    M2P_CTMU_SOFTOFF_LONG_TIMEL = (__this->config->softoff_long_time & 0xFF);
-    M2P_CTMU_SOFTOFF_LONG_TIMEH = ((__this->config->softoff_long_time >> 8) & 0xFF);
+    M2P_CTMU_LONG_KEY_EVENT_TIMEL   = (__this->pdata->long_click_check_time >> 0) & 0xff;
+    M2P_CTMU_LONG_KEY_EVENT_TIMEH   = (__this->pdata->long_click_check_time >> 8) & 0xff;
+    M2P_CTMU_HOLD_KEY_EVENT_TIMEL   = (__this->pdata->hold_click_check_time >> 0) & 0xff;
+    M2P_CTMU_HOLD_KEY_EVENT_TIMEH   = (__this->pdata->hold_click_check_time >> 8) & 0xff;
+    M2P_CTMU_SOFTOFF_WAKEUP_TIMEL   = (__this->pdata->softoff_wakeup_time   >> 0) & 0xff;
+    M2P_CTMU_SOFTOFF_WAKEUP_TIMEH   = (__this->pdata->softoff_wakeup_time   >> 8) & 0xff;
 
 #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-    M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_L = 0;
-    M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_H = 0;
+    M2P_CTMU_LONG_PRESS_RESET_TIMEL = 0;
+    M2P_CTMU_LONG_PRESS_RESET_TIMEH = 0;
 #else
-    M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_L = (__this->config->long_press_reset_time & 0xFF);
-    M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_H = ((__this->config->long_press_reset_time  >> 8) & 0xFF);
+    M2P_CTMU_LONG_PRESS_RESET_TIMEL = (__this->pdata->long_press_reset_time >> 0) & 0xff;
+    M2P_CTMU_LONG_PRESS_RESET_TIMEH = (__this->pdata->long_press_reset_time >> 8) & 0xff;
 #endif
 
-    log_info("M2P_CTMU_LONG_TIMEL = 0x%x", M2P_CTMU_LONG_TIMEL);
-    log_info("M2P_CTMU_LONG_TIMEH = 0x%x", M2P_CTMU_LONG_TIMEH);
-    log_info("M2P_CTMU_HOLD_TIMEL = 0x%x", M2P_CTMU_HOLD_TIMEL);
-    log_info("M2P_CTMU_HOLD_TIMEH = 0x%x", M2P_CTMU_HOLD_TIMEH);
+    for (ch_idx = 0; ch_idx < __this->pdata->key_num; ch_idx ++) {
+        key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+        algo_cfg = &(key_cfg->algo_cfg[key_cfg->index]);
+        ch = key_cfg->key_ch;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8) = (algo_cfg->algo_cfg0 >> 0) & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) = (algo_cfg->algo_cfg0 >> 8) & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8) = ((algo_cfg->algo_cfg0 +  5) >> 0) & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) = ((algo_cfg->algo_cfg0 +  5) >> 8) & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = (algo_cfg->algo_cfg2 >> 0) & 0xff;
+        M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) = (algo_cfg->algo_cfg2 >> 8) & 0xff;
+        log_debug("M2P_CTMU_CH%d_CFG0L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8));
+        log_debug("M2P_CTMU_CH%d_CFG0H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8));
+        log_debug("M2P_CTMU_CH%d_CFG1L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8));
+        log_debug("M2P_CTMU_CH%d_CFG1H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8));
+        log_debug("M2P_CTMU_CH%d_CFG2L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8));
+        log_debug("M2P_CTMU_CH%d_CFG2H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8));
 
-    log_info("M2P_CTMU_SOFTOFF_LONG_TIMEL = 0x%x", M2P_CTMU_SOFTOFF_LONG_TIMEL);
-    log_info("M2P_CTMU_SOFTOFF_LONG_TIMEH = 0x%x", M2P_CTMU_SOFTOFF_LONG_TIMEH);
-
-    log_info("M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_L = 0x%x", M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_L);
-    log_info("M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_H = 0x%x", M2P_CTMU_LONG_PRESS_RESET_TIME_VALUE_H);
-
-    M2P_CTMU_CH_ENABLE = ch_enable;
-    M2P_CTMU_CH_WAKEUP_EN = ch_wakeup_en;
-    M2P_CTMU_CH_DEBUG = ch_debug;
-
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8) = (__this->config->ch[ch].algo_cfg0 & 0xff);
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) = (__this->config->ch[ch].algo_cfg0 >> 8) & 0xff;
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8) = (__this->config->ch[ch].algo_cfg1 & 0xff);
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) = (__this->config->ch[ch].algo_cfg1 >> 8) & 0xff;
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = (__this->config->ch[ch].algo_cfg2 & 0xff);
-            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) = (__this->config->ch[ch].algo_cfg2 >> 8) & 0xff;
-
-            log_info("M2P_CTMU_CH%d_CFG0L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8));
-            log_info("M2P_CTMU_CH%d_CFG0H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8));
-            log_info("M2P_CTMU_CH%d_CFG1L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8));
-            log_info("M2P_CTMU_CH%d_CFG1H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8));
-            log_info("M2P_CTMU_CH%d_CFG2L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8));
-            log_info("M2P_CTMU_CH%d_CFG2H = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8));
-
-            ctmu_port_init(__this->config->ch[ch].port);
 #if TCFG_LP_EARTCH_KEY_ENABLE
-            if (__this->config->eartch_en && (__this->config->eartch_ch == ch)) {
-                M2P_CTMU_CH_CFG |= BIT(1);
-                M2P_CTMU_EARTCH_CH = (__this->config->eartch_ref_ch << 4) | (__this->config->eartch_ch & 0xf);
-#if (TCFG_EARTCH_EVENT_HANDLE_ENABLE && TCFG_LP_EARTCH_KEY_ENABLE)
-                extern int eartch_event_deal_init(void);
-                eartch_event_deal_init();
+        if (__this->pdata->eartch_en && (__this->pdata->eartch_ch == ch)) {
+            lp_touch_key_eartch_parm_init();
+        } else
 #endif
-                u16 trim_value;
-                int ret = syscfg_read(LP_KEY_EARTCH_TRIM_VALUE, &trim_value, sizeof(trim_value));
-                __this->eartch_trim_flag = 0;
-                __this->eartch_inear_ok = 0;
-                __this->eartch_trim_value = 0;
-                if (ret > 0) {
-                    __this->eartch_inear_ok = 1;
-                    __this->eartch_trim_value = trim_value;
-                    log_info("eartch_trim_value = %d", __this->eartch_trim_value);
-                    M2P_CTMU_EARTCH_TRIM_VALUE_L = (__this->eartch_trim_value & 0xFF);
-                    M2P_CTMU_EARTCH_TRIM_VALUE_H = ((__this->eartch_trim_value >> 8) & 0xFF);
-                } else {
-                    //没有trim的情况下用不了
-                    M2P_CTMU_EARTCH_TRIM_VALUE_L = (10000 & 0xFF);
-                    M2P_CTMU_EARTCH_TRIM_VALUE_H = ((10000 >> 8) & 0xFF);
-                }
-                //软件触摸灵敏度调试
-                M2P_CTMU_INEAR_VALUE_L = __this->config->eartch_soft_inear_val & 0xFF;
-                M2P_CTMU_INEAR_VALUE_H = __this->config->eartch_soft_inear_val >> 8;
-                M2P_CTMU_OUTEAR_VALUE_L = __this->config->eartch_soft_outear_val & 0xFF;
-                M2P_CTMU_OUTEAR_VALUE_H = __this->config->eartch_soft_outear_val >> 8;
-            } else
-#endif
-            {
+        {
+
 #if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-                lp_touch_key_alog_init(ch, __this->config->ch[ch].algo_range_max);
+            lp_touch_key_range_algo_init(ch_idx, algo_cfg);
 #endif
-            }
+
         }
     }
 
-#if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-
-#if 1   //触摸算法要尽可能的在装完整机之后开始跑，而这里是耳机生产流程中获取它第一次在舱内开机的时候，在vm标记一个变量，从此开始跑算法。
-
-    if (get_charge_online_flag()) {
-        log_info("check charge online!\n");
-        lp_touch_key_alog_ready_flag_check_and_set();//如果有其他好的位置，请将该函数移到那个位置执行。
+    if ((!is_wakeup_source(PWR_WK_REASON_P11)) || \
+        (__this->pdata->ldo_wkp_algo_reset && is_ldo5v_wakeup()) || \
+        (__this->pdata->charge_online_algo_reset && get_charge_online_flag())) {
+        lp_touch_key_identify_algorithm_init();
     }
 
-#endif
+    lpctmu_init(&__this->lpctmu_cfg);
 
-    if (ctmu_res_scan_time_add == 0) {
-        ctmu_res_scan_time_add = usr_timer_add(NULL, lp_touch_key_ctmu_res_scan, 20, 0);
+#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
+
+    lp_touch_key_debug_init(
+        1,
+        lp_touch_key_online_debug_init,
+        lp_touch_key_online_debug_send,
+        lp_touch_key_online_debug_key_event_handle);
+
+    if ((touch_bt_tool_enable) && (touch_bt_online_debug_init)) {
+        touch_bt_online_debug_init();
     }
+
+#else
+
+    usr_timer_add(NULL, lp_touch_key_range_algo_analyze_scan, __this->lpctmu_cfg.pdata->sample_scan_time, 0);
 
 #if CTMU_CHECK_LONG_CLICK_BY_RES
     lp_touch_key_ctmu_res_all_buf_clear();
@@ -736,488 +478,91 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *config)
 
 #endif
 
-    //CTMU 初始化命令
-    if (is_reset_source(MSYS_P2M_RST) == 0 || get_charge_online_flag() || (!(ch_wakeup_en)) || (is_ldo5v_wakeup())) {
-        log_info("lp touch init by %d_%d_%d_%d\n", is_reset_source(MSYS_P2M_RST), get_charge_online_flag(), (!(ch_wakeup_en)), is_ldo5v_wakeup());
-        LPCTMU_ANA0_CONFIG(get_lpctmu_ana_level());
-        P2M_CTMU_WKUP_MSG &= (~(P2M_MESSAGE_INIT_MODE_FLAG));
-    } else {
-        P2M_CTMU_WKUP_MSG |= (P2M_MESSAGE_INIT_MODE_FLAG);
-        log_info("p11 wakeup, lp touch key continue work");
+    if (touch_irq_before_init) {
+        log_debug("lp touch key irq before init %d !", touch_irq_before_init);
+        extern void lp_touch_key_event_irq_handler();
+        lp_touch_key_event_irq_handler();
+        touch_irq_before_init = 0;
     }
-    __this->softoff_mode = LP_TOUCH_SOFTOFF_MODE_ADVANCE;
 
-    log_info("M2P_CTMU_CH_ENABLE = 0x%x", M2P_CTMU_CH_ENABLE);
-    log_info("M2P_CTMU_CH_WAKEUP_EN = 0x%x", M2P_CTMU_CH_WAKEUP_EN);
-    log_info("M2P_CTMU_CH_CFG = 0x%x", M2P_CTMU_CH_CFG);
-    log_info("M2P_CTMU_EARTCH_CH = 0x%x", M2P_CTMU_EARTCH_CH);
-
-    lp_touch_key_send_cmd(CTMU_M2P_INIT);
-
-#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-    lp_touch_key_online_debug_init();
-#endif /* #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE */
-
-    __this->init = 1;
+    log_debug("M2P_CTMU_CH_ENABLE              = 0x%x\n", M2P_CTMU_CH_ENABLE);
+    log_debug("M2P_CTMU_CH_WAKEUP_EN           = 0x%x\n", M2P_CTMU_CH_WAKEUP_EN);
+    log_debug("M2P_CTMU_CH_DEBUG               = 0x%x\n", M2P_CTMU_CH_DEBUG);
+    log_debug("M2P_CTMU_CH_CFG                 = 0x%x\n", M2P_CTMU_CH_CFG);
+    log_debug("M2P_CTMU_SCAN_TIME              = %d\n", M2P_CTMU_SCAN_TIME);
+    log_debug("M2P_CTMU_LOWPOER_SCAN_TIME      = %d\n", M2P_CTMU_LOWPOER_SCAN_TIME);
+    log_debug("M2P_CTMU_LONG_KEY_EVENT_TIMEL   = %d\n", M2P_CTMU_LONG_KEY_EVENT_TIMEL);
+    log_debug("M2P_CTMU_LONG_KEY_EVENT_TIMEH   = %d\n", M2P_CTMU_LONG_KEY_EVENT_TIMEH);
+    log_debug("M2P_CTMU_HOLD_KEY_EVENT_TIMEL   = %d\n", M2P_CTMU_HOLD_KEY_EVENT_TIMEL);
+    log_debug("M2P_CTMU_HOLD_KEY_EVENT_TIMEH   = %d\n", M2P_CTMU_HOLD_KEY_EVENT_TIMEH);
+    log_debug("M2P_CTMU_SOFTOFF_WAKEUP_TIMEL   = %d\n", M2P_CTMU_SOFTOFF_WAKEUP_TIMEL);
+    log_debug("M2P_CTMU_SOFTOFF_WAKEUP_TIMEH   = %d\n", M2P_CTMU_SOFTOFF_WAKEUP_TIMEH);
+    log_debug("M2P_CTMU_LONG_PRESS_RESET_TIMEL = %d\n", M2P_CTMU_LONG_PRESS_RESET_TIMEL);
+    log_debug("M2P_CTMU_LONG_PRESS_RESET_TIMEH = %d\n", M2P_CTMU_LONG_PRESS_RESET_TIMEH);
 }
 
 
-
-
-/******************************双通道滑动触摸识别的基础原理***********************************
-
-1.单击，但如果超过设定的长按时间，那就为长按
-chx  __________________________________________
-chx  ___________                     __________
-                |_______>180________|
-
-
-2.单击，但如果超过设定的长按时间，那就为长按
-chx  ___________                     __________
-                |_______>180________|
-chx  _______ <30                     <30 ______
-            |___________________________|
-
-
-3.单击，但如果超过设定的长按时间，那就为长按
-chx  ___________                     __________
-                |_______>180________|
-chx  _______ <30                       >30   __
-            |_______________________________|
-
-
-4.单击，但如果超过设定的长按时间，那就为长按
-chx  ___________                     __________
-                |_______>180________|
-chx  ___   >30                       <30 ______
-        |_______________________________|
-
-
-5.单击，但如果超过设定的长按时间，那就为长按
-chx  ___________                     __________
-                |_______>180________|
-chx  ___   >30                         >30   __
-        |___________________________________|
-
-
-6.单击，但如果超过设定的长按时间，那就为长按
-chx  ___________                         ______
-                |_______________________|
-chx  _______ <30        >180         _<30______
-            |_______________________|
-
-
-7.根据前后操作，有可能是滑动，也有可能是连击中的后单击，也有可能是无效操作
-chx  ___________                 __________
-                |_______________|
-chx  _______ <30    <180     _<30__________
-            |_______________|
-
-
-8.滑动，t < 设定的长按的时间
-chx  ___________                 __________
-                |_______________|
-chx  ___   >30       t       _<30__________
-        |___________________|
-
-
-9.滑动，t < 设定的长按的时间
-chx  ___________                     ______
-                |___________________|
-chx  ___   >30       t       __>30_________
-        |___________________|
-
-
-10.滑动，t < 设定的长按的时间
-chx  ___________                     ______
-                |___________________|
-chx  _______ <30     t       __>30_________
-            |_______________|
-
-*****************************************************************************/
-
-enum falling_order_type {
-    FALLING_NULL,
-    FALLING_FIRST,
-    FALLING_SECOND,
-};
-enum raising_order_type {
-    RAISING_NULL,
-    RAISING_FIRST,
-    RAISING_SECOND,
-};
-
-enum time_interval_type {
-    LONG_TIME,
-    SHORT_TIME,
-};
-
-enum slide_key_type {
-    SHORT_CLICK = 1,
-    DOUBLE_CLICK,
-    TRIPLE_CLICK,
-    FOURTH_CLICK,
-    FIRTH_CLICK,
-    LONG_CLICK = 8,
-    LONG_HOLD_CLICK = 9,
-    LONG_UP_CLICK = 10,
-    SLIDE_UP = 0x12,
-    SLIDE_DOWN = 0x21,
-};
-
-static u8 falling_order[2] = {FALLING_NULL, FALLING_NULL};
-static u8 raising_order[2] = {RAISING_NULL, RAISING_NULL};
-static u8 falling_time_interval = 0;
-static u8 raising_time_interval = 0;
-static u8 last_key_type = 0;
-
-#define FALLING_TIMEOUT_TIME    30              //两个按下边沿的时间间隔的阈值
-static int falling_timeout_add = 0;
-static void falling_timeout_handle(void *priv)
-{
-    falling_timeout_add = 0;
-}
-
-#define RAISING_TIMEOUT_TIME    30              //两个抬起边沿的时间间隔的阈值
-static int raising_timeout_add = 0;
-static void raising_timeout_handle(void *priv)
-{
-    raising_timeout_add = 0;
-}
-
-#define CLICK_IDLE_TIMEOUT_TIME 500             //如果该时间内，没有单击，那么该时间之后的第一次单击，识别为首次单击
-static int click_idle_timeout_add = 0;
-static void click_idle_timeout_handle(void *priv)
-{
-    click_idle_timeout_add = 0;
-}
-
-#define FIRST_SHORT_CLICK_TIMEOUT_TIME  190     //只针对首次单击，要满足按够那么长时间。连击时，后面的单击没有该时间要求
-static int first_short_click_timeout_add = 0;
-static void first_short_click_timeout_handle(void *priv)
-{
-    first_short_click_timeout_add = 0;
-}
-
-void __attribute__((weak)) touch_key_send_key_tone_msg(void)
+void __attribute__((weak)) lp_touch_key_send_key_tone_msg(void)
 {
     //可以在此处发送按键音的消息
 }
 
-#define SEND_KEYTONE_TIMEOUT_TIME   250         //长按时的按键音，在按下后的多长时间要响
-static u8 send_keytone_flag = 0;
-static int send_keytone_timeout_add = 0;
-static void send_keytone_timeout_handle(void *priv)
+int __attribute__((weak)) lp_touch_key_event_remap(struct key_event *e)
 {
-    touch_key_send_key_tone_msg();
-    send_keytone_timeout_add = 0;
-    send_keytone_flag = 1;
+    return true;
 }
 
-#define SLIDE_CLICK_TIMEOUT_TIME    500         //识别为滑动之后，该时间内，如果有case7.也要识别为滑动
-#define FAST_SLIDE_CNT_MAX          4           //一来就连续那么多次的case7.，就会识别为一次滑动。
-static u8 fast_slide_cnt = 0;
-static u8 fast_slide_type = 0;
-static int slide_click_timeout_add = 0;
-void slide_click_timeout_handle(void *priv)
+static void lp_touch_key_notify_key_event(struct key_event *event, u32 ch)
 {
-    slide_click_timeout_add = 0;
-}
+    event->init = 1;
+    event->type = KEY_DRIVER_TYPE_CTMU_TOUCH;
 
-static void check_channel_falling_info(u8 ch)
-{
-    falling_order[ch] = FALLING_FIRST;
-    if (falling_order[!ch] == FALLING_FIRST) {
-        falling_order[ch] = FALLING_SECOND;
-    }
-    send_keytone_flag = 0;
-    if (send_keytone_timeout_add == 0) {
-        send_keytone_timeout_add = sys_hi_timeout_add(NULL, send_keytone_timeout_handle, SEND_KEYTONE_TIMEOUT_TIME);
-    } else {
-        sys_hi_timer_modify(send_keytone_timeout_add, SEND_KEYTONE_TIMEOUT_TIME);
-    }
-    if ((last_key_type != SHORT_CLICK) || (click_idle_timeout_add == 0)) {
-        if (first_short_click_timeout_add == 0) {
-            first_short_click_timeout_add = sys_hi_timeout_add(NULL, first_short_click_timeout_handle, FIRST_SHORT_CLICK_TIMEOUT_TIME);
-        } else {
-            sys_hi_timer_modify(first_short_click_timeout_add, FIRST_SHORT_CLICK_TIMEOUT_TIME);
-        }
-    }
-    if (falling_order[ch] == FALLING_FIRST) {
-        if (falling_timeout_add == 0) {
-            falling_timeout_add = sys_hi_timeout_add(NULL, falling_timeout_handle, FALLING_TIMEOUT_TIME);
-        } else {
-            sys_hi_timer_modify(falling_timeout_add, FALLING_TIMEOUT_TIME);
-        }
-        falling_time_interval = SHORT_TIME;
-    } else if (falling_order[ch] == FALLING_SECOND) {
-        if (falling_timeout_add) {
-            sys_hi_timeout_del(falling_timeout_add);
-            falling_timeout_add = 0;
-            falling_time_interval = SHORT_TIME;
-        } else {
-            falling_time_interval = LONG_TIME;
-        }
-    }
-}
-
-static u8 check_channel_raising_info_and_key_type(u8 ch)
-{
-    u8 key_type = 0;
-    fast_slide_type = 0;
-    if (falling_order[ch] == FALLING_NULL) {
-        return key_type;
-    }
-    raising_order[ch] = RAISING_FIRST;
-    if (raising_order[!ch] == RAISING_FIRST) {
-        raising_order[ch] = RAISING_SECOND;
-    }
-    if (falling_order[ch] > falling_order[!ch]) {
-        if (raising_order[ch] == RAISING_FIRST) {
-            key_type = SHORT_CLICK;             //case 1~5.
-        } else {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add) {
-                    sys_hi_timeout_del(raising_timeout_add);
-                    raising_timeout_add = 0;
-                    key_type = SHORT_CLICK;     //case 6~7.
-                    if (ch == 0) {
-                        fast_slide_type = SLIDE_DOWN;
-                    } else {
-                        fast_slide_type = SLIDE_UP;
-                    }
-                } else if (ch == 0) {
-                    key_type = SLIDE_DOWN;      //case 10.
-                } else {
-                    key_type = SLIDE_UP;        //case 10.
-                }
-            } else if (ch == 0) {
-                key_type = SLIDE_DOWN;          //caee 8~9.
-            } else {
-                key_type = SLIDE_UP;            //case 8~9.
-            }
-        }
-    } else {
-        if (raising_order[ch] == RAISING_FIRST) {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add == 0) {
-                    raising_timeout_add = sys_hi_timeout_add(NULL, raising_timeout_handle, RAISING_TIMEOUT_TIME);
-                } else {
-                    sys_hi_timer_modify(raising_timeout_add, RAISING_TIMEOUT_TIME);
-                }
-            } else if (ch == 0) {
-                key_type = SLIDE_UP;            //case 8~9.
-            } else {
-                key_type = SLIDE_DOWN;          //case 8~9.
-            }
-        } else {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add) {
-                    sys_hi_timeout_del(raising_timeout_add);
-                    raising_timeout_add = 0;
-                    key_type = SHORT_CLICK;     //case 6~7
-                    if (ch == 0) {
-                        fast_slide_type = SLIDE_UP;
-                    } else {
-                        fast_slide_type = SLIDE_DOWN;
-                    }
-                } else if (ch == 0) {
-                    key_type = SLIDE_UP;        //case 10.
-                } else {
-                    key_type = SLIDE_DOWN;      //case 10.
-                }
-            } else if (ch == 0) {
-                key_type = SLIDE_UP;            //case 8~9.
-            } else {
-                key_type = SLIDE_DOWN;          //case 8~9.
-            }
-        }
-    }
-    return key_type;
-}
-
-static u8 get_slide_event_ch(void)
-{
-    u8 event_ch = 1;
-    for (u8 ch = 0; ch < LP_CTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->config->ch[ch].enable) {
-            event_ch = ch;
-            break;
-        }
-    }
-    return event_ch;
-}
-
-static u8 check_slide_key_type(u8 event, u8 ch)
-{
-    u8 key_type = 0;
-    u8 event_ch = get_slide_event_ch();
-    if (event == (CTMU_P2M_CH0_FALLING_EVENT + ch * 8)) {
-        if (ch == event_ch) {
-            check_channel_falling_info(0);
-        } else {
-            check_channel_falling_info(1);
-        }
-    } else if (event == (CTMU_P2M_CH0_RAISING_EVENT + ch * 8)) {
-        if (ch == event_ch) {
-            if ((last_key_type == LONG_CLICK) || (last_key_type == LONG_HOLD_CLICK)) {
-                key_type = LONG_UP_CLICK;       //一定是长按抬起
-            } else {
-                key_type = check_channel_raising_info_and_key_type(0);
-            }
-        } else {
-            key_type = check_channel_raising_info_and_key_type(1);
-        }
-    } else if (event == (CTMU_P2M_CH0_LONG_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
-        key_type = LONG_CLICK;
-    } else if (event == (CTMU_P2M_CH0_HOLD_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
-        key_type = LONG_HOLD_CLICK;
+    if (__this->key_ch_msg_lock) {
+        return;
     }
 
-    if (key_type) {
-        falling_order[0] = FALLING_NULL;
-        falling_order[1] = FALLING_NULL;
-        raising_order[0] = RAISING_NULL;
-        raising_order[1] = RAISING_NULL;
-        falling_time_interval = 0;
-        last_key_type = key_type;
-        if (send_keytone_timeout_add) {
-            sys_hi_timeout_del(send_keytone_timeout_add);
-            send_keytone_timeout_add = 0;
-        }
-        if (key_type == SHORT_CLICK) {                  //case 6~7 的进一步处理
-            if (first_short_click_timeout_add) {
-                sys_hi_timeout_del(first_short_click_timeout_add);
-                first_short_click_timeout_add = 0;
-
-                if (slide_click_timeout_add) {
-                    sys_hi_timeout_del(slide_click_timeout_add);
-                    slide_click_timeout_add = 0;
-                    if (fast_slide_type) {
-                        key_type = fast_slide_type;
-                        last_key_type = key_type;
-                    } else {
-                        key_type = 0xff;
-                        last_key_type = key_type;
-                    }
-                    fast_slide_cnt = 0;
-                } else {
-                    if (fast_slide_type) {
-                        fast_slide_cnt ++;
-                        if (fast_slide_cnt >= FAST_SLIDE_CNT_MAX) {
-                            fast_slide_cnt = 0;
-                            key_type = fast_slide_type;
-                            last_key_type = key_type;
-                        } else {
-                            key_type = 0xff;
-                            last_key_type = key_type;
-                        }
-                    } else {
-                        fast_slide_cnt = 0;
-                        key_type = 0xff;
-                        last_key_type = key_type;
-                    }
-                }
-            } else {
-                if (send_keytone_flag == 0) {
-                    touch_key_send_key_tone_msg();
-                }
-                if (slide_click_timeout_add) {
-                    sys_hi_timeout_del(slide_click_timeout_add);
-                    slide_click_timeout_add = 0;
-                }
-                fast_slide_cnt = 0;
-            }
-            if (click_idle_timeout_add == 0) {
-                click_idle_timeout_add = sys_hi_timeout_add(NULL, click_idle_timeout_handle, CLICK_IDLE_TIMEOUT_TIME);
-            } else {
-                sys_hi_timer_modify(click_idle_timeout_add, CLICK_IDLE_TIMEOUT_TIME);
-            }
-        } else {
-            fast_slide_cnt = 0;
-        }
-
-        if ((key_type == SLIDE_UP) || (key_type == SLIDE_DOWN)) {
-            if (slide_click_timeout_add == 0) {
-                slide_click_timeout_add = sys_hi_timeout_add(NULL, slide_click_timeout_handle, SLIDE_CLICK_TIMEOUT_TIME);
-            } else {
-                sys_hi_timer_modify(slide_click_timeout_add, SLIDE_CLICK_TIMEOUT_TIME);
-            }
-        }
-    }
-
-    return key_type;
-}
-
-static void ctmu_send_slide_key_type_event(u8 key_type)
-{
-    struct key_event e;
-    u8 event_ch = get_slide_event_ch();
-    switch (key_type) {
-    case SHORT_CLICK:           //单击
-        ctmu_short_click_handle(event_ch);
-        break;
-    case LONG_CLICK:            //长按
-#if CTMU_CHECK_LONG_CLICK_BY_RES
-        if (lp_touch_key_check_long_click_by_ctmu_res(event_ch)) {
-            last_key_type = 0;
+#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
+    if ((touch_bt_tool_enable) && (touch_bt_online_debug_key_event_handle)) {
+        if (touch_bt_online_debug_key_event_handle(ch, (void *)event)) {
             return;
         }
+    }
 #endif
-        ctmu_long_click_handle(event_ch);
-        break;
-    case LONG_HOLD_CLICK:       //长按保持
-#if CTMU_CHECK_LONG_CLICK_BY_RES
-        if (lp_touch_key_check_long_click_by_ctmu_res(event_ch)) {
-            last_key_type = 0;
-            return;
-        }
-#endif
-        ctmu_hold_click_handle(event_ch);
-        break;
-    case LONG_UP_CLICK:         //长按抬起
-        ctmu_raise_click_handle(event_ch);
-        break;
-    case SLIDE_UP:              //向上滑动
-        e.event = TOUCH_KEY_EVENT_SLIDE_UP;
-        e.value = __this->config->slide_mode_key_value;
-        printf("key.event = TOUCH_KEY_EVENT_SLIDE_UP\n");
-        printf("key.value = %d\n", e.value);
-        __ctmu_notify_key_event(&e, event_ch);
-        break;
-    case SLIDE_DOWN:            //向下滑动
-        e.event = TOUCH_KEY_EVENT_SLIDE_DOWN;
-        e.value = __this->config->slide_mode_key_value;
-        printf("key.event = TOUCH_KEY_EVENT_SLIDE_DOWN\n");
-        printf("key.value = %d\n", e.value);
-        __ctmu_notify_key_event(&e, event_ch);
-        break;
-    default:
-        break;
+
+    if (lp_touch_key_event_remap(event)) {
+        key_event_handler(event);
     }
 }
 
+#include "lp_touch_key_eartch.c"
 
-u8 last_state = CTMU_P2M_EARTCH_OUT_EVENT;
-void p33_ctmu_key_event_irq_handler()
+#include "lp_touch_key_click.c"
+
+#include "lp_touch_key_slide.c"
+
+
+void lp_touch_key_event_irq_handler()
 {
-    u8 ret = 0;
-    u8 ctmu_event = P2M_CTMU_KEY_EVENT;
-    u8 ch_num = P2M_CTMU_KEY_CNT;
+    if (!__this->pdata) {
+        touch_irq_before_init += 1;
+        return;
+    }
+
+    u32 ctmu_event = P2M_CTMU_KEY_EVENT;
+    u32 ch = P2M_CTMU_KEY_CNT;
+    u32 ch_idx = lp_touch_key_get_idx_by_cur_ch(ch);
     u16 ch_res = 0;
-    u16 chx_res[LP_CTMU_CHANNEL_SIZE];
+    u16 chx_res[LPCTMU_CHANNEL_SIZE];
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+
+    /* printf("ctmu_event = 0x%x\n", ctmu_event); */
 
 #if TCFG_LP_EARTCH_KEY_ENABLE
-    if (testbox_get_key_action_test_flag(NULL)) {
-        if (__this->config->eartch_en && (__this->config->eartch_ch == ch_num)) {
-            ret = lp_touch_key_testbox_remote_test(ch_num, ctmu_event);
-            if (ret == true) {
-                return;
-            }
-        }
+    if (lp_touch_key_testbox_remote_test(ch, ctmu_event)) {
+        return;
     }
 #endif
-    /* printf("ctmu_event = 0x%x\n", ctmu_event); */
+
     switch (ctmu_event) {
     case CTMU_P2M_CH0_RES_EVENT:
     case CTMU_P2M_CH1_RES_EVENT:
@@ -1230,132 +575,37 @@ void p33_ctmu_key_event_irq_handler()
         chx_res[3] = (P2M_CTMU_CH3_H_RES << 8) | P2M_CTMU_CH3_L_RES;
         chx_res[4] = (P2M_CTMU_CH4_H_RES << 8) | P2M_CTMU_CH4_L_RES;
         //cppcheck-suppress unreadVariable
-        ch_res = chx_res[ch_num];
-        /* printf("ch%d_res: %d\n", ch_num, ch_res); */
-
-#if TWS_BT_SEND_KEY_CH_RES_DATA_ENABLE
-        if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
-            lpctmu_tws_send_res_data(BT_KEY_CH_RES_MSG,
-                                     chx_res[0],
-                                     chx_res[1],
-                                     chx_res[2],
-                                     chx_res[3],
-                                     chx_res[4]);
-        }
-#endif
+        ch_res = chx_res[ch];
+        /* printf("ch%d_res: %d\n", ch, ch_res); */
 
 #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-        lp_touch_key_online_debug_send(ch_num, ch_res);
+        if ((touch_bt_tool_enable) && (touch_bt_online_debug_send)) {
+            touch_bt_online_debug_send(ch, ch_res);
+        }
 #endif
 
 #if TCFG_LP_EARTCH_KEY_ENABLE
-        if (__this->config->eartch_en && (__this->config->eartch_ch == ch_num)) {
-
-#if TWS_BT_SEND_EARTCH_RES_DATA_ENABLE
-            u16 eartch_ch_res = chx_res[ch_num];
-            u16 eartch_ref_ch_res = chx_res[__this->config->eartch_ref_ch];
-            u16 eartch_iir = (P2M_CTMU_EARTCH_H_IIR_VALUE << 8) | P2M_CTMU_EARTCH_L_IIR_VALUE;
-            u16 eartch_trim = (P2M_CTMU_EARTCH_H_TRIM_VALUE << 8) | P2M_CTMU_EARTCH_L_TRIM_VALUE;
-            u16 eartch_diff = (P2M_CTMU_EARTCH_H_DIFF_VALUE << 8) | P2M_CTMU_EARTCH_L_DIFF_VALUE;
-
-            if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
-                lpctmu_tws_send_res_data(BT_EARTCH_RES_MSG,
-                                         eartch_ch_res,
-                                         eartch_ref_ch_res,
-                                         eartch_iir,
-                                         eartch_trim,
-                                         eartch_diff);
-            }
+        lp_touch_key_eartch_event_deal(ch);
 #endif
 
-#if !TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
-            if (__this->eartch_trim_flag) {
-                if (__this->eartch_trim_value == 0) {
-                    __this->eartch_trim_value = eartch_diff;
-                } else {
-                    __this->eartch_trim_value = ((eartch_diff + __this->eartch_trim_value) >> 1);
-                }
-                if (__this->eartch_trim_flag++ > 20) {
-                    __this->eartch_trim_flag = 0;
-                    M2P_CTMU_CH_DEBUG &= ~BIT(ch_num);
-                    ret = syscfg_write(LP_KEY_EARTCH_TRIM_VALUE, &(__this->eartch_trim_value), sizeof(__this->eartch_trim_value));
-                    log_info("write ret = %d", ret);
-                    if (ret > 0) {
-                        M2P_CTMU_EARTCH_TRIM_VALUE_L = (__this->eartch_trim_value & 0xFF);
-                        M2P_CTMU_EARTCH_TRIM_VALUE_H = ((__this->eartch_trim_value >> 8) & 0xFF);
-                        __this->eartch_inear_ok = 1;
-#if TCFG_EARTCH_EVENT_HANDLE_ENABLE
-                        eartch_state_update(EARTCH_STATE_TRIM_OK);
-#endif
-                        log_info("trim: %d\n", __this->eartch_inear_ok);
-                        is_lpkey_active = 0;
-                    } else {
-                        __this->eartch_inear_ok = 0;
-#if TCFG_EARTCH_EVENT_HANDLE_ENABLE
-                        eartch_state_update(EARTCH_STATE_TRIM_ERR);
-#endif
-                        log_info("trim: %d\n", __this->eartch_inear_ok);
-                        is_lpkey_active = 0;
-                    }
-                }
-                log_debug("eartch ch trim value: %d, res = %d", __this->eartch_trim_value, eartch_diff);
-            }
-#endif
-
-            if (P2M_CTMU_EARTCH_EVENT != last_state) {
-                last_state = P2M_CTMU_EARTCH_EVENT;
-                if (last_state == CTMU_P2M_EARTCH_IN_EVENT) {
-                    printf("soft inear\n");
-#if TWS_BT_SEND_EVENT_ENABLE
-                    lpctmu_tws_send_event_data(EAR_IN, BT_EVENT_SW_MSG);
-#endif
-                    if (__this->eartch_inear_ok) {
-                        ctmu_eartch_event_handle(EAR_IN);
-                    }
-
-                } else if (last_state == CTMU_P2M_EARTCH_OUT_EVENT) {
-                    printf("soft outear");
-#if TWS_BT_SEND_EVENT_ENABLE
-                    lpctmu_tws_send_event_data(EAR_OUT, BT_EVENT_SW_MSG);
-#endif
-                    if (__this->eartch_inear_ok) {
-                        ctmu_eartch_event_handle(EAR_OUT);
-                    }
-
-                }
-            }
-
-        }
-#endif
         break;
 
-    case CTMU_P2M_CH0_SHORT_KEY_EVENT:
-    case CTMU_P2M_CH1_SHORT_KEY_EVENT:
-    case CTMU_P2M_CH2_SHORT_KEY_EVENT:
-    case CTMU_P2M_CH3_SHORT_KEY_EVENT:
-    case CTMU_P2M_CH4_SHORT_KEY_EVENT:
-        log_debug("CH%d: SHORT click", ch_num);
-        if (__this->config->slide_mode_en) {
-        } else {
-            ctmu_short_click_handle(ch_num);
-        }
-        break;
     case CTMU_P2M_CH0_LONG_KEY_EVENT:
     case CTMU_P2M_CH1_LONG_KEY_EVENT:
     case CTMU_P2M_CH2_LONG_KEY_EVENT:
     case CTMU_P2M_CH3_LONG_KEY_EVENT:
     case CTMU_P2M_CH4_LONG_KEY_EVENT:
-        log_debug("CH%d: LONG click", ch_num);
+        log_debug("CH%d: LONG click", ch);
         is_lpkey_active = 0;
 
-        if (__this->config->slide_mode_en) {
+        if (__this->pdata->slide_mode_en) {
         } else {
 #if CTMU_CHECK_LONG_CLICK_BY_RES
-            if (lp_touch_key_check_long_click_by_ctmu_res(ch_num)) {
+            if (lp_touch_key_check_long_click_by_ctmu_res(ch_idx)) {
                 return;
             }
 #endif
-            ctmu_long_click_handle(ch_num);
+            lp_touch_key_long_click_handle(ch_idx);
         }
         break;
     case CTMU_P2M_CH0_HOLD_KEY_EVENT:
@@ -1363,17 +613,17 @@ void p33_ctmu_key_event_irq_handler()
     case CTMU_P2M_CH2_HOLD_KEY_EVENT:
     case CTMU_P2M_CH3_HOLD_KEY_EVENT:
     case CTMU_P2M_CH4_HOLD_KEY_EVENT:
-        log_debug("CH%d: HOLD click", ch_num);
+        log_debug("CH%d: HOLD click", ch);
         is_lpkey_active = 0;
 
-        if (__this->config->slide_mode_en) {
+        if (__this->pdata->slide_mode_en) {
         } else {
 #if CTMU_CHECK_LONG_CLICK_BY_RES
-            if (lp_touch_key_check_long_click_by_ctmu_res(ch_num)) {
+            if (lp_touch_key_check_long_click_by_ctmu_res(ch_idx)) {
                 return;
             }
 #endif
-            ctmu_hold_click_handle(ch_num);
+            lp_touch_key_hold_click_handle(ch_idx);
         }
         break;
     case CTMU_P2M_CH0_FALLING_EVENT:
@@ -1381,17 +631,17 @@ void p33_ctmu_key_event_irq_handler()
     case CTMU_P2M_CH2_FALLING_EVENT:
     case CTMU_P2M_CH3_FALLING_EVENT:
     case CTMU_P2M_CH4_FALLING_EVENT:
-        log_debug("CH%d: FALLING", ch_num);
+        log_debug("CH%d: FALLING", ch);
         is_lpkey_active = 1;
 
 #if CTMU_CHECK_LONG_CLICK_BY_RES
-        falling_res_avg[ch_num] = lp_touch_key_ctmu_res_buf_avg(ch_num);
-        log_debug("falling_res_avg: %d", falling_res_avg[ch_num]);
+        arg->falling_res_avg = lp_touch_key_ctmu_res_buf_avg(ch_idx);
+        log_debug("falling_res_avg: %d", arg->falling_res_avg);
 #endif
 
-        if (__this->config->slide_mode_en) {
+        if (__this->pdata->slide_mode_en) {
         } else {
-            touch_key_send_key_tone_msg();
+            lp_touch_key_send_key_tone_msg();
         }
         break;
     case CTMU_P2M_CH0_RAISING_EVENT:
@@ -1399,104 +649,100 @@ void p33_ctmu_key_event_irq_handler()
     case CTMU_P2M_CH2_RAISING_EVENT:
     case CTMU_P2M_CH3_RAISING_EVENT:
     case CTMU_P2M_CH4_RAISING_EVENT:
-        log_debug("CH%d: RAISING", ch_num);
+        log_debug("CH%d: RAISING", ch);
         is_lpkey_active = 0;
 
 #if CTMU_CHECK_LONG_CLICK_BY_RES
-        lp_touch_key_ctmu_res_buf_clear(ch_num);
+        lp_touch_key_ctmu_res_buf_clear(ch_idx);
 #endif
-        if (__this->config->slide_mode_en) {
+        if (__this->pdata->slide_mode_en) {
         } else {
-            ctmu_raise_click_handle(ch_num);
+            lp_touch_key_raise_click_handle(ch_idx);
         }
-        break;
-    case CTMU_P2M_EARTCH_IN_EVENT:
-        log_debug("CH%d: IN", ch_num);
-        break;
-    case CTMU_P2M_EARTCH_OUT_EVENT:
-        log_debug("CH%d: OUT", ch_num);
         break;
     default:
         break;
     }
-    if (__this->config->slide_mode_en) {
-        u8 key_type = check_slide_key_type(ctmu_event, ch_num);
+
+    if (__this->pdata->slide_mode_en) {
+        u32 key_type = lp_touch_key_check_slide_key_type(ctmu_event, ch);
         if (key_type) {
-            printf("CH%d: key_type = 0x%x\n", ch_num, key_type);
-            ctmu_send_slide_key_type_event(key_type);
+            log_debug("CH%d: key_type = 0x%x\n", ch, key_type);
+            lp_touch_key_send_slide_key_type_event(key_type);
         }
     }
 }
 
-u8 lp_touch_key_power_on_status()
+u32 lp_touch_key_power_on_status()
 {
-    /* extern u8 power_reset_flag; */
-    /* u8 sfr = power_reset_flag; */
-    /* log_debug("P3_RST_SRC = %x, P2M_CTMU_CTMU_WKUP_MSG = 0x%x", sfr, P2M_CTMU_WKUP_MSG); */
-
-    u8 ret = 0;
-    /* if ((sfr & BIT(0)) || (sfr & BIT(1))) { */
-    /* return 0; */
-    /* } */
-    if (P2M_CTMU_WKUP_MSG & P2M_MESSAGE_POWER_ON_FLAG) {  //长按开机查询
-        if (P2M_CTMU_WKUP_MSG & (P2M_MESSAGE_KEY_ACTIVE_FLAG)) { //按键释放查询, 0:释放, 1: 触摸保持
-            ret = 1; //key active
-        }
+    if (P2M_CTMU_KEY_STATE) {
+        return 1;//key active
     }
-    return ret;
+    return 0;
 }
 
 void lp_touch_key_disable(void)
 {
     log_debug("%s", __func__);
-    P2M_CTMU_WKUP_MSG &= (~(P2M_MESSAGE_SYNC_FLAG));
-    lp_touch_key_send_cmd(CTMU_M2P_DISABLE);
-    while (!(P2M_CTMU_WKUP_MSG & P2M_MESSAGE_SYNC_FLAG));
-    __this->softoff_mode = LP_TOUCH_SOFTOFF_MODE_LEGACY;
+    if (!__this->pdata) {
+        return;
+    }
     is_lpkey_active = 0;
+    lpctmu_disable();
 }
 
 void lp_touch_key_enable(void)
 {
     log_debug("%s", __func__);
-    lp_touch_key_send_cmd(CTMU_M2P_ENABLE);
-    __this->softoff_mode = LP_TOUCH_SOFTOFF_MODE_ADVANCE;
+    if (!__this->pdata) {
+        return;
+    }
     is_lpkey_active = 0;
+    lpctmu_enable();
 }
 
 void lp_touch_key_charge_mode_enter()
 {
-    if (!__this->config) {
-        return;
-    }
-    is_lpkey_active = 0;
-    if (__this->config->charge_mode_keep_touch) {
-        return;
-    }
     log_debug("%s", __func__);
-    P2M_CTMU_WKUP_MSG &= (~(P2M_MESSAGE_SYNC_FLAG));
-    lp_touch_key_send_cmd(CTMU_M2P_CHARGE_ENTER_MODE);
-    while (!(P2M_CTMU_WKUP_MSG & P2M_MESSAGE_SYNC_FLAG));
-    __this->softoff_mode = LP_TOUCH_SOFTOFF_MODE_LEGACY;
+    if (!__this->pdata) {
+        return;
+    }
+
+    is_lpkey_active = 0;
+
+    //复位算法
+    if (__this->pdata->charge_enter_algo_reset) {
+        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+    }
+
+    if (__this->pdata->charge_mode_keep_touch) {
+        return;
+    }
+
+    log_debug("lpctmu disable\n");
+    lpctmu_disable();
 }
 
 void lp_touch_key_charge_mode_exit()
 {
-    if (!__this->config) {
+    log_debug("%s", __func__);
+    if (!__this->pdata) {
         return;
     }
+
     is_lpkey_active = 0;
 
-    P2M_CTMU_WKUP_MSG &= (~(P2M_MESSAGE_RESET_ALGO_FLAG));
-    lp_touch_key_send_cmd(CTMU_M2P_RESET_ALGO);
-    while (!(P2M_CTMU_WKUP_MSG & P2M_MESSAGE_RESET_ALGO_FLAG));
+    //复位算法
+    if (__this->pdata->charge_exit_algo_reset) {
+        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+    }
 
-    if (__this->config->charge_mode_keep_touch) {
+    if (__this->pdata->charge_mode_keep_touch) {
         return;
     }
-    log_debug("%s", __func__);
-    lp_touch_key_send_cmd(CTMU_M2P_CHARGE_EXIT_MODE);
-    __this->softoff_mode = LP_TOUCH_SOFTOFF_MODE_ADVANCE;
+
+    log_debug("lpctmu enable\n");
+    lpctmu_enable();
 }
 
 static int lp_touch_key_charge_msg_handler(int msg, int type)
@@ -1517,23 +763,7 @@ APP_CHARGE_HANDLER(lp_touch_key_charge_msg_entry, 0) = {
     .handler = lp_touch_key_charge_msg_handler,
 };
 
-
-//=============================================//
-//NOTE: 该函数为进关机时被库里面回调
-//在板级配置struct low_power_param power_param中变量lpctmu_en配置为TCFG_LP_TOUCH_KEY_ENABLE时:
-//该函数在决定softoff进触摸模式还是普通模式:
-//  return 1: 进触摸模式关机(LP_TOUCH_SOFTOFF_MODE_ADVANCE);
-//  return 0: 进普通模式关机(触摸关闭)(LP_TOUCH_SOFTOFF_MODE_LEGACY);
-//使用场景:
-//  1)在充电舱外关机, 需要触摸开机, 进带触摸关机模式;
-//  2)在充电舱内关机，可以关闭触摸模块, 进普通关机模式, 关机功耗进一步降低.
-//=============================================//
-u8 lp_touch_key_softoff_mode_query(void)
-{
-    return __this->softoff_mode;
-}
-
-void set_lpkey_active(u8 set)
+void set_lpkey_active(u32 set)
 {
     is_lpkey_active = set;
 }
@@ -1548,5 +778,12 @@ REGISTER_LP_TARGET(key_lp_target) = {
     .is_idle = lpkey_idle_query,
 };
 
+#else
+
+void lp_touch_key_event_irq_handler()
+{
+}
+
 #endif
+
 

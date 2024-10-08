@@ -31,6 +31,12 @@
 #define     VM_LP_TOUCH_KEY3_ALOG_CFG       35
 #define     VM_LP_TOUCH_KEY4_ALOG_CFG       36
 
+#define     VM_LP_TOUCH_KEY0_IDTY_ALGO       37
+#define     VM_LP_TOUCH_KEY1_IDTY_ALGO       38
+#define     VM_LP_TOUCH_KEY2_IDTY_ALGO       39
+#define     VM_LP_TOUCH_KEY3_IDTY_ALGO       40
+#define     VM_LP_TOUCH_KEY4_IDTY_ALGO       41
+
 #define     CFG_SPK_EQ_SEG_SAVE             37
 #define     CFG_SPK_EQ_GLOBAL_GAIN_SAVE     38
 

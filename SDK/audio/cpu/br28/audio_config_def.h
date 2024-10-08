@@ -11,48 +11,59 @@
 
 #include "app_config.h"
 #include "audio_def.h"
+#include "audio_platform_config.h"
 
 //**************************************
 // 			ASS通用配置
 //**************************************
 #define MEDIA_24BIT_ENABLE		TCFG_AUDIO_BIT_WIDTH
-#define HW_FFT_VERSION			FFT_EXT
 
 
 //**************************************
 // 			音频模块链接配置
 //**************************************
 /*音效处理链接配置*/
-#define AFx_VBASS_AT_RAM				1	//虚拟低音
-#define AFx_REVERB_AT_RAM				1	//混响
-#define AFx_ECHO_AT_RAM				    1	//回声
-#define AFx_VOICECHANGER_AT_RAM			1	//变声
-#define AFx_DRC_AT_RAM 					1	//DRC
-#define AFx_HARMONIC_EXCITER_AT_RAM 	1	//谐波激励
-#define AFx_DYN_EQ_AT_RAM 				1	//动态EQ
-#define AFx_NOTCH_HOWLING_AT_RAM 		1	//啸叫抑制：陷波
-#define AFx_FREQ_SHIFT_AT_RAM	 		1	//啸叫抑制：移频
-#define AFx_NOISEGATE_AT_RAM	 		1	//噪声门
-#define AFx_ADVAUDIO_PLC_AT_RAM	    	1
+#define AFx_VBASS_AT_RAM				    1	//虚拟低音
+#define AFx_REVERB_AT_RAM				    1	//混响
+#define AFx_ECHO_AT_RAM				        1	//回声
+#define AFx_VOICECHANGER_AT_RAM			    1	//变声
+#define AFx_DRC_AT_RAM 					    1	//DRC
+#define AFx_HARMONIC_EXCITER_AT_RAM 	    1	//谐波激励
+#define AFx_DYN_EQ_AT_RAM 				    1	//动态EQ
+#define AFx_NOTCH_HOWLING_AT_RAM 		    1	//啸叫抑制：陷波
+#define AFx_FREQ_SHIFT_AT_RAM	 		    1	//啸叫抑制：移频
+#define AFx_NOISEGATE_AT_RAM	 		    1	//噪声门
+#define AFx_ADVAUDIO_PLC_AT_RAM	    	    1
+#define AFx_SPATIAL_EFFECT_AT_RAM           1 //空间音效
 
 /*通话语音处理算法*/
-#define AUDIO_CVP_TEXT_AT_RAM	    	0	//COMMON TEXT
-#define AUDIO_CVP_AEC_AT_RAM	    	0	//AEC
-#define AUDIO_CVP_NLP_AT_RAM	    	0	//NLP
-#define AUDIO_CVP_NS_AT_RAM		    	0	//ANS/下行降噪
-#define AUDIO_CVP_COMMON_AT_RAM	    	0	//COMMON
-#define AUDIO_CVP_DNS_AT_RAM	    	0	//DNS
-#define AUDIO_CVP_AGC_AT_RAM	    	0	//AGC
-#define AUDIO_CVP_DMS_AT_RAM	    	0	//双MIC DMS
-#define AUDIO_CVP_SMS_AT_RAM		    0	//单MIC SMS_TDE
-#define AUDIO_CVP_PREP_AT_RAM		    0	//COMMON 预处理
-#define AUDIO_CVP_WN_AT_RAM			    0	//抗风噪
-#define AUDIO_CVP_THIRD_AT_RAM		    0	//3MIC
-#define AUDIO_ENCODER_AT_RAM		    0	//MSBC/CVSD 解码
+#define AUDIO_CVP_TEXT_AT_RAM	    	    0	//COMMON TEXT
+#define AUDIO_CVP_AEC_AT_RAM	    	    0	//AEC
+#define AUDIO_CVP_NLP_AT_RAM	    	    0	//NLP
+#define AUDIO_CVP_NS_AT_RAM		    	    0	//ANS/下行降噪
+#define AUDIO_CVP_COMMON_AT_RAM	    	    0	//COMMON
+#define AUDIO_CVP_DNS_AT_RAM	    	    0	//DNS
+#define AUDIO_CVP_AGC_AT_RAM	    	    0	//AGC
+#define AUDIO_CVP_DMS_AT_RAM	    	    0	//双MIC DMS
+#define AUDIO_CVP_SMS_AT_RAM		        0	//单MIC SMS_TDE
+#define AUDIO_CVP_PREP_AT_RAM		        0	//COMMON 预处理
+#define AUDIO_CVP_WN_AT_RAM			        0	//抗风噪
+#define AUDIO_CVP_THIRD_AT_RAM		        0	//3MIC
 
 /*编解码编译链接配置*/
-#define AUD_AAC_DEC_AT_RAM		        1   //AAC解码
+#define AUD_AAC_DEC_AT_RAM		            1   //AAC解码
+#define AUDIO_LDAC_AT_RAM			        1	//LDAC解码
+#define AUDIO_MSBC_CODEC_AT_RAM		        0	//MSBC 编解码
+#define AUDIO_CVSD_CODEC_AT_RAM		        0	//CVSD 编解码
+#define AUDIO_JLA_CODEC_AT_RAM			    1	//JLA 编解码
+#define AUDIO_LC3_CODEC_AT_RAM			    0	//LC3 编解码
 
+/*语音识别算法编译链接配置*/
+#define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram
+#define AUDIO_KWS_YES_NO_AT_RAM             0   //yes/no识别 ， 0:放flash，1:放ram
+#define AUDIO_KWS_CHINESE_AT_RAM            2   //近场中文识别，0:放flash，1:放ram，2:一部分放ram，一部分放flash
+#define AUDIO_KWS_INDIA_ENGLISH_AT_RAM      0   //印度英语识别，0:放flash，1:放ram
+#define AUDIO_KWS_CHINESE_FAR_AT_RAM        1   //远场中文识别，0:放flash，1:放ram
 
 
 //**************************************
@@ -68,10 +79,19 @@
 #endif
 
 //ADC中断点数
-#define AUDIO_ADC_IRQ_POINTS 128
+#if (TCFG_LOCAL_TWS_ENABLE && TCFG_MIC_EFFECT_ENABLE)
+#define AUDIO_ADC_IRQ_POINTS   256
+#else
+#define AUDIO_ADC_IRQ_POINTS   192
+#endif
 #define AUDIO_ADC_IRQ_POINTS_MUSIC_MODE 256
 
+#if TCFG_MIC_EFFECT_ENABLE
+/*如果混响开启，则LINEIN共享ADC IRQ配置*/
+#define AUDIO_LINEIN_IRQ_POINTS AUDIO_ADC_IRQ_POINTS
+#else
 #define AUDIO_LINEIN_IRQ_POINTS 128
+#endif
 
 #define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 //**************************************
@@ -113,7 +133,14 @@
 #define TCFG_1T2_VOL_RESUME_WHEN_NO_SUPPORT_VOL_SYNC	1	//1T2不支持音量同步的设备则恢复上次设置的音量值
 
 /*省电容mic模块使能*/
-#define TCFG_SUPPORT_MIC_CAPLESS		TCFG_AUDIO_CAPLESS_MIC_EN
+#if ((TCFG_ADC0_ENABLE && (TCFG_ADC0_MODE == 2)) || \
+        (TCFG_ADC1_ENABLE && (TCFG_ADC1_MODE == 2)) || \
+        (TCFG_ADC2_ENABLE && (TCFG_ADC2_MODE == 2)) || \
+        (TCFG_ADC3_ENABLE && (TCFG_ADC3_MODE == 2)))
+#define TCFG_SUPPORT_MIC_CAPLESS        1
+#else
+#define TCFG_SUPPORT_MIC_CAPLESS        0
+#endif
 
 /*省电容mic校准方式选择*/
 #define MC_BIAS_ADJUST_DISABLE			0	//省电容mic偏置校准关闭
@@ -183,7 +210,7 @@
 #endif*/
 
 /*数字音量最大值定义*/
-#define DEFAULT_DIGITAL_VOLUME   (0.0f)
+#define DEFAULT_DIGITAL_VOLUME   (TCFG_AUDIO_DIGITAL_GAIN)
 #define IDLE_DEFAULT_MAX_VOLUME  100     //音量调节IDLE 状态的最大音量
 
 #define ANC_CLIPPING_MODE_MUSIC_LIMIT		1	//ANC防破音-限制音乐幅度，牺牲音乐

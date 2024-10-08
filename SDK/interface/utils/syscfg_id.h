@@ -241,6 +241,9 @@ int syscfg_tools_init(void);
 #define 	VM_XM_INFO2					137
 #define 	VM_XM_INFO3					138
 
+#define		DUAL_BANK_BP_STEP			139
+#define		DUAL_BANK_BP_FW_CODE		140
+
 #define     CFG_ONLINE_EQ_DRC_DATA_ID   254//在线调试保存参数的id
 #define     CFG_ONLINE_SAVE_ID          255//在线保存文件大小的id
 

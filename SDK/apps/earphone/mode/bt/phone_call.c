@@ -37,6 +37,12 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE
+#include "somatosensory/audio_somatosensory.h"
+#endif
 
 
 #if (TCFG_USER_TWS_ENABLE == 0)
@@ -133,6 +139,11 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #else
     g_bt_hdl.inband_ringtone = 0 ;
 #endif
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    if (is_cig_phone_conn()) {
+        g_bt_hdl.inband_ringtone = 1;
+    }
+#endif
 
     printf("inband_ringtone=0x%x %d\n", g_bt_hdl.inband_ringtone, after_conn);
     g_bt_hdl.phone_ring_flag = 1;
@@ -216,12 +227,12 @@ static int esco_audio_open(u8 *bt_addr)
     /* #if 0	//功能未完善，暂时关闭 */
     if (tws_api_get_role() == TWS_ROLE_MASTER) {
         log_info("tws_master open esco recoder\n");
-        esco_recoder_open(COMMON_SCO);
+        esco_recoder_open(COMMON_SCO, bt_addr);
     } else {
         log_info("tws_slave don't open esco recoder\n");
     }
 #else
-    esco_recoder_open(COMMON_SCO);
+    esco_recoder_open(COMMON_SCO, bt_addr);
 #endif/*TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE*/
     return 0;
 }
@@ -252,6 +263,27 @@ static int bt_phone_active(u8 *bt_addr)
 
 }
 
+struct esco_delay_ctl {
+    u8 esco_addr[6];
+    u16 timer;
+    u16 delay_timeout_cnt;
+};
+static struct esco_delay_ctl ed_ctl = {0};
+static void esco_delay_open(void *priv)
+{
+    ed_ctl.delay_timeout_cnt++;
+    if (ed_ctl.delay_timeout_cnt >= 60) {
+        tone_player_stop();
+    }
+    if ((!tone_player_runing() && !key_tone_player_running()) || (ed_ctl.delay_timeout_cnt >= 60)) {
+        ed_ctl.delay_timeout_cnt = 0;
+        lmp_private_esco_suspend_resume(2);
+        esco_audio_open(ed_ctl.esco_addr);
+        sys_timer_del(ed_ctl.timer);
+        ed_ctl.timer = 0;
+    }
+}
+
 #define ESCO_SIRI_WAKEUP()      (app_var.siri_stu == 1 || app_var.siri_stu == 2)
 static void esco_smart_voice_detect_handler(void)
 {
@@ -280,6 +312,10 @@ int bt_phone_esco_play(u8 *bt_addr)
     esco_smart_voice_detect_handler();
 #endif
 
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_open();
+#endif
+
     a2dp_player_close(bt_addr);
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
@@ -297,7 +333,16 @@ int bt_phone_esco_play(u8 *bt_addr)
     }
 #endif
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_OPEN);
-    esco_audio_open(bt_addr);
+    printf("bt_phone_esco_play:%d %d %d\n", tone_player_runing(), key_tone_player_running(), ed_ctl.timer);
+    if (tone_player_runing() || key_tone_player_running()) {
+        if (!ed_ctl.timer) {
+            lmp_private_esco_suspend_resume(1);
+            memcpy(ed_ctl.esco_addr, bt_addr, 6);
+            ed_ctl.timer = sys_timer_add(NULL, esco_delay_open, 50);
+        }
+    } else {
+        esco_audio_open(bt_addr);
+    }
 
     g_bt_hdl.phone_call_dec_begin = 1;
     if (bt_get_call_status() == BT_CALL_ACTIVE) {
@@ -319,6 +364,9 @@ int bt_phone_esco_stop(u8 *bt_addr)
 #endif /*TCFG_KWS_VOICE_RECOGNITION_ENABLE*/
 
     puts("<<<<<<<<<<<esco_dec_stop\n");
+#if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
+    somatosensory_close();
+#endif
     g_bt_hdl.phone_call_dec_begin = 0;
     esco_dump_packet = ESCO_DUMP_PACKET_CALL;
     bt_api_esco_status(bt_addr, BT_ESCO_STATUS_CLOSE);
@@ -468,6 +516,9 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_NUMBER:
         log_info("BT_STATUS_PHONE_NUMBER\n");
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_READ_LIST, 0, NULL);
+#endif
 #if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
         if (g_bt_hdl.phone_num_flag == 1) {
@@ -491,6 +542,11 @@ static int bt_phone_status_event_handler(int *msg)
             log_info("PHONE_NUMBER len err\n");
         }
 #endif
+        break;
+    case BT_STATUS_PHONE_NAME:
+        log_info("BT_STATUS_PHONE_NAME\n");
+        u8 *phone_name = (u8 *)bt->value;
+        log_info(">>name:%s\n", phone_name);
         break;
     case BT_STATUS_INBAND_RINGTONE:
         log_info("BT_STATUS_INBAND_RINGTONE\n");
@@ -593,6 +649,11 @@ static int bt_phone_status_event_handler(int *msg)
     case BT_STATUS_SCO_CONNECTION_REQ :
         g_printf(" BT_STATUS_SCO_CONNECTION_REQ");
         put_buf(bt->args, 6);
+        break;
+    case BT_STATUS_RECONN_OR_CONN :
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_CONNECT, 0, NULL);
+#endif
         break;
     default:
         log_info(" BT STATUS DEFAULT\n");

@@ -481,7 +481,7 @@ ANCIF1_OPT = CONFIG_ANCIF1_OPT;
 /*******************非用户配置区**********************/
 #endif/*CONFIG_ANC_ENABLE*/
 
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 REALME_ADR = AUTO;
 REALME_LEN = 0x1000;
 REALME_OPT = 0;

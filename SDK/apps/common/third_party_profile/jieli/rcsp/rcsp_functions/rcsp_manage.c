@@ -33,6 +33,8 @@
 #include "rcsp_command.h"
 #include "ble_rcsp_adv.h"
 #include "app_msg.h"
+#include "btstack_rcsp_user.h"
+#include "rcsp_ch_loader_download.h"
 
 #if RCSP_MODE
 
@@ -44,13 +46,11 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
-extern void rcsp_resume(void);
 extern void rcsp_find_device_reset(void);
 extern void sport_data_func_init(void);
 void sport_data_func_release(void);
 static void rcsp_user_state_handler(u8 *param, u8 param_len);
-// 获取rcsp已连接设备
-extern u8 bt_rcsp_device_conn_num(void);
+extern const int support_dual_bank_update_en;
 
 // 获取当前ble/spp的连接状态
 u8 get_rcsp_connect_status(void)
@@ -238,7 +238,7 @@ static void rcsp_ble_disconnect(void)
     rcsp_extra_flash_disconnect_tips(10);
 #endif
 #if RCSP_UPDATE_EN && !RCSP_BLE_MASTER
-    rcsp_resume();
+    rcsp_update_resume();
 #endif
     sport_data_func_release();
     rcsp_timer_contrl(0);
@@ -269,7 +269,6 @@ extern void bredr_conn_last_dev();
 
 #endif
 
-extern u8 bt_rcsp_device_conn_num(void);
 // 需要放到app_core处理ble状态的函数
 void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
 {
@@ -288,7 +287,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
     case BLE_ST_IDLE:
 #if RCSP_UPDATE_EN
         if (get_jl_update_flag()) {
-            JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            if (0 == support_dual_bank_update_en) {
+                JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            }
         }
 #endif
         break;
@@ -372,7 +373,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
         }
 #if RCSP_UPDATE_EN
         if (get_jl_update_flag()) {
-            JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            if (0 == support_dual_bank_update_en) {
+                JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_START, NULL, 0);
+            }
         }
 #endif
         break;

@@ -138,7 +138,7 @@ DEFINES := \
 	-DFS_VERSION=0x020001 \
 	-DFATFS_VERSION=0x020101 \
 	-DSDFILE_VERSION=0x020000 \
-	-DVFS_ENABLE=1 \
+	-DVFS_ENABLE=0 \
 	-DVM_MAX_SIZE_CONFIG=16*1024 \
 	-DVM_ITEM_MAX_NUM=256 \
 	-DCONFIG_EARPHONE_CASE_ENABLE \
@@ -161,7 +161,9 @@ INCLUDES := \
 	-Iinterface \
 	-Iinterface/driver \
 	-Iinterface/driver/device \
+	-Iinterface/driver/utils \
 	-Iinterface/driver/cpu/br28 \
+	-Iinterface/driver/cpu/periph \
 	-Iinterface/media \
 	-Iinterface/system \
 	-Iinterface/system/generic \
@@ -196,6 +198,7 @@ INCLUDES := \
 	-Iapps/common/device/key \
 	-Iapps/common/device/eartouch \
 	-Iapps/common/include \
+	-Iapps/common/ui \
 	-Iapps/common/config/include \
 	-Iapps/common/dev_manager \
 	-Iapps/common/third_party_profile \
@@ -238,11 +241,12 @@ INCLUDES := \
 	-Iapps/common/cJSON \
 	-Iinterface/media/cpu/br28 \
 	-Iinterface/utils/ui/ui/cpu/br28 \
+	-Iapps/common/le_audio \
+	-Iapps/earphone/include/le_audio \
+	-Iapps/earphone/include/le_audio/big \
+	-Iapps/earphone/include/le_audio/cig \
 	-Iinterface/btstack/third_party/le_audio \
 	-Iinterface/btstack/third_party/broadcast \
-	-Iapps/common/include/le_audio \
-	-Iapps/common/include/le_audio/cig \
-	-Iapps/common/include/le_audio/big \
 	-Iaudio/le_audio \
 	-Iapps/common/third_party_profile/tuya_protocol \
 	-Iapps/common/third_party_profile/tuya_protocol/app/demo \
@@ -270,11 +274,16 @@ INCLUDES := \
 	-Iaudio/common/icsd/config \
 	-Iaudio/common/icsd/rt_anc \
 	-Iaudio/common/icsd/tool \
+	-Iaudio/common/icsd/aeq \
+	-Iaudio/common/icsd/afq \
+	-Iaudio/common/icsd/cmp \
+	-Iaudio/common/icsd/demo \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br28/audio_dai \
 	-Iaudio/smart_voice \
 	-Iaudio/effect/spatial_effect \
+	-Iaudio/effect/somatosensory \
 	-Iinterface/media/aispeech/enc \
 	-Iaudio/cpu/br28/audio_vad \
 	-Iinterface/media/framework/include \
@@ -362,14 +371,7 @@ c_SRC_FILES := \
 	apps/common/fat_nor/cfg_private.c \
 	apps/common/fat_nor/virfat_flash.c \
 	apps/common/le_audio/big.c \
-	apps/common/le_audio/big/app_le_broadcast.c \
-	apps/common/le_audio/big/le_broadcast.c \
-	apps/common/le_audio/big/le_broadcast_config.c \
 	apps/common/le_audio/cig.c \
-	apps/common/le_audio/cig/app_le_connected.c \
-	apps/common/le_audio/cig/le_connected.c \
-	apps/common/le_audio/cig/le_connected_config.c \
-	apps/common/le_audio/le_audio_common.c \
 	apps/common/le_audio/wireless_trans_manager.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_anc_manager.c \
@@ -550,6 +552,8 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
+	apps/common/ui/pwm_led/led_ui_api.c \
+	apps/common/ui/pwm_led/led_ui_tws_sync.c \
 	apps/common/update/testbox_uart_update.c \
 	apps/common/update/testbox_update.c \
 	apps/common/update/update.c \
@@ -568,8 +572,6 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br28/board_config.c \
-	apps/earphone/board/br28/led_config.c \
-	apps/earphone/board/br28/lp_touch_key_config.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/debug_record_demo.c \
 	apps/earphone/demo/pbg_demo.c \
@@ -591,6 +593,7 @@ c_SRC_FILES := \
 	apps/earphone/message/adapter/eartouch.c \
 	apps/earphone/message/adapter/key.c \
 	apps/earphone/message/adapter/tws.c \
+	apps/earphone/mode/bt/a2dp_play.c \
 	apps/earphone/mode/bt/bt_background.c \
 	apps/earphone/mode/bt/bt_call_kws_handler.c \
 	apps/earphone/mode/bt/bt_event_func.c \
@@ -598,17 +601,24 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/bt_key_msg_table.c \
 	apps/earphone/mode/bt/bt_slience_detect.c \
 	apps/earphone/mode/bt/bt_tws.c \
+	apps/earphone/mode/bt/dual_a2dp_play.c \
 	apps/earphone/mode/bt/dual_conn.c \
 	apps/earphone/mode/bt/dual_phone_call.c \
 	apps/earphone/mode/bt/earphone.c \
 	apps/earphone/mode/bt/eartch_event_deal.c \
 	apps/earphone/mode/bt/kws_voice_event_deal.c \
+	apps/earphone/mode/bt/le_audio/big/app_le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast_config.c \
+	apps/earphone/mode/bt/le_audio/cig/app_le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected_config.c \
+	apps/earphone/mode/bt/le_audio/le_audio_common.c \
 	apps/earphone/mode/bt/low_latency.c \
 	apps/earphone/mode/bt/phone_call.c \
 	apps/earphone/mode/bt/poweroff.c \
 	apps/earphone/mode/bt/sniff.c \
 	apps/earphone/mode/bt/tone.c \
-	apps/earphone/mode/bt/tws_a2dp_play.c \
 	apps/earphone/mode/bt/tws_dual_conn.c \
 	apps/earphone/mode/bt/tws_dual_share.c \
 	apps/earphone/mode/bt/tws_phone_call.c \
@@ -621,10 +631,12 @@ c_SRC_FILES := \
 	apps/earphone/mode/linein/linein.c \
 	apps/earphone/mode/linein/linein_dev.c \
 	apps/earphone/mode/linein/linein_key_msg_table.c \
+	apps/earphone/mode/mic_effect/mic_effect.c \
 	apps/earphone/mode/pc/pc.c \
 	apps/earphone/mode/pc/pc_key_msg_table.c \
 	apps/earphone/mode/power_on/power_on.c \
 	apps/earphone/test/rssi.c \
+	apps/earphone/test/tws_role_switch.c \
 	apps/earphone/third_part/app_protocol_deal.c \
 	apps/earphone/third_part/tuya/tuya_app.c \
 	apps/earphone/third_part/tuya/tuya_demo.c \
@@ -632,13 +644,13 @@ c_SRC_FILES := \
 	apps/earphone/tools/app_anctool.c \
 	apps/earphone/tools/app_key_dut.c \
 	apps/earphone/tools/app_testbox.c \
-	apps/earphone/ui/led/led_ui_api.c \
+	apps/earphone/ui/led/led_config.c \
 	apps/earphone/ui/led/led_ui_msg_handler.c \
-	apps/earphone/ui/led/led_ui_tws_sync.c \
 	apps/earphone/user_cfg.c \
 	audio/CVP/audio_cvp.c \
 	audio/CVP/audio_cvp_3mic.c \
 	audio/CVP/audio_cvp_ais_3mic.c \
+	audio/CVP/audio_cvp_config.c \
 	audio/CVP/audio_cvp_demo.c \
 	audio/CVP/audio_cvp_develop.c \
 	audio/CVP/audio_cvp_dms.c \
@@ -665,10 +677,19 @@ c_SRC_FILES := \
 	audio/common/audio_volume_mixer.c \
 	audio/common/bt_audio_energy_detection.c \
 	audio/common/debug/audio_debug.c \
+	audio/common/demo/codec_demo/audio_enc_file_demo.c \
+	audio/common/demo/codec_demo/audio_file_dec_demo.c \
+	audio/common/demo/codec_demo/audio_frame_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
+	audio/common/icsd/aeq/icsd_aeq.c \
+	audio/common/icsd/aeq/icsd_aeq_app.c \
+	audio/common/icsd/aeq/icsd_aeq_config.c \
+	audio/common/icsd/afq/icsd_afq.c \
+	audio/common/icsd/afq/icsd_afq_app.c \
+	audio/common/icsd/afq/icsd_afq_config.c \
 	audio/common/icsd/anc/icsd_anc_app.c \
 	audio/common/icsd/anc/icsd_anc_board.c \
 	audio/common/icsd/anc/icsd_anc_data.c \
@@ -676,9 +697,13 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/cmp/icsd_cmp_app.c \
+	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
 	audio/common/icsd/common_v2/icsd_common_v2.c \
+	audio/common/icsd/common_v2/icsd_common_v2_app.c \
 	audio/common/icsd/config/icsd_anc_v2_config.c \
+	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
@@ -726,6 +751,7 @@ c_SRC_FILES := \
 	audio/effect/eq_config.c \
 	audio/effect/esco_ul_voice_changer.c \
 	audio/effect/node_param_update.c \
+	audio/effect/somatosensory/audio_somatosensory.c \
 	audio/effect/spatial_effect/spatial_effect.c \
 	audio/effect/spatial_effect/spatial_effect_imu.c \
 	audio/effect/spatial_effect/spatial_effect_tws.c \
@@ -749,6 +775,7 @@ c_SRC_FILES := \
 	audio/framework/nodes/esco_tx_node.c \
 	audio/framework/nodes/iis_node.c \
 	audio/framework/nodes/le_audio_source.c \
+	audio/framework/nodes/local_tws_source_node.c \
 	audio/framework/nodes/multi_ch_iis_node.c \
 	audio/framework/nodes/ns_node.c \
 	audio/framework/nodes/pc_mic_node.c \
@@ -769,6 +796,7 @@ c_SRC_FILES := \
 	audio/framework/plugs/source/iis_file.c \
 	audio/framework/plugs/source/le_audio_file.c \
 	audio/framework/plugs/source/linein_file.c \
+	audio/framework/plugs/source/local_tws_file.c \
 	audio/framework/plugs/source/multi_ch_adc_file.c \
 	audio/framework/plugs/source/multi_ch_iis_file.c \
 	audio/framework/plugs/source/pc_spk_file.c \
@@ -786,6 +814,7 @@ c_SRC_FILES := \
 	audio/interface/player/key_tone_player.c \
 	audio/interface/player/le_audio_player.c \
 	audio/interface/player/linein_player.c \
+	audio/interface/player/local_tws_player.c \
 	audio/interface/player/pc_spk_player.c \
 	audio/interface/player/reference_time.c \
 	audio/interface/player/ring_player.c \
@@ -822,14 +851,13 @@ c_SRC_FILES := \
 	cpu/br28/lua_port_api.c \
 	cpu/br28/overlay_code.c \
 	cpu/br28/periph/gpadc.c \
-	cpu/br28/periph/irflt.c \
+	cpu/br28/periph/led/pwm_led.c \
 	cpu/br28/periph/mcpwm.c \
-	cpu/br28/periph/pwm_led/pwm_led_hw.c \
-	cpu/br28/periph/pwm_led_hw.c \
 	cpu/br28/periph/rdec.c \
 	cpu/br28/periph/touch/lp_touch_key.c \
-	cpu/br28/periph/touch/lp_touch_key_alog.c \
+	cpu/br28/periph/touch/lp_touch_key_range_algo.c \
 	cpu/br28/periph/touch/lp_touch_key_tool.c \
+	cpu/br28/periph/touch/lpctmu_hw.c \
 	cpu/br28/periph/touch/plcnt.c \
 	cpu/br28/power/key_wakeup.c \
 	cpu/br28/power/power_app.c \
@@ -840,14 +868,24 @@ c_SRC_FILES := \
 	cpu/components/gpadc_utils.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
+	cpu/components/ir_decoder.c \
+	cpu/components/ir_encoder.c \
+	cpu/components/led_api.c \
+	cpu/components/rdec_soft.c \
+	cpu/components/two_io_led.c \
 	cpu/config/gpio_file_parse.c \
 	cpu/config/lib_power_config.c \
+	cpu/periph_demo/gptimer_demo.c \
 	cpu/periph_demo/iic_master_demo.c \
 	cpu/periph_demo/iic_slave_demo.c \
+	cpu/periph_demo/ir_encoder_decoder_demo.c \
+	cpu/periph_demo/led_api_test.c \
 	cpu/periph_demo/ledc_test.c \
+	cpu/periph_demo/pwm_led_test.c \
+	cpu/periph_demo/rdec_soft_demo.c \
 	cpu/periph_demo/sd_test.c \
 	cpu/periph_demo/spi_test.c \
-	cpu/periph_demo/timer_demo.c \
+	cpu/periph_demo/two_io_led_test.c \
 	cpu/periph_demo/uart_test.c \
 
 
@@ -956,6 +994,7 @@ LFLAGS := \
 	cpu/br28/liba/lib_point360_td.a \
 	cpu/br28/liba/SensorCalib.a \
 	cpu/br28/liba/SpatialAudio.a \
+	cpu/br28/liba/SomatosensoryControl.a \
 	cpu/br28/liba/DynamicEQ.a \
 	cpu/br28/liba/DynamicEQPro.a \
 	cpu/br28/liba/lib_icsd_adt.a \
@@ -964,6 +1003,9 @@ LFLAGS := \
 	cpu/br28/liba/lib_icsd_dot.a \
 	cpu/br28/liba/lib_icsd_anc_v2.a \
 	cpu/br28/liba/lib_icsd_common_v2.a \
+	cpu/br28/liba/lib_icsd_aeq.a \
+	cpu/br28/liba/lib_icsd_afq.a \
+	cpu/br28/liba/lib_icsd_cmp.a \
 	cpu/br28/liba/libjlsp_kws_far_keyword.a \
 	cpu/br28/liba/libjlsp_kws_india_english.a \
 	cpu/br28/liba/3DSpatial.a \
@@ -986,6 +1028,7 @@ LFLAGS := \
 	cpu/br28/liba/le_audio_profile.a \
 	cpu/br28/liba/jla_codec_lib.a \
 	cpu/br28/liba/lib_lc3_codec.a \
+	cpu/br28/liba/lib_noisegate_pro.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \
@@ -1004,6 +1047,7 @@ LFLAGS := \
 	cpu/br28/liba/cfg_tool.a \
 	cpu/br28/liba/vm.a \
 	cpu/br28/liba/debug_record.a \
+	cpu/br28/liba/lzma_dec.a \
 	--end-group \
 	-Tcpu/br28/sdk.ld \
 	-M=cpu/br28/tools/sdk.map \

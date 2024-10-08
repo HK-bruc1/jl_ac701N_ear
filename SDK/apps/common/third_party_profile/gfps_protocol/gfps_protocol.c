@@ -23,7 +23,7 @@
 #include "asm/charge.h"
 #include "gfps_platform_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & GFPS_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
 
 extern u32 unactice_device_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 extern void tws_dual_conn_close();
@@ -186,7 +186,7 @@ void gfps_before_pair_new_device(u8 *seeker_addr)
     msg[0] = (int)gfps_before_pair_new_device_in_task;
     msg[1] = 1;
     msg[2] = (int)tmp_addr;
-    err = os_taskq_post_type("app_core", Q_CALLBACK, ARRAY_SIZE(msg), msg);
+    int err = os_taskq_post_type("app_core", Q_CALLBACK, ARRAY_SIZE(msg), msg);
     if (err) {
         printf("%s post fail\n", __func__);
     }
@@ -511,9 +511,20 @@ APP_MSG_HANDLER(gfps_hci_msg_handler) = {
 void gfps_sync_info_to_new_master(void)
 {
     u8 buf[8];
+
+    if (!get_bt_tws_connect_status()) {
+        printf("gfps_sync_info tws not connected\n");
+        return;
+    }
+
+    u8 *adv_addr = app_ble_adv_addr_get(gfps_app_ble_hdl);
+    if (adv_addr == NULL) {
+        printf("gfps_sync_info adv addr NULL\n");
+        return;
+    }
     buf[0] = get_gfps_pair_state();
     buf[1] = gfps_rfcomm_connect_state_get();
-    memcpy(buf + 2, app_ble_adv_addr_get(gfps_app_ble_hdl), 6);
+    memcpy(buf + 2, adv_addr, 6);
     gfps_sibling_data_send(GFPS_SIBLING_SYNC_TYPE_ADV_MAC_STATE, buf, sizeof(buf));
     printf("gfps_send_pair_state:%d, spp_state:%d, ble_addr:", buf[0], buf[1]);
     put_buf(buf + 2, 6);

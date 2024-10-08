@@ -222,6 +222,7 @@ struct usb_reg {
 // Crossbar ENUM
 //===================================================//
     enum PFI_TABLE {
+    PFI_NULL = 0,
     PFI_GP_ICH0 = ((u32)(&(JL_IMAP->FI_GP_ICH0))),
     PFI_GP_ICH1 = ((u32)(&(JL_IMAP->FI_GP_ICH1))),
     PFI_GP_ICH2 = ((u32)(&(JL_IMAP->FI_GP_ICH2))),
@@ -430,7 +431,12 @@ enum gpio_function {
     PORT_FUNC_TIMER4_CAPTURE,
     PORT_FUNC_TIMER5_CAPTURE,
     PORT_FUNC_ICH_WKUP,
-    PORT_FUNC_IRFLT,
+    PORT_FUNC_IRFLT_0, //实际只有1个IRFLT
+    PORT_FUNC_IRFLT_1,
+    PORT_FUNC_IRFLT_2,
+    PORT_FUNC_IRFLT_3,
+    PORT_FUNC_IRFLT_4,
+    PORT_FUNC_IRFLT_5,
 
     PORT_FUNC_MCPWM0_H,
     PORT_FUNC_MCPWM0_L,

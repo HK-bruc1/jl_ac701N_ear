@@ -120,7 +120,7 @@ static int get_pipeline_uuid(const char *name)
     }
 
     if (!strcmp(name, "a2dp")) {
-        clock_alloc("a2dp", 12 * 1000000UL);
+        clock_alloc("a2dp", 48 * 1000000UL);
         audio_event_to_user(AUDIO_EVENT_A2DP_START);
 #if TCFG_AUDIO_DUT_ENABLE
         if (audio_dec_dut_en_get(0)) {
@@ -157,17 +157,23 @@ static int get_pipeline_uuid(const char *name)
     if (!strcmp(name, "dev_flow")) {
         return PIPELINE_UUID_DEV_FLOW;
     }
-#if TCFG_MIC_EFFECT_ENABLE
+#if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)
     if (!strcmp(name, "mic_effect")) {
         clock_alloc("mic_effect", 24 * 1000000UL);
         return PIPELINE_UUID_MIC_EFFECT;
     }
 #endif
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
+#if LE_AUDIO_STREAM_ENABLE
+    if (!strcmp(name, "le_audio")) {
         clock_alloc("le_audio", 24 * 1000000UL);
         return PIPELINE_UUID_LE_AUDIO;
     }
+    if (!strcmp(name, "le_audio_call") || \
+        !strcmp(name, "mic_le_audio_call")) {
+        clock_alloc("le_audio", 24 * 1000000UL);
+        return PIPELINE_UUID_ESCO;
+    }
+#endif
     if (!strcmp(name, "adda_loop")) {
         clock_alloc("adda_loop", 24 * 1000000UL);
         return PIPELINE_UUID_A2DP_DUT;
@@ -185,14 +191,6 @@ static void player_close_handler(const char *name)
     if (!strcmp(name, "esco")) {
         audio_event_to_user(AUDIO_EVENT_ESCO_STOP);
         return;
-    }
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
-        clock_free((char *)name);
-    }
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
-        clock_free((char *)name);
     }
 }
 
@@ -321,7 +319,7 @@ int jlstream_event_notify(enum stream_event event, int arg)
     case STREAM_EVENT_A2DP_ENERGY:
         a2dp_energy_detect_handler((int *)arg);
         break;
-#ifdef TCFG_SWITCH_NODE_ENABLE
+#if TCFG_SWITCH_NODE_ENABLE
     case STREAM_EVENT_GET_SWITCH_CALLBACK:
         ret = get_switch_node_callback((const char *)arg);
         break;
@@ -333,7 +331,7 @@ int jlstream_event_notify(enum stream_event event, int arg)
         break;
 #endif
 
-#ifdef TCFG_CHANNEL_MERGE_NODE_ENABLE
+#if TCFG_CHANNEL_MERGE_NODE_ENABLE
     case STREAM_EVENT_GET_MERGER_CALLBACK:
         ret = get_merge_node_callback((const char *)arg);
         break;

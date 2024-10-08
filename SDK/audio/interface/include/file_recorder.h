@@ -7,7 +7,7 @@
 
 
 
-typedef int (*file_recorder_cb_t)(void *, enum stream_event);
+typedef void (*file_recorder_cb_t)(void *, enum stream_state);
 
 struct file_recorder {
     struct list_head entry;

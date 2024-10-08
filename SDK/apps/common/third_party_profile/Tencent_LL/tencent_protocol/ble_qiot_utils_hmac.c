@@ -26,7 +26,7 @@ extern "C" {
 #include "ble_qiot_hmac.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #define KEY_IOPAD_SIZE 64
 
@@ -81,7 +81,7 @@ void llsync_utils_hmac_sha1(const char *msg, int msg_len, char *digest, const ch
         }*/
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 
 #ifdef __cplusplus
 }

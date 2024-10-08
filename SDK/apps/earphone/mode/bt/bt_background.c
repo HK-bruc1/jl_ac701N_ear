@@ -14,6 +14,7 @@
 #include "app_main.h"
 #include "app_msg.h"
 #include "a2dp_player.h"
+#include "tws_a2dp_play.h"
 #include "app_tone.h"
 #include "classic/tws_api.h"
 
@@ -305,12 +306,7 @@ static int bt_background_btstack_event_filter(struct bt_event *event)
         break;
     case BT_STATUS_A2DP_MEDIA_STOP:
         bt_stop_a2dp_slience_detect(event->args);
-#if TCFG_USER_TWS_ENABLE
-        void tws_a2dp_player_close(u8 * bt_addr);
         tws_a2dp_player_close(event->args);
-#else
-        a2dp_play_close(event->args);
-#endif
         break;
     case BT_STATUS_CALL_VOL_CHANGE:
         break;

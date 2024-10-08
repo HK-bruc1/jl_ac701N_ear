@@ -72,13 +72,13 @@ const int CONFIG_BTSTACK_TWS_AUDIO_SHARE_ENABLE  = 1;
 const int CONFIG_BTSTACK_TWS_AUDIO_SHARE_ENABLE  = 0;
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	const int CONFIG_BTSTACK_LE_AUDIO_ENABLE     = 1;
 #else
 	const int CONFIG_BTSTACK_LE_AUDIO_ENABLE     = 0;
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	const int config_le_sm_sub_sc_bridge_edr_enable = 1;
 	const int config_le_sm_sub_sc_enable = 1;
 #else
@@ -92,16 +92,17 @@ const int CONFIG_BTSTACK_TWS_AUDIO_SHARE_ENABLE  = 0;
 #endif
 
 #if RCSP_MODE
-int app_info_debug_enable = 0;//BIT(4);
-/* #define RCSP_API_LOG		0 */
+int app_info_debug_enable = 0; // | BIT(4); 				//	rcsp库内部打印
+/* #define RCSP_API_LOG		0 */							// rcsp认证相关
 /* #define RCSP_PACKET_LOG		1 */
-/* #define RCSP_PROTOCOL_LOG	2 */
+/* #define RCSP_PROTOCOL_LOG	2 */						// rcsp发送接收数据相关
 /* #define SPP_USER_LOG		3 */
-/* #define RCSP_INTERFACE_LOG	4 */
+/* #define RCSP_INTERFACE_LOG	4 */						// rcsp连接相关
+u8 rcsp_allow_ble_spp_connect_simultaneously = 0;			// 1t1时，是否允许ble连接的同时连接spp
 #endif
 
 //le 配置,可以优化代码和RAM
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	const int config_le_hci_connection_num = 2;//支持同时连接个数
 	const int config_le_sm_support_enable = 1; //是否支持加密配对
 #else

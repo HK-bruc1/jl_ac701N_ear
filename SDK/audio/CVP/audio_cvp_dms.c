@@ -68,33 +68,6 @@
 /*使能即可跟踪通话过程的内存情况*/
 #define CVP_MEM_TRACE_ENABLE	0
 
-#ifdef CONFIG_FPGA_ENABLE
-const u8 CONST_AEC_ENABLE = 1;
-#else
-const u8 CONST_AEC_ENABLE = 1;
-#endif/*CONFIG_FPGA_ENABLE*/
-
-/*
- * AEC串口数据导出
- * 0 : 关闭数据导致
- * 1 : 导出 mic0 mic1 far
- * 2 : 导出 mic0 mic1 out
- * 3 : 导出 mic0 far out
- */
-#if ((defined TCFG_AUDIO_DATA_EXPORT_DEFINE) && (TCFG_AUDIO_DATA_EXPORT_DEFINE == AUDIO_DATA_EXPORT_VIA_UART))
-const u8 CONST_AEC_EXPORT = 3;/*1:far 2:out*/
-#else
-const u8 CONST_AEC_EXPORT = 0;
-#endif/*TCFG_AUDIO_DATA_EXPORT_DEFINE*/
-
-/*参考数据变采样处理*/
-#if TCFG_BT_DONGLE_ENABLE || TCFG_ESCO_DL_CVSD_SR_USE_16K || (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC) || TCFG_USB_SLAVE_AUDIO_MIC_ENABLE \
-|| ((BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN) && (defined TCFG_LEA_CALL_DL_GLOBAL_SR) && (TCFG_LEA_CALL_DL_GLOBAL_SR != 0x01))
-const u8 CONST_REF_SRC = 1;
-#else
-const u8 CONST_REF_SRC = 0;
-#endif /*TCFG_USB_MIC_CVP_ENABLE*/
-
 /*
  *延时估计使能
  *点烟器需要做延时估计
@@ -105,12 +78,6 @@ const u8 CONST_AEC_DLY_EST = 0;
 /*骨传导配置*/
 const u8 CONST_BONE_CONDUCTION_ENABLE = 0;	/*骨传导使能*/
 const u8 CONST_BCS_MAP_WEIGHT_SAVE = 0;		/*骨传导收敛信息保存*/
-
-#if TCFG_AEC_SIMPLEX
-const u8 CONST_AEC_SIMPLEX = 1;
-#else
-const u8 CONST_AEC_SIMPLEX = 0;
-#endif/*TCFG_AEC_SIMPLEX*/
 
 /********麦克风异常检测配置*********/
 /*麦克风异常检测，双mic切单mic*/
@@ -171,19 +138,14 @@ const u8 CONST_DMS_REF_MIC_AEC_ENABLE = 0;
  *DMS版本配置
  *DMS_GLOBAL_V100:第一版双麦算法
  *DMS_GLOBAL_V200:第二版双麦算法，更少的ram和mips
+ 注意：
+ 双麦耳机使用ans时,需要配置使用DMS_GLOBAL_V100
+ 话务耳机使用dns时,需要配置使用DMS_GLOBAL_V100
  */
-#if (TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200)
+#if ((TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200) && (TCFG_AUDIO_DMS_SEL == DMS_NORMAL) && (TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE))
 const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V200;
 #else
 const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V100;
-#endif
-#if (TCFG_AUDIO_CVP_NS_MODE == CVP_ANS_MODE) && (TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200)
-/*双麦耳机使用ans时,需要配置使用DMS_GLOBAL_V100*/
-#error "CVP_ANS_MODE and DMS_GLOBAL_V200 connot exits together"
-#endif
-#if (TCFG_AUDIO_DMS_SEL	== DMS_FLEXIBLE) && (TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200)
-/*话务耳机使用dns时,需要配置使用DMS_GLOBAL_V100*/
-#error "DMS_FLEXIBLE, CVP_DNS_MODE and DMS_GLOBAL_V200 connot exits together"
 #endif
 
 /*
@@ -258,7 +220,9 @@ struct audio_aec_hdl {
     u8 EnableBit;			//aec使能模块
     u8 input_clear;			//清0输入数据标志
     u16 dump_packet;		//前面如果有杂音，丢掉几包
+#if TCFG_SUPPORT_MIC_CAPLESS
     void *dcc_hdl;
+#endif
     struct dms_attr attr;	//aec模块参数属性
     struct audio_cvp_pre_param_t pre;	//预处理配置
     void *transfer_func;
@@ -312,9 +276,11 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
         GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
         GainProcess_16Bit(talk_ref_mic, talk_ref_mic, aec_hdl->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
     }
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (aec_hdl->dcc_hdl) {
         audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
     }
+#endif
     return 0;
 }
 
@@ -1098,9 +1064,11 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
 
 
+#if TCFG_SUPPORT_MIC_CAPLESS
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
         aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
+#endif
 
     //aec_param_dump(aec_param);
     aec_hdl->EnableBit = aec_param->EnableBit;
@@ -1239,10 +1207,12 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
+#if TCFG_SUPPORT_MIC_CAPLESS
         if (aec_hdl->dcc_hdl) {
             audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
             aec_hdl->dcc_hdl = NULL;
         }
+#endif
 
         if (aec_hdl->transfer_func) {
             free(aec_hdl->transfer_func);

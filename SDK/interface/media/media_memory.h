@@ -8,6 +8,7 @@ enum audio_module {
     //Effects Modules
     AUD_MODULE_ECHO,
     AUD_MODULE_REVERB,
+    AUD_MODULE_REVERB_V2,
     AUD_MODULE_AUTOTUNE,
     AUD_MODULE_AUTOWAH,
     AUD_MODULE_CHORUS,

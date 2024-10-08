@@ -17,7 +17,7 @@
 #include "asm/charge.h"
 #include "dma_platform_api.h"
 
-#if (BT_AI_SEL_PROTOCOL & DMA_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
 
 #if 1
 #define APP_DMA_LOG       printf

@@ -103,9 +103,11 @@ int spatial_effects_node_param_cfg_read(void *param, int size)
     /*
      *获取在线调试的临时参数
      * */
-    if (hdl) {
-        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, (void *)(&hdl->effect_cfg), len)) {
-            printf("get spatial effects online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (hdl) {
+            if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, (void *)(&hdl->effect_cfg), len)) {
+                printf("get spatial effects online param\n");
+            }
         }
     }
 

@@ -1,6 +1,9 @@
 #ifndef SPATIALAUDIO_API_H
 #define SPATIALAUDIO_API_H
 
+#include "sensor_common_parm.h"
+
+
 typedef struct TRANVAL {
     int trans_x[3];
     int trans_y[3];
@@ -23,20 +26,6 @@ typedef struct {
     float SerialTime;//动态校准窗长
     float sensval;//角度灵敏度，越小越灵敏，范围：0.01~0.1，默认0.1
 } spatial_config_t;
-
-//陀螺仪偏置
-typedef struct {
-    float gyro_x;
-    float gyro_y;
-    float gyro_z;
-} gyro_cel_t;
-
-//加速度计偏置
-typedef struct {
-    float acc_offx;
-    float acc_offy;
-    float acc_offz;
-} acc_cel_t;
 
 extern inline float root_float(float x);
 extern inline float angle_float(float x, float y);

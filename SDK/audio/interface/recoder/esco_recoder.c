@@ -12,6 +12,7 @@
 #include "app_config.h"
 #include "asm/dac.h"
 #include "audio_cvp.h"
+#include "esco_player.h"
 
 
 #if TCFG_AUDIO_DUT_ENABLE
@@ -37,7 +38,7 @@ static void esco_recoder_callback(void *private_data, int event)
     }
 }
 
-int esco_recoder_open(u8 link_type)
+int esco_recoder_open(u8 link_type, void *bt_addr)
 {
     int err;
     struct encoder_fmt enc_fmt;
@@ -58,7 +59,14 @@ int esco_recoder_open(u8 link_type)
     }
 
 
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    recoder->stream = jlstream_pipeline_parse_by_node_name(uuid, "esco_adc");
+    if (!recoder->stream) {
+        recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+    }
+#else
     recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+#endif
     source_uuid = NODE_UUID_ADC;
     if (!recoder->stream) {
         recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_PDM_MIC);
@@ -73,7 +81,7 @@ int esco_recoder_open(u8 link_type)
         goto __exit0;
     }
 
-#if TCFG_AUDIO_SIDETONE_ENABLE && (defined TCFG_SWITCH_NODE_ENABLE)
+#if TCFG_AUDIO_SIDETONE_ENABLE && TCFG_SWITCH_NODE_ENABLE
     /*设置switch开头丢掉多少帧数据*/
     jlstream_node_ioctl(recoder->stream, NODE_UUID_SWITCH, NODE_IOC_SET_PRIV_FMT, 0);
 #endif
@@ -84,12 +92,15 @@ int esco_recoder_open(u8 link_type)
         goto __exit1;
     }
 
+    jlstream_node_ioctl(recoder->stream, NODE_UUID_ESCO_TX, NODE_IOC_SET_BTADDR, (int)bt_addr);
     //设置源节点是哪个
     u16 node_uuid = get_cvp_node_uuid();
     u32 ref_sr = audio_dac_get_sample_rate(&dac_hdl);
     if (node_uuid) {
-#if TCFG_ESCO_DL_CVSD_SR_USE_16K
+#if !(TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE))
+#if (TCFG_ESCO_DL_CVSD_SR_USE_16K > 1)
         jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_FMT, (int)ref_sr);
+#endif
 #endif
         err = jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_PRIV_FMT, source_uuid);
         if (err && (err != -ENOENT)) {	//兼容没有cvp节点的情况
@@ -159,7 +170,9 @@ int esco_recoder_switch(u8 en)
     }
     if (en) {
         //固定LINK_SCO类型，dongle不跑switch
-        esco_recoder_open(COMMON_SCO);
+        u8 bt_addr[6];
+        esco_player_get_btaddr(bt_addr);
+        esco_recoder_open(COMMON_SCO, bt_addr);
     } else {
         esco_recoder_close();
     }
@@ -173,9 +186,11 @@ int esco_recoder_reset(void)
         printf("esco player close now, non-operational!");
         return 1;
     }
+    u8 bt_addr[6];
     //产测流程，固定LINK_SCO类型
     esco_recoder_close();
-    esco_recoder_open(COMMON_SCO);
+    esco_player_get_btaddr(bt_addr);
+    esco_recoder_open(COMMON_SCO, bt_addr);
     return 0;
 }
 

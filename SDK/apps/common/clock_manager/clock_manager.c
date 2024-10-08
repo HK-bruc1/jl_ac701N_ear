@@ -13,6 +13,7 @@
 #include "clock.h"
 #include "list.h"
 #include "app_config.h"
+#include "jlstream.h"
 
 #define LOG_TAG             "[clock-manager]"
 #define LOG_ERROR_ENABLE
@@ -163,10 +164,18 @@ static u32 clock_list_sum(void)
     clock_manager_item *p;
     u32 total = 0;
 
+#ifdef CONFIG_EARPHONE_CASE_ENABLE
+    list_for_each_entry(p, &clk_mgr_head, entry) {
+        if (total < p->freq) {
+            total = p->freq;
+        }
+    }
+#else
     list_for_each_entry(p, &clk_mgr_head, entry) {
         /*log_info("%s : %dHz", p->name, p->freq);*/
         total += p->freq;
     }
+#endif
     if (total < CLOCK_MINIMUM_FREQ) {
         total = CLOCK_MINIMUM_FREQ;
     }
@@ -231,7 +240,11 @@ int clock_lock(const char *name, u32 clk)
     clk_locker.freq = clk;
     clk_locker.name = hash;
 
+#if (defined TCFG_FIX_CLOCK_FREQ  && TCFG_FIX_CLOCK_FREQ)
+    clk_set_api("sys", TCFG_FIX_CLOCK_FREQ);
+#else
     clk_set_api("sys", clk);
+#endif
 
     CLOCK_MANAGER_EXIT_CRITICAL();
 
@@ -294,21 +307,11 @@ int clock_unlock(char *name)
 /* ----------------------------------------------------------------------------*/
 static void clk_ref_cal(void)
 {
-    u32 clk_freq;
-    u32 clk_decr;
-    u32 pct;
-
-#if 0   //效率统计
-
-    extern void CacheReport(void);
-    CacheReport();
-
+#if 0   //效率统计输出
     task_info_output(0);
-
 #endif
 
-
-    int usage[2] = { 0, 0 };
+    int usage[3] = { 0, 0, 0 };
     int a = os_cpu_usage(NULL, usage);
     task_info_reset();
 
@@ -316,6 +319,12 @@ static void clk_ref_cal(void)
         return;
     }
     int usage_max = MAX(usage[0], usage[1]);
+#ifdef CONFIG_EARPHONE_CASE_ENABLE
+    usage[2] = jlstream_get_cpu_usage();
+    if (usage_max < usage[2]) {
+        usage_max = usage[2];
+    }
+#endif
 
     int curr_clk = clk_get("sys");
     int dest_clk = curr_clk;
@@ -347,8 +356,8 @@ __again:
         dest_clk = min_clk;
     }
 
-    log_info("cpu0: %d%% cpu1: %d%%  curr_clk:%d  min_clk:%d dest_clk:%d, %d\n",
-             usage[0], usage[1], curr_clk, min_clk, dest_clk, clk_adjust_step);
+    log_info("cpu0: %d%% cpu1: %d%% jlstream: %d%% curr_clk:%d  min_clk:%d dest_clk:%d, %d\n",
+             usage[0], usage[1], usage[2], curr_clk, min_clk, dest_clk, clk_adjust_step);
 
     //clock lock
     if (clk_locker.freq) {
@@ -378,14 +387,8 @@ static void clk_ref_fun(void *p)
         ref_cnt++;
         clk_ref_cal();
     } else {
-#if TCFG_CFG_TOOL_ENABLE
-        task_info_reset();
-        /* log_info("clock_reflash_reset"); */
-#else
         sys_timer_del(clk_ref_timer);
         clk_ref_timer = 0;
-        /* log_info("clock_reflash_stop"); */
-#endif
     }
     CLOCK_MANAGER_EXIT_CRITICAL();
 }
@@ -411,8 +414,10 @@ void clock_refurbish(void)
     CLOCK_MANAGER_ENTER_CRITICAL();
 
     //clk driver 需要提供每个芯片可以设置的最高挡位
+#if (defined TCFG_FIX_CLOCK_FREQ  && TCFG_FIX_CLOCK_FREQ)
+    clk_set_api("sys", TCFG_FIX_CLOCK_FREQ);
+#else
     clk_set_api("sys", CLOCK_MAXIMUM_FREQ);
-
     ref_cnt = 0;
     clk_adjust_step = 0;
 
@@ -426,6 +431,7 @@ void clock_refurbish(void)
 
     task_info_reset();
 
+#endif
     CLOCK_MANAGER_EXIT_CRITICAL();
 }
 
@@ -446,31 +452,28 @@ static int clock_manager_init(void)
     CLOCK_MANAGER_INIT_CRITICAL();
     return 0;
 }
-module_initcall(clock_manager_init);
+early_initcall(clock_manager_init);
 
 /* --------------------------------------------------------------------------*/
 /**
  * @brief clock_manager_test
  */
 /* ----------------------------------------------------------------------------*/
+#if 0   //test code
 static void clk_test2_tmr_fun(void *p)
 {
     clk_set_api("sys", CLOCK_MAXIMUM_FREQ);
 
     clock_refurbish();
 }
-
 void clock_manager_test2(void)
 {
     sys_timer_add(NULL, clk_test2_tmr_fun, 60 * 1000);
 }
-
-
-
 static void clk_test3_tmr_fun(void *p)
 {
-    int ret;
-    ret = clock_unlock("test");
+    /* int ret; */
+    clock_unlock("test");
     /* ASSERT(ret == 0); */
 }
 void clock_manager_test3(void)
@@ -484,4 +487,4 @@ void clock_manager_test3(void)
     /* u32 addr = (u32)(&clk_locker.freq); */
     /* mpu_set(2, addr, addr+3, 0, "Cr"); */
 }
-
+#endif

@@ -9,6 +9,7 @@
 #include "circular_buf.h"
 #include "cvp_node.h"
 #include "app_config.h"
+#include "audio_iis.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
@@ -76,6 +77,7 @@ struct cvp_cfg_t {
 
 struct cvp_node_hdl {
     char name[16];
+    enum stream_scene scene;
     AEC_CONFIG online_cfg;
     struct stream_frame *frame[3];	//输入frame存储，算法输入缓存使用
     u8 buf_cnt;						//循环输入buffer位置
@@ -265,10 +267,12 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
     /*
      *获取在线调试的临时参数
      * */
-    if (g_cvp_hdl) {
-        memcpy(g_cvp_hdl->name, ncfg.name, sizeof(ncfg.name));
-        if (jlstream_read_effects_online_param(hdl_node(g_cvp_hdl)->uuid, g_cvp_hdl->name, &cfg, sizeof(cfg))) {
-            printf("get cvp online param\n");
+    if (config_audio_cfg_online_enable) {
+        if (g_cvp_hdl) {
+            memcpy(g_cvp_hdl->name, ncfg.name, sizeof(ncfg.name));
+            if (jlstream_read_effects_online_param(hdl_node(g_cvp_hdl)->uuid, g_cvp_hdl->name, &cfg, sizeof(cfg))) {
+                printf("get cvp online param\n");
+            }
         }
     }
     cvp_node_param_cfg_update(&cfg, p);
@@ -375,18 +379,28 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
     struct stream_fmt *in_fmt = &iport->prev->fmt;
     struct stream_oport *oport = iport->node->oport;
     int ret = NEGO_STA_ACCPTED;
+    int nb_sr, wb_sr, nego_sr;
+
+#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_WB_EN)
+    nb_sr = 16000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#elif (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_NB_EN)
+    nb_sr = 8000;
+    wb_sr = 8000;
+    nego_sr  = 8000;
+#else
+    nb_sr = 8000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#endif
     //要求输入为8K或者16K
-    if (in_fmt->sample_rate != 8000 && in_fmt->sample_rate != 16000) {
-        in_fmt->sample_rate = 16000;
+    if (in_fmt->sample_rate != nb_sr && in_fmt->sample_rate != wb_sr) {
+        in_fmt->sample_rate = nego_sr;
         oport->fmt.sample_rate = in_fmt->sample_rate;
         ret = NEGO_STA_CONTINUE | NEGO_STA_SAMPLE_RATE_LOCK;
     }
-    //要求输入16bit位宽的数据
-    if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
-        in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
-        oport->fmt.bit_wide = in_fmt->bit_wide;
-        ret = NEGO_STA_CONTINUE;
-    }
+
     //要求输入16bit位宽的数据
     if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
         in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
@@ -395,6 +409,9 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
         oport->fmt.Qval = in_fmt->Qval;
         ret = NEGO_STA_CONTINUE;
     }
+
+    //固定输出单声道数据
+    oport->fmt.channel_mode = AUDIO_CH_MIX;
     return ret;
 }
 
@@ -407,6 +424,10 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     init_param.ref_sr = hdl->ref_sr;
     init_param.ref_channel = hdl->ref_mic_num;
     u8 mic_num; //算法需要使用的MIC个数
+
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+    audio_cvp_ref_src_open(hdl->scene, audio_iis_get_sample_rate(iis_hdl[0]), fmt->sample_rate, 2);
+#endif
 
     audio_aec_init(&init_param);
 
@@ -436,6 +457,9 @@ static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
 {
     if (hdl) {
         audio_aec_close();
+#if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
+        audio_cvp_ref_src_close();
+#endif
     }
 }
 
@@ -470,6 +494,9 @@ static int cvp_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         break;
     case NODE_IOC_SET_FMT:
         hdl->ref_sr = (u32)arg;
+        break;
+    case NODE_IOC_SET_SCENE:
+        hdl->scene = arg;
         break;
     case NODE_IOC_START:
         cvp_ioc_start(hdl);
@@ -518,6 +545,7 @@ REGISTER_STREAM_NODE_ADAPTER(cvp_node_adapter) = {
     .ioctl      = cvp_adapter_ioctl,
     .release    = cvp_adapter_release,
     .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
 };
 
 //注册工具在线调试

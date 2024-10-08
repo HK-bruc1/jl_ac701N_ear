@@ -8,7 +8,7 @@
 #include "syscfg_id.h"
 #include "app_config.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 /**
  * @brief 获取vm数据
@@ -38,5 +38,5 @@ u8 iot_read_data_from_vm(u8 syscfg_id, u8 *buf, u8 buf_len)
     return 0;
 }
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)
 

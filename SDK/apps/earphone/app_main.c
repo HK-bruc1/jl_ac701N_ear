@@ -41,6 +41,10 @@
 #include "linein.h"
 #include "pc.h"
 #include "rcsp_user_api.h"
+#include "pwm_led/led_ui_api.h"
+#if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
+#include "icsd_adt_app.h"
+#endif
 
 
 #define LOG_TAG             "[APP]"
@@ -103,22 +107,32 @@ const struct task_info task_info_table[] = {
     {"kws",                 2,     0,   256,   64  },
 #endif
 
+#if TCFG_LP_TOUCH_KEY_ENABLE
+    {"lp_touch_key",        5,     0,   256,   32  },
+#endif
+
+
 #if TCFG_USB_SLAVE_ENABLE || TCFG_USB_HOST_ENABLE
     {"usb_stack",          	1,     0,   512,   128 },
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN))
     {"app_proto",           2,     0,   768,   64  },
 #endif
     //{"ui",                  3,     0,   384 - 64,  128  },
 #if (TCFG_DEV_MANAGER_ENABLE)
     {"dev_mg",           	3,     0,   512,   512 },
 #endif
+
+#if (TCFG_PWMLED_ENABLE)
+    {"led_driver",         	5,     0,   256,   128 },
+#endif
+
     {"audio_vad",           1,     1,   512,   128 },
 #if TCFG_KEY_TONE_EN
     {"key_tone",            5,     0,   256,   32  },
 #endif
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
     {"tuya",                2,     0,   640,   256},
 #endif
 #if CONFIG_P11_CPU_ENABLE
@@ -146,12 +160,19 @@ const struct task_info task_info_table[] = {
 #if ANC_REAL_TIME_ADAPTIVE_ENABLE
     {"rt_anc",              3,     1,   512,   128 },
 #endif
+#if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
+    {"afq_common",         	2,     1,   512,   128 },
+#endif
 #endif
 
-#if TCFG_MIC_EFFECT_ENABLE
+#if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)
     /* 混响任务优先级要高 */
     {"mic_effect1",         6,     0,  768,   0 },
     {"mic_effect2",         6,     0,  768,   0 },
+#endif
+#if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
+    /*Head Action Detection*/
+    {"HA_Detect",           2,     0,  512,   0 },
 #endif
     {0, 0},
 };
@@ -176,6 +197,12 @@ int eSystemConfirmStopStatus(void)
 #else
     if (get_charge_full_flag()) {
 #endif
+#if TCFG_PWMLED_ENABLE
+        if (!led_ui_state_is_idle()) {
+            return 0;
+        }
+#endif
+
 #if (!TCFG_CHARGESTORE_ENABLE)
         power_set_soft_poweroff();
 #endif
@@ -200,19 +227,25 @@ void app_var_init(void)
 
 u8 get_power_on_status(void)
 {
+    u8 flag = 0;
 #if TCFG_IOKEY_ENABLE
-    return is_iokey_press_down();
+    if (is_iokey_press_down()) {
+        flag = 1;
+    }
 #endif
 
 #if TCFG_ADKEY_ENABLE
-    return is_adkey_press_down();
+    if (is_adkey_press_down()) {
+        flag = 1;
+    }
 #endif
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
-    return lp_touch_key_power_on_status();
+    if (lp_touch_key_power_on_status()) {
+        flag = 1;
+    }
 #endif
-
-    return 0;
+    return flag;
 }
 
 
@@ -411,6 +444,7 @@ int app_get_message(int *msg, int max_num, const struct key_remap_table *key_tab
             audio_wide_area_tap_ignore_flag_set(1, 1000);
 #endif
             int key_msg = app_key_event_remap(key_table, msg + 1);
+            log_info(">>>>>key_msg = %d\n", key_msg);
             if (key_msg == APP_MSG_NULL) {
                 return 1;
             }
@@ -494,6 +528,10 @@ struct app_mode *app_mode_switch_handler(int *msg)
         next_mode = app_next_mode(next_mode);
     } while (next_mode);
 
+    if ((app_get_current_mode() != NULL) && (next_mode == app_get_current_mode())) {
+        return NULL;
+    }
+
     err = app_goto_mode(next_mode->name, arg);
 
     if (err != 0) {
@@ -514,7 +552,7 @@ static void app_task_loop(void *p)
 
     mode = app_task_init();
 
-#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #if (VFS_ENABLE == 1)
     if (mount(NULL, "mnt/sdfile", "sdfile", 0, NULL)) {
         log_debug("sdfile mount succ");

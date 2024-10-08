@@ -127,6 +127,7 @@ void clock_set_xip_max_freq(u32 max_freq);
 //for bt
 void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();
+u32 get_btosc_info_for_update(void *info);
 
 #define BT_CLOCK_IN(x)          SFR(JL_CLOCK->CLK_CON1,  14,  2,  x)
 //for MACRO - BT_CLOCK_IN

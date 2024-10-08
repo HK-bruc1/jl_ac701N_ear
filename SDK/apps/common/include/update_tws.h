@@ -3,7 +3,7 @@
 
 #include "app_config.h"
 
-#if (OTA_TWS_SAME_TIME_ENABLE && (RCSP_ADV_EN || ((BT_AI_SEL_PROTOCOL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN)))) && !OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && (RCSP_ADV_EN || ((THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN)))) && !OTA_TWS_SAME_TIME_NEW)
 #include "update_loader_download.h"
 #include "btstack/avctp_user.h"
 

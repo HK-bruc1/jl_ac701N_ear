@@ -200,6 +200,7 @@ int sms_tde_init(struct aec_s_attr *attr);
 int sms_tde_exit();
 int sms_tde_fill_in_data(void *dat, u16 len);
 int sms_tde_fill_ref_data(void *data0, void *data1, u16 len);
+int sms_tde_reboot(u8 enablebit);
 void sms_tde_toggle(u8 toggle);
 /*获取是否在重启中*/
 u8 get_sms_tde_rebooting();

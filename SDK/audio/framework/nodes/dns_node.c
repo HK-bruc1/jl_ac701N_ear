@@ -32,6 +32,7 @@ enum {
 };
 
 struct ns_cfg_t {
+    u8 bypass;
     u8 ns_type;//降噪类型选择，通用降噪/通话下行降噪
     u8 call_active_trigger;//接通电话触发标志, 只有通话下行降噪会使用
     float aggressfactor;   //降噪强度(越大越强:1~2)
@@ -40,9 +41,10 @@ struct ns_cfg_t {
 } __attribute__((packed));
 
 struct dns_node_hdl {
+    char name[16];
     u8 bt_addr[6];
     u8 trigger;
-    u16 sr;
+    u32 sample_rate;
     void *dns;
     struct stream_frame *out_frame;
     struct ns_cfg_t cfg;
@@ -61,14 +63,26 @@ int dns_param_cfg_read(struct stream_node *node)
     /*
      *获取配置文件内的参数,及名字
      * */
-    ret = jlstream_read_node_data_new(NODE_UUID_DNS_NOISE_SUPPRESSOR, node->subid, (void *)&config, NULL);
+    ret = jlstream_read_node_data_new(NODE_UUID_DNS_NOISE_SUPPRESSOR, node->subid, (void *)&config, hdl->name);
     if (ret != sizeof(config)) {
         printf("%s, read node data err %d = %d\n", __FUNCTION__, ret, (int)sizeof(config));
         return -1 ;
     }
 
+    /*
+     *获取在线调试的临时参数
+     * */
+    if (config_audio_cfg_online_enable) {
+        ret = jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config));
+        if (ret != sizeof(config)) {
+            printf("get dns online param err\n");
+            return -1 ;
+        }
+    }
+
     hdl->cfg = config;
 
+    ns_log("bypass %d\n", hdl->cfg.bypass);
     ns_log("type %d\n", hdl->cfg.ns_type);
     ns_log("call_active_trigger %d\n", hdl->cfg.call_active_trigger);
     ns_log("aggressfactor  %d/1000\n", (int)(hdl->cfg.aggressfactor * 1000.f));
@@ -78,9 +92,34 @@ int dns_param_cfg_read(struct stream_node *node)
     return ret;
 }
 
-static int ns_node_fixed_frame_run(void *ns, u8 *in, u8 *out, int len)
+static int ns_node_fixed_frame_run(void *priv, u8 *in, u8 *out, int len)
 {
-    return audio_dns_run(ns, (s16 *)in, (s16 *)out, len);
+    int wlen = 0;
+    struct dns_node_hdl *hdl = (struct dns_node_hdl *)priv;
+    if (hdl->cfg.bypass) {
+        if (hdl->dns) {
+            audio_dns_close(hdl->dns);
+            hdl->dns = NULL;
+        }
+        memcpy(out, in, len);
+        return len;
+    } else {
+        if (!hdl->dns) {
+            dns_param_t param = {
+                .DNS_OverDrive = hdl->cfg.aggressfactor,
+                .DNS_GainFloor = hdl->cfg.minsuppress,
+                .DNS_NoiseLevel = hdl->cfg.noiselevel,
+                .DNS_highGain = 2.5f,
+                .DNS_rbRate = 0.3f,
+                .sample_rate = hdl->sample_rate,
+            };
+            hdl->dns = audio_dns_open(&param);
+        }
+        if (hdl->dns) {
+            wlen = audio_dns_run(hdl->dns, (s16 *)in, (s16 *)out, len);
+        }
+    }
+    return wlen;
 }
 /*节点输出回调处理，可处理数据或post信号量*/
 static void dns_handle_frame(struct stream_iport *iport, struct stream_note *note)
@@ -90,7 +129,6 @@ static void dns_handle_frame(struct stream_iport *iport, struct stream_note *not
     struct stream_frame *in_frame;
     int wlen;
     int out_frame_len;
-
 
     while (1) {
         in_frame = jlstream_pull_frame(iport, note);		//从iport读取数据
@@ -104,6 +142,8 @@ static void dns_handle_frame(struct stream_iport *iport, struct stream_note *not
                     hdl->trigger = 1;
                 }
             }
+        } else {
+            hdl->trigger = 1;
         }
 
         /*设置工具配置的降噪效果*/
@@ -113,7 +153,9 @@ static void dns_handle_frame(struct stream_iport *iport, struct stream_note *not
             /*没有接通，降降噪效果设置成0*/
             DNS_GainFloor = 1.0f;
         }
-        audio_dns_updata_param(hdl->dns, DNS_GainFloor, DNS_OverDrive);
+        if (hdl->dns) {
+            audio_dns_updata_param(hdl->dns, DNS_GainFloor, DNS_OverDrive);
+        }
 
         out_frame_len = get_fixed_frame_len_output_len(hdl->fixed_hdl, in_frame->len);
         if (out_frame_len) {
@@ -147,11 +189,52 @@ static void dns_ioc_open_iport(struct stream_iport *iport)
     iport->handle_frame = dns_handle_frame;				//注册输出回调
 }
 
+/*节点参数协商*/
+static int dns_ioc_negotiate(struct stream_iport *iport)
+{
+    struct dns_node_hdl *hdl = (struct dns_node_hdl *)iport->node->private_data;
+    struct stream_fmt *in_fmt = &iport->prev->fmt;
+    struct stream_oport *oport = iport->node->oport;
+    int ret = NEGO_STA_ACCPTED;
+    int nb_sr, wb_sr, nego_sr;
+
+#if (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_WB_EN)
+    nb_sr = 16000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#elif (TCFG_AUDIO_CVP_BAND_WIDTH_CFG == CVP_NB_EN)
+    nb_sr = 8000;
+    wb_sr = 8000;
+    nego_sr  = 8000;
+#else
+    nb_sr = 8000;
+    wb_sr = 16000;
+    nego_sr  = 16000;
+#endif
+    //要求输入为8K或者16K
+    if (in_fmt->sample_rate != nb_sr && in_fmt->sample_rate != wb_sr) {
+        in_fmt->sample_rate = nego_sr;
+        oport->fmt.sample_rate = in_fmt->sample_rate;
+        ret = NEGO_STA_CONTINUE | NEGO_STA_SAMPLE_RATE_LOCK;
+    }
+
+    //要求输入16bit位宽的数据
+    if (in_fmt->bit_wide != DATA_BIT_WIDE_16BIT) {
+        in_fmt->bit_wide = DATA_BIT_WIDE_16BIT;
+        in_fmt->Qval = AUDIO_QVAL_16BIT;
+        oport->fmt.bit_wide = in_fmt->bit_wide;
+        oport->fmt.Qval = in_fmt->Qval;
+        ret = NEGO_STA_CONTINUE;
+    }
+    hdl->sample_rate = in_fmt->sample_rate;
+    return ret;
+}
+
 
 /*节点start函数*/
 static void dns_ioc_start(struct dns_node_hdl *hdl)
 {
-    struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt;
+    /* struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt; */
     printf("dns node start");
 
     dns_param_t param = {
@@ -160,14 +243,14 @@ static void dns_ioc_start(struct dns_node_hdl *hdl)
         .DNS_NoiseLevel = hdl->cfg.noiselevel,
         .DNS_highGain = 2.5f,
         .DNS_rbRate = 0.3f,
-        .sample_rate = fmt->sample_rate,
+        .sample_rate = hdl->sample_rate,
     };
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
     /*打开算法*/
     hdl->dns = audio_dns_open(&param);
     hdl->trigger = 0;
-    hdl->fixed_hdl = audio_fixed_frame_len_init(DNS_FRAME_SIZE, ns_node_fixed_frame_run, hdl->dns);
+    hdl->fixed_hdl = audio_fixed_frame_len_init(DNS_FRAME_SIZE, ns_node_fixed_frame_run, hdl);
 }
 
 /*节点stop函数*/
@@ -176,8 +259,8 @@ static void dns_ioc_stop(struct dns_node_hdl *hdl)
     if (hdl->dns) {
         audio_dns_close(hdl->dns);
         hdl->dns = NULL;
-        aec_code_movable_unload();
     }
+    aec_code_movable_unload();
     if (hdl->fixed_hdl) {
         audio_fixed_frame_len_exit(hdl->fixed_hdl);
         hdl->fixed_hdl = NULL;
@@ -187,6 +270,21 @@ static void dns_ioc_stop(struct dns_node_hdl *hdl)
         hdl->out_frame = NULL;
     }
     hdl->trigger = 0;
+}
+
+static int dns_ioc_update_parm(struct dns_node_hdl *hdl, int parm)
+{
+    if (hdl == NULL) {
+        return false;
+    }
+    memcpy(&hdl->cfg, (u8 *)parm, sizeof(hdl->cfg));
+    if (hdl->dns) {
+        /*设置工具配置的降噪效果*/
+        float DNS_GainFloor = hdl->cfg.minsuppress;
+        float DNS_OverDrive = hdl->cfg.aggressfactor;
+        audio_dns_updata_param(hdl->dns, DNS_GainFloor, DNS_OverDrive);
+    }
+    return true;
 }
 
 /*节点ioctl函数*/
@@ -203,12 +301,24 @@ static int dns_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
     case NODE_IOC_OPEN_IPORT:
         dns_ioc_open_iport(iport);
         break;
+    case NODE_IOC_NEGOTIATE:
+        *(int *)arg |= dns_ioc_negotiate(iport);
+        break;
     case NODE_IOC_START:
         dns_ioc_start(hdl);
         break;
     case NODE_IOC_SUSPEND:
     case NODE_IOC_STOP:
         dns_ioc_stop(hdl);
+        break;
+    case NODE_IOC_NAME_MATCH:
+        if (!strcmp((const char *)arg, hdl->name)) {
+            ret = 1;
+        }
+        break;
+
+    case NODE_IOC_SET_PARAM:
+        ret = dns_ioc_update_parm(hdl, arg);
         break;
     }
 

@@ -13,7 +13,7 @@
 #include "app_main.h"
 
 
-#ifdef TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE
 
 #define PRIVATE_IIS_MSG_CHECK_EN	1		//使能格式检查, 该函数需根据具体消息自定义
 #define PRIVATE_IIS_RX_EN 			1

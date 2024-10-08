@@ -12,7 +12,6 @@
 #include "typedef.h"
 #include "system/includes.h"
 #include "media/includes.h"
-#include "asm/timer.h"
 #include "mpu6887p.h"
 #include "imuSensor_manage.h"
 
@@ -66,7 +65,6 @@ u16 mpu6887p_I2C_Read_NBytes(unsigned char devAddr,
                              u16 readLen)
 {
     u16 i = 0;
-    local_irq_disable();
     iic_start(mpu6887p_info->iic_hdl);
     if (0 == iic_tx_byte(mpu6887p_info->iic_hdl, devAddr)) {
         log_error("mpu6887p iic read err1");
@@ -96,7 +94,6 @@ u16 mpu6887p_I2C_Read_NBytes(unsigned char devAddr,
     }
 __iic_exit_r:
     iic_stop(mpu6887p_info->iic_hdl);
-    local_irq_enable();
 
     return i;
 }
@@ -109,7 +106,6 @@ u16 mpu6887p_I2C_Write_NBytes(unsigned char devAddr,
                               u16 writeLen)
 {
     u16 i = 0;
-    local_irq_disable();
     iic_start(mpu6887p_info->iic_hdl);
     if (0 == iic_tx_byte(mpu6887p_info->iic_hdl, devAddr)) {
         log_error("mpu6887p iic write err1");
@@ -130,7 +126,6 @@ u16 mpu6887p_I2C_Write_NBytes(unsigned char devAddr,
     }
 __iic_exit_w:
     iic_stop(mpu6887p_info->iic_hdl);
-    local_irq_enable();
     return i;
 }
 IMU_read    mpu6887p_read     = mpu6887p_I2C_Read_NBytes;

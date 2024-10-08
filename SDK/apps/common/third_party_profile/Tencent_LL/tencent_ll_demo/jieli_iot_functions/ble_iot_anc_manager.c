@@ -11,7 +11,7 @@
 #include "ble_iot_tws_manager.h"
 #include "ble_iot_utils.h"
 
-#if (BT_AI_SEL_PROTOCOL & LL_SYNC_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
 
 #if CONFIG_ANC_ENABLE
 
@@ -437,4 +437,4 @@ int iot_anc_effect_setting_init(void)
 
 #endif // CONFIG_ANC_ENABLE
 
-#endif // (BT_AI_SEL_PROTOCOL == LL_SYNC_EN)
+#endif // (THIRD_PARTY_PROTOCOLS_SEL == LL_SYNC_EN)

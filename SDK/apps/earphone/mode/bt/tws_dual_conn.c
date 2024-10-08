@@ -17,7 +17,7 @@
 #include "tws_dual_share.h"
 #include "esco_player.h"
 #include "app_testbox.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 /********edr蓝牙相关状态debug打印说明***********************
@@ -90,6 +90,9 @@ static void auto_close_page_scan(void *p)
 
 void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
+    u32 rets_addr = 0;
+    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    printf("write_scan_conn_enable rets=0x%x\n", rets_addr);
     if (g_dual_conn.page_scan_auto_disable) {
         if (!scan_enable && conn_enable) {
             return;
@@ -101,9 +104,9 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         scan_enable = 0;
         conn_enable = 0;
     }
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
-        g_printf("le_audio have connd scan conn disble=%x,%x\n", is_cig_phone_conn(), is_cig_other_phone_conn());
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    if (is_cig_phone_conn() || is_cig_other_phone_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
+        g_printf("le_audio have connd scan conn disble=%d,%d,%d\n", is_cig_phone_conn(), is_cig_other_phone_conn(), bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
     }
@@ -152,9 +155,13 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 
     lmp_hci_write_scan_enable((conn_enable << 1) | scan_enable);
 
-    if ((scan_enable || conn_enable) && page_list_empty()) {
+    if ((scan_enable || conn_enable)) {
         int connect_device = bt_get_total_connect_dev();
-        app_send_message(APP_MSG_BT_IN_PAIRING_MODE, connect_device);
+        if (page_list_empty()) {
+            app_send_message(APP_MSG_BT_IN_PAIRING_MODE, connect_device);
+        } else {
+            app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
+        }
     }
 
 #if TCFG_DUAL_CONN_PAGE_SCAN_TIME
@@ -293,6 +300,7 @@ static void del_device_from_page_list(u8 *mac_addr)
 
 void clr_device_in_page_list()
 {
+    printf("clr_device_in_page_list\n");
     struct page_device_info *info, *n;
 
     if (!g_dual_conn.page_head_inited) {
@@ -709,6 +717,7 @@ static int dual_conn_btstack_event_handler(int *_event)
     struct bt_event *event = (struct bt_event *)_event;
     int state = tws_api_get_tws_state();
 
+    printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         dual_conn_page_devices_init();
@@ -842,6 +851,7 @@ static int dual_conn_hci_event_handler(int *_event)
     }
     int is_remote_test = bt_get_remote_test_flag();
 
+    printf("dual_conn_hci_event_handler:0x%x 0x%x\n", event->event, event->value);
     switch (event->event) {
     case HCI_EVENT_VENDOR_NO_RECONN_ADDR:
         break;
@@ -1013,8 +1023,17 @@ static int dual_conn_tws_event_handler(int *_event)
 
         if (role == TWS_ROLE_MASTER) {
             tws_api_auto_role_switch_disable();
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+            u32 slave_info =  event->args[3] | (event->args[4] << 8) | (event->args[5] << 16) | (event->args[6] << 24) ;
+            printf("====slave_info:%x\n", slave_info);
+            if (slave_info & TWS_STA_LE_AUDIO_CONNECTED) {
+                clr_device_in_page_list();
+                break;
+            }
+#endif
             if (!page_list_empty()) {
                 dual_conn_page_device();
+                app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
             } else {
                 tws_dual_conn_state_handler();
             }
@@ -1152,9 +1171,12 @@ int tws_host_get_local_role()
     if (!page_list_empty()) {
         state |= TWS_STA_HAVE_PAGE_INFO;
     }
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (is_cig_phone_conn()) {
         state |= TWS_STA_LE_AUDIO_CONNECTED;
+    }
+    if (is_cig_music_play() || is_cig_phone_call_play()) {
+        state |= TWS_STA_LE_AUDIO_PLAYING;
     }
 #endif
     /* r_printf("tws_host_get_local_role=%x\n",state ); */
@@ -1203,11 +1225,13 @@ static void tws_pair_timeout(void *p)
 
     if (!page_list_empty()) {
         dual_conn_page_device();
+        app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
     } else {
 #if TCFG_TWS_CONN_DISABLE
         write_scan_conn_enable(1, 1);
 #else
         tws_api_wait_pair_by_code(0, bt_get_local_name(), 0);
+        app_send_message(APP_MSG_BT_IN_PAIRING_MODE, 0);
 #endif
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
         write_scan_conn_enable(1, 1);
@@ -1223,6 +1247,7 @@ static void tws_create_conn_timeout(void *p)
 
     if (!page_list_empty()) {
         dual_conn_page_device();
+        app_send_message(APP_MSG_BT_IN_PAGE_MODE, 0);
     } else {
         tws_dual_conn_state_handler();
     }

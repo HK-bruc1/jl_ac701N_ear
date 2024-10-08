@@ -84,6 +84,7 @@ struct dac_platform_data {
     u8 bit_width;             // DAC输出位宽
     u8 l_ana_gain;		// 左声道模拟增益
     u8 r_ana_gain;		// 右声道模拟增益
+    u8 power_boost;     // 输出功率增强
     u32 max_sample_rate;    	// 支持的最大采样率
 };
 

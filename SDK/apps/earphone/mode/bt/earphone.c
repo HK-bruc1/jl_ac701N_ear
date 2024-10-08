@@ -36,12 +36,18 @@
 #include "app_default_msg_handler.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
-
 #include "tws_dual_share.h"
+
+#if TCFG_USER_TWS_ENABLE
+#include "tws_dual_conn.h"
+#else
+#include "dual_conn.h"
+#endif
+
 #if RCSP_MODE
 #include "rcsp.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
@@ -64,6 +70,7 @@
 #include "bt_event_func.h"
 
 
+#include "asm/lp_touch_key_api.h"
 #include "asm/charge.h"
 #include "app_charge.h"
 
@@ -75,7 +82,6 @@
 #include "app_power_manage.h"
 #include "gSensor/gSensor_manage.h"
 #include "classic/tws_api.h"
-#include "asm/pwm_led_hw.h"
 #include "ir_sensor/ir_manage.h"
 #include "in_ear_detect/in_ear_manage.h"
 #include "vol_sync.h"
@@ -84,7 +90,7 @@
 
 #if TCFG_APP_BT_EN
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
 #include "multi_protocol_main.h"
 #endif
 
@@ -224,12 +230,8 @@ void bredr_handle_register()
 #if TCFG_USER_TWS_ENABLE
 static void rx_dual_conn_info(u8 *data, int len)
 {
-    r_printf("tws_sync_dual_conn_info_func: %d, %d\n", data[0], data[1]);
-    if (data[0]) {
-        g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;
-    } else {
-        g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
-    }
+    r_printf("tws_sync_dual_conn_info_func: %d\n", data[0]);
+    g_bt_hdl.bt_dual_conn_config = data[0];
     syscfg_write(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
 
 }
@@ -264,6 +266,13 @@ void set_dual_conn_config(u8 *addr, u8 dual_conn_en)
 #if TCFG_BT_DUAL_CONN_ENABLE
     if (dual_conn_en) {
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;
+        g_printf(">>>>%s: dual_conn_en\n", __FUNCTION__);
+        // 如果是双连接，重新判断是否需要开启可发现可连接
+#if TCFG_USER_TWS_ENABLE
+        tws_dual_conn_state_handler();
+#else
+        dual_conn_state_handler();
+#endif
     } else {
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
         u8 *other_conn_addr;
@@ -299,7 +308,7 @@ void user_read_remote_name_handle(u8 status, u8 *addr, u8 *name)
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
     rcsp_1t2_set_edr_info(addr, name);
 #endif
-#if (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     extern void realme_remote_name_callback(u8 status, u8 * addr, u8 * name);
     realme_remote_name_callback(status, addr, name);
 #endif
@@ -317,7 +326,7 @@ void bt_function_select_init()
     if (g_bt_hdl.bt_dual_conn_config != DUAL_CONN_SET_TWO) {
         set_tws_task_interval(120);
     }
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config_for_vm()) {
         g_printf("le_audio en");
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
@@ -374,7 +383,7 @@ void bt_function_select_init()
 
     bt_set_sbc_cap_bitpool(TCFG_BT_SBC_BITPOOL);
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config()) {
         bt_change_hci_class_type(BD_CLASS_WEARABLE_HEADSET | LE_AUDIO_CLASS);   //经典蓝牙地址跟le audio地址一样要置上BIT(14)
 
@@ -463,7 +472,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         anc_poweron();
 #endif
 
-#if (TCFG_USER_BLE_ENABLE || TCFG_BT_BLE_ADV_ENABLE || (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN))
+#if (TCFG_USER_BLE_ENABLE || TCFG_BT_BLE_ADV_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN))
         if (BT_MODE_IS(BT_BQB)) {
             ble_bqb_test_thread_init();
         } else {
@@ -474,7 +483,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
         multi_protocol_bt_init();
 #endif
 
@@ -587,10 +596,6 @@ static void bt_hci_event_connection_exist(struct bt_event *bt)
 {
 }
 
-
-void __attribute__((weak)) lp_touch_key_testbox_inear_trim(u8 flag)
-{
-}
 
 enum {
     TEST_STATE_INIT = 1,
@@ -863,7 +868,7 @@ static void bt_no_background_exit_check(void *priv)
     bt_ble_exit();
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
     multi_protocol_bt_exit();
 #endif
 
@@ -1045,16 +1050,53 @@ int bt_app_msg_handler(int *msg)
         bt_send_a2dp_cmd(msg[0]);
         break;
     case APP_MSG_CALL_ANSWER:
-        printf("APP_MSG_CALL_ANSWER: status = %d\n", bt_get_call_status());
-        if (bt_get_call_status() == BT_CALL_INCOMING) {
-            bt_cmd_prepare(USER_CTRL_HFP_CALL_ANSWER, 0, NULL);
+        u8 temp_call_btaddr[6];
+        if (esco_player_get_btaddr(temp_call_btaddr)) {
+            if (bt_get_call_status() == BT_CALL_INCOMING) {
+                printf("APP_MSG_CALL_ANSWER: esco playing, device_addr:\n");
+                put_buf(temp_call_btaddr, 6);
+                bt_cmd_prepare_for_addr(temp_call_btaddr, USER_CTRL_HFP_CALL_ANSWER, 0, NULL);		// 根据哪个设备使用esco接听哪个
+                break;
+            }
+        } else {
+            if (bt_get_call_status() == BT_CALL_INCOMING) {
+                printf("APP_MSG_CALL_ANSWER: esco no playing\n");
+                bt_cmd_prepare(USER_CTRL_HFP_CALL_ANSWER, 0, NULL);
+                break;
+            }
         }
         break;
     case APP_MSG_CALL_HANGUP:
-        printf("APP_MSG_CALL_HANGUP: status = %d\n", bt_get_call_status());
-        if ((bt_get_call_status() >= BT_CALL_INCOMING) &&
-            (bt_get_call_status() <= BT_CALL_ALERT)) {
-            bt_cmd_prepare(USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+        u8 temp_btaddr[6];
+        if (esco_player_get_btaddr(temp_btaddr)) {
+            printf("APP_MSG_CALL_HANGUP: current esco playing\n");		// 根据哪个设备使用esco挂断哪个
+            put_buf(temp_btaddr, 6);
+            bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+            break;
+        } else {
+            u8 *addr = bt_get_current_remote_addr();
+            if (addr) {
+                memcpy(temp_btaddr, addr, 6);
+                u8 call_status = bt_get_call_status_for_addr(temp_btaddr);
+                if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
+                    printf("APP_MSG_CALL_HANGUP: current addr\n");
+                    put_buf(temp_btaddr, 6);
+                    bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                    break;
+                }
+                u8 *other_conn_addr;
+                other_conn_addr = btstack_get_other_dev_addr(addr);
+                if (other_conn_addr) {
+                    printf("APP_MSG_CALL_HANGUP: other addr\n");
+                    memcpy(temp_btaddr, other_conn_addr, 6);
+                    put_buf(temp_btaddr, 6);
+                    call_status = bt_get_call_status_for_addr(temp_btaddr);
+                    if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
+                        bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                        break;
+                    }
+                }
+            }
         }
         break;
     case APP_MSG_CALL_LAST_NO:

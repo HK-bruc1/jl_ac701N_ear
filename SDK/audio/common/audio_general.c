@@ -20,6 +20,52 @@ const int config_media_tws_en = 1;
 const int config_media_tws_en = 0;
 #endif
 
+/* 16bit数据流中也存在32bit位宽数据的处理 */
+const int config_ch_adapter_32bit_enable = 1;
+const int config_mixer_32bit_enable = 1;
+const int config_jlstream_fade_32bit_enable = 1;
+const int config_audio_eq_xfade_enable = 1;
+
+#if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L)
+const int config_audio_dac_channel_left_enable = 1;
+const int config_audio_dac_channel_right_enable = 0;
+#elif (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_R)
+const int config_audio_dac_channel_left_enable = 0;
+const int config_audio_dac_channel_right_enable = 1;
+#else
+const int config_audio_dac_channel_left_enable = 1;
+const int config_audio_dac_channel_right_enable = 1;
+#endif
+const int config_audio_dac_power_on_mode = 0;
+#ifdef TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE
+const int config_audio_dac_power_off_lite = TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE;
+#endif
+#if TCFG_CFG_TOOL_ENABLE
+const int config_audio_cfg_online_enable = 1;
+#else
+const int config_audio_cfg_online_enable = 0;
+#endif
+
+
+/*
+ *******************************************************************
+ *						Audio Codec Config
+ *******************************************************************
+ */
+////////////////////ID3信息使能/////////////////
+const u8 config_flac_id3_enable = 0;
+const u8 config_ape_id3_enable  = 0;
+const u8 config_m4a_id3_enable  = 0;
+const u8 config_wav_id3_enable = 0;
+const u8 config_wma_id3_enable = 0;
+
+/////////////////////wma codec//////////////////
+const int const_audio_codec_wma_dec_supoort_POS_play = 1; //是否支持指定位置播放
+
+/////////////////////wav codec/////////////////
+const int const_audio_codec_wav_dec_bitDepth_set_en = 0;
+
+
 
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)
@@ -84,7 +130,7 @@ int audio_general_init()
 #endif/*TCFG_AUDIO_DATA_EXPORT_DEFINE*/
 
 #if TCFG_AUDIO_CONFIG_TRACE
-    audio_config_trace_setup(3000);
+    audio_config_trace_setup(TCFG_AUDIO_CONFIG_TRACE_INTERVAL);
 #endif/*TCFG_AUDIO_CONFIG_TRACE*/
 
     struct stream_bit_width stream_par = {0};
