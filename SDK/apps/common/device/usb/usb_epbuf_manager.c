@@ -50,6 +50,12 @@
 #define     HID_DMA_SIZE            0
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+#define     MTP_DMA_SIZE            APPEND(MAXP_SIZE_BULKOUT * 2, 1)
+#else
+#define     MTP_DMA_SIZE            0
+#endif
+
 #if TCFG_USB_CUSTOM_HID_ENABLE
 #define     CUSTOM_HID_DMA_SIZE     APPEND(64 * 2, 2)
 #else
@@ -94,7 +100,7 @@
 #define     PRINTER_DMA_SIZE        0
 #endif
 
-#define USB_DEVICE_DMA_BUF_MAX_SIZE (HID_DMA_SIZE + AUDIO_SPK_DMA_SIZE + AUDIO_MIC_DMA_SIZE + MSD_DMA_SIZE + CDC_DMA_SIZE  + CUSTOM_HID_DMA_SIZE + MIDI_DMA_SIZE + PRINTER_DMA_SIZE)
+#define USB_DEVICE_DMA_BUF_MAX_SIZE (HID_DMA_SIZE + AUDIO_SPK_DMA_SIZE + AUDIO_MIC_DMA_SIZE + MSD_DMA_SIZE + CDC_DMA_SIZE  + CUSTOM_HID_DMA_SIZE + MIDI_DMA_SIZE + PRINTER_DMA_SIZE + MTP_DMA_SIZE)
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~ usb slave end      ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~ usb host begin     ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/

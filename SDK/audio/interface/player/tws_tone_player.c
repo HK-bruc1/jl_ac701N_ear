@@ -14,6 +14,7 @@
 #include "reference_time.h"
 #include "classic/tws_api.h"
 #include "app_config.h"
+#include "audio_time.h"
 
 #if TCFG_USER_TWS_ENABLE
 
@@ -59,8 +60,6 @@ static u8 g_tws_tone_adding = 0;
 static void tws_tone_reference_clock_close(u8 id);
 static void tws_play_tone_try_timeout(void *arg);
 extern int ring_player_start(struct tone_player *player);
-extern int tws_conn_system_clock_init(u8 factor);
-extern u32 tws_conn_master_to_local_time(u32 usec);
 
 static int tws_player_callback(int fname_uuid, u32 func_uuid, enum stream_event event)
 {

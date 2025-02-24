@@ -10,7 +10,7 @@
 #include "sdk_config.h"
 #include "media/includes.h"
 #include "app_config.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "audio_cvp.h"
 #include "esco_player.h"
 

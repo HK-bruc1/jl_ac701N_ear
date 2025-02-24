@@ -14,6 +14,10 @@
 #include "audio_manager.h"
 #include "clock_manager/clock_manager.h"
 #include "dac_node.h"
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 #if TCFG_BT_DUAL_CONN_ENABLE == 0
 
@@ -61,7 +65,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         app_audio_state_switch(APP_AUDIO_STATE_MUSIC,
                                app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
         set_music_device_volume(dev_vol);
-        a2dp_player_low_latency_enable(tws_api_get_low_latency_state());
+        a2dp_player_low_latency_enable(bt_get_low_latency_mode());
         a2dp_player_open(bt_addr);
         break;
     case CMD_A2DP_CLOSE:
@@ -170,6 +174,11 @@ static int a2dp_bt_status_event_handler(int *event)
         if (app_var.goto_poweroff_flag) {
             break;
         }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_audio_player_is_playing()) {
+            le_auracast_stop();
+        }
+#endif
         dac_try_power_on_thread();//dac初始化耗时有120ms,此处提前将dac指定到独立任务内做初始化，优化蓝牙通路启动的耗时，减少时间戳超时的情况
         if (tws_api_get_role() == TWS_ROLE_MASTER &&
             bt_get_call_status_for_addr(bt->args) == BT_CALL_INCOMING) {
@@ -260,7 +269,7 @@ static int a2dp_app_msg_handler(int *msg)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        void *device = btstack_get_device_mac_addr(bt_addr);
+        void *device = btstack_get_conn_device(bt_addr);
         if (device) {
             btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
         }

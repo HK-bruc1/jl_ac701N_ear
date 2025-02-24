@@ -244,6 +244,7 @@ void rcsp_file_delete_end(void)
 /*----------------------------------------------------------------------------*/
 static void file_transfer_watch_opt(u32 dev_handle, u8 flag)
 {
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
     if (RCSPDevMapFLASH == dev_handle
         || RCSPDevMapFLASH_2 == dev_handle) {
         char *root_path = NULL;
@@ -252,6 +253,7 @@ static void file_transfer_watch_opt(u32 dev_handle, u8 flag)
         }
         rcsp_file_transfer_watch_opt(flag, root_path);
     }
+#endif
 }
 
 static int file_delete_func(FILE *file)
@@ -357,7 +359,9 @@ void rcsp_file_delete_start(u8 OpCode_SN, u8 *data, u16 len)
             return;
         }
 
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
         file_transfer_watch_opt(dev_handle, 4);
+#endif
     } else {
         file_del_printf("file delete, no this file\n");
         JL_CMD_response_send(JL_OPCODE_FILE_DELETE, JL_PRO_STATUS_PARAM_ERR, OpCode_SN, NULL, 0, 0, NULL);

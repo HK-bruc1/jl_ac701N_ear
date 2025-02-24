@@ -164,7 +164,7 @@ static u32 clock_list_sum(void)
     clock_manager_item *p;
     u32 total = 0;
 
-#ifdef CONFIG_EARPHONE_CASE_ENABLE
+#if 1
     list_for_each_entry(p, &clk_mgr_head, entry) {
         if (total < p->freq) {
             total = p->freq;
@@ -278,7 +278,7 @@ int clock_unlock(char *name)
         return -1;
     }
 
-    if (clk_locker.name == hash) {
+    if (clk_locker.name != hash) {
         /* ASSERT(0, "locker owner is %s", clk_locker.name); */
         CLOCK_MANAGER_EXIT_CRITICAL();
         return -2;
@@ -319,7 +319,7 @@ static void clk_ref_cal(void)
         return;
     }
     int usage_max = MAX(usage[0], usage[1]);
-#ifdef CONFIG_EARPHONE_CASE_ENABLE
+#if 1
     usage[2] = jlstream_get_cpu_usage();
     if (usage_max < usage[2]) {
         usage_max = usage[2];

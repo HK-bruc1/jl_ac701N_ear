@@ -37,8 +37,6 @@
 VM_MANAGE_ID_REG(touch_key0_algo_cfg, VM_LP_TOUCH_KEY0_ALOG_CFG);
 VM_MANAGE_ID_REG(touch_key1_algo_cfg, VM_LP_TOUCH_KEY1_ALOG_CFG);
 VM_MANAGE_ID_REG(touch_key2_algo_cfg, VM_LP_TOUCH_KEY2_ALOG_CFG);
-VM_MANAGE_ID_REG(touch_key3_algo_cfg, VM_LP_TOUCH_KEY3_ALOG_CFG);
-VM_MANAGE_ID_REG(touch_key4_algo_cfg, VM_LP_TOUCH_KEY4_ALOG_CFG);
 
 
 static volatile u8 is_lpkey_active = 0;
@@ -198,11 +196,10 @@ static void lp_touch_key_save_range_algo_data(u32 ch_idx)
 {
     log_debug("save algo rfg\n");
 
-    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
     struct touch_key_range_algo_data *algo_data;
     algo_data = &(__this->arg[ch_idx].algo_data);
 
-    int ret = syscfg_write(VM_LP_TOUCH_KEY0_ALOG_CFG + ch, (void *)algo_data, sizeof(struct touch_key_range_algo_data));
+    int ret = syscfg_write(VM_LP_TOUCH_KEY0_ALOG_CFG + ch_idx, (void *)algo_data, sizeof(struct touch_key_range_algo_data));
     if (ret != sizeof(struct touch_key_range_algo_data)) {
         log_debug("write vm algo cfg error !\n");
     }

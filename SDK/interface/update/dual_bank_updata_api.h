@@ -76,7 +76,6 @@ u8 dual_bank_update_verify_without_crc_new(int (*verify_result_hdl)(int calc_crc
 u32 dual_bank_passive_update_get_target_update_addr(void);
 
 extern u32 dual_bank_update_exist_flag_get(void);
-extern u32 classic_update_task_exist_flag_get(void);
 
 int dual_bank_update_info_get(u32 *start_addr, u32 *len);
 int dual_bank_erase_other_bank(u8 opt);

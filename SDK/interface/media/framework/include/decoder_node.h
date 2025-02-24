@@ -75,6 +75,7 @@ struct decoder_hdl {
     OS_MUTEX mutex;
     OS_MUTEX file_mutex;
     OS_SEM file_sem;
+    struct stream_fmt_ex fmt_ex;
     struct jlstream_fade fade;
     struct audio_dec_breakpoint *breakpoint;
     struct decoder_flow_ctrl *flow_ctrl;

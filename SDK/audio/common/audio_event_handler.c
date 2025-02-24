@@ -29,10 +29,14 @@ int audio_event_notify(enum audio_lib_event event, void *priv, int arg)
         //当系统剩余1个没有进入低功耗，且蓝牙已经进入低功耗，则可以关闭DAC
         return ((low_power_sys_not_idle_cnt() == 1) && \
                 (lower_power_bt_group_query() > 0));
-    case AUDIO_LIB_EVENT_VBG_TRIM_WTITE:
+    case AUDIO_LIB_EVENT_VBG_TRIM_WRITE:
         return syscfg_write(CFG_VBG_TRIM, priv, arg);
     case AUDIO_LIB_EVENT_VBG_TRIM_READ:
         return syscfg_read(CFG_VBG_TRIM, priv, arg);
+    case AUDIO_LIB_EVENT_DACLDO_TRIM_WRITE:
+        return syscfg_write(CFG_DACLDO_TRIM, priv, arg);
+    case AUDIO_LIB_EVENT_DACLDO_TRIM_READ:
+        return syscfg_read(CFG_DACLDO_TRIM, priv, arg);
     default:
         break;
     }

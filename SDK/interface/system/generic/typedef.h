@@ -16,10 +16,15 @@ Date：
 #if defined(__GNUC__)
 
 ///<locate code to x segment ever exist
-#define SEC_USED(x)     __attribute__((section(#x),used))
 ///<locate code to x segment optimized by dependency
 #define SEC(x)          __attribute__((section(#x)))
+#ifdef CONFIG_SEC_UNUSED_EN
+#define sec(x)          __attribute__((section(#x)))
+#define SEC_USED(x)     __attribute__((section(#x)))
+#else
 #define sec(x)          __attribute__((section(#x),used))
+#define SEC_USED(x)     __attribute__((section(#x),used))
+#endif
 ///<locate data to x segment
 #define AT(x)           __attribute__((section(#x)))
 #define SET(x)          __attribute__((x))

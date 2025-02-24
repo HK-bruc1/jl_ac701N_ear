@@ -113,6 +113,7 @@
 #define TCFG_SURROUND_DEMO_NODE_ENABLE 0 // Surround Demo、环绕音demo
 #define TCFG_SURROUND_NODE_ENABLE 0 // Surround Effect
 #define TCFG_SWITCH_NODE_ENABLE 0 // Switch
+#define TCFG_SPLIT_GAIN_NODE_ENABLE 0 // Split Gain
 #define TCFG_THREE_D_EFFECT_NODE_ENABLE 0 // ThreeD
 #define TCFG_TONE_NODE_ENABLE 1 // 提示音
 #define TCFG_UART_NODE_ENABLE 0 // 串口打印
@@ -123,6 +124,7 @@
 #define TCFG_VOICE_CHANGER_ADV_NODE_ENABLE 0 // Voice Changer Adv
 #define TCFG_VOICE_CHANGER_NODE_ENABLE 0 // Voice Changer
 #define TCFG_WDRC_NODE_ENABLE 0 // DRC
+#define TCFG_SPATIAL_ADV_NODE_ENABLE 0
 #define EQ_SECTION_MAX 0xc // EQ_SECTION_MAX
 // ------------流程图宏定义------------
 #endif

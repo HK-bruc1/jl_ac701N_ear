@@ -23,6 +23,10 @@
 #include "tws_dual_conn.h"
 #include "dac_node.h"
 #include "tws_dual_share.h"
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 
 #if TCFG_BT_DUAL_CONN_ENABLE
@@ -39,6 +43,7 @@ enum {
 
 static u8 g_play_addr[6];
 static u8 g_slience_addr[6];
+static u8 g_closing_addr[6];
 static u8 a2dp_preempted_addr[6];
 static u8 a2dp_energy_detect_addr[6];
 static u8 a2dp_drop_packet_detect_addr[6];
@@ -190,6 +195,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         app_send_message_from(MSG_FROM_APP, 12, msg);
         break;
     case CMD_A2DP_CLOSE:
+        puts("CMD_A2DP_CLOSE\n");
         tws_a2dp_player_close(bt_addr);
         /*
          * 如果后台有A2DP数据,关闭检测和MEDIA_START状态,
@@ -199,6 +205,9 @@ static void tws_a2dp_play_in_task(u8 *data)
             bt_stop_a2dp_slience_detect(btaddr);
             a2dp_media_unmute(btaddr);
             a2dp_media_close(btaddr);
+        }
+        if (memcmp(bt_addr, g_closing_addr, 6) == 0) {
+            memset(g_closing_addr, 0xff, 6);
         }
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
         share_a2dp_preempted_resume(bt_addr);
@@ -274,6 +283,8 @@ void tws_a2dp_play_send_cmd(u8 cmd, u8 *_data, u8 len, u8 tx_do_action)
             memcpy(g_play_addr, _data, 6);
         } else if (cmd == CMD_A2DP_SLIENCE_DETECT || cmd == CMD_A2DP_MUTE) {
             memcpy(g_slience_addr, _data, 6);
+        } else if (cmd == CMD_A2DP_CLOSE) {
+            memcpy(g_closing_addr, _data, 6);
         }
     }
 }
@@ -333,6 +344,21 @@ void try_play_preempted_a2dp(void *p)
     }
 }
 
+static void a2dp_suspend_by_call(u8 *play_addr, void *play_device)
+{
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        return;
+    }
+    if (play_addr && play_device && a2dp_player_is_playing(play_addr)) {
+        puts("--a2dp_mute\n");
+        put_buf(play_addr, 6);
+        memcpy(a2dp_preempted_addr, play_addr, 6);
+        memset(a2dp_energy_detect_addr, 0xff, 6);
+        btstack_device_control(play_device, USER_CTRL_AVCTP_OPID_PAUSE);
+        tws_a2dp_play_send_cmd(CMD_A2DP_MUTE_BY_CALL, play_addr, 6, 1);
+    }
+}
+
 static int a2dp_bt_status_event_handler(int *event)
 {
     int ret;
@@ -352,6 +378,11 @@ static int a2dp_bt_status_event_handler(int *event)
         if (app_var.goto_poweroff_flag) {
             break;
         }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_audio_player_is_playing()) {
+            le_auracast_stop();
+        }
+#endif
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             if (device_b &&
                 btstack_get_call_esco_status(device_b) == BT_ESCO_STATUS_OPEN) {
@@ -375,13 +406,18 @@ static int a2dp_bt_status_event_handler(int *event)
             a2dp_media_close(bt->args);
             break;
         }
+#if defined(CONFIG_CPU_BR52)
+        if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+            clock_alloc("aes_a2dp_play", 64 * 1000000UL);
+        }
+#endif
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
         if (memcmp(a2dp_drop_packet_detect_addr, bt->args, 6) == 0) {
             g_printf("bt_action_is_drop_flag");
-            if (memcmp(a2dp_energy_detect_addr, addr_b, 6) == 0 ||
-                memcmp(a2dp_preempted_addr, addr_b, 6) == 0) {
+            if (addr_b && ((memcmp(a2dp_energy_detect_addr, addr_b, 6) == 0) ||
+                           (memcmp(a2dp_preempted_addr, addr_b, 6) == 0))) {
                 tws_a2dp_play_send_cmd(CMD_A2DP_MUTE, bt->args, 6, 1);
                 break;
             }
@@ -395,7 +431,11 @@ static int a2dp_bt_status_event_handler(int *event)
 #if TCFG_A2DP_PREEMPTED_ENABLE
                 tws_a2dp_slience_detect(bt->args, 1);
 #else
-                tws_a2dp_play_send_cmd(CMD_A2DP_MUTE, bt->args, 6, 1);
+                if (memcmp(btaddr, g_closing_addr, 6) == 0) {
+                    a2dp_media_close(bt->args);
+                } else {
+                    tws_a2dp_play_send_cmd(CMD_A2DP_MUTE, bt->args, 6, 1);
+                }
 #endif
             }
         } else {
@@ -404,6 +444,11 @@ static int a2dp_bt_status_event_handler(int *event)
         break;
     case BT_STATUS_A2DP_MEDIA_STOP:
         g_printf("BT_STATUS_A2DP_MEDIA_STOP\n");
+#if defined(CONFIG_CPU_BR52)
+        if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+            clock_free("aes_a2dp_play");
+        }
+#endif
         put_buf(bt->args, 6);
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
@@ -466,25 +511,16 @@ static int a2dp_bt_status_event_handler(int *event)
         }
         break;
     case BT_STATUS_SCO_CONNECTION_REQ:
-        puts("BT_STATUS_SCO_CONNECTION_REQ\n");
-        if (tws_api_get_role() == TWS_ROLE_SLAVE) {
-            break;
-        }
-        if (device_b && a2dp_player_is_playing(addr_b)) {
-            puts("--a2dp_mute\n");
-            put_buf(addr_b, 6);
-            memcpy(a2dp_preempted_addr, addr_b, 6);
-            memset(a2dp_energy_detect_addr, 0xff, 6);
-            btstack_device_control(device_b, USER_CTRL_AVCTP_OPID_PAUSE);
-            tws_a2dp_play_send_cmd(CMD_A2DP_MUTE_BY_CALL, addr_b, 6, 1);
-        }
+        puts("A2DP BT_STATUS_SCO_CONNECTION_REQ\n");
+        put_buf(bt->args, 6);
+        a2dp_suspend_by_call(addr_b, device_b);
         break;
     case BT_STATUS_SCO_DISCON:
         puts("BT_STATUS_SCO_DISCON\n");
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        if (device_b && bt_not_in_phone_call_state(device_b)) {
+        if (addr_b && device_b && bt_not_in_phone_call_state(device_b)) {
             if (memcmp(a2dp_preempted_addr, addr_b, 6) == 0) {
                 if (a2dp_media_is_mute(addr_b)) {
                     puts("--a2dp_unmute-b\n");
@@ -513,6 +549,13 @@ static int a2dp_bt_status_event_handler(int *event)
         if (memcmp(a2dp_preempted_addr, bt->args, 6) == 0) {
             puts("--a2dp_unmute-a\n");
             sys_timeout_add(NULL, try_play_preempted_a2dp, 500);
+        }
+        break;
+    case BT_STATUS_SCO_STATUS_CHANGE:
+        printf("A2DP BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
+               (bt->value >> 16), (bt->value & 0x0000ffff));
+        if (bt->value != 0xff) {
+            a2dp_suspend_by_call(addr_b, device_b);
         }
         break;
     case BT_STATUS_FIRST_CONNECTED:
@@ -561,7 +604,7 @@ static int a2dp_app_msg_handler(int *msg)
             /* 后台设备a2dp有能量,转为前台播放,
              * 前台设备转为后台静音, 不做能量检测, 防止抖音这种无法暂停的播放器又抢回来
              */
-            void *device = btstack_get_device_mac_addr(addr);
+            void *device = btstack_get_conn_device(addr);
             if (device) {
                 btstack_device_control(device, USER_CTRL_AVCTP_OPID_PAUSE);
             }
@@ -591,7 +634,7 @@ static int a2dp_app_msg_handler(int *msg)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        void *device = btstack_get_device_mac_addr(bt_addr);
+        void *device = btstack_get_conn_device(bt_addr);
         if (device) {
             btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
         }

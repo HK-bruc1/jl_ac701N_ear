@@ -931,7 +931,9 @@ static int cvp_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         }
         break;
     case NODE_IOC_SET_PARAM:
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
         ret = cvp_ioc_update_parm(hdl, arg);
+#endif
         break;
     case NODE_IOC_SET_PRIV_FMT:
         hdl->source_uuid = (u16)arg;

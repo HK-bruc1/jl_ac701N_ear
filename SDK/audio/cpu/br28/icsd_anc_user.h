@@ -5,16 +5,14 @@
 
 #include "esco_player.h"
 #include "adc_file.h"
+#include "audio_adc.h"
 
 typedef struct {
     u16 mic_ch_sel;
     u16 sample_rate;
     u16 adc_irq_points;
     u16 adc_buf_num;
-    u16 mic0_gain;
-    u16 mic1_gain;
-    u16 mic2_gain;
-    u16 mic3_gain;
+    u16 mic_gain[AUDIO_ADC_MAX_NUM];
 } audio_mic_param_t;
 
 enum {

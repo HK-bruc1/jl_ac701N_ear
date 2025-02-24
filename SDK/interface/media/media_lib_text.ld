@@ -97,15 +97,25 @@
     *(.pcm_code)
     *(.pcm_const)
 
+#if AUDIO_LHDC_AT_RAM == 0
     *(.lhdc.text.const)
     *(.lhdc.text)
-    *(.lhdcv4decode.text)
-    *(.lhdcv4decode.const)
+    *(.lhdc_dec.text.cache.L2.run)
+    *(.lhdcv4_dec.text)
+    *(.lhdcv4_dec.const)
+	*(.lhdcv4_dec_text.cashe.L2.run)
+    . = ALIGN(4);
+#endif
 
+#if AUDIO_LHDC_V5_AT_RAM == 0
     *(.lhdc_v5.text.const)
     *(.lhdc_v5.text)
-    *(.lhdcv5decode.text)
-    *(.lhdcv5decode.const)
+    *(.lhdc_v5_dec.text.cache.L2.run)
+
+    *(.lhdcv5_dec.text)
+    *(.lhdcv5_dec.const)
+	*(.lhdcv5_dec_text.cashe.L2.run)
+#endif
 
 #if AUDIO_LDAC_AT_RAM == 0
     *(.ldac_dec.text)
@@ -118,6 +128,9 @@
 
     *(.sbc_code)
     *(.sbc_const)
+	*(.sbc_dec.text.cache.L2.const)
+	*(.sbc_dec.text.cache.L2.run)
+
     *(.sbc_eng_code)
     *(.sbc_eng_const)
     *(.bt_aac_dec.text)
@@ -282,6 +295,8 @@
     *(.alac.text)
     *(.alac.text.const)
 
+ 	*(.amr_encode_code)
+    *(.amr_encode_const)
     *(.mp3_encode_code)
     *(.mp3_enc_code)
     *(.mp3_enc_const)
@@ -518,6 +533,82 @@
     *(.sur_LRDRIFT_cal_code)
     *(.sur_LRDRIFT_cal_const)
     *(.sur_cal_sparse_code)
+#if (AFX_LIMITER_AT_RAM == 0)
+	*(.limiter.text)
+    *(.limiter.text.const)
+	*(.limiter.text.cache.L2.code)
+	*(.limiter.text.cache.L2.const)
+#endif
+#if (AFX_MULTIBAND_LIMITER_AT_RAM == 0)
+	*(.multiband_limiter.text)
+	*(.multiband_limiter.text.const)
+#endif
+#if (AFX_MULTIBAND_CROSSOVER_AT_RAM == 0)
+    *(.multiband_crossover.text)
+	*(.multiband_crossover.text.const)
+#endif
+#if (AFX_MULTIBAND_DRC_AT_RAM == 0)
+    *(.multiband_drc.text)
+	*(.multiband_drc.text.const)
+#endif
+#if (AFX_VIRTUAL_SURRUOUND_PRO_AT_RAM == 0)
+	*(.virtual_surround_pro.text)
+	*(.virtual_surround_pro.text.const)
+	*(.sas.text.cache.L2.code)
+	*(.sas.text.cache.L2.const)
+    *(.sas.text)
+    *(.sas.text.code)
+#endif
+#if (AFX_SW_EQ_AT_RAM == 0)
+    *(.iir_filter.text.cache.L2.code)
+    *(.iir_filter.text.cache.L2.const)
+    *(.iir_filter.text)
+    *(.iir_filter.text.const)
+	*(.sof_eq.text)
+	*(.sof_eq.text.const)
+#endif
+
+#if (AFx_PHASER_AT_RAM == 0)
+	*(.Phaser.text.cache.L2.code)	
+	/* *(.Phaser.text)	 */
+	/* *(.Phaser.text.const)	 */
+#endif
+
+
+#if (AFx_FLANGER_AT_RAM == 0)
+	*(.flanger.text.cache.L2.code)	
+	/* *(.flanger.text)	 */
+	/* *(.flanger.text.const)	 */
+#endif
+
+#if (AFx_CHORUS_ADVANCE_AT_RAM == 0)
+	*(.chorus_adv.text.cache.L2.code)	
+	/* *(.chorus_adv.text)	 */
+	/* *(.chorus_adv.text.const)	 */
+#endif
+
+#if (AFx_PINGPONG_ECHO_AT_RAM == 0)
+	*(.pingpong_echo.text.cache.L2.code)	
+	/* *(.pingpong_echo.text)	 */
+	/* *(.pingpong_echo.text.const)	 */
+#endif
+
+#if (AFx_DISTORTION_CLIPPING_AT_RAM == 0)
+	*(.distortion.text.cache.L2.code)	
+	*(.distortion.text.cache.L2.const)	
+	/* *(.distortion.text)	 */
+	/* *(.distortion.text.const)	 */
+#endif
+
+#if (AFx_FREQUENCY_COMPRESSOR_AT_RAM == 0)
+	*(.freq_compressor.text.cache.L2.code)
+	*(.freq_compressor.text.cache.L2.const)
+#endif
+
+#if AFx_GAIN_MIX_AT_RAM == 0
+	*(.gain_mix.text.cache.L2.code)	
+	*(.gain_mix.text.cache.L2.const)	
+#endif
 
     . = ALIGN(4);
     media_code_begin = .;

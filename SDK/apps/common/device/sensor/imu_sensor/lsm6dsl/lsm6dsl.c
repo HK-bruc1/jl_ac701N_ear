@@ -164,7 +164,7 @@ IMU_write   lsm6dsl_write    = lsm6dsl_I2C_Write_Byte;
 #define spi_dma_write(x, y)         spi_dma_send(lsm6dsl_info->spi_hdl, x, y)
 #define spi_set_width(x)            spi_set_bit_mode(lsm6dsl_info->spi_hdl, x)
 #define spi_init(cfg)              spi_open(lsm6dsl_info->spi_hdl, cfg)
-#define spi_closed()            spi_close(lsm6dsl_info->spi_hdl)
+#define spi_closed()            spi_deinit(lsm6dsl_info->spi_hdl)
 #define spi_suspend()           hw_spi_suspend(lsm6dsl_info->spi_hdl)
 #define spi_resume()            hw_spi_resume(lsm6dsl_info->spi_hdl)
 
@@ -2106,7 +2106,7 @@ int32_t lsm6dsl_fifo_output_raw(lsm6dsl_ctx_t *ctx, axis1bit16_t *buff)
 lsm6dsl_fifo_mode_t fifo_mode_old = STOP_WHEN_FULL;
 void lsm6dsl_fifo_mode_start()
 {
-    lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, BYPASS);
+    /* lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, BYPASS); */
     lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, STOP_WHEN_FULL);
 }
 //data:gyro(6bytes)+acc(6bytes)+step(6bytes)+temperature(6bytes头尾补0)

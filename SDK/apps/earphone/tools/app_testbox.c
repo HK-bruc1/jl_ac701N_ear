@@ -7,7 +7,7 @@
 #include "init.h"
 #include "app_config.h"
 #include "system/includes.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "asm/charge.h"
 #include "app_charge.h"
 #include "app_chargestore.h"
@@ -51,6 +51,7 @@
 #define CMD_BOX_ENTER_STORAGE_MODE  0x0a //进入仓储模式
 #define CMD_BOX_GLOBLE_CFG			0x0b //测试盒配置命令(测试盒收到CMD_BOX_TWS_CHANNEL_SEL命令后发送,需使能测试盒某些配置)
 #define CMD_BOX_GET_TWS_PAIR_INFO   0x0c //测试盒获取配对信息
+#define CMD_BOX_GET_AUDIO_CHANNEL	0x0e //左右声道信息
 #define CMD_BOX_CUSTOM_CODE			0xf0 //客户自定义命令处理
 
 #define WRITE_LIT_U16(a,src)   {*((u8*)(a)+1) = (u8)(src>>8); *((u8*)(a)+0) = (u8)(src&0xff); }
@@ -236,6 +237,13 @@ static int chargestore_get_tws_paired_info(u8 *buf, u8 *len)
     return 0;
 }
 
+static u8 chargestore_get_tws_channel_info(void)
+{
+    u8 channel = 'U';
+    syscfg_read(CFG_CHARGESTORE_TWS_CHANNEL, &channel, 1);
+    return channel;
+}
+
 static void app_testbox_sub_event_handle(u8 *data, u16 size)
 {
     u8 mac = 0;
@@ -274,13 +282,13 @@ static void app_testbox_update_event_handle(u8 *data, u16 size)
     if (get_vm_ram_storage_enable() || get_vm_ram_storage_in_irq_enable()) {
         vm_flush2flash(1);
     }
-#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52)  // 耳机目前仅支持br50\br52
+#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) || (defined CONFIG_CPU_BR56) // 耳机目前仅支持br50\br52
 
-    if ((size >= 1) && (data[0])) {
-        if (app_testbox_enter_loader_update()) {
-            return;
-        }
+    /* if ((size >= 1) && (data[0])) { */
+    if (app_testbox_enter_loader_update()) {
+        return;
     }
+    /* } */
 #endif
     /* 打一个uartkey给maskrom识别 */
     chargestore_set_update_ram();
@@ -488,6 +496,26 @@ static void app_testbox_sub_cmd_handle(u8 *send_buf, u8 buf_len, u8 *buf, u8 len
         chargestore_api_write(send_buf, send_len + 2);
         break;
 
+    case CMD_BOX_GET_AUDIO_CHANNEL:
+        log_info("CMD_BOX_GET_AUDIO_CHANNEL");
+        __this->testbox_status = 1;
+#if TCFG_USER_TWS_ENABLE
+        u8 channel = bt_tws_get_local_channel();
+        if (channel == 'L') {
+            send_buf[2] = 0;
+        } else if (channel == 'R') {
+            send_buf[2] = 1;
+        } else {
+            send_buf[2] = 2;
+        }
+#else
+        send_buf[2] = 2;
+#endif
+        __this->channel = send_buf[2];
+        printf("channel = %d\n", send_buf[2]);
+        chargestore_api_write(send_buf, 3);
+        break;
+
     default:
         send_buf[0] = CMD_UNDEFINE;
         send_len = 1;
@@ -510,10 +538,11 @@ static int app_testbox_data_handler(u8 *buf, u8 len)
 
     case CMD_BOX_UPDATE:
         __this->testbox_status = 1;
-        if (buf[13] == get_jl_chip_id() || buf[13] == get_jl_chip_id2()) {
+        printf(">>>[test]:buf13 = 0x%x, chip_id = 0x%x\n", buf[13], get_jl_chip_id());
+        if (buf[13] == 0xff || buf[13] == get_jl_chip_id() || buf[13] == get_jl_chip_id2()) {
             //进行串口升级流程
             //vm_flush2flash();时间处理较长，不能够在串口中断处做处理，需要发送到线程进行处理
-#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) // 耳机目前仅支持br50\br52
+#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) || (defined CONFIG_CPU_BR56) // 耳机目前仅支持br50\br52
             if (buf[15]) { // 存在新的升级流程
                 send_buf[1] = 0xAA;//回复0xAA表示使用新的串口升级流程 uart_ota2.bin
                 chargestore_api_write(send_buf, 2);

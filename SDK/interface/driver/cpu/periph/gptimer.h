@@ -9,6 +9,7 @@ extern const u8 lib_gptimer_timer_mode_en; //gptimer timer功能使能
 extern const u8 lib_gptimer_pwm_mode_en; //gptimer pwm功能使能
 extern const u8 lib_gptimer_capture_mode_en; //gptimer capture功能使能
 extern const u8 lib_gptimer_auto_tid_en; //gptimer_tid 内部自动分配使能
+extern const u8 lib_gptimer_extern_use; //gptimer 模块外部已经占用, bit0=1表示timer0 外部占用，以此类推
 
 enum gptimer_mode : u8 {
     GPTIMER_MODE_TIMER = 0, //定时模式
@@ -85,6 +86,7 @@ u32 gptimer_set_count(u32 tid, u32 cnt);
 u32 gptimer_get_count(u32 tid);
 u32 gptimer_set_prd(u32 tid, u32 prd);
 u32 gptimer_get_prd(u32 tid);
+u32 gptimer_tick2us(u32 tid, u32 tick);
 void *gptimer_get_private_data(u32 tid);
 void gptimer_set_private_data(u32 tid, void *private_data);
 

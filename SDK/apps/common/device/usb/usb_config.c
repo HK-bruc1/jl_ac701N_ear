@@ -14,6 +14,7 @@
 #include "timer.h"
 #include "app_config.h"
 #include "lbuf.h"
+#include "usb/device/usb_pll_trim.h"
 
 #ifdef CONFIG_ADAPTER_ENABLE
 #include "adapter_usb_hid.h"
@@ -199,11 +200,9 @@ void usb_isr(const usb_dev usb_id)
     if (intr_usb & INTRUSB_RESET_BABBLE) {
         log_error("usb reset");
         usb_reset_interface(usb_device);
-#if TCFG_FUSB_PLL_TRIM
-        log_info("FUSB_PLL_AUTO_TRIM RUN\n");
-        /* fusb_pll_trim(USB_TRIM_HAND, 10); */
-        fusb_pll_trim(USB_TRIM_AUTO, 10);
-#endif
+
+        log_info("USB_PLL_AUTO_TRIM RUN\n");
+        usb_pll_trim_init(USB_TRIM_AUTO, 5, 80);
 
 #if USB_SUSPEND_RESUME || USB_SUSPEND_RESUME_SYSTEM_NO_SLEEP
         u32 reg = usb_read_power(usb_id);
@@ -372,7 +371,7 @@ u32 usb_config(const usb_dev usb_id)
         usb_config_var = &_usb_config_var;
 #endif
     }
-    log_debug("zalloc: usb_config_var = %x\n", usb_config_var);
+    log_debug("zalloc: usb_config_var = %x\n", (void *)usb_config_var);
 
     usb_var_init(usb_id, &(usb_config_var->usb_ep_addr));
     usb_setup_init(usb_id, &(usb_config_var->usb_setup), usb_config_var->usb_setup_buffer);
@@ -381,12 +380,12 @@ u32 usb_config(const usb_dev usb_id)
 
 u32 usb_release(const usb_dev usb_id)
 {
-    log_debug("free zalloc: usb_config_var = %x\n", usb_id, usb_config_var);
+    log_debug(" %d, free zalloc: usb_config_var = %x\n", usb_id, (void *)usb_config_var);
     usb_var_init(usb_id, NULL);
     usb_setup_init(usb_id, NULL, NULL);
 #if USB_MALLOC_ENABLE
     if (usb_config_var) {
-        log_debug("free: usb_config_var = %x\n", usb_config_var);
+        log_debug("free: usb_config_var = %x\n", (void *)usb_config_var);
         free(usb_config_var);
     }
 #endif

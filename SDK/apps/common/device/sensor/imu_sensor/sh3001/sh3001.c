@@ -184,7 +184,7 @@ IMU_write   SH3001_write    = I2C_Write_NBytes;
 #define spi_dma_write(x, y)         spi_dma_send(sh3001_info->spi_hdl, x, y)
 #define spi_set_width(x)            spi_set_bit_mode(sh3001_info->spi_hdl, x)
 #define spi_init(cfg)              spi_open(sh3001_info->spi_hdl, cfg)
-#define spi_closed()            spi_close(sh3001_info->spi_hdl)
+#define spi_closed()            spi_deinit(sh3001_info->spi_hdl)
 #define spi_suspend()           hw_spi_suspend(sh3001_info->spi_hdl)
 #define spi_resume()            hw_spi_resume(sh3001_info->spi_hdl)
 

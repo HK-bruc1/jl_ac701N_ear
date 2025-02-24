@@ -6,7 +6,6 @@
 #endif
 #include "app_config.h"
 #include "cpu/includes.h"
-#include "asm/dac.h"
 #include "asm/charge.h"
 #include "gpio_config.h"
 

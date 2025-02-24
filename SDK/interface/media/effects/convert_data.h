@@ -2,7 +2,6 @@
 #define __CONVERT_DATA_H
 
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/effects_adj.h"
 
 struct convert_data {

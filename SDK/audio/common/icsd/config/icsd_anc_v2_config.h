@@ -103,10 +103,102 @@ struct icsd_anc_v2_tool_data {
 
 };
 
+
+// anc tool buffer
+typedef struct {
+    // target配置
+    int   cmp_en;
+    int   target_cmp_num;
+    u8    pnc_times;
+
+    float  pz_gain;
+    float *target_sv;
+    float *target_cmp_dat;
+
+    // 算法配置
+    u8    biquad_type[10];
+    u8    fb_biquad_type[10];
+    u8    cmp_biquad_type[10];
+    float Vrange_H[62];
+    float Vrange_M[62];
+    float Vrange_L[62];
+    float Biquad_init_H[31];
+    float Biquad_init_M[31];
+    float Biquad_init_L[31];
+    float degree_set0[7];
+    float degree_set1[7];
+    float degree_set2[7];
+
+    float *Weight_H;
+    float *Weight_M;
+    float *Weight_L;
+    float *Gold_csv_H;
+    float *Gold_csv_M;
+    float *Gold_csv_L;
+
+    float total_gain_adj_begin;
+    float total_gain_adj_end;
+    float gain_limit_all;
+    int   IIR_NUM_FLEX;
+    int   IIR_NUM_FIX;
+
+    // 耳道记忆曲线配置
+    u8    mem_curve_nums;
+    float *pz_table;
+    float *sz_table;
+    float *pz_table_cmp;
+    float *sz_table_cmp;
+} adpt_anc_cfg;
+
+
+typedef struct {
+    //工具界面
+    u16	  tonel_delay;
+    u16	  toner_delay;
+    u16	  pzl_delay;
+    u16	  pzr_delay;
+    u8    train_mode;
+
+    s8	  sz_calr_sign;
+    s8	  pz_calr_sign;
+    s8    bypass_calr_sign;
+    s8    perf_calr_sign;
+
+    float bypass_vol;
+    float sz_pri_thr;
+    s8	  vld1;
+    s8    vld2;
+    u8    ear_recorder;
+    u8    pnc_times;
+    //其他配置
+    s8 	  tool_ffgain_sign;
+    s8 	  tool_fbgain_sign;
+    u8 	  ff_yorder;
+    u8    fb_yorder;
+    u8    normal_out_sel_l;
+    u8    normal_out_sel_r;
+    u8    tone_out_sel_l;
+    u8    tone_out_sel_r;
+    u8    fb_agc_en;
+
+    float debug[10];
+    adpt_anc_cfg adpt_cfg;
+    adpt_anc_cfg adpt_cfg_r;
+} __icsd_anc_config_data;
+extern __icsd_anc_config_data	*SD_CFG;       // ANC
+extern __icsd_anc_config_data	*RTANC_SD_CFG;
+
+
+void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg);
+
+
 enum {
     TFF_TFB = 0,
     TFF_DFB,
     DFF_TFB,
     DFF_DFB,
 };
+
+void anc_buffer_init(float *freq, float fs, float flen, __icsd_pnc_cmp *_pnc_cmp, struct icsd_ff_candidate_v2 *FF_CANDI_V2, struct icsd_ff_candidate_v2 *CMP_CANDI_V2, struct icsd_De_param_v2 *DE_PARAM_V2, struct icsd_target_param *tar_param, adpt_anc_cfg *adpt_cfg);
+
 #endif/*_SD_ANC_LIB_V2_H*/

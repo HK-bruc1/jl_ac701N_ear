@@ -2,7 +2,6 @@
 #define ASM_INCLUDES_H
 
 #include "asm/cpu.h"
-#include "asm/crc16.h"
 
 #include "gpio.h"
 #include "asm/spiflash.h"
@@ -13,11 +12,11 @@
 #include "clock.h"
 #include "asm/clock_hal.h"
 #include "device/inside_flash.h"
-
+#include "crc.h"
 #include "uart.h"
 #include "asm/wdt.h"
 
-
+#include "gptimer.h"
 
 
 

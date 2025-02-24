@@ -52,5 +52,7 @@ u8 rcsp_get_cur_mode(u8 app_mode);
 
 void function_change_inform(u8 app_mode, u8 ret);
 
+void rcsp_update_dev_state(u32 event, void *param);
+
 #endif//__RCSP_DEVICE_STATUS_H__
 

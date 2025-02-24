@@ -57,8 +57,7 @@ void temperature_plltrim_handle()
     msg[0] = (int)btpll_trim_main;
     msg[1] = 1;
     msg[2] = 0;
-    int ret = os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
-
+    os_taskq_post_type("trim_task", Q_CALLBACK, 3, msg);
 }
 
 void trim_process()
@@ -68,11 +67,22 @@ void trim_process()
     }
 }
 
+void bt_temperature_pll_trim_task(void *priv)
+{
+    int msg[16];
+    printf("%s, %d\n", __func__, __LINE__);
+    while (1) {
+        putchar('&');
+        os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+    }
+
+}
 
 int trim_timer_add()
 {
     if (config_bt_temperature_pll_trim) {
         if (!trim_timer_handle) {
+            task_create(bt_temperature_pll_trim_task, NULL, "trim_task");
             trim_timer_handle = sys_s_hi_timer_add(NULL, trim_process, CHECK_TEMPERATURE_CYCLE_INIT);
         }
     }

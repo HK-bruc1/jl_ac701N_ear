@@ -25,7 +25,11 @@ void sdx_dev_event_to_user(u32 arg, u8 sdx_status, u8 sdx_index)
     printf("sd dev msg %x, %x, %x\n", msg[0], msg[1], msg[2]);
 
 
+#if (TCFG_DEV_MANAGER_ENABLE)
+    os_taskq_post_type("dev_mg", MSG_FROM_DEVICE, 3, msg);
+#else
     os_taskq_post_type("app_core", MSG_FROM_DEVICE, 3, msg);
+#endif
 
 }
 
@@ -36,7 +40,11 @@ void usb_driver_event_to_user(u32 from, u32 event, void *arg)
     msg[0] = from;
     msg[1] = event;
     msg[2] = (int)arg;
+#if (TCFG_DEV_MANAGER_ENABLE)
+    os_taskq_post_type("dev_mg", MSG_FROM_DEVICE, 3, msg);
+#else
     os_taskq_post_type("app_core", MSG_FROM_DEVICE, 3, msg);
+#endif
 }
 
 void usb_driver_event_from_otg(u32 from, u32 event, void *arg)

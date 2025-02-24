@@ -17,8 +17,7 @@
 
 struct eq_function EQ_FUNC;
 struct aeq_default_seg_tab *AEQ_DEF;
-
-int (*aeq_printf)(const char *format, ...);
+int (*aeq_printf)(const char *format, ...) = _aeq_printf;
 
 void aeq_seg_design(void *seg_tmp, int sample_rate, void *coef)
 {

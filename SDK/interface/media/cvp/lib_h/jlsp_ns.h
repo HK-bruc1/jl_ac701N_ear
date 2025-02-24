@@ -157,7 +157,27 @@ void JLSP_init_snr(void *m, int stop_freq, int snr_th,  float *compress_params);
 */
 float JLSP_get_snr(void *m);
 
-
+/*
+* 单麦降噪版本v2，仅支持aec+nlp和dns一体实现，不兼容v100双麦降噪
+*/
+//单麦降噪是能模块
+void JLSP_SingleMicSystem_EnableModule(int Enablebit);
+//单麦降噪获取私有buffer和公有buffer大小
+int JLSP_SingleMicSystem_GetHeapSize(int *private_size, int *share_size, int samplerate);
+//单麦降噪初始化函数
+void *JLSP_SingleMicSystem_Init(char *private_buf, char *share_buf, void *aec_cfg, void *nlp_cfg, void *dns_cfg, int samplerate, int EnableBit);
+//单麦降噪处理函数
+int JLSP_SingleMicSystem_Process(void *handle, short *near, short *far, short *out, int Batch);
+//重置单麦降噪参数
+int JLSP_SingleMicSystem_Reset(void *m);
+//释放单麦降噪内存
+int JLSP_SingleMicSystem_Free(void *m);
+//设置初始噪声
+void JLSP_SingleMicSystem_SetNoiseLevel(void *m, float noise_level_init);
+//在线调试单麦降噪参数
+void JLSP_SingleMicSystem_DeepParams(void *m, float gain_floor, float over_drive);
+//设置底噪压制阈值接口，默认0，单位db
+void JLSP_SingleMicSystem_SetNoiseGateTh(void *m, float Th_val_db);
 
 
 /*

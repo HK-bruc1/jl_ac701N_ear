@@ -3,7 +3,7 @@
 #include "sync/audio_syncts.h"
 #include "circular_buf.h"
 #include "audio_splicing.h"
-#include "audio_dai/audio_iis.h"
+#include "media/audio_iis.h"
 #include "app_config.h"
 #include "gpio.h"
 #include "audio_cvp.h"
@@ -53,6 +53,7 @@ struct iis_ch_hdl {
     u8 timestamp_ok;
     u8 reference_network;
     u8 time_out_ts_not_align;//超时的时间戳是否需要丢弃
+    u8 force_write_slience_data_en;
     u8 force_write_slience_data;
     int value;
 };
@@ -128,7 +129,7 @@ static int iis_adpater_detect_multi_timestamp(struct iis_node_hdl *hdl, struct s
         return 0;
     }
 
-    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE)) {
+    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE) || iis->force_write_slience_data_en) {
         if (!iis->force_write_slience_data) { //无播放同步时，强制填一段静音包
             iis->force_write_slience_data = 1;
             int slience_time_us = (hdl->attr.protect_time ? hdl->attr.protect_time : 8) * 1000;
@@ -202,7 +203,7 @@ static int iis_adpater_detect_multi_timestamp(struct iis_node_hdl *hdl, struct s
     }
     int slience_frames = (u64)diff * hdl->sample_rate / 1000000;
 
-    int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch);
+    u32 dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch, AUDIO_DAC_MAX_SAMPLE_RATE);
     int point_offset = hdl->bit_width ? 2 : 1;
     int max_frames = (dma_len >> point_offset) / hdl->nch - 4;
     if (slience_frames > max_frames) {
@@ -642,10 +643,9 @@ static void iis_ioc_start(struct iis_node_hdl *hdl, struct stream_iport *iport)
     }
 
     if (!iis_hdl[hdl->module_idx]) {
-        int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch);
         struct alink_param params = {0};
         params.module_idx = hdl->module_idx;
-        params.dma_size   = dma_len;
+        params.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch, AUDIO_DAC_MAX_SAMPLE_RATE);
         params.sr         = hdl->sample_rate;
         params.bit_width  = hdl->bit_width;
         params.fixed_pns  = const_out_dev_pns_time_ms;
@@ -783,6 +783,9 @@ static int iis_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
     case NODE_IOC_SET_FMT:
         struct stream_fmt *fmt = (struct stream_fmt *)arg;
         hdl->sample_rate = fmt->sample_rate;
+        break;
+    case NODE_IOC_SET_PRIV_FMT: //手动控制是否预填静音包
+        iis->force_write_slience_data_en = arg;
         break;
     default:
         break;

@@ -13,11 +13,11 @@ typedef const u8 soft_iic_dev;
 
 struct iic_master_config *get_soft_iic_config(soft_iic_dev iic);
 enum iic_state_enum soft_iic_init(soft_iic_dev iic, struct iic_master_config *i2c_config);
-enum iic_state_enum soft_iic_uninit(soft_iic_dev iic);
+enum iic_state_enum soft_iic_deinit(soft_iic_dev iic);
 enum iic_state_enum soft_iic_suspend(soft_iic_dev iic);
 enum iic_state_enum soft_iic_resume(soft_iic_dev iic);
 enum iic_state_enum soft_iic_check_busy(soft_iic_dev iic);
-void soft_iic_start(soft_iic_dev iic);
+enum iic_state_enum soft_iic_start(soft_iic_dev iic);
 void soft_iic_stop(soft_iic_dev iic);
 void soft_iic_reset(soft_iic_dev iic);//同iic_v2
 u8 soft_iic_tx_byte(soft_iic_dev iic, u8 byte);

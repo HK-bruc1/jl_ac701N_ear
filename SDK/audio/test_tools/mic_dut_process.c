@@ -6,9 +6,9 @@
 #endif
 #include "mic_dut_process.h"
 #include "app_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_config.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "audio_dvol.h"
 #include "effects/eq_config.h"
 #include "circular_buf.h"

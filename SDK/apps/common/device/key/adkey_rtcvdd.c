@@ -44,15 +44,7 @@ extern const struct adkey_platform_data adkey_data;
 static const struct adkey_rtcvdd_platform_data *__this = NULL;
 
 //按键驱动扫描参数列表
-struct key_driver_para adkey_rtcvdd_scan_para = {
-    .last_key 		  = NO_KEY,  		//上一次get_value按键值, 初始化为NO_KEY;
-    .key_type		  = KEY_DRIVER_TYPE_RTCVDD_AD,
-    .filter_time  	  = 2,				//按键消抖延时;
-    .long_time 		  = 75,  			//按键判定长按数量
-    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
-    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
-    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
-};
+struct key_driver_para adkey_rtcvdd_scan_para;
 
 static void set_rtcvdd_table(u16 adc_rtcvdd)
 {
@@ -249,6 +241,12 @@ u8 adkey_rtcvdd_get_key_value(void)
 }
 
 REGISTER_KEY_OPS(adkey_rtcvdd) = {
+    .key_type		  = KEY_DRIVER_TYPE_RTCVDD_AD,
+    .filter_time  	  = 2,				//按键消抖延时;
+    .long_time 		  = 75,  			//按键判定长按数量
+    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
+    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
+    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
     .param            = &adkey_rtcvdd_scan_para,
     .get_value 		  = adkey_rtcvdd_get_key_value,
     .key_init         = adkey_rtcvdd_init,

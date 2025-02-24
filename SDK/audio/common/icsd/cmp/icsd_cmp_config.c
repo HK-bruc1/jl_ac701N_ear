@@ -15,8 +15,8 @@
 
 #if ANC_EAR_ADAPTIVE_CMP_EN
 
+#include "icsd_cmp_app.h"
 #include "icsd_cmp_config.h"
-#include "icsd_anc_v2_app.h"
 
 const int cmp_objFunc_type = 1;
 const float cmp_GAIN_LIMIT_ALL = 30;

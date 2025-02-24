@@ -142,6 +142,8 @@ s32 uart_flow_ctrl_deinit(uart_dev uart_num);
 
 //return <0:error; 0:ok
 s32 uart_putbyte(uart_dev uart_num, u32 a);
+//printf return <0:error; 0:ok
+s32 uart_log_putbyte(uart_dev uart_num, u32 a);
 //return <0:error; 其他:ok
 s32 uart_getbyte(uart_dev uart_num);
 #endif

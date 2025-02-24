@@ -12,9 +12,13 @@
 #include "generic/circular_buf.h"
 #include "system/task.h"
 #include "timer.h"
-#include "asm/crc16.h"
+#include "crc.h"
 
 #if TCFG_ANC_TOOL_DEBUG_ONLINE && TCFG_AUDIO_ANC_ENABLE
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
 
 #define ANC_DEBUG_TOOL_BY_TIMER			1  //定时器输出
 #define ANC_DEBUG_TOOL_HEAD_MARK0		0xAA
@@ -24,6 +28,10 @@
 
 #define ANC_DEBUG_TOOL_SEND_TIME 		50		//定时发送间隔		（最短40，太小可能会导致发不过来，与手机端有关）
 #define ANC_DEBUG_SEND_SIZE 			350		//每次发送最大长度	（最长550，与手机端有关）
+
+enum {
+    CMD_DEFAULT = 0x0,	//默认命令标识
+};
 
 
 //数据包头信息
@@ -192,6 +200,49 @@ u8 audio_anc_debug_busy_get(void)
         return debug_hdl->send_busy;
         /* return bt_cmd_prepare(USER_CTRL_SPP_SEND_DATA, 0, NULL); */
     }
+    return 0;
+}
+
+static void audio_anc_debug_user_cmd_ack(u8 cmd2pc, u8 ret, u8 err_num)
+{
+    u8 cmd[5];
+    //透传命令标识
+    cmd[0] = 0xFD;
+    cmd[1] = 0x90;
+    //自定义命令标识
+    cmd[2] = 0xB1;
+    if (ret == TRUE) {
+        cmd[3] = cmd2pc;
+        anctool_api_write(cmd, 4);
+    } else {
+        cmd[3] = 0xFE;
+        cmd[4] = err_num;
+        anctool_api_write(cmd, 5);
+    }
+}
+
+int audio_anc_debug_user_cmd_process(u8 *data, int len)
+{
+    //data[0] = 0xB1
+    u8 cmd = data[0];
+    int data_len = len - 1;	//目标数据长度
+    u8 *data_p = data + 1;	//目标数据地址
+    printf("ANC DEBUG USER CMD:0x%x\n", cmd);
+    switch (cmd) {
+    case CMD_DEFAULT:
+        put_buf(data_p, data_len);
+        break;
+    default:
+        break;
+    }
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
+    float f_param;
+    memcpy((u8 *)&f_param, data_p, 4);
+    audio_rtanc_debug_param_set(cmd, f_param);
+#endif
+
+    audio_anc_debug_user_cmd_ack(cmd, TRUE, 0);
     return 0;
 }
 

@@ -6,6 +6,8 @@
 #endif
 #include "rcsp_misc_setting.h"
 #include "app_config.h"
+#include "app_msg.h"
+#include "mic_effect.h"
 
 #if (RCSP_MODE && RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 
@@ -15,11 +17,7 @@
 #include "mic_effect.h"
 #include "key_event_deal.h"
 
-extern void mic_effect_set_echo_delay(u32 delay);
-extern u32 mic_effect_get_echo_delay(void);
-extern void mic_effect_set_echo_decay(u32 decay);
-extern u32 mic_effect_get_echo_decay(void);
-extern u8 mic_effect_get_status(void);
+
 
 #pragma pack(1)
 struct t_reverbration {
@@ -37,8 +35,11 @@ static int reverbration_setting_set(u8 *misc_setting, u8 is_conversion)
     reverbration.state = misc_setting[offset++];
 
     if (is_conversion) {
-        reverbration.depth_val = misc_setting[offset++] << 8 | misc_setting[offset++];
-        reverbration.strength_val = misc_setting[offset++] << 8 | misc_setting[offset++];
+        /* reverbration.depth_val = misc_setting[offset++] << 8 | misc_setting[offset++]; */
+        /* reverbration.strength_val = misc_setting[offset++] << 8 | misc_setting[offset++]; */
+        reverbration.depth_val = misc_setting[1] << 8 | misc_setting[2];
+        reverbration.strength_val = misc_setting[3] << 8 | misc_setting[4];
+        offset = 5;
     } else {
         memcpy((u8 *)&reverbration.depth_val, misc_setting + offset, sizeof(reverbration.depth_val));
         offset += 2;
@@ -79,23 +80,23 @@ static int reverbration_write_vm(u8 *misc_setting)
 static int reverbration_state_update(u8 *misc_setting)
 {
     // 值不相同才设置
-    static u16 prev_depth_val = -1;
-    static u16 prev_strength_val = -1;
-    if (reverbration.state != mic_effect_get_status()) {
-        app_task_put_key_msg(KEY_REVERB_OPEN, 0);
+    static u16 prev_depth_val = 0xffff;
+    static u16 prev_strength_val = 0xffff;
+    if (reverbration.state != mic_effect_player_runing()) {
+        app_send_message(APP_MSG_MIC_EFFECT_ON_OFF, 0);
     }
 
-    if (mic_effect_get_status() && (-1 == prev_depth_val || reverbration.depth_val != prev_depth_val)) {
+    if (mic_effect_player_runing() && (0xffff == prev_depth_val || reverbration.depth_val != prev_depth_val)) {
         mic_effect_set_echo_delay(reverbration.depth_val * 2);
         prev_depth_val = reverbration.depth_val;
     }
 
-    if (mic_effect_get_status() && (-1 == prev_strength_val || reverbration.strength_val != prev_strength_val)) {
+    if (mic_effect_player_runing() && (0xffff == prev_strength_val || reverbration.strength_val != prev_strength_val)) {
         mic_effect_set_echo_decay(reverbration.strength_val * 70 / 100);
         prev_strength_val = reverbration.strength_val;
     }
 
-    if (0 == mic_effect_get_status()) {
+    if (0 == mic_effect_player_runing()) {
         prev_depth_val = -1;
         prev_strength_val = -1;
     }
@@ -108,7 +109,7 @@ static int reverbration_custom_setting_init(void)
     if (sizeof(reverbration_state) == syscfg_read(CFG_RCSP_MISC_REVERB_ON_OFF, &reverbration_state, sizeof(reverbration_state))) {
         reverbration.state = reverbration_state;
     } else {
-        reverbration.state = mic_effect_get_status();
+        reverbration.state = mic_effect_player_runing();
     }
     reverbration.depth_val = mic_effect_get_echo_delay() / 2;
     reverbration.strength_val = mic_effect_get_echo_decay() * 100 / 70;
@@ -119,8 +120,8 @@ static int reverbartion_key_event_callback_deal(u32 event, void *param)
 {
     int ret = false;
     switch (event) {
-    case KEY_REVERB_OPEN:
-        reverbration.state = mic_effect_get_status();
+    case APP_MSG_MIC_EFFECT_ON_OFF:
+        reverbration.state = mic_effect_player_runing();
         reverbration_write_vm(NULL);
         reverbration_state_update(NULL);
         ret = true;
@@ -145,7 +146,7 @@ REGISTER_APP_MISC_SETTING_OPT(reverbration_setting_opt);
 void rcsp_close_reverbrateion_state_and_update(void)
 {
     if (reverbration.state) {
-        app_task_put_key_msg(KEY_REVERB_OPEN, 0);
+        app_send_message(APP_MSG_MIC_EFFECT_ON_OFF, 0);
     }
 }
 

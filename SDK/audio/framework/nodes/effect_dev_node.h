@@ -4,7 +4,7 @@
 
 #include "system/includes.h"
 #include "config/config_interface.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "fs/resfile.h"
 #include "effects/AudioEffect_DataType.h"
 #include "media/framework/include/jlstream.h"

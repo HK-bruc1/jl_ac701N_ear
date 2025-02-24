@@ -361,6 +361,12 @@ void mcpwm_set_duty(int mcpwm_cfg_id, u16 duty)
     } else if (duty == 0) {
         tmr_cnt = ch_cmpl;
         tmr_con &= ~(0b11);
+    } else {
+        if (mcpwm_info[id]->cfg.aligned_mode == MCPWM_CENTER_ALIGNED) { //中心对齐
+            tmr_con |= 0b10; //递增-递降循环模式，中心对齐
+        } else {
+            tmr_con |= 0b01; //递增模式，边沿对齐
+        }
     }
 
     spin_lock(&mcpwm_lock);

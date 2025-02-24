@@ -66,7 +66,6 @@ static struct a2dp_tws_handshake a2dp_tws = {0};
 #define A2DP_TWS_FILE_START         1
 #define A2DP_TWS_FILE_RUN           2
 
-extern u32 bt_audio_conn_clock_time(void *addr);
 
 static void a2dp_tws_handskake_handler(void *buf, u16 len, bool rx)
 {

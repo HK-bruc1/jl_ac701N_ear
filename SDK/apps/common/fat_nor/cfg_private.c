@@ -107,9 +107,9 @@ void cfg_private_erase(u32 addr, u32 len)
     u32 erase_size = 4096;
     u32 erase_cmd = IOCTL_ERASE_SECTOR;
     //flash不同支持的最小擦除单位不同(page/sector)
-    //boot_info.vm.align == 1: 最小擦除单位page;
-    //boot_info.vm.align != 1: 最小擦除单位sector;
-    if (boot_info.vm.align == 1) {
+    //get_boot_info()->vm.align == 1: 最小擦除单位page;
+    //get_boot_info()->vm.align != 1: 最小擦除单位sector;
+    if (get_boot_info()->vm.align == 1) {
         erase_size = 256;
         erase_cmd = IOCTL_ERASE_PAGE;
     }
@@ -253,7 +253,7 @@ int cfg_private_init(int file_num, const char *part_path)
     //给与初值
     cp_hdl->cfg_private_file_num = 5;
     cp_hdl->cfg_private_align_size = 4096;
-    if (boot_info.vm.align == 1) {
+    if (get_boot_info()->vm.align == 1) {
         cp_hdl->cfg_private_align_size = 256;
     }
 

@@ -61,6 +61,17 @@ static int lowpower_timer = 0;
 void vbat_check(void *priv);
 void clr_wdt(void);
 
+#if TCFG_REFERENCE_V_ENABLE
+static u16 vbat_full_voltage = 0xffff;
+void update_vbat_full_voltage(void)
+{
+    u16 save_vbat_voltage;
+    if (syscfg_read(CFG_CHARGE_FULL_VBAT_VOLTAGE, &save_vbat_voltage, 2) == 2) {
+        vbat_full_voltage = save_vbat_voltage;
+    }
+}
+#endif
+
 #if TCFG_USER_TWS_ENABLE
 u8 get_tws_sibling_bat_level(void)
 {
@@ -208,7 +219,14 @@ APP_MSG_HANDLER(bat_level_msg_entry) = {
 
 static u16 get_vbat_voltage(void)
 {
-    return (adc_get_voltage(AD_CH_PMU_VBAT) * 4);
+    u16 now_voltage = gpadc_battery_get_voltage();
+#if TCFG_REFERENCE_V_ENABLE
+    if (vbat_full_voltage != 0xffff) {
+        now_voltage = (u32)now_voltage * get_charge_full_value() / vbat_full_voltage;
+    }
+    log_info("gfhtest-get_vbat_level:%d, %d\n", gpadc_battery_get_voltage(), now_voltage);
+#endif
+    return now_voltage;
 }
 
 static u16 battery_calc_percent(u16 bat_val)
@@ -331,6 +349,10 @@ void vbat_curve_init(const struct battery_curve *curve_table, int table_size)
 
 void vbat_check_init(void)
 {
+#if TCFG_REFERENCE_V_ENABLE
+    update_vbat_full_voltage();
+#endif
+
 #if TCFG_BATTERY_CURVE_ENABLE == 0
     u16 battery_0, battery_100;
     struct battery_curve *curve;
@@ -495,6 +517,9 @@ void check_power_on_voltage(void)
     u16 val = 0;
     u8 normal_power_cnt = 0;
     u8 low_power_cnt = 0;
+#if TCFG_REFERENCE_V_ENABLE
+    update_vbat_full_voltage();
+#endif
 
     while (1) {
         clr_wdt();

@@ -25,6 +25,10 @@
 #include "usb/device/msd.h"
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+#include "usb/device/mtp.h"
+#endif
+
 #if (TCFG_USB_DM_MULTIPLEX_WITH_SD_DAT0)
 #include "dev_multiplex_api.h"
 #endif
@@ -192,6 +196,12 @@ static void usb_task(void *p)
                 msd_run_reset = 0;
             }
             msd_in_task = 0;
+            break;
+#endif
+
+#if TCFG_USB_SLAVE_MTP_ENABLE
+        case USBSTACK_MTP_RUN:
+            usb_mtp_process((void *)msg[2]);
             break;
 #endif
 

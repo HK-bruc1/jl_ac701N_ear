@@ -11,6 +11,7 @@
 #include "user_cfg.h"
 #include "bt_background.h"
 #include "dual_conn.h"
+#include "update.h"
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
@@ -66,7 +67,7 @@ static void auto_close_page_scan(void *p)
     lmp_hci_write_scan_enable((0 << 1) | 0);
 }
 
-static void write_scan_conn_enable(bool scan_enable, bool conn_enable)
+void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
     u32 rets_addr = 0;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
@@ -84,6 +85,14 @@ static void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         conn_enable = 0;
     }
 #endif
+    if (classic_update_task_exist_flag_get()) {
+        g_printf("bt dual close for update\n");
+        scan_enable = 0;
+        conn_enable = 0;
+    }
+    r_printf("write_scan_conn_enable=%d,%d\n", scan_enable, conn_enable);
+
+    r_printf("write_scan_conn_enable=%d,%d\n", scan_enable, conn_enable);
 
     lmp_hci_write_scan_enable((conn_enable << 1) | scan_enable);
 
@@ -361,6 +370,9 @@ static int dual_conn_btstack_event_handler(int *_event)
     printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
+#if TCFG_NORMAL_SET_DUT_MODE
+        break;
+#endif
         puts("dual_conn BT_STATUS_INIT_OK");
         dual_conn_page_devices_init();
 #if (TCFG_BT_BACKGROUND_ENABLE)

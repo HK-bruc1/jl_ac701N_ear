@@ -19,7 +19,8 @@
 #include "app_config.h"
 #include "audio_config.h"
 #include "sdk_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
+#include "asm/audio_common.h"
 #include "media/audio_energy_detect.h"
 #include "adc_file.h"
 #include "linein_file.h"
@@ -30,6 +31,9 @@
 #include "audio_demo/audio_demo.h"
 #include "media/audio_general.h"
 #include "fm_file.h"
+#include "audio_dac.h"
+#include "media_config.h"
+#include "audio_time.h"
 
 #if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
 #include "audio_dvol.h"
@@ -95,15 +99,17 @@ struct dac_config_param {
 };
 
 struct dac_platform_data dac_data = {
-    .output             = TCFG_AUDIO_DAC_CONNECT_MODE,                //DAC输出配置，和具体硬件连接有关，需根据硬件来设置
-    .mode               = TCFG_AUDIO_DAC_MODE,
-    .light_close        = TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE,
     .power_on_mode      = TCFG_AUDIO_DAC_POWER_ON_MODE,
     .vcm_cap_en         = TCFG_AUDIO_VCM_CAP_EN,
     .dma_buf_time_ms    = TCFG_AUDIO_DAC_BUFFER_TIME_MS,
-    .pa_isel            = 4,
+    .pa_isel            = TCFG_AUDIO_DAC_PA_ISEL, //DAC电流挡位，范围：0~6
     .l_ana_gain         = TCFG_AUDIO_L_CHANNEL_GAIN,
     .r_ana_gain         = TCFG_AUDIO_R_CHANNEL_GAIN,
+#if (defined(TCFG_CLOCK_SYS_SRC) && (TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL))
+    .clk_sel            = AUDIO_COMMON_CLK_DIG_SINGLE,
+#else
+    .clk_sel            = AUDIO_COMMON_CLK_DIF_XOSC,
+#endif
 };
 
 void audio_fade_in_fade_out(u8 left_vol, u8 right_vol);
@@ -118,13 +124,10 @@ void audio_dac_initcall(void)
 {
     printf("audio_dac_initcall\n");
 
-#if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
-    audio_digital_vol_init(NULL, 0);
-#endif
-
     dac_data.bit_width = audio_general_out_dev_bit_width();
-    if (dac_data.mode == DAC_MODE_H2_SINGLE) {
+    if (config_audio_dac_output_mode == DAC_MODE_H2_SINGLE) {
         dac_data.power_boost = TCFG_AUDIO_DAC_POWER_BOOST;
+        //power_boost使能的情况下，ldo_volt最大可配置到3，再提高一档输出幅度
         dac_data.ldo_volt = dac_data.power_boost ? 2 : 0;
     } else {
         dac_data.power_boost = 0;
@@ -132,27 +135,27 @@ void audio_dac_initcall(void)
     }
     dac_data.max_sample_rate    = AUDIO_DAC_MAX_SAMPLE_RATE;
     audio_dac_init(&dac_hdl, &dac_data);
+    //dac_hdl.ng.threshold = 4;			//DAC底噪优化阈值
+    //dac_hdl.ng.detect_interval = 200;	//DAC底噪优化检测间隔ms
 
-#if defined(TCFG_AUDIO_DAC_24BIT_MODE) && TCFG_AUDIO_DAC_24BIT_MODE
-    audio_dac_set_bit_mode(&dac_hdl, 1);
-#endif
-
-
-    u32 dacr32 = read_capless_DTB();
-    audio_dac_set_capless_DTB(&dac_hdl, dacr32);
     audio_dac_set_analog_vol(&dac_hdl, 0);
 
     request_irq(IRQ_AUDIO_IDX, 2, audio_irq_handler, 0);
+#if AUD_DAC_TRIM_ENABLE
     struct audio_dac_trim dac_trim = {0};
     int len = syscfg_read(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(dac_trim));
     if (len != sizeof(dac_trim)) {
-        audio_dac_do_trim(&dac_hdl, &dac_trim, 0);
+        struct trim_init_param_t trim_init = {0};
+        audio_dac_do_trim(&dac_hdl, &dac_trim, &trim_init);
         syscfg_write(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(dac_trim));
     }
+    audio_dac_set_trim_value(&dac_hdl, &dac_trim);
+#endif
+
 #if TCFG_SUPPORT_MIC_CAPLESS
+    audio_dac_set_capless_DTB(&dac_hdl, read_capless_DTB());
     mic_capless_trim_run();
 #endif
-    audio_dac_set_trim_value(&dac_hdl, &dac_trim);
     audio_dac_set_fade_handler(&dac_hdl, NULL, audio_fade_in_fade_out);
 
     /*硬件SRC模块滤波器buffer设置，可根据最大使用数量设置整体buffer*/
@@ -162,6 +165,26 @@ void audio_dac_initcall(void)
     mix_out_automute_open();
 #endif  //#if AUDIO_OUTPUT_AUTOMUTE
 }
+
+#if defined(TCFG_AUDIO_DAC_IO_ENABLE) && TCFG_AUDIO_DAC_IO_ENABLE
+static void audio_dac_io_initcall()
+{
+    struct audio_dac_io_param param = {0};
+    param.state[0] = 1;                 //左声道初始电平状态
+    param.state[1] = 1;                 //右声道初始电平状态
+    param.irq_points = 256;
+    param.channel = BIT(0) | BIT(1);    //使能左右声道
+    param.digital_gain = 16384;         //数字音量：-16384~16384
+    param.ldo_volt = 0;                 //电压档位：0~3
+#if (defined(TCFG_CLOCK_SYS_SRC) && (TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL))
+    param.clk_sel = AUDIO_COMMON_CLK_DIG_SINGLE;
+#else
+    param.clk_sel = AUDIO_COMMON_CLK_DIF_XOSC;
+#endif
+    //此外IOVDD配置也会影响DAC输出电平
+    audio_dac_io_init(&param);
+}
+#endif
 
 static u8 audio_init_complete()
 {
@@ -190,6 +213,11 @@ struct audio_adc_private_param adc_private_param = {
     .adca_reserved0 = 0,
     .adcb_reserved0 = 0,
     .lowpower_lvl = 0,
+#if (defined(TCFG_CLOCK_SYS_SRC) && (TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL))
+    .clk_sel = AUDIO_COMMON_CLK_DIG_SINGLE,
+#else
+    .clk_sel = AUDIO_COMMON_CLK_DIF_XOSC,
+#endif
 };
 
 #if TCFG_AUDIO_ADC_ENABLE
@@ -323,7 +351,6 @@ static void wl_audio_clk_on(void)
     JL_WL_AUD->CON0 = 1;
 }
 
-extern int audio_timer_init(void);
 
 /*audio模块初始化*/
 static int audio_init()
@@ -335,7 +362,15 @@ static int audio_init()
     audio_general_init();
     audio_input_initcall();
 
+#if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
+    audio_digital_vol_init(NULL, 0);
+#endif
+
+#if TCFG_DAC_NODE_ENABLE
     audio_dac_initcall();
+#elif (defined(TCFG_AUDIO_DAC_IO_ENABLE) && TCFG_AUDIO_DAC_IO_ENABLE)
+    audio_dac_io_initcall();
+#endif
 
 #if TCFG_AUDIO_ANC_ENABLE
     anc_init();
@@ -374,7 +409,7 @@ static int audio_init()
     }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
-    audio_timer_init();
+    audio_local_time_init();
     __this->audio_inited = 1;
     return 0;
 }
@@ -466,20 +501,22 @@ void dac_power_off(void)
 #define abs(x) ((x)>0?(x):-(x))
 int audio_dac_trim_value_check(struct audio_dac_trim *dac_trim)
 {
-    printf("audio_dac_trim_value_check %d %d\n", dac_trim->left, dac_trim->right);
     s16 reference = 0;
-    if (TCFG_AUDIO_DAC_CONNECT_MODE != DAC_OUTPUT_MONO_R) {
-        if (abs(dac_trim->left - reference) > TRIM_VALUE_LR_ERR_MAX) {
-            printf("dac trim channel l err\n");
-            return -1;
-        }
+
+    printf("audio_dac_trim_value_check %d %d\n", dac_trim->left, dac_trim->right);
+#if TCFG_AUDIO_DAC_CONNECT_MODE != DAC_OUTPUT_MONO_R
+    if (abs(dac_trim->left - reference) > TRIM_VALUE_LR_ERR_MAX) {
+        printf("dac trim channel l err\n");
+        return -1;
     }
-    if (TCFG_AUDIO_DAC_CONNECT_MODE != DAC_OUTPUT_MONO_L) {
-        if (abs(dac_trim->right - reference) > TRIM_VALUE_LR_ERR_MAX) {
-            printf("dac trim channel r err\n");
-            return -1;
-        }
+#endif
+
+#if TCFG_AUDIO_DAC_CONNECT_MODE != DAC_OUTPUT_MONO_L
+    if (abs(dac_trim->right - reference) > TRIM_VALUE_LR_ERR_MAX) {
+        printf("dac trim channel r err\n");
+        return -1;
     }
+#endif
 
     return 0;
 }

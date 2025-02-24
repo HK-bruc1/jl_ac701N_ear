@@ -6,7 +6,7 @@
 #endif
 #include "sdk_config.h"
 #include "app_msg.h"
-#include "earphone.h"
+//#include "earphone.h"
 #include "bt_tws.h"
 #include "app_main.h"
 #include "battery_manager.h"
@@ -94,7 +94,11 @@ void generate_rfcomm_battery_data(u8 *data)
     return;
 #endif
 
+#if TCFG_USER_TWS_ENABLE
     u8 sibling_val = get_tws_sibling_bat_persent();
+#else
+    u8 sibling_val = 0xFF;
+#endif
     u8 self_val = get_charge_online_flag() << 7 | get_vbat_percent();
 
     data[2] = 0xFF; //充电仓电量
@@ -122,7 +126,9 @@ void generate_rfcomm_battery_data(u8 *data)
 static void gfps_ctl_bt_enter_pair_mode()
 {
     printf("%s", __func__);
+#if TCFG_USER_TWS_ENABLE
     tws_dual_conn_close();
+#endif
     lmp_hci_write_scan_enable((1 << 1) | 1);
     bt_set_need_keep_scan(1);
 }
@@ -366,7 +372,9 @@ int gfps_message_deal_handler(int id, int opcode, u8 *data, u32 len)
 {
     switch (opcode) {
     case APP_PROTOCOL_LIB_TWS_DATA_SYNC:
+#if TCFG_USER_TWS_ENABLE
         gfps_protocol_tws_send_to_sibling(opcode, data, len);
+#endif
         break;
     case APP_PROTOCOL_GFPS_RING_STOP_ALL:
         printf("GFPS_RING_STOP_ALL");
@@ -512,10 +520,12 @@ void gfps_sync_info_to_new_master(void)
 {
     u8 buf[8];
 
+#if TCFG_USER_TWS_ENABLE
     if (!get_bt_tws_connect_status()) {
         printf("gfps_sync_info tws not connected\n");
         return;
     }
+#endif
 
     u8 *adv_addr = app_ble_adv_addr_get(gfps_app_ble_hdl);
     if (adv_addr == NULL) {
@@ -578,9 +588,11 @@ static int gfps_app_power_event_handler(int *msg)
     switch (msg[0]) {
     case POWER_EVENT_SYNC_TWS_VBAT_LEVEL:
         printf("update gfps bat");
+#if TCFG_USER_TWS_ENABLE
         if (get_tws_sibling_bat_persent() != 0xFF) {
             google_tone_mute_ctl(0, get_tws_sibling_bat_persent() >> 7);
         }
+#endif
         gfps_battery_update();
         break;
     case POWER_EVENT_POWER_CHANGE:

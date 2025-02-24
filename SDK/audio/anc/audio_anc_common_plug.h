@@ -9,7 +9,7 @@
 ********************************************************/
 
 /*ANC增益调节 音乐响度检测*/
-void audio_anc_music_dynamic_gain_det(s16 *data, int len);
+void audio_anc_music_dynamic_gain_det(void *data, int len);
 
 /*ANC增益调节 音乐响度初始化*/
 void audio_anc_music_dynamic_gain_open(int sr, s16 thr);

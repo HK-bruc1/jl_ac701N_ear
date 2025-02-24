@@ -4,7 +4,7 @@
 #include "generic/typedef.h"
 #include "audio_dvol.h"
 #include "audio_config_def.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "mic_power_manager.h"
 
 extern struct audio_dac_hdl dac_hdl;

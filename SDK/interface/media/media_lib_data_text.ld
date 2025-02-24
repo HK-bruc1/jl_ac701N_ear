@@ -111,7 +111,7 @@
     *(.sur_TYPE0_cal_code)
     *(.sur_TYPE1_cal_code)
     *(.sur_TYPE0_cal_const)
-*(.sur_TYPE1_cal_const)
+    *(.sur_TYPE1_cal_const)
     /* *(.sur_LRDRIFT2_cal_code) */
     /* *(.sur_LRDRIFT2_cal_const) */
     /* *(.sur_ROTATE_cal_code) */
@@ -119,6 +119,42 @@
     /* *(.sur_LRDRIFT_cal_code) */
     /* *(.sur_LRDRIFT_cal_const) */
 #endif
+
+#if AFX_LIMITER_AT_RAM
+	*(.limiter.text)
+    *(.limiter.text.const)
+	*(.limiter.text.cache.L2.code)
+	*(.limiter.text.cache.L2.const)
+#endif
+#if AFX_MULTIBAND_LIMITER_AT_RAM
+	*(.multiband_limiter.text)
+	*(.multiband_limiter.text.const)
+#endif
+#if AFX_MULTIBAND_CROSSOVER_AT_RAM
+    *(.multiband_crossover.text)
+	*(.multiband_crossover.text.const)
+#endif
+#if AFX_MULTIBAND_DRC_AT_RAM
+    *(.multiband_drc.text)
+	*(.multiband_drc.text.const)
+#endif
+#if AFX_VIRTUAL_SURRUOUND_PRO_AT_RAM
+	*(.virtual_surround_pro.text)
+	*(.virtual_surround_pro.text.const)
+	*(.sas.text.cache.L2.code)
+	*(.sas.text.cache.L2.const)
+    *(.sas.text)
+    *(.sas.text.code)
+#endif
+#if AFX_SW_EQ_AT_RAM 
+    *(.iir_filter.text.cache.L2.code)
+    *(.iir_filter.text.cache.L2.const)
+    *(.iir_filter.text)
+    *(.iir_filter.text.const)
+	*(.sof_eq.text)
+	*(.sof_eq.text.const)
+#endif
+
 
 #if AUDIO_LDAC_AT_RAM
     *(.ldac_dec.text)
@@ -129,6 +165,27 @@
     *(.ldac_dec.text.cache.L2.const)
 #endif
     . = ALIGN(4);
+
+#if AUDIO_LHDC_AT_RAM
+    *(.lhdc.text.const)
+    *(.lhdc.text)
+    *(.lhdc_dec.text.cache.L2.run)
+    *(.lhdcv4_dec.text)
+    *(.lhdcv4_dec.const)
+	*(.lhdcv4_dec_text.cashe.L2.run)
+    . = ALIGN(4);
+#endif
+
+#if AUDIO_LHDC_V5_AT_RAM
+    *(.lhdc_v5.text.const)
+    *(.lhdc_v5.text)
+    *(.lhdc_v5_dec.text.cache.L2.run)
+    *(.lhdcv5_dec.text)
+    *(.lhdcv5_dec.const)
+	*(.lhdcv5_dec_text.cashe.L2.run)
+    . = ALIGN(4);
+#endif
+
 #if AUDIO_LC3_CODEC_AT_RAM
     *(.lc3_dec.text.const)
     *(.lc3_dec.text)
@@ -227,6 +284,13 @@
 #if AFx_DYN_EQ_AT_RAM 				
 	*(.dynamiceq.text.cache.L2.code)
 #endif
+
+
+#if AFx_DYN_EQ_PRO_AT_RAM 				
+	*(.dynamicEQPro.text.cache.L2.code)
+	*(.dynamicEQPro.text.cache.L2.const)
+#endif
+
 #if AFx_EQ_AT_RAM 				
 	*(.eq.text)
 	*(.hw_eq.text)
@@ -258,6 +322,46 @@
 	*(.noisegate.text.cache.L2.code)
 #endif
 
+#if AFx_PHASER_AT_RAM
+	*(.Phaser.text.cache.L2.code)	
+	/* *(.Phaser.text)	 */
+	/* *(.Phaser.text.const)	 */
+#endif
+
+#if AFx_FLANGER_AT_RAM
+	*(.flanger.text.cache.L2.code)	
+	/* *(.flanger.text)	 */
+	/* *(.flanger.text.const)	 */
+#endif
+
+#if AFx_CHORUS_ADVANCE_AT_RAM
+	*(.chorus_adv.text.cache.L2.code)	
+	/* *(.chorus_adv.text)	 */
+	/* *(.chorus_adv.text.const)	 */
+#endif
+
+#if AFx_PINGPONG_ECHO_AT_RAM 
+	*(.pingpong_echo.text.cache.L2.code)	
+	/* *(.pingpong_echo.text)	 */
+	/* *(.pingpong_echo.text.const)	 */
+#endif
+
+#if AFx_DISTORTION_CLIPPING_AT_RAM
+	*(.distortion.text.cache.L2.code)	
+	*(.distortion.text.cache.L2.const)	
+	/* *(.distortion.text)	 */
+	/* *(.distortion.text.const)	 */
+#endif
+
+#if AFx_FREQUENCY_COMPRESSOR_AT_RAM
+	*(.freq_compressor.text.cache.L2.code)
+	*(.freq_compressor.text.cache.L2.const)
+#endif
+
+#if AFx_GAIN_MIX_AT_RAM
+	*(.gain_mix.text.cache.L2.code)	
+	*(.gain_mix.text.cache.L2.const)	
+#endif
 	*(.mixer.text.cache.L2)
 	*(.dac.text.cache.L2)
 	*(.convert.text.cache.L2.code)

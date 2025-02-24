@@ -58,8 +58,12 @@ void audio_anc_adaptive_result_callback(u8 result_l, u8 result_r);
  */
 int audio_anc_mode_ear_adaptive(u8 tws_sync_en);
 
-/*强制停止ANC训练 - 并用回默认参数*/
-void anc_ear_adaptive_forced_exit(u8 default_flag);
+/*
+   强制中断自适应
+   param: default_flag		1 退出后恢复默认ANC效果； 0 退出后保持ANC_OFF(避免与下一个切模式流程冲突)
+   		  wait_pend			1 阻塞等待自适应退出完毕；0 不等待直接退出
+ */
+void anc_ear_adaptive_forced_exit(u8 default_flag, u8 wait_pend);
 
 /*
    自适应/普通参数切换(只切换参数，不更新效果)

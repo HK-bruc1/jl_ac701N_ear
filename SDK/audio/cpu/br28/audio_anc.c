@@ -15,7 +15,7 @@
 #include "online_db_deal.h"
 #include "app_config.h"
 #include "app_tone.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_anc_coeff.h"
 #include "btstack/avctp_user.h"
 #include "app_main.h"
@@ -336,13 +336,6 @@ u8 get_anc_lfb_transyorder()
     }
 }
 
-void set_anc_adt_state(u8 state)
-{
-    if (anc_hdl) {
-        anc_hdl->param.adt_state = state;
-    }
-}
-
 static void anc_task(void *p)
 {
     int res;
@@ -481,7 +474,6 @@ static void anc_task(void *p)
                     }
                 }
 #endif/*TCFG_AUDIO_DYNAMIC_ADC_GAIN*/
-                anc_hdl->mode_switch_lock = 0;
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
                 if (speak_to_chat_flag) {
@@ -535,6 +527,7 @@ static void anc_task(void *p)
                 }
                 set_adt_switch_trans_state(0);
 #endif
+                anc_hdl->mode_switch_lock = 0;
                 break;
             case ANC_MSG_MODE_SYNC:
                 user_anc_log("anc_mode_sync:%d", msg[2]);
@@ -602,7 +595,12 @@ static void anc_task(void *p)
                 anc_ear_adaptive_cmd_handler(&anc_hdl->param, msg);
                 break;
 #endif/*ANC_EAR_ADAPTIVE_EN*/
-
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+            case ANC_MSG_46KOUT_DEMO:
+                extern void icsd_anc_46kout_demo();
+                icsd_anc_46kout_demo();
+                break;
+#endif
             case ANC_MSG_MIC_DATA_GET:
                 /* extern void anc_spp_mic_data_get(audio_anc_t *param); */
                 /* anc_spp_mic_data_get(&anc_hdl->param); */
@@ -2443,6 +2441,20 @@ void audio_anc_mic_mana_set_gain(audio_anc_t *param, u8 num, u8 type)
     }
 }
 
+u8 audio_anc_mic_mana_fb_mult_get(void)
+{
+    u8 mult_flag = 0;
+    if (anc_hdl) {
+        audio_anc_t *param = &anc_hdl->param;
+        for (int i = 0; i < 4; i++) {
+            if ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || (param->mic_param[i].type == ANC_MIC_TYPE_RFB)) {
+                mult_flag |= param->mic_param[i].mult_flag;
+            }
+        }
+    }
+    return mult_flag;
+}
+
 /*设置fb  mic为复用mic*/
 void audio_anc_mic_mana_fb_mult_set(u8 mult_flag)
 {
@@ -2607,7 +2619,7 @@ int audio_anc_mult_scene_set(u16 scene_id)
     anc_hdl->scene_id = scene_id;
 #if ANC_EAR_ADAPTIVE_EN
     if (anc_ear_adaptive_busy_get()) {
-        anc_ear_adaptive_forced_exit(1);
+        anc_ear_adaptive_forced_exit(1, 0);
         return 1;
     }
     //非自适应训练状态，切场景自动切回普通参数

@@ -7,6 +7,7 @@
 #include "iic_api.h"
 #include "asm/wdt.h"
 
+#define LOG_TAG_CONST       IIC
 #define LOG_TAG             "[iic_api]"
 #define LOG_ERROR_ENABLE
 #define LOG_DEBUG_ENABLE
@@ -14,34 +15,10 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
-/******************************soft iic*****************************/
-//return: <0:error,  =read_len:ok
-int soft_i2c_master_read_nbytes_from_device(soft_iic_dev iic,   //iic索引
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *read_buf, int read_len)//缓存buf, 读取长度
-{
-    u8 ack;
-    int ret = 0;
-    local_irq_disable();//软件iic不可被中断
-    if (soft_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
-        ret = IIC_ERROR_BUSY; //busy
-        goto _read_exit2;
-    }
-    soft_iic_start(iic);
-    ack = soft_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _read_exit1;
-    }
 
-    ret = soft_iic_read_buf(iic, read_buf, read_len);
-_read_exit1:
-    soft_iic_stop(iic);
-_read_exit2:
-    local_irq_enable();
-    return ret;
-}
+
+/******************************soft iic*****************************/
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: <0:error,  =read_len:ok
 int soft_i2c_master_read_nbytes_from_device_reg(soft_iic_dev iic,
         unsigned char dev_addr, //设备地址
@@ -50,31 +27,32 @@ int soft_i2c_master_read_nbytes_from_device_reg(soft_iic_dev iic,
 {
     u8 ack;
     int ret = 0;
-    local_irq_disable();
-    if (soft_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
+    if (soft_iic_check_busy(iic) != IIC_OK) { //busy
         ret = IIC_ERROR_BUSY; //busy
         goto _read_exit2;
     }
-
     soft_iic_start(iic);
-    ack = soft_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _read_exit1;
-    }
 
-    for (u8 i = 0; i < reg_len; i++) {
-        ack = soft_iic_tx_byte(iic, reg_addr[i]);
+    if ((reg_addr != NULL) && (reg_len != 0)) {
+        ack = soft_iic_tx_byte(iic, dev_addr);
         if (ack == 0) {
-            log_error("reg_addr no ack!");
-            ret = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+            log_error("dev_addr no ack!");
+            ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
             goto _read_exit1;
         }
+
+        for (u8 i = 0; i < reg_len; i++) {
+            ack = soft_iic_tx_byte(iic, reg_addr[i]);
+            if (ack == 0) {
+                log_error("reg_addr no ack!");
+                ret = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+                goto _read_exit1;
+            }
+        }
+        soft_iic_start(iic);
     }
 
-    soft_iic_start(iic);
-    ack = soft_iic_tx_byte(iic, dev_addr + 1);
+    ack = soft_iic_tx_byte(iic, dev_addr | BIT(0));
     if (ack == 0) {
         log_error("dev_addr no ack!");
         ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
@@ -85,44 +63,11 @@ int soft_i2c_master_read_nbytes_from_device_reg(soft_iic_dev iic,
 _read_exit1:
     soft_iic_stop(iic);
 _read_exit2:
-    local_irq_enable();
     return ret;
 }
 
-//return: =write_len:ok, other:error
-int soft_i2c_master_write_nbytes_to_device(soft_iic_dev iic,
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *write_buf, int write_len) //数据buf, 写入长度
-{
-    int res;
-    u8 ack;
-    local_irq_disable();//软件iic不可被中断
-    if (soft_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
-        res = IIC_ERROR_BUSY; //busy
-        goto _write_exit2;
-    }
 
-    soft_iic_start(iic);
-    ack = soft_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        res = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _write_exit1;
-    }
-
-    for (res = 0; res < write_len; res++) {
-        if (0 == soft_iic_tx_byte(iic, write_buf[res])) {
-            log_error("write data no ack!");
-            goto _write_exit1;
-        }
-    }
-_write_exit1:
-    soft_iic_stop(iic);
-_write_exit2:
-    local_irq_enable();
-    return res;
-}
-
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: =write_len:ok, other:error
 int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
         unsigned char dev_addr, //设备地址
@@ -131,8 +76,7 @@ int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
 {
     int res;
     u8 ack;
-    local_irq_disable();//软件iic不可被中断
-    if (soft_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
+    if (soft_iic_check_busy(iic) != IIC_OK) { //busy
         res = IIC_ERROR_BUSY; //busy
         goto _write_exit2;
     }
@@ -145,12 +89,14 @@ int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
         goto _write_exit1;
     }
 
-    for (u8 i = 0; i < reg_len; i++) {
-        ack = soft_iic_tx_byte(iic, reg_addr[i]);
-        if (ack == 0) {
-            log_error("reg_addr no ack!");
-            res = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
-            goto _write_exit1;
+    if ((reg_addr != NULL) && (reg_len != 0)) {
+        for (u8 i = 0; i < reg_len; i++) {
+            ack = soft_iic_tx_byte(iic, reg_addr[i]);
+            if (ack == 0) {
+                log_error("reg_addr no ack!");
+                res = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+                goto _write_exit1;
+            }
         }
     }
 
@@ -163,7 +109,6 @@ int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
 _write_exit1:
     soft_iic_stop(iic);
 _write_exit2:
-    local_irq_enable();
     return res;
 }
 
@@ -176,66 +121,77 @@ _write_exit2:
 
 
 /******************************hw iic master*****************************/
-//return: <0:error,  =read_len:ok
-int hw_i2c_master_read_nbytes_from_device(hw_iic_dev iic,   //iic索引
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *read_buf, int read_len)//缓存buf, 读取长度
-{
-    u8 ack;
-    int ret = 0;
-    local_irq_disable();//软件iic不可被中断
-    if (hw_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
-        ret = IIC_ERROR_BUSY; //busy
-        goto _read_exit2;
-    }
-    hw_iic_start(iic);
-    ack = hw_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _read_exit1;
-    }
-
-    ret = hw_iic_read_buf(iic, read_buf, read_len);
-_read_exit1:
-    hw_iic_stop(iic);
-_read_exit2:
-    local_irq_enable();
-    return ret;
-}
+#if defined CONFIG_IIC_VERSION2
+#define HW_IIC_MASTER_ISR_EN 1
+#else
+#define HW_IIC_MASTER_ISR_EN 0
+#endif
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: <0:error,  =read_len:ok
 int hw_i2c_master_read_nbytes_from_device_reg(hw_iic_dev iic,
         unsigned char dev_addr, //设备地址
         unsigned char *reg_addr, unsigned char reg_len,//设备寄存器地址，长度
         unsigned char *read_buf, int read_len)//缓存buf，读取长度
 {
+#if HW_IIC_MASTER_ISR_EN
+#if defined(P11_HW_IIC_NUM)&&P11_HW_IIC_NUM
+    if (iic != HW_P11_IIC_0)
+#endif
+    {
+        struct hw_iic_master_isr_transmit iic_isr_info = {
+            .dev_addr = dev_addr,
+            .restart_flag = 1,
+            .reg_buf = reg_addr,
+            .reg_len = reg_len,
+            .data_buf = read_buf,
+            .rx_len = read_len,
+            .tx_len = 0,
+        };
+        if ((reg_addr == NULL) || (reg_len == 0)) {
+            iic_isr_info .dev_addr = dev_addr | BIT(0);
+            iic_isr_info .restart_flag = 0;
+        }
+        enum iic_state_enum iic_sta = hw_iic_master_isr_transmit_cfg(iic, &iic_isr_info, 100);//100:1s
+        if (iic_sta != IIC_OK) {
+            log_error("iic%d isr sta:%d\n", iic, iic_sta);
+            return 0;
+        }
+        return iic_isr_info.xfer_postion;
+    }
+#endif
+
     u8 ack;
     int ret = 0;
-    local_irq_disable();
-    if (hw_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
+    if (hw_iic_check_busy(iic) != IIC_OK) { //busy
         ret = IIC_ERROR_BUSY; //busy
         goto _read_exit2;
     }
-
-    hw_iic_start(iic);
-    ack = hw_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _read_exit1;
+    ret = hw_iic_start(iic);
+    if (ret < 0) {
+        log_error("iic lock busy!%d", ret);
+        goto _read_exit2;
     }
 
-    for (u8 i = 0; i < reg_len; i++) {
-        ack = hw_iic_tx_byte(iic, reg_addr[i]);
+    if ((reg_addr != NULL) && (reg_len != 0)) {
+        ack = hw_iic_tx_byte(iic, dev_addr);
         if (ack == 0) {
-            log_error("reg_addr no ack!");
-            ret = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+            log_error("dev_addr no ack!");
+            ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
             goto _read_exit1;
         }
+
+        for (u8 i = 0; i < reg_len; i++) {
+            ack = hw_iic_tx_byte(iic, reg_addr[i]);
+            if (ack == 0) {
+                log_error("reg_addr no ack!");
+                ret = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+                goto _read_exit1;
+            }
+        }
+        hw_iic_start(iic);
     }
 
-    hw_iic_start(iic);
-    ack = hw_iic_tx_byte(iic, dev_addr + 1);
+    ack = hw_iic_tx_byte(iic, dev_addr | BIT(0));
     if (ack == 0) {
         log_error("dev_addr no ack!");
         ret = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
@@ -245,60 +201,56 @@ int hw_i2c_master_read_nbytes_from_device_reg(hw_iic_dev iic,
     ret = hw_iic_read_buf(iic, read_buf, read_len);
 _read_exit1:
     hw_iic_stop(iic);
+    if (ret != read_len) {
+        iic_hw_err_reset(iic);
+    }
 _read_exit2:
-    local_irq_enable();
     return ret;
 }
 
-//return: =write_len:ok, other:error
-int hw_i2c_master_write_nbytes_to_device(hw_iic_dev iic,
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *write_buf, int write_len) //数据buf, 写入长度
-{
-    int res;
-    u8 ack;
-    local_irq_disable();//软件iic不可被中断
-    if (hw_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
-        res = IIC_ERROR_BUSY; //busy
-        goto _write_exit2;
-    }
 
-    hw_iic_start(iic);
-    ack = hw_iic_tx_byte(iic, dev_addr);
-    if (ack == 0) {
-        log_error("dev_addr no ack!");
-        res = IIC_ERROR_DEV_ADDR_ACK_ERROR; //无应答
-        goto _write_exit1;
-    }
-
-    for (res = 0; res < write_len; res++) {
-        if (0 == hw_iic_tx_byte(iic, write_buf[res])) {
-            log_error("write data no ack!");
-            goto _write_exit1;
-        }
-    }
-_write_exit1:
-    hw_iic_stop(iic);
-_write_exit2:
-    local_irq_enable();
-    return res;
-}
-
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: =write_len:ok, other:error
 int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
         unsigned char dev_addr, //设备地址
         unsigned char *reg_addr, unsigned char reg_len,//设备寄存器地址，长度
         unsigned char *write_buf, int write_len)//数据buf, 写入长度
 {
+#if HW_IIC_MASTER_ISR_EN
+#if defined(P11_HW_IIC_NUM)&&P11_HW_IIC_NUM
+    if (iic != HW_P11_IIC_0)
+#endif
+    {
+        struct hw_iic_master_isr_transmit iic_isr_info = {
+            .dev_addr = dev_addr,
+            .restart_flag = 0,
+            .reg_buf = reg_addr,
+            .reg_len = reg_len,
+            .data_buf = write_buf,
+            .rx_len = 0,
+            .tx_len = write_len,
+        };
+        enum iic_state_enum iic_sta = hw_iic_master_isr_transmit_cfg(iic, &iic_isr_info, 100);//100:1s
+        if (iic_sta != IIC_OK) {
+            log_error("iic%d isr sta:%d\n", iic, iic_sta);
+            return 0;
+        }
+        return iic_isr_info.xfer_postion;
+    }
+#endif
+
     int res;
     u8 ack;
-    local_irq_disable();//软件iic不可被中断
-    if (hw_iic_check_busy(iic) == IIC_ERROR_BUSY) { //busy
+    if (hw_iic_check_busy(iic) != IIC_OK) { //busy
         res = IIC_ERROR_BUSY; //busy
         goto _write_exit2;
     }
 
-    hw_iic_start(iic);
+    res = hw_iic_start(iic);
+    if (res < 0) {
+        log_error("iic lock busy!%d", res);
+        goto _write_exit2;
+    }
     ack = hw_iic_tx_byte(iic, dev_addr);
     if (ack == 0) {
         log_error("dev_addr no ack!");
@@ -306,25 +258,33 @@ int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
         goto _write_exit1;
     }
 
-    for (u8 i = 0; i < reg_len; i++) {
-        ack = hw_iic_tx_byte(iic, reg_addr[i]);
-        if (ack == 0) {
-            log_error("reg_addr no ack!");
-            res = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
-            goto _write_exit1;
+    if ((reg_addr != NULL) && (reg_len != 0)) {
+        for (u8 i = 0; i < reg_len; i++) {
+            ack = hw_iic_tx_byte(iic, reg_addr[i]);
+            if (ack == 0) {
+                log_error("reg_addr no ack!");
+                res = IIC_ERROR_REG_ADDR_ACK_ERROR; //无应答
+                goto _write_exit1;
+            }
         }
     }
 
+#if 0
     for (res = 0; res < write_len; res++) {
         if (0 == hw_iic_tx_byte(iic, write_buf[res])) {
             log_error("write data no ack!");
             goto _write_exit1;
         }
     }
+#else
+    res = hw_iic_write_buf(iic, write_buf, write_len);
+#endif
 _write_exit1:
     hw_iic_stop(iic);
+    if (res != write_len) {
+        iic_hw_err_reset(iic);
+    }
 _write_exit2:
-    local_irq_enable();
     return res;
 }
 

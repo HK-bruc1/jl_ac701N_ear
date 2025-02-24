@@ -9,7 +9,7 @@
 #include "circular_buf.h"
 #include "cvp_node.h"
 #include "app_config.h"
-#include "audio_iis.h"
+#include "media/audio_iis.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
@@ -511,7 +511,9 @@ static int cvp_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         }
         break;
     case NODE_IOC_SET_PARAM:
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
         ret = cvp_ioc_update_parm(hdl, arg);
+#endif
         break;
     case NODE_IOC_SET_PRIV_FMT:
         hdl->source_uuid = (u16)arg;

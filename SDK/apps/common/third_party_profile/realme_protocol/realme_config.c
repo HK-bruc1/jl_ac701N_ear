@@ -1,6 +1,6 @@
 #include "system/includes.h"
 #include "sdk_config.h"
-#include "earphone.h"
+// #include "earphone.h"
 #include "app_main.h"
 #include "btstack/third_party/app_protocol_event.h"
 #include "multi_protocol_main.h"

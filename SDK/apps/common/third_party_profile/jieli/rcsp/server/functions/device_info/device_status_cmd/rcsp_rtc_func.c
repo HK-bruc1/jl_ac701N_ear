@@ -17,15 +17,20 @@
 #include "rcsp_manage.h"
 #include "tone_player.h"
 #include "rcsp_browser.h"
+#include "app_protocol_common.h"
+#include "clock_manager/clock_manager.h"
+//#include "music/general_player.h"
+#include "JL_rcsp_api.h"
+#include "JL_rcsp_attr.h"
 
-#if (RCSP_MODE && TCFG_RTC_ENABLE && RCSP_APP_RTC_EN)
+#if (RCSP_MODE && TCFG_APP_RTC_EN && RCSP_APP_RTC_EN)
+#include "music/general_player.h"
+#include "alarm.h"
 #include "rcsp_device_info_func_common.h"
 #if TCFG_APP_LINEIN_EN
-#include "linein/linein.h"
+#include "linein.h"
 #endif
-#include "rtc/alarm.h"
-#include "music_player.h"
-#include "general_player.h"
+#include "alarm.h"
 
 
 #define RTC_INFO_ATTR_RTC_TIME                 (0)
@@ -98,16 +103,16 @@ enum {
     ALARM_IDEX_TONE_MAX_NUM = 10,
 };
 static const char *default_ringtone_table[] = {
-    [ALARM_IDEX_TONE_NUM_0] 			= TONE_RES_ROOT_PATH"tone/0.*",
-    [ALARM_IDEX_TONE_NUM_1] 			= TONE_RES_ROOT_PATH"tone/1.*",
-    [ALARM_IDEX_TONE_NUM_2] 			= TONE_RES_ROOT_PATH"tone/2.*",
-    [ALARM_IDEX_TONE_NUM_3] 			= TONE_RES_ROOT_PATH"tone/3.*",
-    [ALARM_IDEX_TONE_NUM_4] 			= TONE_RES_ROOT_PATH"tone/4.*",
-    [ALARM_IDEX_TONE_NUM_5] 			= TONE_RES_ROOT_PATH"tone/5.*",
-    [ALARM_IDEX_TONE_NUM_6] 			= TONE_RES_ROOT_PATH"tone/6.*",
-    [ALARM_IDEX_TONE_NUM_7] 			= TONE_RES_ROOT_PATH"tone/7.*",
-    [ALARM_IDEX_TONE_NUM_8] 			= TONE_RES_ROOT_PATH"tone/8.*",
-    [ALARM_IDEX_TONE_NUM_9] 			= TONE_RES_ROOT_PATH"tone/9.*",
+    [ALARM_IDEX_TONE_NUM_0] 			= "tone_zh/0.*",
+    [ALARM_IDEX_TONE_NUM_1] 			= "tone_zh/1.*",
+    [ALARM_IDEX_TONE_NUM_2] 			= "tone_zh/2.*",
+    [ALARM_IDEX_TONE_NUM_3] 			= "tone_zh/3.*",
+    [ALARM_IDEX_TONE_NUM_4] 			= "tone_zh/4.*",
+    [ALARM_IDEX_TONE_NUM_5] 			= "tone_zh/5.*",
+    [ALARM_IDEX_TONE_NUM_6] 			= "tone_zh/6.*",
+    [ALARM_IDEX_TONE_NUM_7] 			= "tone_zh/7.*",
+    [ALARM_IDEX_TONE_NUM_8] 			= "tone_zh/8.*",
+    [ALARM_IDEX_TONE_NUM_9] 			= "tone_zh/8.*",
 };
 
 static const char *default_ringtone_name_table[] = {
@@ -125,12 +130,14 @@ static const char *default_ringtone_name_table[] = {
 
 static void scan_enter(struct __dev *dev)
 {
-    clock_add_set(SCAN_DISK_CLK);
+    /* clock_add_set(SCAN_DISK_CLK); */
+    clock_alloc("SCAN_DISK_CLK", 120 * 1000000UL);
 }
 
 static void scan_exit(struct __dev *dev)
 {
-    clock_remove_set(SCAN_DISK_CLK);
+    /* clock_remove_set(SCAN_DISK_CLK); */
+    clock_free("SCAN_DISK_CLK");
 }
 
 static const struct __scan_callback scan_cb = {
@@ -355,7 +362,7 @@ static u8 rcsp_rtc_ring_audition_deal(PT_ALARM_APP_RING_AUDITION ring_param)
 {
     u8 ret = 0;
     printf("ring stop");
-    tone_play_stop();
+    tone_player_stop();
 #if TCFG_APP_MUSIC_EN
     general_player_stop(0);
 #endif /* #if TCFG_APP_MUSIC_EN */
@@ -365,9 +372,9 @@ static u8 rcsp_rtc_ring_audition_deal(PT_ALARM_APP_RING_AUDITION ring_param)
 #if TCFG_APP_MUSIC_EN
             general_player_stop(0);
 #endif /* #if TCFG_APP_MUSIC_EN */
-            tone_play_by_path(default_ringtone_table[ring_param->ring_clust], 0);
+            play_tone_file(default_ringtone_table[ring_param->ring_clust]);
         } else if (1 == ring_param->ring_type) {
-            tone_play_stop();
+            tone_player_stop();
             rcsp_rtc_play_dev_ring(ring_param);
         }
     }
@@ -851,7 +858,7 @@ u8 rtc_app_alarm_ring_play(u8 alarm_state)
 #if TCFG_APP_MUSIC_EN
         file_trans_idle_set(0);
         if (ringing_info.ring_type) {
-            if (!music_player_get_play_status()) {
+            if (!music_file_get_player_status(get_music_file_player())) {
                 // 播放设备音乐
                 printf("ringing............................\n");
                 rcsp_rtc_play_dev_ring(&ringing_info);
@@ -859,7 +866,7 @@ u8 rtc_app_alarm_ring_play(u8 alarm_state)
         } else
 #endif /* #if TCFG_APP_MUSIC_EN */
         {
-            tone_play_by_path(default_ringtone_table[ringing_info.ring_clust], 0);
+            play_tone_file(default_ringtone_table[ringing_info.ring_clust]);
         }
     }
     return rtc_func_structure_flag;

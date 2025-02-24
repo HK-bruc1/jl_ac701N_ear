@@ -116,6 +116,14 @@ void set_cig_hdl(u8 role, u8 cig_hdl)
 {
     perip_params->cig_hdl = cig_hdl;
 }
+void set_le_audio_jl_dongle_device_type(u8 type)
+{
+    platform_data.device_type = type;
+}
+u8 get_le_audio_jl_dongle_device_type()
+{
+    return platform_data.device_type;
+}
 
 int get_cig_audio_coding_nch(void)
 {
@@ -152,11 +160,57 @@ typedef struct {
 
 } lc3_codec_config_t;
 
-lc3_codec_config_t coder_info;
+lc3_codec_config_t lc3_decoder_info;
+lc3_codec_config_t lc3_encoder_info;
 
-/*
- * 实现le_audio_profile.a里面的weak函数，协议商议的参数回调到上层使用
- * */
+void set_unicast_lc3_info(u8 *date)
+{
+    int info_len = sizeof(lc3_codec_config_t);
+    memcpy(&lc3_decoder_info, date, info_len);
+    memcpy(&lc3_encoder_info, date + info_len, info_len);
+    /* printf("dec sampling=%d,frame_duration%d,octets_per_frame=%d,num_channels=%d\n", */
+    /* lc3_decoder_info.sampling_frequency_hz, */
+    /* lc3_decoder_info.frame_duration, */
+    /* lc3_decoder_info.octets_per_frame, */
+    /* lc3_decoder_info.num_channels */
+    /* ); */
+    /* printf("enc sampling=%d,frame_duration%d,octets_per_frame=%d,num_channels=%d\n", */
+    /* lc3_encoder_info.sampling_frequency_hz, */
+    /* lc3_encoder_info.frame_duration, */
+    /* lc3_encoder_info.octets_per_frame, */
+    /* lc3_encoder_info.num_channels */
+    /* ); */
+
+}
+void get_decoder_params_fmt(struct le_audio_stream_format *fmt)
+{
+    /* lc3_decoder_info */
+    fmt->nch = lc3_decoder_info.num_channels;
+    platform_data.nch = fmt->nch;
+    fmt->sample_rate = lc3_decoder_info.sampling_frequency_hz;
+    platform_data.sample_rate = fmt->sample_rate;
+    fmt->frame_dms = lc3_decoder_info.frame_duration;
+    platform_data.args[platform_data_index].sdu_interval = fmt->frame_dms * 100;
+    platform_data.frame_len = lc3_decoder_info.frame_duration;
+    fmt->sdu_period = platform_data.args[platform_data_index].sdu_interval;
+    fmt->bit_rate = lc3_decoder_info.octets_per_frame * 8 * 1000 * 10 / fmt->frame_dms;
+    platform_data.args[platform_data_index].bitrate = fmt->bit_rate;
+    printf("get_decoder_params_fmt=%d,%d,%d,%d,%d,%d\n", fmt->nch, fmt->sample_rate, fmt->frame_dms, fmt->sdu_period, fmt->bit_rate, lc3_decoder_info.octets_per_frame);
+
+}
+void get_encoder_params_fmt(struct le_audio_stream_format *fmt)
+{
+    /* lc3_encoder_info */
+    fmt->nch = lc3_encoder_info.num_channels;
+    fmt->sample_rate = lc3_encoder_info.sampling_frequency_hz;
+    fmt->frame_dms = lc3_encoder_info.frame_duration;
+    fmt->sdu_period = platform_data.args[platform_data_index].sdu_interval;
+    fmt->bit_rate =  lc3_encoder_info.octets_per_frame * 8 * 1000 * 10 / fmt->frame_dms;
+    enc_output_frame_len = calcul_cig_enc_output_frame_len(fmt->frame_dms, fmt->bit_rate) - 2;
+    cig_transmit_data_len = calcul_cig_transmit_data_len(enc_output_frame_len, fmt->sdu_period, fmt->frame_dms);
+    printf("get_encoder_params_fmt=%d,%d,%d,%d,%d %d\n", fmt->nch, fmt->sample_rate, fmt->frame_dms, fmt->sdu_period, fmt->bit_rate, lc3_encoder_info.octets_per_frame);
+
+}
 void lea_profile_set_unicast_lc3_decoder_param(void *lc3_info)
 {
     lc3_codec_config_t *coder_info = (lc3_codec_config_t *)lc3_info;

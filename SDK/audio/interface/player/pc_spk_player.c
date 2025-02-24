@@ -44,7 +44,6 @@ struct pc_spk_player {
 };
 static struct pc_spk_player *g_pc_spk_player = NULL;
 
-extern void dac_try_power_on_task_delete();
 
 static void pc_spk_player_callback(void *private_data, int event)
 {
@@ -116,8 +115,6 @@ int pc_spk_player_open(void)
     err = jlstream_start(player->stream);
     if (err) {
         goto __exit1;
-    } else {
-        dac_try_power_on_task_delete();
     }
 
     g_pc_spk_state = PC_SPK_STA_OPEN;

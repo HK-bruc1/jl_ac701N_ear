@@ -108,7 +108,7 @@ void debug_exception_flash_info_zone_erase(struct debug_flash_file_info flash_in
     u32 erase_size = 0;
     u32 total_size = flash_info.file_len;
     u32 erase_cmd = IOCTL_ERASE_SECTOR;
-    if (boot_info.vm.align == 1) {
+    if (get_boot_info()->vm.align == 1) {
         erase_unit = 256;
         erase_cmd = IOCTL_ERASE_PAGE;
     }

@@ -17,6 +17,7 @@
 #define     CUSTOM_HID_CLASS    0x00000020
 #define     MIDI_CLASS          0x00000040
 #define     PRINTER_CLASS       0x00000080
+#define     MTP_CLASS           0x00000100
 
 
 #ifndef FUSB_MODE
@@ -229,11 +230,21 @@
 
 ////////////CDC Class
 #ifndef CDC_DATA_EP_IN
+#if (USB_MAX_HW_EPNUM <= 4)
+#define CDC_DATA_EP_IN              1
+#else
 #define CDC_DATA_EP_IN              4
 #endif
+#endif
+
 #ifndef CDC_DATA_EP_OUT
+#if (USB_MAX_HW_EPNUM <= 4)
+#define CDC_DATA_EP_OUT             1
+#else
 #define CDC_DATA_EP_OUT             4
 #endif
+#endif
+
 #ifndef CDC_INTR_EP_IN
 #define CDC_INTR_EP_IN              5
 #endif
@@ -316,6 +327,46 @@
 #endif
 #ifndef MAXP_SIZE_PTR_EPOUT
 #define MAXP_SIZE_PTR_EPOUT         64
+#endif
+
+///////////MTP Class
+#ifndef MTP_BULK_EP_OUT
+#define MTP_BULK_EP_OUT             1
+#endif
+#ifndef MTP_BULK_EP_IN
+#define MTP_BULK_EP_IN              1
+#endif
+#ifndef MTP_INTR_EP_IN
+#define MTP_INTR_EP_IN              2
+#endif
+#ifndef MAXP_SIZE_BULKOUT_FS
+#define MAXP_SIZE_BULKOUT_FS        64
+#endif
+#ifndef MAXP_SIZE_BULKOUT_HS
+#define MAXP_SIZE_BULKOUT_HS        512
+#endif
+#ifndef MAXP_SIZE_BULKOUT
+#if defined(FUSB_MODE) && FUSB_MODE
+#define MAXP_SIZE_BULKOUT           MAXP_SIZE_BULKOUT_FS
+#elif defined(FUSB_MODE) && FUSB_MODE == 0
+#define MAXP_SIZE_BULKOUT           MAXP_SIZE_BULKOUT_HS
+#endif
+#endif
+#ifndef MAXP_SIZE_BULKIN_FS
+#define MAXP_SIZE_BULKIN_FS        64
+#endif
+#ifndef MAXP_SIZE_BULKIN_HS
+#define MAXP_SIZE_BULKIN_HS        512
+#endif
+#ifndef MAXP_SIZE_BULKIN
+#if defined(FUSB_MODE) && FUSB_MODE
+#define MAXP_SIZE_BULKIN            MAXP_SIZE_BULKIN_FS
+#elif defined(FUSB_MODE) && FUSB_MODE == 0
+#define MAXP_SIZE_BULKIN            MAXP_SIZE_BULKIN_HS
+#endif
+#endif
+#ifndef MTP_STR_INDEX
+#define MTP_STR_INDEX              8
 #endif
 
 #endif

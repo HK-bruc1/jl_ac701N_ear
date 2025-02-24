@@ -63,13 +63,8 @@ static two_io_ctl_pdata_t *__this;
 static void two_io_mux_free(void *priv)
 {
     u8 io = *((u8 *)priv);
-    if (io == __this->two_io.com_pole_io) {
-        gpio_set_mode(IO_PORT_SPILT(io), PORT_HIGHZ);
-        gpio_disable_function(IO_PORT_SPILT(io), PORT_FUNC_NULL);
-    } else {
-        gpio_set_mode(IO_PORT_SPILT(io), PORT_OUTPUT_LOW);
-        gpio_disable_function(IO_PORT_SPILT(io), PORT_FUNC_NULL);
-    }
+    gpio_set_mode(IO_PORT_SPILT(io), PORT_OUTPUT_LOW);
+    gpio_disable_function(IO_PORT_SPILT(io), PORT_FUNC_NULL);
 }
 
 #if TWO_IO_MUX_SDIO_USE_BRK
@@ -78,7 +73,7 @@ static void two_io_mux_sdc_brk(void *priv)
     __this->pole_io_timeout = 0;
     u32 *io0_outreg = gpio2crossbar_outreg(__this->two_io.io0);
     u32 *io1_outreg = gpio2crossbar_outreg(__this->two_io.io1);
-    gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_HIGHZ);
+    gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_OUTPUT_HIGH);
     gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_OUTPUT_HIGH);
     (*io0_outreg) |= (0b11);
     if (((*io1_outreg) & (0b11)) == 0) {
@@ -110,16 +105,18 @@ static void two_io_set_idle(void *priv)
             if (__this->iox_state) {
                 return;
             }
-            gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_HIGHZ);
+            gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_OUTPUT_HIGH);
             gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_OUTPUT_HIGH);//CMD
             gpio_set_mode(IO_PORT_SPILT(__this->two_io.io1), PORT_OUTPUT_LOW);//CLK
             gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_OUTPUT_LOW);//CMD
+
             if ((resource_multiplex_has_requester_waiting(io1, requester)) || \
-                (resource_multiplex_has_requester_waiting(io0, requester))) {
+                (resource_multiplex_has_requester_waiting(io0, requester)) || \
+                (resource_multiplex_has_requester_waiting(pole_io, requester))) {
                 resource_multiplex_free(io1, requester);
                 resource_multiplex_free(io0, requester);
+                resource_multiplex_free(pole_io, requester);
             }
-            resource_multiplex_free(pole_io, requester);
         } else
 #endif
         {
@@ -153,17 +150,32 @@ static void two_io_set_output(void *priv)
     u32 io1 = __this->two_io.io1;
     u32 pole_io = __this->two_io.com_pole_io;
     u32 requester = (u32)__this;
+    //static u32 pwm_prd_time = -1;
 
     if ((__this->two_io.com_pole_is_io) && \
         (resource_multiplex_is_registered(pole_io))) {
+        int err_pole = resource_multiplex_check_request(pole_io, requester, FORGO_WHEN_RESOURCE_BUSY, NULL);
         int err0 = resource_multiplex_check_request(io0, requester, FORGO_WHEN_RESOURCE_BUSY, NULL);
         int err1 = resource_multiplex_check_request(io1, requester, FORGO_WHEN_RESOURCE_BUSY, NULL);
-        if ((err1 == 0) && (err0 == 0)) {
-        } else if ((err1) && (err0 == 0)) {
-            resource_multiplex_free(io0, requester);
-            return;
-        } else if ((err1 == 0) && (err0)) {
-            resource_multiplex_free(io1, requester);
+        if ((err_pole == 0) && (err1 == 0) && (err0 == 0)) {
+            //if (pwm_prd_time != __this->two_io.soft_pwm_cycle) {
+            //    pwm_prd_time = __this->two_io.soft_pwm_cycle;
+            //    sys_timer_modify(__this->pwm_timer_add, __this->two_io.soft_pwm_cycle);
+            //}
+        } else if ((err_pole * err0 * err1) == 0) {
+            if (err1 == 0) {
+                resource_multiplex_free(io1, requester);
+            }
+            if (err0 == 0) {
+                resource_multiplex_free(io0, requester);
+            }
+            if (err_pole == 0) {
+                resource_multiplex_free(pole_io, requester);
+            }
+            //if (pwm_prd_time != 1) {
+            //    pwm_prd_time = 1;
+            //    sys_timer_modify(__this->pwm_timer_add, 1);
+            //}
             return;
         } else {
 #if TWO_IO_MUX_SDIO_USE_BRK
@@ -182,11 +194,19 @@ __brk_enter:
                 if (err) {
                     cnt ++;
                     if (cnt > 3) {
+                        //if (pwm_prd_time != 1) {
+                        //    pwm_prd_time = 1;
+                        //    sys_timer_modify(__this->pwm_timer_add, 1);
+                        //}
                         return;
                     }
                     goto __brk_enter;
                 }
-                gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_HIGHZ);
+                //if (pwm_prd_time != __this->two_io.soft_pwm_cycle) {
+                //    pwm_prd_time = __this->two_io.soft_pwm_cycle;
+                //    sys_timer_modify(__this->pwm_timer_add, __this->two_io.soft_pwm_cycle);
+                //}
+                gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_OUTPUT_HIGH);
                 if (__this->io0_pwm_h_time) {
                     gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_INPUT_PULLUP_10K);
                     (*io0_outreg) &= ~(0b11);
@@ -215,6 +235,10 @@ __brk_enter:
                     }
                 }
             } else {
+                //if (pwm_prd_time != __this->two_io.soft_pwm_cycle) {
+                //    pwm_prd_time = __this->two_io.soft_pwm_cycle;
+                //    sys_timer_modify(__this->pwm_timer_add, __this->two_io.soft_pwm_cycle);
+                //}
                 gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_OUTPUT_HIGH);
                 (*io0_outreg) &= ~(0b11);
                 gpio_set_mode(IO_PORT_SPILT(__this->two_io.io1), PORT_OUTPUT_HIGH);
@@ -235,7 +259,6 @@ __brk_enter:
 #endif
             return;
         }
-        resource_multiplex_check_request(pole_io, requester, WAIT_RESOURCE_FREE, NULL);
         gpio_set_mode(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_OUTPUT_HIGH);
         gpio_disable_function(IO_PORT_SPILT(__this->two_io.com_pole_io), PORT_FUNC_NULL);
         gpio_set_mode(IO_PORT_SPILT(__this->two_io.io0), PORT_OUTPUT_HIGH);
@@ -282,9 +305,9 @@ static void two_io_soft_pwm_init(void)
     u32 requester = (u32)__this;
     if ((__this->two_io.com_pole_is_io) && \
         (resource_multiplex_is_registered(pole_io))) {
+
         resource_multiplex_check_request(io0, requester, WAIT_RESOURCE_FREE, NULL);
         resource_multiplex_check_request(io1, requester, WAIT_RESOURCE_FREE, NULL);
-        resource_multiplex_check_request(pole_io, requester, WAIT_RESOURCE_FREE, NULL);
 
         cbfunc_info.cbfunc_mode = 0;
         cbfunc_info.cbfunc_owner = (u32)__this;
@@ -293,8 +316,6 @@ static void two_io_soft_pwm_init(void)
         resource_multiplex_register_free_cbfunc(io0, &cbfunc_info);
         cbfunc_info.cbfunc_arg = (void *) & (__this->two_io.io1);
         resource_multiplex_register_free_cbfunc(io1, &cbfunc_info);
-        cbfunc_info.cbfunc_arg = (void *) & (__this->two_io.com_pole_io);
-        resource_multiplex_register_free_cbfunc(pole_io, &cbfunc_info);
 
 #if TWO_IO_MUX_SDIO_USE_BRK
 
@@ -340,12 +361,11 @@ static void two_io_soft_pwm_close(void)
     u32 requester = (u32)__this;
     if ((__this->two_io.com_pole_is_io) && \
         (resource_multiplex_is_registered(pole_io))) {
-        resource_multiplex_remove_free_cbfunc(pole_io, requester);
-        resource_multiplex_remove_free_cbfunc(io0, requester);
         resource_multiplex_remove_free_cbfunc(io1, requester);
-        resource_multiplex_free(pole_io, requester);
-        resource_multiplex_free(io0, requester);
+        resource_multiplex_remove_free_cbfunc(io0, requester);
         resource_multiplex_free(io1, requester);
+        resource_multiplex_free(io0, requester);
+        resource_multiplex_free(pole_io, requester);
     }
 #endif
 }

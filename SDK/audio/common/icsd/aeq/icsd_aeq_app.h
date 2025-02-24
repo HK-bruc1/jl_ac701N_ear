@@ -21,6 +21,14 @@
 
 #define ADAPTIVE_EQ_MAXGAIN_DB				6				//非音量/松紧度分档使用
 
+//考虑执行效率，实时自适应EQ暂不支持音量分档、松紧度分档数据缺失，暂不支持
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#undef ADAPTIVE_EQ_VOLUME_GRADE_EN
+#define ADAPTIVE_EQ_VOLUME_GRADE_EN			0
+#undef ADAPTIVE_EQ_TIGHTNESS_GRADE_EN
+#define ADAPTIVE_EQ_TIGHTNESS_GRADE_EN		0
+#endif
+
 #if ADAPTIVE_EQ_TIGHTNESS_GRADE_EN && (!TCFG_AUDIO_FIT_DET_ENABLE)
 #error "Must open TCFG_AUDIO_FIT_DET_ENABLE"
 #endif
@@ -30,6 +38,7 @@
 enum {
     ADAPTIVE_EQ_STATE_CLOSE = 0,
     ADAPTIVE_EQ_STATE_OPEN,
+    ADAPTIVE_EQ_STATE_RUN,
 };
 
 //ICSD AEQ 滤波器模式
@@ -41,10 +50,13 @@ enum ADAPTIVE_EFF_MODE {
 /*
    自适应EQ功能打开
 	param: fre_sel  	训练数据来源
-		   result_cb,	训练结束回调接口
+		   result_cb,	训练结束回调接口(如没有可传NULL)
 	return 0  打开成功； 1 打开失败
 */
 int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(int result));
+
+//实时自适应EQ
+int audio_real_time_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(int result));
 
 int audio_adaptive_eq_close();
 
@@ -65,6 +77,9 @@ int audio_adaptive_eq_eff_set(enum ADAPTIVE_EFF_MODE mode);
 int audio_adaptive_eq_vol_update(s16 volume);
 
 int audio_adaptive_eq_process(void);
+
+// 自适应EQ强制退出
+int audio_adaptive_eq_force_exit(void);
 
 #endif/*__ICSD_AEQ_APP_H_*/
 

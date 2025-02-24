@@ -44,6 +44,7 @@ typedef enum gptimerx : u8 {
     TIMERx, //传入此参数时,内部自动分配一个空闲TIMER
 } timer_dev;
 
+#define GPTIMER_EXTERN_USE  0b100000 //其他模块占用的timer, 不参与自动分配
 
 //以下宏定义给系统 timer 驱动使用
 #define GPTIMER_PND_CLR         (0b1<<14)

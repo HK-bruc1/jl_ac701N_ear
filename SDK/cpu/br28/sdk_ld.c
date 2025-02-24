@@ -124,6 +124,12 @@ SECTIONS
 		KEEP(*(.app_mode))
         app_mode_end = .;
 
+        . = ALIGN(4);
+        prot_flash_begin = .;
+        KEEP(*(.prot_flash))
+        prot_flash_end = .;
+        . = ALIGN(4);
+
         local_tws_ops_begin = .;
 		KEEP(*(.local_tws))
         local_tws_ops_end = .;
@@ -456,9 +462,11 @@ SECTIONS
 //#include "btctrler/port/br28/btctler_lib.ld"
 #include "driver/cpu/br28/driver_lib.ld"
 #include "utils/utils_lib.ld"
-#include "ui/ui/ui.ld"
 #include "cvp/audio_cvp_lib.ld"
 #include "media/media_lib.c"
+#if TCFG_UI_ENABLE && !TCFG_UI_LED7_ENABLE
+#include "ui/jl_ui/ui/ui.ld"
+#endif
 
 #if TCFG_JLSTREAM_TURBO_ENABLE
 #define INCLUDE_FROM_LD

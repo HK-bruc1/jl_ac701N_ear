@@ -5,7 +5,7 @@
 #include "encoder_node.h"
 #include "fs/fs.h"
 
-
+#define AUDIO_RECORD_CUT_HEAD_TAIL_EN    1
 
 typedef void (*file_recorder_cb_t)(void *, enum stream_state);
 
@@ -16,6 +16,11 @@ struct file_recorder {
     file_recorder_cb_t callback;
     const struct stream_file_ops *fops;
     struct jlstream *stream;
+#if AUDIO_RECORD_CUT_HEAD_TAIL_EN
+    u8 head_size;
+    u16 cut_head_timer;
+    u32 cut_tail_size;
+#endif
 };
 
 struct file_recorder *file_recorder_open(int pipeline_uuid, int snode_uuid);

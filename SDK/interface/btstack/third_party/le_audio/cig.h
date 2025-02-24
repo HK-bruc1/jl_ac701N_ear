@@ -37,6 +37,8 @@ typedef enum {
     //for phone
     CIG_EVENT_PHONE_CONNECT,
     CIG_EVENT_PHONE_DISCONNECT,
+    CIG_EVENT_JL_DONGLE_CONNECT,
+    CIG_EVENT_JL_DONGLE_DISCONNECT,
 } CIG_EVENT;
 
 /* CIG handles. */

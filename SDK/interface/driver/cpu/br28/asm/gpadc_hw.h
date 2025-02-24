@@ -1,9 +1,15 @@
 #ifndef  __GPADC_HW_H__
 #define  __GPADC_HW_H__
 //br28
+#include "gpadc_hw_v10.h"
 #include "generic/typedef.h"
+#include "gpio.h"
+#include "clock.h"
+#include "asm/power_interface.h"
+
 #define ADC_CH_MASK_TYPE_SEL	0xffff0000
-#define ADC_CH_MASK_CH_SEL	    0x0000ffff
+#define ADC_CH_MASK_CH_SEL	    0x000000ff
+#define ADC_CH_MASK_PMU_VBG_CH_SEL   0x0000ff00
 
 #define ADC_CH_TYPE_BT     	(0x0<<16)
 #define ADC_CH_TYPE_PMU    	(0x1<<16)
@@ -14,13 +20,14 @@
 #define ADC_CH_TYPE_IO		(0x10<<16)
 
 #define ADC_CH_BT_			(ADC_CH_TYPE_BT | 0x0)
-#define ADC_CH_PMU_VBG  	(ADC_CH_TYPE_PMU | 0x0)//MVBG/WVBG
+#define ADC_CH_PMU_WBG04  	(ADC_CH_TYPE_PMU | (0x0<<8) | 0x0)//WBG04
+#define ADC_CH_PMU_MBG08  	(ADC_CH_TYPE_PMU | (0x1<<8) | 0x0)//MBG08
 #define ADC_CH_PMU_VSW  	(ADC_CH_TYPE_PMU | 0x1)
 #define ADC_CH_PMU_PROGI	(ADC_CH_TYPE_PMU | 0x2)
 #define ADC_CH_PMU_PROGF	(ADC_CH_TYPE_PMU | 0x3)
 #define ADC_CH_PMU_VTEMP	(ADC_CH_TYPE_PMU | 0x4)
-#define ADC_CH_PMU_VPWR 	(ADC_CH_TYPE_PMU | 0x5) //1/4vpwr
-#define ADC_CH_PMU_VBAT 	(ADC_CH_TYPE_PMU | 0x6)  //1/4vbat
+#define ADC_CH_PMU_VPWR_4 	(ADC_CH_TYPE_PMU | 0x5) //1/4vpwr
+#define ADC_CH_PMU_VBAT_4 	(ADC_CH_TYPE_PMU | 0x6)  //1/4vbat
 #define ADC_CH_PMU_VBAT_2	(ADC_CH_TYPE_PMU | 0x7)
 #define ADC_CH_PMU_VB17  	(ADC_CH_TYPE_PMU | 0x8)
 #define ADC_CH_PMU_IOVDD2  	(ADC_CH_TYPE_PMU | 0x9)
@@ -59,20 +66,17 @@
 #define ADC_CH_IO_PG5   (ADC_CH_TYPE_IO | 0xE)
 #define ADC_CH_IO_PG7   (ADC_CH_TYPE_IO | 0xF)
 
-#define     ADC_VBG_CENTER        801
-#define     ADC_VBG_TRIM_STEP     3
-#define     ADC_VBG_DATA_WIDTH    4
-
 enum AD_CH {
     AD_CH_BT = ADC_CH_BT_,
 
-    AD_CH_PMU_VBG = ADC_CH_PMU_VBG,
-    AD_CH_PMU_VSW,
+    AD_CH_PMU_WBG04 = ADC_CH_PMU_WBG04,
+    AD_CH_PMU_MBG08 = ADC_CH_PMU_MBG08,
+    AD_CH_PMU_VSW = ADC_CH_PMU_VSW,
     AD_CH_PMU_PROGI,
     AD_CH_PMU_PROGF,
     AD_CH_PMU_VTEMP,
-    AD_CH_PMU_VPWR,	//1/4 VPWR
-    AD_CH_PMU_VBAT, // 1/4 VBAT
+    AD_CH_PMU_VPWR_4,	//1/4 VPWR
+    AD_CH_PMU_VBAT_4, // 1/4 VBAT
     AD_CH_PMU_VBAT_2, // 1/2 VBAT  SDK中禁止使用
     AD_CH_PMU_VB17,
     AD_CH_PMU_IOVDD2,
@@ -120,13 +124,33 @@ enum AD_CH {
     AD_CH_IOVDD = 0xffffffff,
 };
 
+#define     ADC_VBG_CENTER        800
+#define     ADC_VBG_TRIM_STEP     3
+#define     ADC_VBG_DATA_WIDTH    4
+
+//防编译报错
+#define AD_CH_PMU_VBG   AD_CH_PMU_MBG08
 #define AD_CH_LDOREF    AD_CH_PMU_VBG
+#define AD_CH_PMU_VPWR   AD_CH_PMU_VPWR_4
+#define AD_CH_PMU_VBAT  AD_CH_PMU_VBAT_4
+#define AD_CH_PMU_VBAT_DIV  4
 
 
-void adc_pmu_ch_select(u32 ch);
-u32 get_vbg_trim();
-//int get_hpvdd_voltage(void);
+#define ADC_PMU_VBG_TEST_SEL(x)     SFR(P3_ANA_CON4, 7, 1, x)
+#define ADC_PMU_VBG_TEST_EN(x)      SFR(P3_ANA_CON4, 6, 1, x)
+#define ADC_PMU_VBG_BUFFER_EN(x)    SFR(P3_ANA_CON4, 5, 1, x)
+#define ADC_PMU_CHANNEL_ADC(x)      SFR(P3_ANA_CON4, 1, 4, x)
+#define ADC_PMU_DET_OE(x)           SFR(P3_ANA_CON4, 0, 1, x)
+#define ADC_PMU_CH_CLOSE()  {   ADC_PMU_DET_OE(0);\
+                                ADC_PMU_VBG_TEST_EN(0);\
+                            }
 
+//ADC_CON寄存器差异部分
+// #define GPADC_CON_RESERVED  24 //bit24~bit31
+#define GPADC_CON_ADC_MUX_SEL   21
+#define GPADC_CON_ADC_MUX_SEL_  3
+#define GPADC_CON_ADC_ASEL      18
+#define GPADC_CON_ADC_ASEL_     3
+#define GPADC_CON_ADC_ISEL      16
 
 #endif  /*GPADC_HW_H*/
-

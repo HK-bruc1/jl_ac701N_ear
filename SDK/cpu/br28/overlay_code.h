@@ -20,6 +20,7 @@ enum {
 #endif
     OVERLAY_LC3,
 
+    OVERLAY_RES = 0xff, //reserved
 };
 
 void overlay_load_code(u32 type);

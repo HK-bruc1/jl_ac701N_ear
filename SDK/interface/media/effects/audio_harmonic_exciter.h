@@ -1,7 +1,6 @@
 #ifndef _AUDIO_HARMONIC_EXCITER_API_H_
 #define _AUDIO_HARMONIC_EXCITER_API_H_
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/excitor_api.h"
 
 typedef struct _HarmonicExciterUdateParam {//与EXCITER_PARM关联

@@ -70,10 +70,8 @@ int agc_param_cfg_read(struct stream_node *node)
      *获取在线调试的临时参数
      * */
     if (config_audio_cfg_online_enable) {
-        ret = jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config));
-        if (ret != sizeof(config)) {
-            printf("get agc online param err\n");
-            return -1 ;
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config))) {
+            printf("get agc online param succ\n");
         }
     }
 
@@ -279,11 +277,7 @@ static int agc_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
 /*节点用完释放函数*/
 static void agc_adapter_release(struct stream_node *node)
 {
-    struct agc_node_hdl *hdl = (struct agc_node_hdl *)node->private_data;
-    if (!hdl) {
-        return;
-    }
-    free(hdl);
+
 }
 
 /*节点adapter 注意需要在sdk_used_list声明，否则会被优化*/

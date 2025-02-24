@@ -33,21 +33,25 @@ void iic_master_polling_test()
         .hdrive = PORT_DRIVE_STRENGT_2p4mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
         .master_frequency = 100000, //软件iic频率不准(hz)
         .io_filter = 1,  //软件无效
+        .ie_en = 1,//1:注册中断
+        .irq_priority = 3,//优先级
     };
     //eeprom
 
 #ifdef _IIC_USE_HW
     log_info("**********************hw iic test*************************\n");
-    u8 eeprom_reg_addr = 66;
+    u8 eeprom_reg_addr = 56;
+    hw_iic_dev iic_dev = HW_IIC_0;
 #else
     log_info("**********************soft iic test*************************\n");
     u8 eeprom_reg_addr = 64;
+    soft_iic_dev iic_dev = 0;
 #endif
-    enum iic_state_enum iic_init_state = iic_init(0, &iic_config_test);
+    enum iic_state_enum iic_init_state = iic_init(iic_dev, &iic_config_test);
     if (iic_init_state == IIC_OK) {
-        log_info("iic master init ok");
+        log_info("iic(%d) master init ok", iic_dev);
     } else {
-        log_error("iic master init fail");
+        log_error("iic(%d) master init fail", iic_dev);
         return;
     }
 
@@ -59,15 +63,15 @@ void iic_master_polling_test()
         eeprom_wbuf[i] = i % 26 + 'a';
         eeprom_rbuf[i] = 0;
     }
-    eeprom_ret_len = i2c_master_read_nbytes_from_device_reg(0, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_rbuf, 31);
-    log_info("%s", eeprom_rbuf);
+    eeprom_ret_len = i2c_master_read_nbytes_from_device_reg(iic_dev, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_rbuf, 31);
+    log_info("%s,len:%d", eeprom_rbuf, eeprom_ret_len);
     memset(eeprom_rbuf, 0, 32);
     mdelay(20);
     //cppcheck-suppress redundantAssignment
     eeprom_ret_len = 0;
     puts(">>>> write in\n");
     while ((eeprom_ret_len != 8) && (--eeprom_retry_cnt)) {
-        eeprom_ret_len = i2c_master_write_nbytes_to_device_reg(0, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_wbuf, 8);
+        eeprom_ret_len = i2c_master_write_nbytes_to_device_reg(iic_dev, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_wbuf, 8);
     }
     puts("<<<< write out\n");
     eeprom_retry_cnt = 10;
@@ -75,14 +79,14 @@ void iic_master_polling_test()
     eeprom_ret_len = 0;
     puts(">>>> read in\n");
     while ((eeprom_ret_len != 31) && (--eeprom_retry_cnt)) {
-        eeprom_ret_len = i2c_master_read_nbytes_from_device_reg(0, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_rbuf, 31);
+        eeprom_ret_len = i2c_master_read_nbytes_from_device_reg(iic_dev, eeprom_dev_addr, &eeprom_reg_addr, 1, eeprom_rbuf, 31);
     }
     puts("<<<< read out\n");
-    iic_init_state = iic_uninit(0);
+    iic_init_state = iic_deinit(iic_dev);
     if (iic_init_state == IIC_OK) {
-        log_info("iic master uninit ok");
+        log_info("iic(%d) master uninit ok", iic_dev);
     } else {
-        log_error("iic master uninit fail");
+        log_error("iic(%d) master uninit fail", iic_dev);
     }
 
     log_info_hexdump(eeprom_rbuf, 32);

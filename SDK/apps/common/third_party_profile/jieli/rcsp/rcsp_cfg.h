@@ -24,6 +24,10 @@ RCSP_BTMATE_EN
 // 没有开启rcsp协议
 #if (!defined(RCSP_MODE) || (RCSP_MODE == 0))
 
+#ifdef OTA_TWS_SAME_TIME_ENABLE
+#undef OTA_TWS_SAME_TIME_ENABLE
+#endif
+
 #define OTA_TWS_SAME_TIME_ENABLE     							0
 #define RCSP_UPDATE_EN               							0
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
@@ -55,24 +59,38 @@ RCSP_BTMATE_EN
 #define RCSP_UPDATE_EN		         							1		//是否支持rcsp升级
 #define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
 #define UPDATE_MD5_ENABLE            							1		//升级是否支持MD5校验
-#define RCSP_FILE_OPT				 							0
+#define RCSP_FILE_OPT				 						    1
 #define TCFG_BS_DEV_PATH_EN			 							1
 #define RCSP_APP_RTC_EN											1		// 闹钟功能
+
+#if TCFG_APP_RTC_EN
+// 0 - 旧闹钟，只支持提示音闹铃
+// 1 - 新闹钟，可选择提示音或者设备音乐作为闹铃
+#define CUR_RTC_ALARM_MODE										1
+#endif
 
 // 默认的功能模块使能
 #define RCSP_ADV_NAME_SET_ENABLE        						1		// 蓝牙名设置
 #define RCSP_ADV_KEY_SET_ENABLE         						0		// 按键设置
-#define RCSP_ADV_LED_SET_ENABLE         						1		// 灯光设置
+#define RCSP_ADV_LED_SET_ENABLE         						0		// 灯光设置
 #define RCSP_ADV_MIC_SET_ENABLE         						0		// mic设置
 #define RCSP_ADV_WORK_SET_ENABLE        						0		// 模式设置（游戏模式）
-#define RCSP_ADV_EQ_SET_ENABLE          						0		// eq设置
+#define RCSP_ADV_EQ_SET_ENABLE          						1		// eq设置
 #define RCSP_ADV_MUSIC_INFO_ENABLE      						1		// 音乐信息设置
 #define RCSP_ADV_HIGH_LOW_SET									1		// 高低音设置
 #define RCSP_ADV_FIND_DEVICE_ENABLE     						1		// 查找设备设置
 #define RCSP_ADV_PRODUCT_MSG_ENABLE     						1		// 获取产品信息
-#define RCSP_ADV_COLOR_LED_SET_ENABLE   						1		// 彩灯设置
+#define RCSP_ADV_COLOR_LED_SET_ENABLE   						0		// 彩灯设置
 #define RCSP_ADV_KARAOKE_SET_ENABLE								0		// 卡拉OK设置
 #define RCSP_ADV_KARAOKE_EQ_SET_ENABLE							0		// 卡拉OK EQ设置
+
+// 混响相关功能
+#define RCSP_REVERBERATION_SETTING							    0
+#define RCSP_DRC_VAL_SETTING								    0
+#define RCSP_KARAOKE_SOUND_EFFECT								0
+#define RCSP_KARAOKE_ATMOSPHERE									0
+#define RCSP_KARAOKE_SOUND_PARAM								0
+
 
 #else  // !RCSP_BLE_MASTER
 

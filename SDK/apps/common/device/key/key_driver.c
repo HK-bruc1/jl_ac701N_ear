@@ -7,6 +7,7 @@
 #include "system/timer.h"
 #include "asm/power_interface.h"
 #include "key_driver.h"
+#include "generic/jiffies.h"
 
 #define LOG_TAG             "[KEY]"
 #define LOG_ERROR_ENABLE
@@ -42,7 +43,7 @@ static void key_driver_scan(void *key_ops)
 
     key.init = 1;
     //区分按键类型
-    key.type = scan_para->key_type;
+    key.type = key_handler->key_type;
 
     cur_key_value = key_handler->get_value();
 
@@ -54,7 +55,7 @@ static void key_driver_scan(void *key_ops)
     }
     //===== 按键消抖处理
     //当前按键值与上一次按键值如果不相等, 重新消抖处理, 注意filter_time != 0;
-    if (cur_key_value != scan_para->filter_value && scan_para->filter_time) {
+    if (cur_key_value != scan_para->filter_value && key_handler->filter_time) {
         //消抖次数清0, 重新开始消抖
         scan_para->filter_cnt = 0;
         //记录上一次的按键值
@@ -63,7 +64,7 @@ static void key_driver_scan(void *key_ops)
         return;
     }
     //当前按键值与上一次按键值相等, filter_cnt开始累加
-    if (scan_para->filter_cnt < scan_para->filter_time) {
+    if (scan_para->filter_cnt < key_handler->filter_time) {
         scan_para->filter_cnt++;
         return;
     }
@@ -72,7 +73,7 @@ static void key_driver_scan(void *key_ops)
     if (cur_key_value != scan_para->last_key) {
         if (cur_key_value == NO_KEY) {
             //cur_key = NO_KEY; last_key = valid_key -> 按键被抬起
-            if (scan_para->press_cnt >= scan_para->long_time) {
+            if (scan_para->press_cnt >= key_handler->long_time) {
                 //长按/HOLD状态之后被按键抬起;
                 key_event = KEY_ACTION_UP;
                 key_value = scan_para->last_key;
@@ -86,7 +87,6 @@ static void key_driver_scan(void *key_ops)
         } else {
             //cur_key = valid_key, last_key = NO_KEY -> 按键被按下
             scan_para->press_cnt = 1;   //用于判断long和hold事件的计数器重新开始计时;
-            scan_para->press_sum_cnt = 1;
             scan_para->click_delay_cnt = 0;
 
             key_down_event_handler(cur_key_value);
@@ -99,7 +99,7 @@ static void key_driver_scan(void *key_ops)
             //last_key = NO_KEY; cur_key = NO_KEY -> 没有按键按下
             if (scan_para->click_delay_cnt > 0) {
                 scan_para->click_delay_cnt++;
-                if (scan_para->click_delay_cnt > scan_para->click_delay_time) {
+                if (scan_para->click_delay_cnt > key_handler->click_delay_time) {
                     key_event = KEY_ACTION_NO_KEY;
                     scan_para->click_delay_cnt = 0;
                     goto __notify;   //有按键需要消息需要处理
@@ -109,14 +109,11 @@ static void key_driver_scan(void *key_ops)
         } else {
             //last_key = valid_key; cur_key = valid_key, press_cnt累加用于判断long和hold
             scan_para->press_cnt++;
-            if (scan_para->press_sum_cnt) {
-                scan_para->press_sum_cnt++;
-            }
-            if (scan_para->press_cnt == scan_para->long_time) {
+            if (scan_para->press_cnt == key_handler->long_time) {
                 key_event = KEY_ACTION_LONG;
-            } else if (scan_para->press_cnt >= scan_para->hold_time) {
+            } else if (scan_para->press_cnt >= key_handler->hold_time) {
                 key_event = KEY_ACTION_HOLD;
-                scan_para->press_cnt = scan_para->long_time;
+                scan_para->press_cnt = key_handler->long_time;
             } else {
                 goto __scan_end; //press_cnt没到长按和HOLD次数, 返回
             }
@@ -128,7 +125,7 @@ static void key_driver_scan(void *key_ops)
 __notify:
     key.event = key_event;
     key.value = key_value;
-    key.tmr = sys_timer_get_ms();
+    key.tmr = jiffies_to_msecs(jiffies);
     /* printf("key_value: 0x%x, event: %d\n", key_value, key_event); */
     key_event_handler(&key);
 __scan_end:
@@ -158,11 +155,14 @@ void key_driver_init(void)
 {
     const struct key_driver_ops *key;
     list_for_each_key(key) {
+        if (key->param) {
+            key->param->last_key = NO_KEY;
+        }
         if (!key->key_init) {
             continue;
         }
         if ((!key->key_init()) && key->get_value) {
-            sys_s_hi_timer_add((void *)key, key_driver_scan, key->param->scan_time); //注册按键扫描定时器
+            sys_s_hi_timer_add((void *)key, key_driver_scan, key->scan_time); //注册按键扫描定时器
             if (key->idle_query_en) {
                 g_key_idle_query_en = true;
             }

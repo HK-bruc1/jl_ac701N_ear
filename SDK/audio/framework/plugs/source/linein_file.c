@@ -5,7 +5,7 @@
 #pragma code_seg(".linein_file.text")
 #endif
 #include "source_node.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "media/audio_splicing.h"
 #include "linein_file.h"
 #include "effects/effects_adj.h"
@@ -231,12 +231,6 @@ static int linein_ioctl(void *_hdl, int cmd, int arg)
         break;
     case NODE_IOC_SET_PRIV_FMT:
         hdl->irq_points = arg;
-        if (!adc_hdl.hw_buf) {
-            hdl->adc_buf = zalloc(LINEIN_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * adc_hdl.max_adc_num);
-        }
-        if (!hdl->adc_buf) {
-            ret = -1;
-        }
         adc_file_log("adc_buf points %d\n", hdl->irq_points);
         break;
     case NODE_IOC_START:
@@ -281,9 +275,7 @@ static int linein_ioctl(void *_hdl, int cmd, int arg)
         if (hdl->start) {
             hdl->start = 0;
             audio_adc_linein_close(&hdl->linein_ch);
-            if (!adc_hdl.hw_buf) {
-                hdl->adc_buf = NULL; //在adc 驱动中释放了这个buffer
-            }
+            hdl->adc_buf = NULL; //在adc 驱动中释放了这个buffer
             audio_adc_del_output_handler(&adc_hdl, &hdl->adc_output);
         }
         break;

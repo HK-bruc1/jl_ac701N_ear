@@ -11,6 +11,7 @@ typedef struct __PLATE_REVERB_FUNC_API_ {
 } PLATE_REVERB0_FUNC_API;
 
 extern PLATE_REVERB0_FUNC_API *get_plate_reverb_func_api();
+extern PLATE_REVERB0_FUNC_API *get_plate_reverb_24_16_func_api();
 extern PLATE_REVERB0_FUNC_API *get_plate_reverb_func_api_mask();
 extern PLATE_REVERB0_FUNC_API *get_plate_reverb_adv_func_api();
 extern PLATE_REVERB0_FUNC_API *get_plate_reverb_adv24_16_func_api();  //24bit的时候，湿声精度只有16bit的 ，buf比实际24bit少

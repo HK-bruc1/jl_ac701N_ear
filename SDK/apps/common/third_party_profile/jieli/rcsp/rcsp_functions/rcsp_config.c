@@ -100,6 +100,14 @@ void rcsp_config(struct RcspModel *rcspModel)
     rcspModel->function_mask |= BIT(COLOR_LED_MASK);
 #endif
 
+#if TCFG_APP_SPDIF_EN
+    rcspModel->function_mask |= BIT(SPDIF_FUNCTION_MASK);
+#endif
+
+#if 0//(TCFG_APP_PC_EN && TCFG_USB_SLAVE_AUDIO_SPK_ENABLE)
+    rcspModel->function_mask |= BIT(PC_FUNCTION_MASK);
+#endif
+
 #if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN)
     rcspModel->music_icon_mask = DEV_ICON_ALL_DISPLAY
                                  | BIT(USB_ICON_DISPLAY)

@@ -3,6 +3,7 @@
 
 
 #include "generic/printf.h"
+#include "dlog.h"
 
 #define   __LOG_VERB      0
 #define   __LOG_DEBUG     1

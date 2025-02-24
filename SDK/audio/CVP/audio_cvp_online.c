@@ -14,6 +14,7 @@
 #include "cvp_node.h"
 #include "app_main.h"
 #include "adc_file.h"
+#include "audio_cvp.h"
 
 #if 1
 extern void put_float(double fv);
@@ -23,6 +24,137 @@ extern void put_float(double fv);
 #define AEC_ONLINE_LOG(...)
 #define AEC_ONLINE_FLOG(...)
 #endif
+
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
+const int const_audio_cvp_debug_online_enable = 1;
+#else
+const int const_audio_cvp_debug_online_enable = 0;
+#endif
+
+/*fb eq工具参数结构体*/
+struct dns_coeff_data_handle {
+    u16 data_len;
+    u8 mic_mode : 4;    //算法类型,1:2mic,2:3mic，暂时没有使用
+    u8 eq_sel : 2;      //0:eq曲线，1:参考线
+    u8 bypass : 2;      //暂时没有使用
+    u8 reserved1;
+    u16 fft_points;     //fft点数，256/512
+    u16 sample_rate;    //采样率，8000/16000
+    u8 data[0];         //参考线数据/eq数据/中心点数据
+};
+
+#if (TCFG_CFG_TOOL_ENABLE)
+/*
+*********************************************************************
+*                  dns_coeff_param_updata
+* Description: fb eq 参数在线更新
+* Arguments  : coeff_file   文件路径
+*			   data	        数据地址
+*			   len		    数据长度
+* Return	 : 0 成功 其他 失败
+* Note(s)    : null
+*********************************************************************
+*/
+int dns_coeff_param_updata(const char *coeff_file, void *data, int len)
+{
+    int coeff_len;
+    struct dns_coeff_data_handle *data_hdl = (struct dns_coeff_data_handle *)data;//zalloc(param_len);
+    printf("dns_coeff_param_updata");
+    /*在线调试的时候直接更新eq参数*/
+    if (!audio_aec_status()) {
+        printf("[error] aec is close !!!");
+        return -1;
+    }
+    if (!data) {
+        printf("[error] online data is NULL !!!");
+        return -1;
+    }
+    if (data_hdl->data_len != len) {
+        printf("[error] data_len[%d != %d] err !!!", data_hdl->data_len, len);
+        return -1;
+    }
+    coeff_len = ((data_hdl->fft_points >> 1) + 1) * sizeof(float);
+    printf("coeff_len %d", coeff_len);
+    printf("mic_mode %d, eq_sel %d , bypass: %d, fft_points %d, sample_rate %d",
+           data_hdl->mic_mode, data_hdl->eq_sel, data_hdl->bypass, data_hdl->fft_points, data_hdl->sample_rate);
+
+#if TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE
+    //在线更新fb eq曲线参数
+    /* jlsp_dms_hybrid_set_fbeq((float *)data_hdl->data, coeff_len); */
+    //在线更新talk eq曲线参数
+    /* jlsp_dms_hybrid_set_talkeq((float *)data_hdl->data, coeff_len); */
+#elif TCFG_AUDIO_CVP_3MIC_MODE
+    /* jlsp_tms_set_fbeq((float *)data_hdl->data, coeff_len); */
+    /* jlsp_tms_set_talkeq((float *)data_hdl->data, coeff_len); */
+#endif
+
+    return 0;
+}
+#endif
+
+/*
+*********************************************************************
+*                  read_dns_coeff_param
+* Description: fb eq 参数文件读取
+* Arguments  : coeff_file   文件路径
+* Return	 : 成功返回数据地址,失败返回null
+* Note(s)    : null
+*********************************************************************
+*/
+void *read_dns_coeff_param(const char *coeff_file)
+{
+    RESFILE *fp = NULL;
+    int coeff_len, len;
+    struct dns_coeff_data_handle *data_hdl = NULL;
+    printf("read_dns_fb_coeff_param");
+    //===============================//
+    //          打开参数文件         //
+    //===============================//
+    fp = resfile_open(coeff_file);
+    if (!fp) {
+        printf("[error] open %s fail !!!", coeff_file);
+        return NULL;
+    }
+    len = resfile_get_len(fp);
+    if (len) {
+        data_hdl = NULL;
+        data_hdl = zalloc(len);
+    }
+    if (data_hdl == NULL) {
+        printf("[error] zalloc err !!!");
+        resfile_close(fp);
+        return NULL;
+    }
+
+    int rlen = resfile_read(fp, data_hdl, len);
+    if (rlen != len) {
+        printf("[error] read DNSFB_Coeff.bin err !!! %d =! %d", rlen, len);
+        resfile_close(fp);
+        return NULL;
+    }
+    resfile_close(fp);
+    printf("mic_mode %d, eq_sel %d , bypass: %d, fft_points %d, sample_rate %d",
+           data_hdl->mic_mode, data_hdl->eq_sel, data_hdl->bypass, data_hdl->fft_points, data_hdl->sample_rate);
+
+    coeff_len = ((data_hdl->fft_points >> 1) + 1) * sizeof(float);
+    printf("coeff_len %d", coeff_len);
+    void *TransferFunc = zalloc(coeff_len);
+
+    if (data_hdl->eq_sel) {
+        /*参考线数据*/
+        memcpy(TransferFunc, data_hdl->data, coeff_len);
+    } else {
+        /*eq曲线数据*/
+        memcpy(TransferFunc, data_hdl->data + coeff_len, coeff_len);
+    }
+    /* printf("\n\n\n ref data ==============================="); */
+    /* put_buf(data_hdl->data, coeff_len); */
+    /* printf("\n\n\n eq data ==============================="); */
+    /* put_buf(data_hdl->data + coeff_len, coeff_len); */
+    free(data_hdl);
+    return TransferFunc;
+
+}
 
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
 

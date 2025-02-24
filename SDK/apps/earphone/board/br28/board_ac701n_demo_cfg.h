@@ -503,6 +503,8 @@
 //#define TCFG_CHARGE_MA						CHARGE_mA_50
 /*涓流充电电流配置*/
 //#define TCFG_CHARGE_TRICKLE_MA              CHARGE_mA_10
+//是否支持满电电压为参考电压,重新划分电量等级,优化电池电量检测。
+#define TCFG_REFERENCE_V_ENABLE                (DISABLE && TCFG_CHARGE_ENABLE)
 
 //*********************************************************************************//
 //                                  LED 配置                                       //

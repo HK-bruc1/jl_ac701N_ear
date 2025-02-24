@@ -13,24 +13,26 @@
 #define WRITE_MODE_FORCE            1
 
 struct audio_cfifo {
+    u8 bit_wide;
+    u8 data_saturation_disable;/*fifo数据饱和处理*/
     u8 sample_channel;          /*fifo采样声道数*/
-    s16 *addr;                  /*fifo首地址*/
     u16 sample_size;            /*fifo采样长度*/
     u16 wp;                     /*fifo写偏移*/
     u16 rp;                     /*fifo读偏移*/
     u16 lock_rp;                /*fifo不可擦写的已读偏移*/
     u16 free_samples;           /*fifo可写入样点个数*/
     s16 unread_samples;         /*fifo未读样点个数*/
+    s16 *addr;                  /*fifo首地址*/
     int sample_rate;            /*fifo对应的音频采样率*/
     u32 sw_ptr;
     u32 hw_ptr;
     struct list_head head;      /*子通道数据链表头*/
     spinlock_t lock;
-    u8 bit_wide;
 };
 
 struct audio_cfifo_channel {
-    u8  write_mode;             /*写入模式*/
+    u8 bit_wide;
+    u8 write_mode;             /*写入模式*/
     u16 delay_time;             /*最大延时(ms)*/
     u16 rsp;                    /*读偏移*/
     u16 wsp;                    /*写偏移*/
@@ -40,7 +42,6 @@ struct audio_cfifo_channel {
     u32 hw_ptr;
     struct audio_cfifo *fifo;   /*主fifo指针*/
     struct list_head entry;     /*通道接入entry*/
-    u8 bit_wide;
 };
 
 /*************************************************************************
@@ -101,21 +102,15 @@ int audio_cfifo_read_update(struct audio_cfifo *fifo, int samples);
 
 /*************************************************************************
  * fifo子通道数据写入
- * INPUT    :  ch - fifo子通道, data - 数据指针, len - 数据长度
+ * INPUT    :  ch - fifo子通道, data - 数据指针, len - 数据长度,
+ *             fixed_data - 固定数据(直流数据，要求data为单一的值)
  * OUTPUT   :  写入fifo的长度.
  * WARNINGS :  强制写入模式无论是否可以写入都将返回预期写入长度.
- * HISTORY  :  2020/12/28 by Lichao.
+ * HISTORY  :  2020/12/28 by Lichao
+ *             2024/12/18 merge fixed data write.
  *=======================================================================*/
-int audio_cfifo_channel_write(struct audio_cfifo_channel *ch, void *data, int len);
+int audio_cfifo_channel_write(struct audio_cfifo_channel *ch, void *data, int len, u8 fixed_data);
 
-/*************************************************************************
- * fifo子通道写入直流数据
- * INPUT    :  ch - fifo子通道, data - 直流值, len - 长度
- * OUTPUT   :  写入fifo的长度.
- * WARNINGS :  强制写入模式无论是否可以写入都将返回预期写入长度.
- * HISTORY  :  2020/12/28 by Lichao.
- *=======================================================================*/
-int audio_cfifo_channel_write_fixed_data(struct audio_cfifo_channel *ch, s16 data, int len);
 
 /*************************************************************************
  * fifo子通道擦除

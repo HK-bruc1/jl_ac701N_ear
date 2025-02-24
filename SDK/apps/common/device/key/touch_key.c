@@ -18,15 +18,7 @@
 static const struct touch_key_platform_data *__this = NULL;
 
 //按键驱动扫描参数列表
-struct key_driver_para touch_key_scan_para = {
-    .last_key 		  = NO_KEY,  		//上一次get_value按键值, 初始化为NO_KEY;
-    .key_type		  = KEY_DRIVER_TYPE_TOUCH,
-    .filter_time  	  = 1,				//按键消抖延时;
-    .long_time 		  = 75,  			//按键判定长按数量
-    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
-    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
-    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
-};
+struct key_driver_para touch_key_scan_para;
 
 #define TOUCH_KEY_DEBUG 		0
 
@@ -59,6 +51,12 @@ int touch_key_init(void)
 }
 
 REGISTER_KEY_OPS(touch_key) = {
+    .key_type		  = KEY_DRIVER_TYPE_TOUCH,
+    .filter_time  	  = 1,				//按键消抖延时;
+    .long_time 		  = 75,  			//按键判定长按数量
+    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
+    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
+    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
     .param            = &touch_key_scan_para,
     .get_value 		  = touch_key_get_value,
     .key_init         = touch_key_init,

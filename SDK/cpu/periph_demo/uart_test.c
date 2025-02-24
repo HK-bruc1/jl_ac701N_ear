@@ -41,7 +41,7 @@ void uart_sync_demo(void *p)
     void *uart_rx_ptr = dma_malloc(768);
 
     const struct uart_dma_config dma = {
-        .rx_timeout_thresh = 100,//us,需大于1byte时间
+        .rx_timeout_thresh = 3 * 10000000 / config.baud_rate, //单位:us,公式：3*10000000/baud(ot:3个byte时间)
         .event_mask = UART_EVENT_TX_DONE | UART_EVENT_RX_FIFO_OVF | UART_EVENT_RX_TIMEOUT,
         .irq_priority = 3,
         .irq_callback = uart_irq_func,
@@ -50,19 +50,20 @@ void uart_sync_demo(void *p)
         .frame_size = 768,//=rx_cbuffer_size
     };
 
+    printf("************uart demo***********\n");
     int r;
     uart_dev uart_id = 1;
     int ut = uart_init(uart_id, &config);
     if (ut < 0) {
-        printf("init error %d", ut);
+        printf("uart(%d) init error\n", ut);
     } else {
-        printf("init ok %d", ut);
+        printf("uart(%d) init ok\n", ut);
     }
     r = uart_dma_init(uart_id, &dma);
     if (r < 0) {
-        printf("dma init error %d", ut);
+        printf("uart(%d) dma init error\n", ut);
     } else {
-        printf("dma init ok %d", ut);
+        printf("uart(%d) dma init ok\n", ut);
     }
 
     uart_dump();

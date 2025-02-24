@@ -28,6 +28,7 @@ enum nec_data_type {
     NEC_REPEAT,
 };
 struct ir_decode_t {
+    u32 capture_prd;
     u32 jiffies; //记录当前系统时间
     u32 ir_data; //存储接收到的红外数据,4*8bit = (cmd_not + cmd +addr_not + addr)
     u8 capture_tid; //用于捕获功能的tiemr_id
@@ -88,10 +89,23 @@ static void ir_decoder_bit_count_check()
         log_debug("ir_data:0x%08x, command_count:%d\n", ir_decode->ir_data, ir_decode->command_count);
     }
 }
+static u32 ir_decoder_capture_timeus(tid)
+{
+    u32 prd;
+    u32 prd_cur = gptimer_get_prd(tid);
+    if (prd_cur >= ir_decode->capture_prd) {
+        prd = prd_cur - ir_decode->capture_prd;
+    } else {
+        prd = prd_cur - ir_decode->capture_prd + TIMER_PRD_SIZE;
+    }
+    ir_decode->capture_prd = prd_cur;
+    return gptimer_tick2us(tid, prd);
+}
 
 static void ir_decode_irq(u32 tid, void *arg)
 {
-    u32 us = gptimer_get_capture_cnt2us(tid);
+    /* u32 us = gptimer_get_capture_cnt2us(tid); */
+    u32 us = ir_decoder_capture_timeus(tid);
     //超时或第一个边沿直接退出
     if (jiffies_timeout_check()) {
         return;
@@ -126,6 +140,7 @@ void ir_decoder_init(const struct gptimer_config *gt_cfg)
 {
     log_info("%s()\n", __func__);
     memset(ir_decode, 0, sizeof(struct ir_decode_t));
+    ir_decode->capture_prd = 0;
     ir_decode->jiffies = get_cur_jiffies();
 #ifdef TCFG_IR_DECODER_TID
     ir_decode->capture_tid = gptimer_init(TCFG_IR_DECODER_TID, gt_cfg); //用户配置固定timer

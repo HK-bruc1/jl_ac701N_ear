@@ -133,3 +133,4 @@ const struct touch_key_cfg lp_touch_key_table [] =  {
         }
     }
 };
+

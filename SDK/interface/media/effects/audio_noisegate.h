@@ -1,7 +1,6 @@
 #ifndef __AUDIO_NOISEGATE_API_H
 #define __AUDIO_NOISEGATE_API_H
 
-#include "media/audio_stream.h"
 #include "effects/noisegate_api.h"
 
 

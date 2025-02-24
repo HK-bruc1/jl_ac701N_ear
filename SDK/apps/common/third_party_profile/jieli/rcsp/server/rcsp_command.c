@@ -21,7 +21,7 @@
 #if RCSP_MODE == RCSP_MODE_EARPHONE
 #include "app_tone.h"
 #include "tone_player.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #endif
 
 #if (RCSP_MODE)

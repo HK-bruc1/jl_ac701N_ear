@@ -1,8 +1,8 @@
 #ifndef SPECTRUM_FFT_API_H
 #define SPECTRUM_FFT_API_H
 
+#include "generic/typedef.h"
 #include "effects/spectrum/SpectrumShow_api.h"
-#include "media/audio_stream.h"
 
 #define SET_SPECTRUM_HANDLER 0xab
 typedef struct _spectrumEffect_TOOL_SET {

@@ -11,9 +11,15 @@ struct audio_general_params {
     u8 usb_audio_bit_width;
 };
 
+struct audio_dac_noisegate {
+    u8 threshold;			//底噪阈值，pcm数据绝对值
+    u16 detect_interval;	//检测间隔，单位ms
+};
+
 struct audio_general_params *audio_general_get_param(void);
 int audio_general_out_dev_bit_width();
 int audio_general_in_dev_bit_width();
 int audio_general_init();
+int audio_general_set_global_sample_rate(int sample_rate);
 
 #endif

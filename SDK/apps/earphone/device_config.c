@@ -9,6 +9,7 @@
 #include "app_config.h"
 #include "asm/sdmmc.h"
 #include "linein_dev.h"
+#include "usb/host/usb_storage.h"
 
 #if TCFG_SD0_ENABLE
 SD0_PLATFORM_DATA_BEGIN(sd0_data) = {

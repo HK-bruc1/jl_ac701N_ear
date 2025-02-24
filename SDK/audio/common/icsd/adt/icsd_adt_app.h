@@ -4,7 +4,6 @@
 #include "typedef.h"
 #include "icsd_anc_user.h"
 #include "asm/anc.h"
-// #include "icsd_adt_client_board.h"
 
 #define SPEAK_TO_CHAT_TASK_NAME     "speak_to_chat"
 
@@ -34,6 +33,7 @@ enum {
     ANC_WIND_NOISE_LVL3,
     ANC_WIND_NOISE_LVL4,
     ANC_WIND_NOISE_LVL5,
+    ANC_WIND_NOISE_LVL_MAX,
 };
 
 enum {
@@ -44,10 +44,17 @@ enum {
 
 enum {
     ADT_MODE_CLOSE = 0,
-    ADT_SPEAK_TO_CHAT_MODE = BIT(0), //智能免摘
-    ADT_WIND_NOISE_DET_MODE = BIT(1),//风噪检测
-    ADT_WIDE_AREA_TAP_MODE = BIT(2), //广域点击
+    ADT_SPEAK_TO_CHAT_MODE = BIT(0), 			//智能免摘
+    ADT_WIND_NOISE_DET_MODE = BIT(1),			//风噪检测
+    ADT_WIDE_AREA_TAP_MODE = BIT(2), 			//广域点击
+    ADT_ENVIRONMENT_DET_MODE = BIT(3), 			// 环境声检测
+    ADT_REAL_TIME_ADAPTIVE_ANC_MODE = BIT(4), 	// RT_ANC
+    ADT_EAR_IN_DETCET_MODE = BIT(5), 			// 入耳检测
+    ADT_ADAPTIVE_VOLUME_MODE = BIT(6), 			// 自适应音量
 };
+
+#define ADT_ALL_FUNCTION_ENABLE		ADT_SPEAK_TO_CHAT_MODE | ADT_WIDE_AREA_TAP_MODE | \
+ADT_ENVIRONMENT_DET_MODE | ADT_REAL_TIME_ADAPTIVE_ANC_MODE
 
 enum {
     /*任务消息*/
@@ -189,7 +196,6 @@ void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_resu
 /*设置ADT 通透模式下的FB/CMP 参数*/
 void audio_icsd_adt_trans_fb_param_set(audio_anc_t *param);
 
-extern void set_anc_adt_state(u8 state);
 extern void *get_anc_lfb_coeff();
 extern void *get_anc_lff_coeff();
 extern void *get_anc_ltrans_coeff();

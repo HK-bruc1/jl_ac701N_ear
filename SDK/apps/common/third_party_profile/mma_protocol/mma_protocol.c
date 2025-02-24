@@ -1,6 +1,6 @@
 #include "sdk_config.h"
 #include "app_msg.h"
-#include "earphone.h"
+//#include "earphone.h"
 #include "bt_tws.h"
 #include "app_main.h"
 #include "battery_manager.h"

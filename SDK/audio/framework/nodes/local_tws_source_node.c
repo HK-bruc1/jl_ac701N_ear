@@ -70,6 +70,22 @@ static int local_tws_pack_header(struct local_tws_source_context *ctx, void *dat
     return sizeof(header);
 }
 
+/***********该函数用于释放已经发送成功的buf*************/
+static void tws_api_data_trans_buf_free(struct local_tws_source_context *ctx)
+{
+    int tmp_len;
+    void *frame_buf;
+    while (1) {
+        frame_buf = tws_api_data_trans_pop(ctx->tws_channel, &tmp_len);
+        if (frame_buf) {
+            tws_api_data_trans_free(ctx->tws_channel, frame_buf);
+            /* r_printf("pop=%d\n", (u32)tmp_len); */
+        } else {
+            break;
+        }
+    }
+}
+
 static int local_tws_send_frame(struct local_tws_source_context *ctx, struct stream_frame *frame)
 {
     int offset = 0;
@@ -101,18 +117,10 @@ static int local_tws_send_frame(struct local_tws_source_context *ctx, struct str
 #endif
         tws_api_data_trans_push(ctx->tws_channel, ctx->packet, ctx->offset);
         ctx->packet = NULL;
-#if 1 //暂时使用这里对发送成功的数据删除
-        /* printf("send:%d,%d\n",wlen,ctx->packet_len); */
-        int tmp_len;
-        void *frame_buf = tws_api_data_trans_pop(ctx->tws_channel, &tmp_len);
-        if (frame_buf) {
-            tws_api_data_trans_free(ctx->tws_channel, frame_buf);
-            /* r_printf("pop=%d\n", (u32)tmp_len); */
-        }
-#endif
     }
 
 __exit:
+    tws_api_data_trans_buf_free(ctx);
     if (!ctx->send_start) {
         ctx->send_start = 1;
     }

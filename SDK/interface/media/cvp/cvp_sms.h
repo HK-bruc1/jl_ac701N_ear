@@ -112,6 +112,11 @@ struct aec_s_attr {
     float DNS_highGain;     //EQ强度   range[1.0:3.5]
     float DNS_rbRate;       //混响强度 range[0:0.9]
 
+    int AEC_Process_MaxFrequency;    //设定回声消除处理的最大频率，设定范围（3000~8000），默认值为8000
+    int AEC_Process_MinFrequency;    //设定回声消除处理的最小频率，设定范围（0~1000），默认值为0
+
+    int NLP_Process_MaxFrequency;    //设定回声抑制的最大频率，设定范围（3000~8000），默认值为8000
+    int NLP_Process_MinFrequency;    //设定回声抑制的最小频率，设定范围（0~1000），默认值为0
 };
 
 /*

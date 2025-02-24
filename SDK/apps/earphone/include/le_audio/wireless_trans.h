@@ -17,6 +17,7 @@
 /*  Include header */
 #include "big.h"
 #include "cig.h"
+#include "le_audio_stream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,6 +71,7 @@ struct connected_platform_data {
     u8 frame_len;
     u32 coding_type;
     u32 sample_rate;
+    u8 device_type;
 };
 
 struct le_audio_mode_ops {
@@ -144,6 +146,11 @@ int get_cig_tx_rtn(void);
 int get_cig_tx_delay(void);
 u8 get_cis_num(u8 role);
 void reset_cig_params(void);
+void set_unicast_lc3_info(u8 *date);
+u8 get_le_audio_jl_dongle_device_type();
+void set_le_audio_jl_dongle_device_type(u8 type);
+void get_decoder_params_fmt(struct le_audio_stream_format *fmt);
+void get_encoder_params_fmt(struct le_audio_stream_format *fmt);
 
 #ifdef __cplusplus
 };

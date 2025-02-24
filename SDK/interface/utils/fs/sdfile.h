@@ -163,5 +163,7 @@ int sdfile_init(void);
 
 u8 *sdfile_get_burn_code(u8 *len);
 
+int sdfile_get_the_flash_region_addr(const char *name, u32 *addr_begin, u32 *addr_end);
+
 #endif /* #ifndef __SDFILE_H__ */
 

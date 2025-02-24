@@ -642,6 +642,7 @@ int ll_hci_create_conn(u8 *conn_param, u8 *addr_param);
 int ll_hci_create_conn_ext(void *param);
 
 int ll_hci_create_conn_cancel(void);
+int ll_hci_read_remote_feature(u16 conn_handle);
 
 int ll_hci_vendor_send_key_num(u16 con_handle, u8 num);
 

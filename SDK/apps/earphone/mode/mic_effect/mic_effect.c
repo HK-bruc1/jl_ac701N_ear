@@ -84,7 +84,6 @@ int mic_effect_player_create(enum MIC_EFX_MODE mode)
         jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, HEARING_AID_MIC_IRQ_POINT_UNIT);
         //设置场景
         jlstream_set_scene(player->stream, STREAM_SCENE_HEARING_AID);
-        jlstream_node_ioctl(player->stream, NODE_UUID_VOCAL_TRACK_SYNTHESIS, NODE_IOC_SET_PRIV_FMT, HEARING_AID_MIC_IRQ_POINT_UNIT);
     } else {
         jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, mic_irq_point_unit);
         jlstream_set_scene(player->stream, STREAM_SCENE_MIC_EFFECT);

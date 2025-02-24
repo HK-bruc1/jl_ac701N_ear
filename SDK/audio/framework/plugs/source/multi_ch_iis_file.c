@@ -4,7 +4,7 @@
 #include "jlstream.h"
 #include "iis_file.h"
 #include "app_config.h"
-#include "audio_iis.h"
+#include "media/audio_iis.h"
 #include "sync/audio_clk_sync.h"
 #include "gpio.h"
 #include "audio_config.h"
@@ -269,10 +269,9 @@ static void iis_rx_init(struct iis_file_hdl *hdl)
     jlstream_read_node_data_by_cfg_index(hdl->plug_uuid, hdl->node->subid, 0, (void *)&hdl->attr, NULL);
 
     if (!iis_hdl[hdl->module_idx]) {
-        int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, 2);
         struct alink_param aparams = {0};
         aparams.module_idx = hdl->module_idx;
-        aparams.dma_size   = dma_len;
+        aparams.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, IIS_CH_NUM, AUDIO_DAC_MAX_SAMPLE_RATE);
         aparams.sr         = hdl->sample_rate;
         aparams.bit_width  = hdl->bit_width;
         iis_hdl[hdl->module_idx] = audio_iis_init(aparams);

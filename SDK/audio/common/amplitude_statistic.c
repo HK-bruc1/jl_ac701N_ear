@@ -174,6 +174,115 @@ void loudness_meter_short(LOUDNESS_M_STRUCT *loud_obj, short *data, int len)
     }
 }
 
+void loudness_meter_24bit(LOUDNESS_M_STRUCT *loud_obj, int *data, int len)
+{
+    int i;
+    s16 data_s16;
+    for (i = 0; i < len; i++) {
+        data_s16 = data[i] >> 8;
+        int tmp = data_s16 * 256;
+        loud_obj->dclevel = (loud_obj->dclevel * 511 + tmp) >> 9;
+
+        int xabs = (data_s16 > 0) ? data_s16 : (-data_s16);
+        int xabs2 = (xabs * xabs) >> 10;
+        loud_obj->rms += xabs2;
+        loud_obj->maxval = (loud_obj->maxval > xabs) ? loud_obj->maxval : xabs;
+
+        if (xabs >= 32767) {
+            loud_obj->errprintfcount0++;
+        }
+
+        loud_obj->counti++;
+        if (loud_obj->counti > loud_obj->countperiod) {
+            if (loud_obj->maxval_print < loud_obj->maxval) {
+                loud_obj->maxval_print = loud_obj->maxval;
+            }
+
+            if (loud_obj->rms_print < loud_obj->rms) {
+                loud_obj->rms_print = loud_obj->rms;
+            }
+
+            loud_obj->counti = 0;
+            loud_obj->maxval = 0;
+            loud_obj->rms = 0;
+
+            if (loud_obj->errprintfcount0 > 2) {
+                loud_obj->errprintfcount0 = 0;
+                amplitude_log("[%d]overflow occur... \n", loud_obj->index);
+            }
+
+            loud_obj->print_cnt++;
+
+            if (loud_obj->print_cnt >= loud_obj->print_dest) {
+
+                int rmsval = ((__int64)loud_obj->rms_print * (__int64)loud_obj->inv_counterpreiod) >> (24 - (10 - 3));
+
+                if (rmsval > 25837266) {
+                    amplitude_log("[%d]energy  high... \n", loud_obj->index);
+                }
+
+                {
+                    int compi = 0, found = 0;;
+                    while (compi < 31) {
+                        if (rmsval >= rms_va_tab[compi]) {
+//							float  upval = (0 - compi) * 0.5;
+//							float  dwonval = (0 - compi - 1) * 0.5;
+//							amplitude_log("rms level: %f to %f dB\n", upval, dwonval);
+
+                            int  upval = (0 - compi);
+                            int  dwonval = (0 - compi - 1);
+
+                            amplitude_log("[%d]rms level: %d to %d dB\n", loud_obj->index, upval, dwonval);
+
+                            found = 1;
+                            break;
+                        }
+                        compi++;
+                    }
+
+                    if (found == 0) {
+                        amplitude_log("[%d]rms level < -30dB \n", loud_obj->index);
+                    }
+                }
+
+                {
+                    int compi = 0, found = 0;;
+                    while (compi < 31) {
+                        if (loud_obj->maxval_print >= am_va_tab[compi]) {
+//							float  upval = (0 - compi) * 0.5;
+//							float  dwonval = (0 - compi - 1) * 0.5;
+//							amplitude_log("peak level: %f to %f dB\n", upval, dwonval);
+                            int  upval = (0 - compi);
+                            int  dwonval = (0 - compi - 1);
+                            loud_obj->peak_val = dwonval;
+                            amplitude_log("[%d]peak level: %d to %d dB\n", loud_obj->index, upval, dwonval);
+
+                            found = 1;
+                            break;
+                        }
+
+                        compi++;
+                    }
+
+                    if (found == 0) {
+                        loud_obj->peak_val = -31;
+                        amplitude_log("[%d]peak level < -30dB \n", loud_obj->index);
+                    }
+                }
+
+                loud_obj->print_cnt = 0;
+                loud_obj->maxval_print = 0;
+                loud_obj->rms_print = 0;
+
+                if (loud_obj->dclevel > (255 * 256)) {
+                    amplitude_log("[%d] why ??? dc level : %d \n", loud_obj->index, loud_obj->dclevel >> 8);
+                }
+                amplitude_log("\n\n");
+            }
+        }
+    }
+}
+
 #if 0
 void loudness_meter_demo(void)
 {

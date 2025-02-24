@@ -43,6 +43,9 @@ typedef enum {
     NET_UFW_UPDATA,
     USER_NANDFLASH_UFW_UPDATA,
     TESTBOX_UART_UPDATA,
+    UPDIFF_FLASH_UPDATA,
+    COMBAK_FLASH_UPDATA,
+    DEV_UPDATA_MAX,
 
     NON_DEV = 0xFFFF,
 } UPDATA_TYPE;
@@ -159,6 +162,13 @@ u32 update_get_machine_num(u8 *buf, u32 len);
 void uart_update_set_retry_time(u32 time);
 int update_interactive_task_start(void *p, void (*update_set_addr_hdl)(u32), u8 task_en);
 
+/**
+ * @brief 判断是否在升级
+ *
+ * @result 0:不在升级 1:在升级
+ */
+u32 classic_update_task_exist_flag_get(void);
+
 typedef enum _UPDATE_STATE_T {
     UPDATE_TASK_INIT,
     UPDATE_CH_INIT,
@@ -182,5 +192,9 @@ extern const struct update_target update_target_end[];
 
 #define list_for_each_update_target(p) \
     for (p = update_target_begin; p < update_target_end; p++)
+
+u32 dual_bank_update_bp_info_get(void);
+void norflash_set_write_protect_en(void);
+void norflash_set_write_protect_remove(void);
 
 #endif

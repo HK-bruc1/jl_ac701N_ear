@@ -15,6 +15,11 @@
 #elif (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+#include "icsd_cmp_app.h"
+#endif
+
 #include "audio_anc_fade_ctr.h"
 
 /*******************ANC User Config***********************/
@@ -72,7 +77,7 @@
 
 #define ANC_EAR_ADAPTIVE_EN					TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN  /*ANC耳道自适应使能, 耳道是变量*/
 #define ANC_POWEOFF_SAVE_ADAPTIVE_DATA		1							    /*保存耳道自适应数据 0 每次保存；1 关机保存*/
-#define ANC_EAR_ADAPTIVE_CMP_EN				ANC_ADAPTIVE_CMP_EN				/*ANC耳道自适应音乐补偿使能*/
+#define ANC_EAR_ADAPTIVE_CMP_EN				TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN	/*ANC耳道自适应音乐补偿使能*/
 #define ANC_EAR_ADAPTIVE_EVERY_TIME			0                           	/*每次切ANC_ON都进行自适应*/
 
 /*
@@ -191,6 +196,7 @@ enum {
     ANC_MSG_DOT,
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
     ANC_MSG_AFQ_CMD,
+    ANC_MSG_46KOUT_DEMO,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -368,6 +374,9 @@ void audio_anc_dut_enable_set(u8 enablebit);
 /*设置fb  mic为复用mic*/
 void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
 
+/*获取fb mic复用MIC标志，左右耳有一个复用则认为被复用*/
+u8 audio_anc_mic_mana_fb_mult_get(void);
+
 /* 获取ANC MIC param 参数信息 */
 audio_adc_mic_mana_t *audio_anc_mic_param_get(void);
 
@@ -434,7 +443,6 @@ u8 get_anc_l_transyorder();
 void *get_anc_ltrans_fb_coeff();
 float get_anc_gains_lfb_transgain();
 u8 get_anc_lfb_transyorder();
-void set_anc_adt_state(u8 state);
 int anc_mode_change_tool(u8 dat);
 
 /*获取ANC alogm参数，type 滤波器类型 */

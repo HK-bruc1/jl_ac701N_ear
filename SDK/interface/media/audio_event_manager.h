@@ -5,8 +5,10 @@
 
 enum audio_lib_event {
     AUDIO_LIB_EVENT_DAC_LOWPOWER,
-    AUDIO_LIB_EVENT_VBG_TRIM_WTITE,
+    AUDIO_LIB_EVENT_VBG_TRIM_WRITE,
     AUDIO_LIB_EVENT_VBG_TRIM_READ,
+    AUDIO_LIB_EVENT_DACLDO_TRIM_WRITE,
+    AUDIO_LIB_EVENT_DACLDO_TRIM_READ,
 };
 
 int audio_event_notify(enum audio_lib_event event, void *priv, int arg);

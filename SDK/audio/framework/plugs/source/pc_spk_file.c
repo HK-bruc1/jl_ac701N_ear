@@ -38,20 +38,25 @@
 #define PC_SPK_ONLINE_DET_EN   1
 #define PC_SPK_ONLINE_DET_TIME 3		//50->20
 
+#define SPK_PUSH_FRAME_NUM 5 //SPK一次push的帧数，单位：uac rx中断间隔
+#define SPK_REPAIR_PACKET_ENABLE  0// pc_spk丢包修复使能,数据流内需在播放同步前接入plc node
+
 struct pc_spk_file_hdl {
     void *source_node;
     struct stream_node *node;
     struct stream_snode *snode;
     cbuffer_t spk_cache_cbuffer;
+    int sr;
+    u32 timestamp;
 #if PC_SPK_ONLINE_DET_EN
     u32 irq_cnt;		//进中断++，用来给定时器判断是否中断没有起
     u16 det_timer_id;
 #endif
-    int sr;
+    u16 prev_len;
     u8 *cache_buf;
     u8 start;
     u8 data_run;
-    u32 timestamp;
+    u8 repair_flag;
 };
 static struct pc_spk_file_hdl *pc_spk = NULL;
 
@@ -67,7 +72,7 @@ struct pc_spk_fmt_t pc_spk_fmt = {
     .bit = SPK_AUDIO_RES,
     .sample_rate = SPK_AUDIO_RATE,
 };
-#define SPK_PUSH_FRAME_NUM 5 //SPK一次push的帧数，单位：uac rx中断间隔
+
 
 static DEFINE_SPINLOCK(pc_spk_lock);
 
@@ -85,10 +90,21 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         }
         return;
     }
-
-    if (!hdl->start || !len) { //增加0长帧的过滤，避免引起后续节点的写异常
+    if (!hdl->start) {
         return;
     }
+#if SPK_REPAIR_PACKET_ENABLE
+    if (!len) {
+        hdl->repair_flag = 1;
+        len = hdl->prev_len;
+    } else {
+        hdl->prev_len = len;
+    }
+#else
+    if (!len) { //增加0长帧的过滤，避免引起后续节点的写异常
+        return;
+    }
+#endif
     struct stream_node  *source_node = hdl->source_node;
     if (!hdl->cache_buf) {
         int cache_buf_len = len * SPK_PUSH_FRAME_NUM * 4; //4块输出buf
@@ -119,9 +135,23 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
             return;
         }
         frame->len    = cache_len;
+#if 1
+        frame->flags        = FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_PERIOD_SAMPLE | FRAME_FLAG_UPDATE_TIMESTAMP;
+        frame->timestamp    = hdl->timestamp * TIMESTAMP_US_DENOMINATOR;
+#else
         frame->flags  = FRAME_FLAG_SYS_TIMESTAMP_ENABLE;
         frame->timestamp = hdl->timestamp;
+#endif
+
         cbuf_read(&hdl->spk_cache_cbuffer, frame->data, frame->len);
+
+#if SPK_REPAIR_PACKET_ENABLE
+        if (hdl->repair_flag) { //补包标志
+            hdl->repair_flag = 0;
+            frame->flags |= FRAME_FLAG_FILL_PACKET;
+            memset(frame->data, frame->len, 0x0);
+        }
+#endif
         source_plug_put_output_frame(source_node, frame);
         hdl->data_run = 1;
     }
@@ -179,9 +209,14 @@ static int pc_spk_ioc_get_fmt(struct pc_spk_file_hdl *hdl, struct stream_fmt *fm
     }
     fmt->sample_rate    = pc_spk_fmt.sample_rate;
     fmt->bit_wide = (pc_spk_fmt.bit == 24) ? 1 : 0;
-    fmt->pcm_24bit_type = (pc_spk_fmt.bit == 24) ? PCM_24BIT_DATA_3BYTE : PCM_24BIT_DATA_4BYTE;
     //log_debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>> fmt->bit_wide : %d\n", fmt->bit_wide);
     return 0;
+}
+
+static int pc_spk_ioc_get_fmt_ex(struct pc_spk_file_hdl *hdl, struct stream_fmt_ex *fmt)
+{
+    fmt->pcm_24bit_type = (pc_spk_fmt.bit == 24) ? PCM_24BIT_DATA_3BYTE : PCM_24BIT_DATA_4BYTE;
+    return 1;
 }
 
 static int pc_spk_ioc_set_fmt(struct pc_spk_file_hdl *hdl, struct stream_fmt *fmt)
@@ -227,6 +262,9 @@ static int pc_spk_ioctl(void *_hdl, int cmd, int arg)
     switch (cmd) {
     case NODE_IOC_GET_FMT:
         pc_spk_ioc_get_fmt(hdl, (struct stream_fmt *)arg);
+        break;
+    case NODE_IOC_GET_FMT_EX:
+        ret = pc_spk_ioc_get_fmt_ex(hdl, (struct stream_fmt_ex *)arg);
         break;
     case NODE_IOC_SET_FMT:
         ret = pc_spk_ioc_set_fmt(hdl, (struct stream_fmt *)arg);

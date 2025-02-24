@@ -18,24 +18,7 @@
 #define AT_DRC_SPARSE_CONST AT_DRC(.drc.text.const)
 #endif
 
-enum {
-    DATA_IN_SHORT = 0,    //输入数据类型，输入short时，输出不能为int
-    DATA_IN_INT,
-};
-enum {
-    DATA_OUT_SHORT = 0, //输出数据类型，输入short时，输出不能为int
-    DATA_OUT_INT
-};
 
-enum {
-    PEAK = 0,	 //算法类型
-    RMS
-};
-
-enum {
-    PERPOINT = 0, //mode 模式
-    TWOPOINT
-};
 
 typedef struct _DrcParam {
     /*

@@ -3,6 +3,8 @@
 
 #include "generic/typedef.h"
 #include "jlstream.h"
+#include "audio_decoder.h"
+#include "sdk_config.h"
 
 #define MAX_FILE_NUM 20
 
@@ -13,6 +15,7 @@ struct tone_player {
     struct list_head entry;
     u8 ref;
     u8 index;
+    u8 stream_index;
     u8 player_id;
     u8 channel_mode;
     enum stream_scene scene;
@@ -29,6 +32,10 @@ struct tone_player {
 
     void *priv;
     tone_player_cb_t callback;
+
+#if FILE_DEC_REPEAT_EN
+    struct fixphase_repair_obj repair_buf;
+#endif
 };
 
 
@@ -108,7 +115,7 @@ u8 key_tone_player_running(void);
 u16 tone_player_get_fname_uuid(const char *fname);
 
 
-
+int common_dec_repeat_set(struct jlstream *stream, struct fixphase_repair_obj *repair_buf); //设置对应数据流无缝循环播放
 
 #endif
 

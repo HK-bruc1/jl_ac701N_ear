@@ -16,15 +16,7 @@ static const struct irkey_platform_data *__this = NULL;
 
 
 //按键驱动扫描参数列表
-struct key_driver_para irkey_scan_param = {
-    .last_key 		  = NO_KEY,  		//上一次get_value按键值, 初始化为NO_KEY;
-    .key_type		  = KEY_DRIVER_TYPE_IR,
-    .filter_time  	  = 2,				//按键消抖延时;
-    .long_time 		  = 75,  			//按键判定长按数量
-    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
-    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
-    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
-};
+struct key_driver_para irkey_scan_param;
 
 
 u8 ir_get_key_value(void)
@@ -73,23 +65,28 @@ int irkey_init(void)
     const struct gptimer_config ir_decode_config = {
         .capture.filter = 0,//38000,
         .capture.max_period = 110 * 1000, //110ms
-        .capture.port = PORTA,
-        .capture.pin = BIT(1),
+        .capture.port = __this->port / IO_GROUP_NUM, //PORTA,
+        .capture.pin = BIT(__this->port % IO_GROUP_NUM), //BIT(1),
         .irq_cb = NULL,
-        .irq_priority = 3,
+        .irq_priority = 1,
         //根据红外模块的 idle 电平状态，选择边沿触发方式
         .mode = GPTIMER_MODE_CAPTURE_EDGE_FALL,
         /* .mode = GPTIMER_MODE_CAPTURE_EDGE_RISE, */
     };
     ir_decoder_init(&ir_decode_config); //红外信号接收IO_PORTA_O1
 
-    ir_timeout_set();
 
     return 0;
 }
 
 REGISTER_KEY_OPS(irkey) = {
     .idle_query_en    = 1,
+    .key_type		  = KEY_DRIVER_TYPE_IR,
+    .filter_time  	  = 0,				//按键消抖延时;
+    .long_time 		  = 6,  			//按键判定长按时间 = long_time * scan_time
+    .hold_time 		  = 9,  	        //按键判定HOLD时间 = hold_time * scan_time
+    .click_delay_time = 2,				//按键被抬起后等待连击延时时间 = click_delay_timne * scan_time
+    .scan_time 	  	  = 110,				//按键扫描频率, 单位: ms
     .param            = &irkey_scan_param,
     .get_value 		  = ir_get_key_value,
     .key_init         = irkey_init,

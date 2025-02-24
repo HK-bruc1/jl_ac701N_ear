@@ -9,6 +9,7 @@
 
 #define NODE_UUID_TONE              0x768A
 #define NODE_UUID_RING              0xCADC
+#define NODE_UUID_FILEPLAY          0XF03B
 #define NODE_UUID_KEY_TONE          0x8346
 #define NODE_UUID_EQ                0x737B
 #define NODE_UUID_SRC               0x1ECD
@@ -64,6 +65,8 @@
 #define NODE_UUID_SWITCH            0x2357
 #define NODE_UUID_LOCAL_TWS_SOURCE  0xD45F
 #define NODE_UUID_LOCAL_TWS_SINK  	0x7303
+#define NODE_UUID_TDM_TX            0xB455
+#define NODE_UUID_TDM_RX            0xB413
 
 /*通话CVP子模块UUID*/
 #define NODE_UUID_AEC				0xA9CE
@@ -158,6 +161,8 @@
 #define NODE_UUID_HOWLING_GATE             0x30BE//啸叫门限
 #define NODE_UUID_MULTI_CH_IIS0_TX          0xF7FC//多通道iis0
 #define NODE_UUID_MULTI_CH_IIS1_TX          0x845D//多通道iis1
+#define NODE_UUID_MULTI_CH_TDM_TX          	0x4FEC//多通道TDM
+#define NODE_UUID_MULTI_CH_TDM_RX          	0x4FAA//多通道TDM接收
 #define NODE_UUID_MDRC                     0x74CB//多带DRC
 
 #define NODE_UUID_DATA_EXPORT 			   0xDE61//数据导出节点
@@ -179,5 +184,15 @@
 #define NODE_UUID_REPLACE                  0xb5e1
 #define NODE_UUID_SIGNAL_GENERATOR         0x225d
 #define NODE_UUID_REVERB                   0x24AB//混响V2
+#define NODE_UUID_SPLIT_GAIN               0x2A10
+#define NODE_UUID_VIRTUAL_BASS_CLASSIC     0x55C9//virtual bass classic
+#define NODE_UUID_FLANGER                  0xBC44
+#define NODE_UUID_PHASER                   0xD2E8
+#define NODE_UUID_CHORUS_ADVANCE           0x7C2B
+#define NODE_UUID_PINGPONG_ECHO            0xAB66
+#define NODE_UUID_STEREO_SPATIAL_WIDER     0x6700
+#define NODE_UUID_DISTORTION_CLIPPING      0x97AA
+#define NODE_UUID_FREQUENCY_COMPRESSOR     0xBFE4
+#define NODE_UUID_SPATIAL_ADV              0xA64E//空间音频封装
 
 #endif

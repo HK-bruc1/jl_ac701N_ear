@@ -11,7 +11,7 @@
 #include "clock_manager/clock_manager.h"
 #include "asm/audio_src.h"
 #include "audio_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "cvp_node.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
@@ -51,42 +51,19 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 
         u16 mic_ch = mic_param->mic_ch_sel;
         u16 sr = mic_param->sample_rate;
-        u8 gain0 = mic_param->mic0_gain;
-        u8 gain1 = mic_param->mic1_gain;
-        u8 gain2 = mic_param->mic2_gain;
-        u8 gain3 = mic_param->mic3_gain;
 
         u8 mic_num = 0;
         /*打开mic电压*/
         audio_mic_pwr_ctl(MIC_PWR_ON);
         audio_adc_file_init();
-        /*打开mic0*/
-        if (mic_ch & AUDIO_ADC_MIC_0) {
-            printf("adc_mic0 open, sr:%d, gain:%d\n", sr, gain0);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_0);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_0, gain0);
-            mic_num ++;
-        }
-        /*打开mic1*/
-        if (mic_ch & AUDIO_ADC_MIC_1) {
-            printf("adc_mic1 open, sr:%d, gain:%d\n", sr, gain1);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_1);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_1, gain1);
-            mic_num ++;
-        }
-        /*打开mic2*/
-        if (mic_ch & AUDIO_ADC_MIC_2) {
-            printf("adc_mic2 open, sr:%d, gain:%d\n", sr, gain2);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_2);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_2, gain2);
-            mic_num ++;
-        }
-        /*打开mic3*/
-        if (mic_ch & AUDIO_ADC_MIC_3) {
-            printf("adc_mic3 open, sr:%d, gain:%d\n", sr, gain3);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_3);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_3, gain3);
-            mic_num ++;
+
+        for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+            if (mic_ch & AUDIO_ADC_MIC(i)) {
+                printf("adc_mic%d open, sr:%d, gain:%d\n", i, sr, mic_param->mic_gain[i]);
+                adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC(i));
+                audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC(i), mic_param->mic_gain[i]);
+                mic_num ++;
+            }
         }
 
         int adc_buf_size = mic_param->adc_irq_points * 2 * mic_param->adc_buf_num * mic_num;
@@ -110,9 +87,12 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
         audio_adc_mic_start(&audio_mic->mic_ch);
     } else {
         if (audio_mic) {
-            /*设置fb mic为复用mic*/
 #if TCFG_AUDIO_ANC_ENABLE
-            audio_anc_mic_mana_fb_mult_set(1);
+            int mult_flag = audio_anc_mic_mana_fb_mult_get();
+            if (!mult_flag) {
+                /*设置fb mic为复用mic*/
+                audio_anc_mic_mana_fb_mult_set(1);
+            }
 #endif
             audio_adc_mic_close(&audio_mic->mic_ch);
             audio_adc_del_output_handler(&adc_hdl, &audio_mic->adc_output);
@@ -120,8 +100,10 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                 /* free(audio_mic->adc_buf);  */
             }
 #if TCFG_AUDIO_ANC_ENABLE
-            /*清除fb mic为复用mic的标志*/
-            audio_anc_mic_mana_fb_mult_set(0);
+            if (!mult_flag) {
+                /*清除fb mic为复用mic的标志*/
+                audio_anc_mic_mana_fb_mult_set(0);
+            }
             if (anc_status_get() == 0)
 #endif
             {

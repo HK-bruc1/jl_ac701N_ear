@@ -116,6 +116,7 @@ int audio_afq_common_close(void)
     return 0;
 }
 
+//异步处理，先存数据
 int audio_afq_common_output_post_msg(__afq_output *out)
 {
     struct audio_afq_output *p = &common_hdl->fre_out;
@@ -152,6 +153,7 @@ int audio_afq_common_output_post_msg(__afq_output *out)
     }
     memcpy(p->sz_l.out, out->sz_l->out, p->sz_l.len * sizeof(float));
 
+    //printf("get sz_freqs, %d, %d \n", (int)(p->sz_l.out[2] * 1000), (int)(p->sz_l.out[3] * 1000));
     os_taskq_post_msg("afq_common", 1, AFQ_COMMON_MSG_RUN);
     return 0;
 }

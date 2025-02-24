@@ -30,7 +30,7 @@ export PATH:=$(TOOL_DIR);$(PATH)
 ## 后处理脚本
 FIXBAT          := tools/utils/fixbat.exe # 用于处理 utf8->gbk 编码问题
 POST_SCRIPT     := cpu/br28/tools/download.bat
-RUN_POST_SCRIPT := $(subst /,\,$(POST_SCRIPT))
+RUN_POST_SCRIPT := cpu\br28\tools\download.bat
 else
 # Linux 下工具链位置
 TOOL_DIR := /opt/jieli/pi32v2/bin
@@ -85,11 +85,9 @@ CFLAGS := \
 	-Wincompatible-pointer-types \
 	-Wreturn-type \
 	-Wimplicit-function-declaration \
-	-Werror \
 	-mllvm -pi32v2-large-program=true \
 	-fms-extensions \
 	-fdiscrete-bitfield-abi \
-	-w \
 
 
 # C++额外的编译参数
@@ -125,8 +123,9 @@ DEFINES := \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
 	-DCONFIG_CODE_MOVABLE_ENABLE \
+	-DCONFIG_FLOAT_DEBUG_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
-	-DCONFIG_OS_AFFINITY_ENABLE=1 \
+	-DCONFIG_OS_AFFINITY_ENABLE=0 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
 	-DEVENT_TOUCH_ENABLE_CONFIG=0 \
 	-DEVENT_POOL_SIZE_CONFIG=256 \
@@ -138,7 +137,7 @@ DEFINES := \
 	-DFS_VERSION=0x020001 \
 	-DFATFS_VERSION=0x020101 \
 	-DSDFILE_VERSION=0x020000 \
-	-DVFS_ENABLE=0 \
+	-DVFS_ENABLE=1 \
 	-DVM_MAX_SIZE_CONFIG=16*1024 \
 	-DVM_ITEM_MAX_NUM=256 \
 	-DCONFIG_EARPHONE_CASE_ENABLE \
@@ -236,8 +235,10 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/realme_protocol \
 	-Iapps/common/third_party_profile/swift_pair \
 	-Iapps/common/third_party_profile/dma_protocol \
+	-Iapps/common/third_party_profile/dma_protocol/dma_use_lib \
 	-Iapps/common/third_party_profile/gfps_protocol \
 	-Iapps/common/third_party_profile/custom_protocol_demo \
+	-Iapps/common/third_party_profile/ximalaya_protocol \
 	-Iapps/common/cJSON \
 	-Iinterface/media/cpu/br28 \
 	-Iinterface/utils/ui/ui/cpu/br28 \
@@ -256,7 +257,7 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/tuya_protocol/port \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
-	-Iapps/earphone/third_part/tuya \
+	-Iapps/common/third_party_profile/bt_fmy \
 	-Iapps/common/device/usb \
 	-Iapps/common/device/usb/device \
 	-Iapps/common/device/usb/host \
@@ -271,6 +272,7 @@ INCLUDES := \
 	-Iaudio/common/icsd/dot \
 	-Iaudio/common/icsd/common_v2 \
 	-Iaudio/common/icsd/anc_v2 \
+	-Iaudio/common/icsd/avc \
 	-Iaudio/common/icsd/config \
 	-Iaudio/common/icsd/rt_anc \
 	-Iaudio/common/icsd/tool \
@@ -278,6 +280,10 @@ INCLUDES := \
 	-Iaudio/common/icsd/afq \
 	-Iaudio/common/icsd/cmp \
 	-Iaudio/common/icsd/demo \
+	-Iaudio/common/icsd/wind \
+	-Iaudio/common/icsd/vdt \
+	-Iaudio/common/icsd/wat \
+	-Iaudio/common/icsd/ein \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br28/audio_dai \
@@ -298,6 +304,7 @@ INCLUDES := \
 # 需要编译的 .c 文件
 c_SRC_FILES := \
 	apps/common/app_mode_manager/app_mode_manager.c \
+	apps/common/bt_common/bt_fre_offset_storage.c \
 	apps/common/cJSON/cJSON.c \
 	apps/common/clock_manager/clock_manager.c \
 	apps/common/config/app_config.c \
@@ -310,8 +317,11 @@ c_SRC_FILES := \
 	apps/common/debug/debug.c \
 	apps/common/debug/debug_lite.c \
 	apps/common/debug/debug_uart_config.c \
+	apps/common/debug/dlog_config.c \
+	apps/common/debug/dlog_output_config.c \
 	apps/common/dev_manager/dev_manager.c \
 	apps/common/dev_manager/dev_reg.c \
+	apps/common/dev_manager/dev_update.c \
 	apps/common/device/eartouch/eartouch_iic_interface.c \
 	apps/common/device/eartouch/eartouch_manage.c \
 	apps/common/device/eartouch/hx300x/hx300x_driver.c \
@@ -348,6 +358,7 @@ c_SRC_FILES := \
 	apps/common/device/usb/device/midi.c \
 	apps/common/device/usb/device/msd.c \
 	apps/common/device/usb/device/msd_upgrade.c \
+	apps/common/device/usb/device/mtp.c \
 	apps/common/device/usb/device/printer.c \
 	apps/common/device/usb/device/rcsp_hid_inter.c \
 	apps/common/device/usb/device/task_pc.c \
@@ -355,6 +366,7 @@ c_SRC_FILES := \
 	apps/common/device/usb/device/uac2.c \
 	apps/common/device/usb/device/uac_stream.c \
 	apps/common/device/usb/device/usb_device.c \
+	apps/common/device/usb/device/usb_pll_trim.c \
 	apps/common/device/usb/device/user_setup.c \
 	apps/common/device/usb/host/adb.c \
 	apps/common/device/usb/host/aoa.c \
@@ -370,9 +382,14 @@ c_SRC_FILES := \
 	apps/common/device/usb/usb_task.c \
 	apps/common/fat_nor/cfg_private.c \
 	apps/common/fat_nor/virfat_flash.c \
+	apps/common/file_operate/file_manager.c \
 	apps/common/le_audio/big.c \
 	apps/common/le_audio/cig.c \
 	apps/common/le_audio/wireless_trans_manager.c \
+	apps/common/music/breakpoint.c \
+	apps/common/music/music_decrypt.c \
+	apps/common/music/music_id3.c \
+	apps/common/music/music_player.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_anc_manager.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_msg_manager.c \
@@ -396,13 +413,18 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_md5.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c \
 	apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c \
 	apps/common/third_party_profile/common/3th_profile_api.c \
 	apps/common/third_party_profile/common/custom_cfg.c \
 	apps/common/third_party_profile/common/mic_rec.c \
 	apps/common/third_party_profile/custom_protocol_demo/custom_protocol.c \
-	apps/common/third_party_profile/dma_protocol/dma_config.c \
-	apps/common/third_party_profile/dma_protocol/dma_platform_api.c \
 	apps/common/third_party_profile/dma_protocol/dma_protocol.c \
+	apps/common/third_party_profile/dma_protocol/dma_use_lib/dma_le_port.c \
+	apps/common/third_party_profile/dma_protocol/dma_use_lib/dma_setting.c \
+	apps/common/third_party_profile/dma_protocol/dma_use_lib/dma_spp_port.c \
+	apps/common/third_party_profile/dma_protocol/dma_use_lib/platform_template.c \
 	apps/common/third_party_profile/gfps_protocol/gfps_protocol.c \
 	apps/common/third_party_profile/interface/app_protocol_api.c \
 	apps/common/third_party_profile/interface/app_protocol_common.c \
@@ -427,12 +449,15 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_event.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_manage.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.c \
+	apps/common/third_party_profile/jieli/rcsp/rcsp_interface.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/browser/rcsp_browser.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_bt_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_fm_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_linein_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_music_func.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_pc_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_rtc_func.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_spdif_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/rcsp_device_feature.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/rcsp_device_status.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/external_flash/rcsp_extra_flash_cmd.c \
@@ -552,6 +577,12 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
+	apps/common/third_party_profile/tuya_protocol/tuya_event.c \
+	apps/common/third_party_profile/tuya_protocol/tuya_protocol.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_ble.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_config.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_protocol.c \
 	apps/common/ui/pwm_led/led_ui_api.c \
 	apps/common/ui/pwm_led/led_ui_tws_sync.c \
 	apps/common/update/testbox_uart_update.c \
@@ -573,6 +604,7 @@ c_SRC_FILES := \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br28/board_config.c \
 	apps/earphone/board/sdk_board_config.c \
+	apps/earphone/demo/att_over_edr_demo.c \
 	apps/earphone/demo/debug_record_demo.c \
 	apps/earphone/demo/pbg_demo.c \
 	apps/earphone/demo/read_sn_demo.c \
@@ -607,7 +639,7 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/earphone.c \
 	apps/earphone/mode/bt/eartch_event_deal.c \
 	apps/earphone/mode/bt/kws_voice_event_deal.c \
-	apps/earphone/mode/bt/le_audio/big/app_le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/app_le_auracast.c \
 	apps/earphone/mode/bt/le_audio/big/le_broadcast.c \
 	apps/earphone/mode/bt/le_audio/big/le_broadcast_config.c \
 	apps/earphone/mode/bt/le_audio/cig/app_le_connected.c \
@@ -632,14 +664,15 @@ c_SRC_FILES := \
 	apps/earphone/mode/linein/linein_dev.c \
 	apps/earphone/mode/linein/linein_key_msg_table.c \
 	apps/earphone/mode/mic_effect/mic_effect.c \
+	apps/earphone/mode/music/music.c \
+	apps/earphone/mode/music/music_app_msg_handler.c \
+	apps/earphone/mode/music/music_key_msg_table.c \
 	apps/earphone/mode/pc/pc.c \
 	apps/earphone/mode/pc/pc_key_msg_table.c \
 	apps/earphone/mode/power_on/power_on.c \
 	apps/earphone/test/rssi.c \
 	apps/earphone/test/tws_role_switch.c \
 	apps/earphone/third_part/app_protocol_deal.c \
-	apps/earphone/third_part/tuya/tuya_app.c \
-	apps/earphone/third_part/tuya/tuya_demo.c \
 	apps/earphone/tools/app_ancbox.c \
 	apps/earphone/tools/app_anctool.c \
 	apps/earphone/tools/app_key_dut.c \
@@ -664,11 +697,12 @@ c_SRC_FILES := \
 	audio/anc/audio_anc_mult_scene.c \
 	audio/common/amplitude_statistic.c \
 	audio/common/audio_build_needed.c \
-	audio/common/audio_dac_digital_volume.c \
 	audio/common/audio_dvol.c \
+	audio/common/audio_effect_verify.c \
 	audio/common/audio_event_handler.c \
 	audio/common/audio_export_demo.c \
 	audio/common/audio_general.c \
+	audio/common/audio_iis_lrclk_capture.c \
 	audio/common/audio_node_config.c \
 	audio/common/audio_noise_gate.c \
 	audio/common/audio_ns.c \
@@ -677,13 +711,22 @@ c_SRC_FILES := \
 	audio/common/audio_volume_mixer.c \
 	audio/common/bt_audio_energy_detection.c \
 	audio/common/debug/audio_debug.c \
+	audio/common/demo/audio_alink_demo.c \
+	audio/common/demo/audio_eq_demo.c \
 	audio/common/demo/codec_demo/audio_enc_file_demo.c \
 	audio/common/demo/codec_demo/audio_file_dec_demo.c \
 	audio/common/demo/codec_demo/audio_frame_codec_demo.c \
+	audio/common/demo/codec_demo/audio_msbc_hw_codec_demo.c \
+	audio/common/demo/codec_demo/audio_msbc_sw_codec_demo.c \
+	audio/common/demo/codec_demo/audio_opus_codec_demo.c \
+	audio/common/demo/codec_demo/audio_sbc_codec_demo.c \
+	audio/common/demo/codec_demo/audio_speex_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
 	audio/common/icsd/adt/icsd_adt.c \
+	audio/common/icsd/adt/icsd_adt_alg.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
+	audio/common/icsd/adt/icsd_adt_demo.c \
 	audio/common/icsd/aeq/icsd_aeq.c \
 	audio/common/icsd/aeq/icsd_aeq_app.c \
 	audio/common/icsd/aeq/icsd_aeq_config.c \
@@ -697,6 +740,7 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/avc/icsd_avc_config.c \
 	audio/common/icsd/cmp/icsd_cmp_app.c \
 	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
@@ -706,10 +750,15 @@ c_SRC_FILES := \
 	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
+	audio/common/icsd/ein/icsd_ein_config.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
+	audio/common/icsd/rt_anc/rt_anc_app.c \
 	audio/common/icsd/rt_anc/rt_anc_config.c \
 	audio/common/icsd/tool/anc_ext_tool.c \
 	audio/common/icsd/tool/anc_ext_tool_file.c \
+	audio/common/icsd/vdt/icsd_vdt_config.c \
+	audio/common/icsd/wat/icsd_wat_config.c \
+	audio/common/icsd/wind/icsd_wind_config.c \
 	audio/common/online_debug/aud_data_export.c \
 	audio/common/online_debug/aud_mic_dut.c \
 	audio/common/online_debug/aud_spatial_effect_dut.c \
@@ -722,35 +771,52 @@ c_SRC_FILES := \
 	audio/cpu/br28/audio_accelerator/hw_fft.c \
 	audio/cpu/br28/audio_anc.c \
 	audio/cpu/br28/audio_config.c \
-	audio/cpu/br28/audio_dai/audio_iis.c \
-	audio/cpu/br28/audio_dai/audio_link.c \
 	audio/cpu/br28/audio_dai/audio_pdm.c \
 	audio/cpu/br28/audio_demo/audio_adc_demo.c \
 	audio/cpu/br28/audio_demo/audio_dac_demo.c \
 	audio/cpu/br28/audio_demo/audio_fft_demo.c \
+	audio/cpu/br28/audio_demo/audio_pdm_demo.c \
 	audio/cpu/br28/audio_mic_capless.c \
 	audio/cpu/br28/audio_setup.c \
 	audio/cpu/br28/audio_vad/vad_clock_trim.c \
 	audio/cpu/br28/audio_vad/vad_mic.c \
 	audio/cpu/br28/icsd_anc_user.c \
+	audio/cpu/common.c \
 	audio/effect/audio_dc_offset_remove.c \
 	audio/effect/audio_pitch_speed_api.c \
 	audio/effect/audio_voice_changer_api.c \
 	audio/effect/bass_treble.c \
+	audio/effect/demo/autotune_demo.c \
 	audio/effect/demo/bass_treble_demo.c \
+	audio/effect/demo/chorus_demo.c \
+	audio/effect/demo/crossover_demo.c \
+	audio/effect/demo/drc_advance_demo.c \
 	audio/effect/demo/drc_demo.c \
 	audio/effect/demo/dynamic_eq_demo.c \
+	audio/effect/demo/echo_demo.c \
 	audio/effect/demo/energy_detect_demo.c \
 	audio/effect/demo/eq_demo.c \
+	audio/effect/demo/frequency_shift_howling_demo.c \
+	audio/effect/demo/gain_demo.c \
+	audio/effect/demo/harmonic_exciter_demo.c \
+	audio/effect/demo/multiband_drc_demo.c \
 	audio/effect/demo/noisegate_demo.c \
+	audio/effect/demo/notch_howling_demo.c \
+	audio/effect/demo/pitch_speed_demo.c \
+	audio/effect/demo/reverb_advance_demo.c \
+	audio/effect/demo/reverb_demo.c \
+	audio/effect/demo/spectrum_demo.c \
+	audio/effect/demo/stereo_widener_demo.c \
 	audio/effect/demo/surround_demo.c \
 	audio/effect/demo/virtual_bass_demo.c \
 	audio/effect/demo/voice_changer_demo.c \
 	audio/effect/effects_adj.c \
 	audio/effect/effects_default_param.c \
+	audio/effect/effects_dev.c \
 	audio/effect/eq_config.c \
 	audio/effect/esco_ul_voice_changer.c \
 	audio/effect/node_param_update.c \
+	audio/effect/scene_update.c \
 	audio/effect/somatosensory/audio_somatosensory.c \
 	audio/effect/spatial_effect/spatial_effect.c \
 	audio/effect/spatial_effect/spatial_effect_imu.c \
@@ -816,7 +882,6 @@ c_SRC_FILES := \
 	audio/interface/player/linein_player.c \
 	audio/interface/player/local_tws_player.c \
 	audio/interface/player/pc_spk_player.c \
-	audio/interface/player/reference_time.c \
 	audio/interface/player/ring_player.c \
 	audio/interface/player/tone_player.c \
 	audio/interface/player/tws_tone_player.c \
@@ -850,7 +915,6 @@ c_SRC_FILES := \
 	cpu/br28/charge/chargestore_config.c \
 	cpu/br28/lua_port_api.c \
 	cpu/br28/overlay_code.c \
-	cpu/br28/periph/gpadc.c \
 	cpu/br28/periph/led/pwm_led.c \
 	cpu/br28/periph/mcpwm.c \
 	cpu/br28/periph/rdec.c \
@@ -865,7 +929,7 @@ c_SRC_FILES := \
 	cpu/br28/power/power_port.c \
 	cpu/br28/private_iis.c \
 	cpu/br28/setup.c \
-	cpu/components/gpadc_utils.c \
+	cpu/components/gpadc_battery.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
 	cpu/components/ir_decoder.c \
@@ -937,6 +1001,7 @@ LFLAGS := \
 	--plugin-opt=-movable-region-section-map-file-list=apps/earphone/movable/section.txt \
 	--plugin-opt=-movable-region-exclude-func-file-list=apps/earphone/movable/exclude.txt \
 	--plugin-opt=-pi32v2-large-program=true \
+	--plugin-opt=-floating-point-may-trap=true \
 	--gc-sections \
 	--plugin-opt=-pi32v2-csync-before-rti=true \
 	--start-group \
@@ -945,11 +1010,13 @@ LFLAGS := \
 	cpu/br28/liba/btstack.a \
 	cpu/br28/liba/bt_hash_enc.a \
 	cpu/br28/liba/rcsp_stack.a \
+	cpu/br28/liba/ximalaya_lib.a \
 	cpu/br28/liba/google_fps.a \
-	cpu/br28/liba/dueros_stack.a \
 	cpu/br28/liba/fmna_stack.a \
 	cpu/br28/liba/lib_fmy_auth_br28.a \
 	cpu/br28/liba/swift_pair.a \
+	cpu/br28/liba/libdma-protocol.a \
+	cpu/br28/liba/libdma-device-ota.a \
 	cpu/br28/liba/btctrler.a \
 	cpu/br28/liba/aec.a \
 	cpu/br28/liba/media.a \
@@ -971,16 +1038,21 @@ LFLAGS := \
 	cpu/br28/liba/lib_resample_cal.a \
 	cpu/br28/liba/lib_resample_fast_cal.a \
 	cpu/br28/liba/sbc_eng_lib.a \
+	cpu/br28/liba/lib_sbc_msbc.a \
 	cpu/br28/liba/lib_mp3_dec.a \
 	cpu/br28/liba/lib_f2a_dec.a \
 	cpu/br28/liba/libLHDCv4DecodeLib.a \
 	cpu/br28/liba/libLHDCv5DecodeLib.a \
 	cpu/br28/liba/lib_ldac_dec.a \
+	cpu/br28/liba/lib_ldac_enc.a \
 	cpu/br28/liba/mp3_decstream_lib.a \
 	cpu/br28/liba/lib_mty_dec.a \
 	cpu/br28/liba/lib_wav_dec.a \
+	cpu/br28/liba/lib_flac_dec.a \
+	cpu/br28/liba/lib_m4a_dec.a \
+	cpu/br28/liba/lib_ape_dec.a \
+	cpu/br28/liba/lib_wma_dec.a \
 	cpu/br28/liba/agreement.a \
-	cpu/br28/liba/msbc_codec_lib.a \
 	cpu/br28/liba/libjlsp.a \
 	cpu/br28/liba/libjlsp_kws.a \
 	cpu/br28/liba/libkwscommon.a \
@@ -991,6 +1063,7 @@ LFLAGS := \
 	cpu/br28/liba/lib_drc_detect.a \
 	cpu/br28/liba/lib_voiceChanger.a \
 	cpu/br28/liba/VirtualBass.a \
+	cpu/br28/liba/lib_virtual_bass_classic.a \
 	cpu/br28/liba/lib_point360_td.a \
 	cpu/br28/liba/SensorCalib.a \
 	cpu/br28/liba/SpatialAudio.a \
@@ -998,7 +1071,6 @@ LFLAGS := \
 	cpu/br28/liba/DynamicEQ.a \
 	cpu/br28/liba/DynamicEQPro.a \
 	cpu/br28/liba/lib_icsd_adt.a \
-	cpu/br28/liba/lib_icsd_anc.a \
 	cpu/br28/liba/lib_icsd_common.a \
 	cpu/br28/liba/lib_icsd_dot.a \
 	cpu/br28/liba/lib_icsd_anc_v2.a \
@@ -1006,6 +1078,10 @@ LFLAGS := \
 	cpu/br28/liba/lib_icsd_aeq.a \
 	cpu/br28/liba/lib_icsd_afq.a \
 	cpu/br28/liba/lib_icsd_cmp.a \
+	cpu/br28/liba/lib_icsd_wind.a \
+	cpu/br28/liba/lib_icsd_wat.a \
+	cpu/br28/liba/lib_icsd_vdt.a \
+	cpu/br28/liba/lib_icsd_ein.a \
 	cpu/br28/liba/libjlsp_kws_far_keyword.a \
 	cpu/br28/liba/libjlsp_kws_india_english.a \
 	cpu/br28/liba/3DSpatial.a \
@@ -1025,10 +1101,22 @@ LFLAGS := \
 	cpu/br28/liba/lib_PcmDelay.a \
 	cpu/br28/liba/crossover_coff.a  \
 	cpu/br28/liba/lib_limiter.a \
+	cpu/br28/liba/lib_iir_filter.a \
+	cpu/br28/liba/spatial_adv.a \
 	cpu/br28/liba/le_audio_profile.a \
 	cpu/br28/liba/jla_codec_lib.a \
 	cpu/br28/liba/lib_lc3_codec.a \
 	cpu/br28/liba/lib_noisegate_pro.a \
+	cpu/br28/liba/lib_eq_design_coeff.a \
+	cpu/br28/liba/libSAS_pi32v2_OnChip.a \
+	cpu/br28/liba/lib_phaser.a \
+	cpu/br28/liba/lib_flanger.a \
+	cpu/br28/liba/lib_chorus_adv.a \
+	cpu/br28/liba/lib_pingpong_echo.a \
+	cpu/br28/liba/libStereoSpatialWider_pi32v2_OnChip.a \
+	cpu/br28/liba/libdistortion.a \
+	cpu/br28/liba/lib_frequency_compressor.a \
+	cpu/br28/liba/lib_gain_mix.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \
@@ -1048,6 +1136,12 @@ LFLAGS := \
 	cpu/br28/liba/vm.a \
 	cpu/br28/liba/debug_record.a \
 	cpu/br28/liba/lzma_dec.a \
+	cpu/br28/liba/chargestore.a \
+	cpu/br28/liba/printf.a  \
+	cpu/br28/liba/cbuf.a  \
+	cpu/br28/liba/vm.a  \
+	cpu/br28/liba/fs.a  \
+	cpu/br28/liba/cfg_tool.a  \
 	--end-group \
 	-Tcpu/br28/sdk.ld \
 	-M=cpu/br28/tools/sdk.map \
@@ -1137,37 +1231,31 @@ endif
 $(BUILD_DIR)/%.c.o : %.c
 	$(info +CC $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.S.o : %.S
 	$(info +AS $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.s.o : %.s
 	$(info +AS $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cpp.o : %.cpp
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cxx.o : %.cxx
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cc.o : %.cc
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 -include $(DEP_FILES)

@@ -389,6 +389,7 @@ static void creat_file_path(char *path, char *root_path, const char *folder, u8 
    @note
 */
 /*----------------------------------------------------------------------------*/
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
 void rcsp_file_transfer_download_parm_extra(u8 OpCode_SN, u8 *data, u16 len)
 {
     u8 resp[2] = {0};
@@ -414,6 +415,7 @@ void rcsp_file_transfer_download_parm_extra(u8 OpCode_SN, u8 *data, u16 len)
     }
     JL_CMD_response_send(JL_OPCODE_DEVICE_PARM_EXTRA, status, OpCode_SN, resp, sizeof(resp), 0, NULL, 0, NULL);
 }
+#endif
 
 //*----------------------------------------------------------------------------*/
 /**@brief    文件下载开始
@@ -422,6 +424,7 @@ void rcsp_file_transfer_download_parm_extra(u8 OpCode_SN, u8 *data, u16 len)
    @note
 */
 /*----------------------------------------------------------------------------*/
+#if (RCSP_MODE == RCSP_MODE_WATCH)
 static int file_transfer_watch_opt(u8 flag, u8 OpCode_SN)
 {
     int ret = 0;
@@ -444,6 +447,7 @@ static int file_transfer_watch_opt(u8 flag, u8 OpCode_SN)
 
     return ret;
 }
+#endif
 
 // rcsp文件下载开始命令处理
 void rcsp_file_transfer_download_start(void *priv, u8 OpCode_SN, u8 *data, u16 len)
@@ -515,9 +519,11 @@ void rcsp_file_transfer_download_start(void *priv, u8 OpCode_SN, u8 *data, u16 l
     }
 
     ftp_d->filepath = path;
+#if (RCSP_MODE == RCSP_MODE_WATCH)
     if (file_transfer_watch_opt(new_file, OpCode_SN)) {
         return;
     }
+#endif
     ftp_d->file = fopen(path, "w+");
     //free(path);
     if (ftp_d->file == NULL) {
@@ -581,7 +587,9 @@ void rcsp_file_transfer_file_rename(u8 status, u8 *data, u16 len)
         if (status == JL_PRO_STATUS_SUCCESS)	{
             printf("%s !!, %d\n", __FUNCTION__, __LINE__);
             put_buf(data, len);
+#if (RCSP_MODE == RCSP_MODE_WATCH)
             file_transfer_watch_opt(-1, 0);
+#endif
             //重命名
             if (file_rename((const char *)data) == 0) {
                 u8 reason = FTP_END_REASON_NONE;
@@ -590,7 +598,9 @@ void rcsp_file_transfer_file_rename(u8 status, u8 *data, u16 len)
                     rcsp_file_transfer_close();
                 }
                 dev_manager_set_valid(ftp_d->dev, 1);
+#if (RCSP_MODE == RCSP_MODE_WATCH)
                 file_transfer_watch_opt(2, 0);
+#endif
             } else {
                 //有重名的， 重新获取新名称, 如:“xxx_n.mp3”,n为数字
                 int err = JL_CMD_send(JL_OPCODE_FILE_RENAME, NULL, 0, 1, 0, NULL);
@@ -860,7 +870,9 @@ void rcsp_file_transfer_close(void)
             free(ftp_d->filepath);
         }
 
+#if (RCSP_MODE == RCSP_MODE_WATCH)
         file_transfer_watch_opt(3, 0);
+#endif
 
         if (ftp_d->end_callback) {
             ftp_d->end_callback();

@@ -3,7 +3,6 @@
 
 #include "typedef.h"
 #include "system/init.h"
-#include "media/audio_stream.h"
 
 //分频器 crossover:
 typedef struct _CrossOverParam_TOOL_SET {

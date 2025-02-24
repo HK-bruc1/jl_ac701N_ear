@@ -1,7 +1,7 @@
 
 #include "mic_power_manager.h"
 #include "gpio_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "adc_file.h"
 
 /*

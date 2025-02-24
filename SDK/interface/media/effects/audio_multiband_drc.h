@@ -75,6 +75,6 @@ void multiband_drc_online_update_param_debug(struct mdrc_param_update *param);
 struct multiband_drc_hdl *audio_multiband_drc_open(struct multiband_drc_open_param *param);
 int audio_multiband_drc_close(struct multiband_drc_hdl *hdl);
 int audio_multiband_drc_run(struct multiband_drc_hdl *hdl, s16 *indata, s16 *outdata, u32 len);
-void audio_multiband_drc_update_parm();
+void audio_multiband_drc_update_parm(struct multiband_drc_hdl *hdl, struct mdrc_param_update *update_param);
 
 #endif

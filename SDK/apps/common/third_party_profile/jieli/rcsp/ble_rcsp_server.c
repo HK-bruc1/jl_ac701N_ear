@@ -56,6 +56,7 @@
 #include "rcsp_manage.h"
 #include "rcsp.h"
 #include "rcsp_ch_loader_download.h"
+#include "update.h"
 
 #if ASSISTED_HEARING_CUSTOM_TRASNDATA
 #include "adv_hearing_aid_setting.h"
@@ -485,7 +486,6 @@ static void cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
             }
 #if TCFG_RCSP_DUAL_CONN_ENABLE
             else {
-                extern u32 classic_update_task_exist_flag_get(void);
                 if (classic_update_task_exist_flag_get()) {
                     break;
                 }
@@ -884,14 +884,10 @@ void rcsp_disconn_other_ble(u16 ble_con_handle)
 static int ble_disconnect(void *priv)
 {
     if (bt_rcsp_ble_conn_num() > 0) {
-        /* if (BLE_ST_SEND_DISCONN != rcsp_get_ble_work_state()) { */
         log_info(">>>ble send disconnect\n");
         set_ble_work_state(BLE_ST_SEND_DISCONN);
         app_ble_disconnect(rcsp_server_ble_hdl);
         app_ble_disconnect(rcsp_server_ble_hdl1);
-        /* } else { */
-        /* log_info(">>>ble wait disconnect...\n"); */
-        /* } */
         return APP_BLE_NO_ERROR;
     } else {
         return APP_BLE_OPERATION_ERROR;

@@ -7,7 +7,7 @@
 #include "audio_pdm.h"
 #include "includes.h"
 #include "asm/includes.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "media/includes.h"
 
 /* #define PLNK_DEBUG_ENABLE */
@@ -146,6 +146,11 @@ void *plnk_init(void *hw_plink)
     }
     __this = (PLNK_PARM *)hw_plink;
 
+    if (__this->sr % 8000) {
+        __this->sclk_fre = 3000000;
+    } else {
+        __this->sclk_fre = 2400000;
+    }
     u8 m = 2;
     __this->ch_num = __this->ch_cfg[0].en + __this->ch_cfg[1].en;
 

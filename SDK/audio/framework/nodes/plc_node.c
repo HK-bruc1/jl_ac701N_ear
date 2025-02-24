@@ -58,7 +58,14 @@ struct music_plc *music_plc_open(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
             free(plc);
             return NULL;
         }
-        plc->plc_ops->open(plc->plc_mem, ch_num, sr, tws_api_get_low_latency_state() ? 4 : 0, &plc->datatype); //4是延时最低 16个点
+        int ret = plc->plc_ops->open(plc->plc_mem, ch_num, sr, tws_api_get_low_latency_state() ? 4 : 0, &plc->datatype); //4是延时最低 16个点
+        if (ret) { //低于 16k采样率,不支持做plc
+            free(plc->plc_mem);
+            plc->plc_mem = NULL;
+            plc->plc_ops = NULL;
+            free(plc);
+            return NULL;
+        }
     }
     return plc;
 }
@@ -163,12 +170,12 @@ static void plc_handle_frame(struct stream_iport *iport, struct stream_note *not
     if ((frame->flags & flag) == flag) {
         repair_flag = 1;
     }
-    if (hdl->scene == STREAM_SCENE_A2DP) {
+    if (hdl->scene == STREAM_SCENE_ESCO) {
+        esco_plc_run(hdl, (s16 *)frame->data, frame->len, repair_flag);
+    } else {
 #if TCFG_MUSIC_PLC_ENABLE
         music_plc_run(hdl->plc, (s16 *)frame->data, frame->len, repair_flag);
 #endif
-    } else {
-        esco_plc_run(hdl, (s16 *)frame->data, frame->len, repair_flag);
     }
     if (node->oport) {
         jlstream_push_frame(node->oport, frame);
@@ -197,26 +204,19 @@ static void plc_ioc_start(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
     hdl->data_wide.iport_data_wide = hdl_node(hdl)->iport->prev->fmt.bit_wide;
     hdl->data_wide.oport_data_wide = hdl_node(hdl)->oport->fmt.bit_wide;
     /*log_d("%s bit_wide, %d %d %d\n", __FUNCTION__, hdl->data_wide.iport_data_wide, hdl->data_wide.oport_data_wide, hdl_node(hdl)->oport->fmt.Qval);*/
-    if (hdl->scene == STREAM_SCENE_A2DP) {
+    if (hdl->scene == STREAM_SCENE_ESCO) {
+        hdl->esco_plc = esco_plc_open(hdl, sr, ch_num);
+    } else {
 #if TCFG_MUSIC_PLC_ENABLE
         hdl->plc = music_plc_open(hdl, sr,  ch_num);
 #endif
-    } else {
-        hdl->esco_plc = esco_plc_open(hdl, sr, ch_num);
     }
 }
 
 /*节点stop函数*/
 static void plc_ioc_stop(struct plc_node_hdl *hdl)
 {
-    if (hdl->scene == STREAM_SCENE_A2DP) {
-#if TCFG_MUSIC_PLC_ENABLE
-        if (hdl->plc) {
-            music_plc_close(hdl->plc);
-            hdl->plc = NULL;
-        }
-#endif
-    } else {
+    if (hdl->scene == STREAM_SCENE_ESCO) {
         if (hdl->esco_plc) {
             esco_plc_close(hdl->esco_plc);
             hdl->esco_plc = NULL;
@@ -225,6 +225,14 @@ static void plc_ioc_stop(struct plc_node_hdl *hdl)
             free(hdl->out_buf);
             hdl->out_buf = NULL;
         }
+    } else {
+#if TCFG_MUSIC_PLC_ENABLE
+        if (hdl->plc) {
+            music_plc_close(hdl->plc);
+            hdl->plc = NULL;
+        }
+#endif
+
     }
 }
 

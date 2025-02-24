@@ -19,10 +19,11 @@
 #include "app_task.h"
 #include "app_main.h"
 #include "app_default_msg_handler.h"
+#include "dev_manager.h"
 
 #if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
      && TCFG_CHARGESTORE_PORT == IO_PORT_DP)
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #endif
 
 #define LOG_TAG             "[PC]"

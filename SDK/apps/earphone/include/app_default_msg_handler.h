@@ -6,6 +6,8 @@
 #include "system/event.h"
 
 int app_default_msg_handler(int *msg);
+void app_common_key_msg_handler(int *msg);
+int app_common_device_event_handler(int *msg);
 
 #endif
 

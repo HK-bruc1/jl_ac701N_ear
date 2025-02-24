@@ -114,6 +114,16 @@ struct icsd_norm_candidate_v2 {
     float gain_limit_all;
 };
 
+
+typedef struct {
+    struct icsd_anc_buf_v2		anc_buf;
+    struct icsd_De_param_v2 	De_param;
+    struct icsd_ff_candidate_v2 ff_candidate2;
+    struct icsd_ff_candidate_v2 cmp_candidate2;
+    struct icsd_target_param 	target_param;
+} __icsd_de_ram;
+extern __icsd_de_ram *ICSD_DE_RAM;
+
 void anc_de_init();
 //void target_reshape(float *target, float *sz, int pz_reshape_en, int sz_reshape_en, int target_reshape_en);
 //void target_cmp_out(float *target, float *freqz, float *sz, int *tight_degree, int ear_mem_en);

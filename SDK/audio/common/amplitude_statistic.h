@@ -20,7 +20,8 @@ typedef  struct _LOUDNESS_M_STRUCT_ {
     u8 index;
 } LOUDNESS_M_STRUCT;
 
-void  loudness_meter_init(LOUDNESS_M_STRUCT *loud_obj, int sr, int print_dest, u8 index);
-void  loudness_meter_short(LOUDNESS_M_STRUCT *loud_obj, short *data, int len);
+void loudness_meter_init(LOUDNESS_M_STRUCT *loud_obj, int sr, int print_dest, u8 index);
+void loudness_meter_short(LOUDNESS_M_STRUCT *loud_obj, short *data, int len);
+void loudness_meter_24bit(LOUDNESS_M_STRUCT *loud_obj, int *data, int len);
 
 #endif /*_AMPLITUDE_STATISTIC_H_*/

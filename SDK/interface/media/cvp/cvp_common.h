@@ -35,6 +35,7 @@ enum {
     CVP_WNC_SWITCH,
     CVP_MFDT_SWITCH,
     CVP_OUTWAY_REF_IGNORE,
+    CVP_DNS_NOISEGATE_VAL,
 };
 int aec_ioctl(int cmd, int value, void *priv);
 int sms_tde_ioctl(int cmd, int value, void *priv);

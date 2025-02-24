@@ -81,7 +81,32 @@
 #define TCFG_LED_BLUE_LOGIC BRIGHT_BY_LOW // 点亮方式
 #endif // TCFG_PWMLED_ENABLE
 
+#define TCFG_SD0_ENABLE 0 // SD配置
+#if TCFG_SD0_ENABLE
+#define TCFG_SD0_DAT_MODE 1 // 线数设置
+#define TCFG_SD0_DET_MODE SD_CMD_DECT // 检测方式
+#define TCFG_SD0_CLK 12000000 // SD时钟频率
+#define TCFG_SD0_DET_IO NO_CONFIG_PORT // 检测IO
+#define TCFG_SD0_DET_IO_LEVEL 0 // IO检测方式
+#define TCFG_SD0_POWER_SEL SD_PWR_NULL // SD卡电源
+#define TCFG_SDX_CAN_OPERATE_MMC_CARD 0 // 支持MMC卡
+#define TCFG_KEEP_CARD_AT_ACTIVE_STATUS 0 // 保持卡活跃状态
+#define TCFG_SD0_PORT_CMD IO_PORTG_01 // SD_PORT_CMD
+#define TCFG_SD0_PORT_CLK IO_PORTG_02 // SD_PORT_CLK
+#define TCFG_SD0_PORT_DA0 IO_PORTG_00 // SD_PORT_DATA0
+#define TCFG_SD0_PORT_DA1 NO_CONFIG_PORT // SD_PORT_DATA1
+#define TCFG_SD0_PORT_DA2 NO_CONFIG_PORT // SD_PORT_DATA2
+#define TCFG_SD0_PORT_DA3 NO_CONFIG_PORT // SD_PORT_DATA3
+#endif // TCFG_SD0_ENABLE
+
 #define FUSB_MODE 1 // USB工作模式
+#define TCFG_USB_HOST_ENABLE 0 // USB主机总开关
+#define USB_H_MALLOC_ENABLE 1 // 主机使用malloc
+#define TCFG_USB_HOST_MOUNT_RESET 40 // usb reset时间
+#define TCFG_USB_HOST_MOUNT_TIMEOUT 50 // 握手超时时间
+#define TCFG_USB_HOST_MOUNT_RETRY 3 // 枚举失败重试次数
+#define TCFG_UDISK_ENABLE 0 // U盘使能
+#define TCFG_USB_SLAVE_MSD_ENABLE 0 // 读卡器使能
 #define TCFG_USB_SLAVE_HID_ENABLE 1 // HID使能
 #define MSD_BLOCK_NUM 1 // MSD缓存块数
 #define USB_AUDIO_VERSION USB_AUDIO_VERSION_1_0 // UAC协议版本
@@ -213,12 +238,13 @@
 #define TCFG_BT_BLE_ADV_ENABLE 0 // 广播
 #endif // TCFG_USER_BLE_ENABLE
 
-#define TCFG_THIRD_PARTY_PROTOCOLS_ENABLE 0 // AI配置
+#define TCFG_THIRD_PARTY_PROTOCOLS_ENABLE 0 // 第三方协议配置
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
-#define TCFG_THIRD_PARTY_PROTOCOLS_SEL 0 // AI协议选择
 #define TCFG_BT_RCSP_DUAL_CONN_ENABLE 0 // 支持连接两路rcsp
+#define TCFG_THIRD_PARTY_PROTOCOLS_SEL 0 // 第三方协议选择
 #endif // TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 
+#define TCFG_LE_AUDIO_APP_CONFIG 0 // le_audio 应用选择
 #define TCFG_LE_AUDIO_PLAY_LATENCY 30000 // le_audio延时（us）
 #define TCFG_BT_DONGLE_ENABLE 0 // 支持dongle连接
 #define TCFG_JL_DONGLE_PLAYBACK_LATENCY 40 // dongle下行播放延时(msec)
@@ -232,6 +258,17 @@
 #define TCFG_APP_PC_EN 0 // PC模式
 #define TCFG_MIC_EFFECT_ENABLE 0 // 混响使能
 #define TWFG_APP_POWERON_IGNORE_DEV 5000 // 设备忽略时间（单位：ms）
+#define TCFG_APP_MUSIC_EN 0 // 音乐模式
+#define TCFG_DEC_ID3_V2_ENABLE 0 // ID3_V2
+#define TCFG_DEC_ID3_V1_ENABLE 0 // ID3_V1
+#define FILE_DEC_REPEAT_EN 0 // 无缝循环播放
+#define FILE_DEC_DEST_PLAY 0 // 指定时间播放
+#define FILE_DEC_AB_REPEAT_EN 0 // AB点复读
+#define TCFG_DEC_DECRYPT_ENABLE 0 // 加密文件播
+#define TCFG_DEC_DECRYPT_KEY 0x12345678 // 加密KEY
+#define MUSIC_PLAYER_CYCLE_ALL_DEV_EN 1 // 循环播放模式是否循环所有设备
+#define MUSIC_PLAYER_PLAY_FOLDER_PREV_FIRST_FILE_EN 0 // 切换文件夹播放时从第一首歌开始
+#define TCFG_MUSIC_DEVICE_TONE_EN 0 // 设备提示音
 // ------------功能配置.json------------
 
 // ------------升级配置.json------------
@@ -254,10 +291,11 @@
 #define TCFG_AUDIO_DAC_POWER_ON_MODE 0X0 // DAC开启模式
 #define TCFG_AUDIO_VCM_CAP_EN 0x1 // VCM电容
 #define TCFG_AUDIO_DAC_BUFFER_TIME_MS 80 // 缓冲长度（ms）
+#define TCFG_AUDIO_DAC_PA_ISEL 4 // 电流档位
+#define TCFG_AUDIO_DAC_POWER_BOOST 0 // 音量增强模式
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x03 // L Channel
 #define TCFG_AUDIO_R_CHANNEL_GAIN 0x03 // R Channel
 #define TCFG_AUDIO_DIGITAL_GAIN 0 // Digital Gain
-#define TCFG_AUDIO_DAC_POWER_BOOST 0x0 //DAC功率增强
 
 #define TCFG_AUDIO_ADC_ENABLE 1 // ADC配置
 #if TCFG_AUDIO_ADC_ENABLE
@@ -312,8 +350,10 @@
 #define TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE 0 // 智能免摘
 #define TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE 0 // 风噪检测
 #define TCFG_AUDIO_WIDE_AREA_TAP_ENABLE 0 // 广域点击
-#define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 0 // 耳道自适应
+#define TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE 0 // 音量自适应
 #define TCFG_AUDIO_FIT_DET_ENABLE 0 // 贴合度检测
+#define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 0 // ANC耳道自适应
+#define TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN 0 // ANC自适应CMP
 #define TCFG_AUDIO_ADAPTIVE_EQ_ENABLE 0 // 自适应EQ
 #define TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE 0 // 防破音模式
 #define TCFG_ANC_MUSIC_DYNAMIC_GAIN_THR -12 // ANC动态增益-触发阈值(dB)
@@ -326,7 +366,8 @@
 #define TCFG_AUDIO_CVP_SYNC 0 // 通话上行同步
 #define TCFG_ESCO_DL_CVSD_SR_USE_16K 1 // ESCO通话全局采样率
 #define TCFG_LEA_CALL_DL_GLOBAL_SR 1 // LEA通话全局采样率
-#define TCFG_AUDIO_SMS_SEL SMS_DEFAULT // 1mic算法选择
+#define TCFG_AUDIO_SMS_SEL SMS_DEFAULT // 1micANS算法选择
+#define TCFG_AUDIO_SMS_DNS_VERSION SMS_DNS_V200 // 1micDNS算法选择
 #define TCFG_AUDIO_DMS_GLOBAL_VERSION DMS_GLOBAL_V200 // 2micDNS算法选择
 #define TCFG_3MIC_MODE_SEL JLSP_3MIC_MODE2 // 3mic算法选择
 #define TCFG_MUSIC_PLC_TYPE 0 // PLC 类型选择
@@ -343,9 +384,20 @@
 #define TCFG_AUDIO_KWS_LANGUAGE_SEL KWS_CH // 模式选择
 #define TCFG_SPATIAL_EFFECT_ONLINE_ENABLE 0 // 空间音效在线调试
 #define TCFG_SPATIAL_EFFECT_VERSION 1 // 音效算法版本选择
-#define TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL 'L' // 传感器选择
+#define TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL 0x0 // 传感器选择
 #define TCFG_DEC_OPUS_ENABLE 0 // OPUS
 #define TCFG_ENC_OPUS_ENABLE 0 // OPUS
+#define TCFG_DEC_WAV_ENABLE 0 // WAV
+#define TCFG_DEC_MP3_ENABLE 0 // MP3
+#define TCFG_DEC_FLAC_ENABLE 0 // FLAC
+#define TCFG_DEC_WMA_ENABLE 0 // WMA
+#define TCFG_DEC_APE_ENABLE 0 // APE
+#define TCFG_DEC_AAC_ENABLE 0 // AAC
+#define TCFG_DEC_F2A_ENABLE 0 // F2A
+#define TCFG_DEC_WTG_ENABLE 0 // WTG
+#define TCFG_DEC_MTY_ENABLE 0 // MTY
+#define TCFG_DEC_WTS_ENABLE 0 // WTS
+#define TCFG_DEC_JLA_ENABLE 0 // JLA
 
 #define TCFG_AUDIO_HEARING_AID_ENABLE 0 // 辅听配置
 #if TCFG_AUDIO_HEARING_AID_ENABLE
@@ -366,4 +418,3 @@
 #define TCFG_AUDIO_SOMATOSENSORY_ENABLE 0 // 头部姿态检测
 // ------------音频配置.json------------
 #endif
-

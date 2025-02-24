@@ -82,6 +82,7 @@ static u32 rcsp_file_offset = 0;
 static u8 rcsp_seek_type = 0;
 
 static u8 g_rcsp_ancs_state_flag = 0;
+static u32 rcsp_offset_addr = 0;
 
 //NOTE:测试盒的定义和本sdk文件系统的seek_type定义不一样;
 enum {
@@ -147,6 +148,7 @@ void tws_api_auto_role_switch_enable();
 
 int rcsp_f_seek(void *fp, u8 type, u32 offset)
 {
+    offset += rcsp_offset_addr;
     if (type == SEEK_SET) {
         __this->file_offset = offset;
         __this->seek_type = BT_SEEK_SET;
@@ -158,6 +160,13 @@ int rcsp_f_seek(void *fp, u8 type, u32 offset)
     /* lib_printf("---------UPDATA_seek type %d, offsize %d----------\n", bt_seek_type, bt_file_offset); */
     return 0;//FR_OK;
 }
+
+void rcsp_update_set_offset_addr(u32 offset)
+{
+    rcsp_offset_addr = offset;
+    rcsp_f_seek(NULL, SEEK_SET, 0); //确定好偏移
+}
+
 
 static u16 rcsp_f_stop(u8 err);
 
@@ -500,7 +509,13 @@ void rcsp_update_loader_download_init(int update_type, void (*result_cbk)(void *
         .p_op_api = &rcsp_update_op,
         .task_en = 1,
     };
+#if CONFIG_UPDATE_MUTIL_CPU_UART
+    y_printf("\n >>>[test]:func = %s,line= %d\n", __FUNCTION__, __LINE__);
+    update_interactive_task_start((void *)&info, rcsp_update_set_offset_addr, 1);
+#else
+    y_printf("\n >>>[test]:func = %s,line= %d\n", __FUNCTION__, __LINE__);
     app_active_update_task_init(&info);
+#endif
 }
 
 #else // (RCSP_MODE && RCSP_UPDATE_EN && !RCSP_BLE_MASTER)

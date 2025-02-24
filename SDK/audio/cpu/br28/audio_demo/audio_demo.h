@@ -119,7 +119,7 @@ void audio_link_demo_close(u8 iis_rx, u8 iis_tx);
 *				audio_plnk_demo_open(16000, 1);
 *********************************************************************
 */
-void audio_plnk_demo_open(u16 sample, u8 mic_2_dac);
+void audio_plnk_demo_open(u32 sample, u8 mic_2_dac);
 
 /*
 *********************************************************************

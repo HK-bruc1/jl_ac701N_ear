@@ -9,5 +9,9 @@
         KEEP(*(.tws_func_stub))
         tws_func_stub_end = .;
 
+		. = ALIGN(4);
+        tlcap_channel_begin = .;
+        KEEP(*(.tlcap_channel))
+        tlcap_channel_end = .;
 
 

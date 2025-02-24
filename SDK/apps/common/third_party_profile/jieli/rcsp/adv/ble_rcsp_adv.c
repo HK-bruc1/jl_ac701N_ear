@@ -48,6 +48,7 @@
 #include "JL_rcsp_api.h"
 #include "rcsp_config.h"
 #include "btstack_rcsp_user.h"
+#include "update.h"
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 #include "app_le_connected.h"
@@ -69,7 +70,8 @@
 #define VER_FLAG_IOS_BLE_LINK_BREDR				BIT(1) // ios一次连接
 
 #if 1
-#define log_info(x, ...)       printf("[BLE-RCSP-ADV]" x " ", ## __VA_ARGS__)
+/* #define log_info(x, ...)       printf("[BLE-RCSP-ADV]" x " ", ## __VA_ARGS__) */
+#define log_info               printf
 #define log_info_hexdump       put_buf
 #else
 #define log_info(...)
@@ -118,7 +120,7 @@ static void rcsp_adv_fill_mac_addr(u8 *mac_addr_buf)
     swapX(bt_get_mac_addr(), mac_addr_buf, 6);
 }
 
-#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR50) && ((RCSP_MODE == RCSP_MODE_SOUNDBOX) || (RCSP_MODE == RCSP_MODE_EARPHONE))
+#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR50 || CONFIG_CPU_BR56) && ((RCSP_MODE == RCSP_MODE_SOUNDBOX) || (RCSP_MODE == RCSP_MODE_EARPHONE))
 extern int JL_AES_BASE_BT;
 int JL_AES_BASE_BT = (int)JL_AES;	// add for btcon_hash, by lingxuanfeng, 20220517
 #endif
@@ -614,7 +616,6 @@ static void bt_ble_rcsp_adv_enable_do(void *priv)
 #endif
 
 #if RCSP_UPDATE_EN
-    extern u32 classic_update_task_exist_flag_get(void);
     if (classic_update_task_exist_flag_get()) {
         return;
     }

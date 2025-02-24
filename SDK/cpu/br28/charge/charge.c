@@ -155,7 +155,7 @@ u8 get_ldo5v_pulldown_res(void)
 
 static void charge_cc_check(void *priv)
 {
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         usr_timer_del(__this->cc_timer);
         __this->cc_timer = 0;
@@ -175,7 +175,7 @@ void charge_start(void)
     }
 
     //进入恒流充电之后,才开启充满检测
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
         check_full = 1;
@@ -231,7 +231,7 @@ static void charge_full_detect(void *priv)
         if (CHARGE_FULL_FLAG_GET() && LVCMP_DET_GET()) {
             log_char('1');
 
-            vbat_vol = adc_get_voltage(AD_CH_PMU_VBAT) * 4;
+            vbat_vol = gpadc_battery_get_voltage();
             //判断电池电压不小于满电电压-100mV
             if (vbat_vol < CHARGE_FULL_VBAT_MIN_VOLTAGE) {
                 charge_full_cnt = 0;

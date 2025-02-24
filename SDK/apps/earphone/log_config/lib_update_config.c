@@ -41,7 +41,7 @@ const int support_ota_tws_same_time_new =  1;
 const int support_ota_tws_same_time_new =  0;
 #endif
 //是否支持升级之后保留vm数据
-const int support_vm_data_keep = 0;
+const int support_vm_data_keep = 1;
 
 //是否支持外挂flash升级,需要打开Board.h中的TCFG_NOR_FS_ENABLE
 const int support_norflash_update_en  = 0;

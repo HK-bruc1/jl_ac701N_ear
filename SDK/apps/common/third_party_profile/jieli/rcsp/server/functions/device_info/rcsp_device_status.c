@@ -18,6 +18,9 @@
 #include "rcsp_extra_flash_opt.h"
 #include "JL_rcsp_api.h"
 #include "JL_rcsp_attr.h"
+#include "rcsp_fm_func.h"
+#include "rcsp_spdif_func.h"
+#include "rcsp_pc_func.h"
 
 #if RCSP_ADV_ANC_VOICE
 #include "adv_anc_voice.h"
@@ -85,7 +88,7 @@ static const func_set set_tab[FUNCTION_MASK_MAX] = {
 #if (TCFG_APP_MUSIC_EN)
     [MUSIC_FUNCTION_MASK] = rcsp_music_func_set,
 #endif
-#if (TCFG_RTC_ENABLE && RCSP_APP_RTC_EN)
+#if (TCFG_APP_RTC_EN && RCSP_APP_RTC_EN)
     [RTC_FUNCTION_MASK] = rcsp_rtc_func_set,
 #endif
 #if (TCFG_APP_LINEIN_EN && !SOUNDCARD_ENABLE)
@@ -93,7 +96,13 @@ static const func_set set_tab[FUNCTION_MASK_MAX] = {
 #endif
 #if (TCFG_APP_FM_EN)
     [FM_FUNCTION_MASK] = rcsp_fm_func_set,
-    [FMTX_FUNCTION_MASK] = NULL,
+    /* [FMTX_FUNCTION_MASK] = NULL, */
+#endif
+#if (TCFG_APP_SPDIF_EN)
+    [SPDIF_FUNCTION_MASK] = rcsp_spdif_func_set,
+#endif
+#if (TCFG_APP_PC_EN && TCFG_USB_SLAVE_AUDIO_SPK_ENABLE)
+    [PC_FUNCTION_MASK] = rcsp_pc_func_set,
 #endif
 };
 
@@ -102,7 +111,7 @@ static const func_get get_tab[FUNCTION_MASK_MAX] = {
 #if (TCFG_APP_MUSIC_EN)
     [MUSIC_FUNCTION_MASK] = rcsp_music_func_get,
 #endif
-#if (TCFG_RTC_ENABLE && RCSP_APP_RTC_EN)
+#if (TCFG_APP_RTC_EN && RCSP_APP_RTC_EN)
     [RTC_FUNCTION_MASK] = rcsp_rtc_func_get,
 #endif
 #if (TCFG_APP_LINEIN_EN && !SOUNDCARD_ENABLE)
@@ -110,7 +119,13 @@ static const func_get get_tab[FUNCTION_MASK_MAX] = {
 #endif
 #if (TCFG_APP_FM_EN)
     [FM_FUNCTION_MASK] = rcsp_fm_func_get,
-    [FMTX_FUNCTION_MASK] = NULL,
+    /* [FMTX_FUNCTION_MASK] = NULL, */
+#endif
+#if (TCFG_APP_SPDIF_EN)
+    [SPDIF_FUNCTION_MASK] = rcsp_spdif_func_get,
+#endif
+#if (TCFG_APP_PC_EN && TCFG_USB_SLAVE_AUDIO_SPK_ENABLE)
+    [PC_FUNCTION_MASK] = rcsp_pc_func_get,
 #endif
 };
 
@@ -943,7 +958,7 @@ void rcsp_update_dev_state(u32 event, void *param)
     }
 #endif
     switch (event) {
-#if (TCFG_RTC_ENABLE && RCSP_APP_RTC_EN)
+#if (TCFG_APP_RTC_EN && RCSP_APP_RTC_EN)
     case DEVICE_EVENT_FROM_ALM:
         printf("DEVICE_EVENT_FROM_ALM\n");
         rcsp_rtc_msg_deal(-1);
@@ -961,20 +976,26 @@ u8 rcsp_get_cur_mode(u8 app_mode)
     u8 current_mode;
     switch (app_mode) {
     case APP_MUSIC_TASK:
-        current_mode = MUSIC_FUNCTION;
+        current_mode = MUSIC_FUNCTION_MASK;
         break;
     case APP_RTC_TASK:
-        current_mode = RTC_FUNCTION;
+        current_mode = RTC_FUNCTION_MASK;
         break;
     case APP_LINEIN_TASK:
-        current_mode = LINEIN_FUNCTION;
+        current_mode = LINEIN_FUNCTION_MASK;
         break;
     case APP_FM_TASK:
-        current_mode = FM_FUNCTION;
+        current_mode = FM_FUNCTION_MASK;
+        break;
+    case APP_SPDIF_TASK:
+        current_mode = SPDIF_FUNCTION_MASK;
+        break;
+    case APP_PC_TASK:
+        current_mode = PC_FUNCTION_MASK;
         break;
     case APP_BT_TASK:
     default:
-        current_mode = BT_FUNCTION;
+        current_mode = BT_FUNCTION_MASK;
         break;
     }
     return current_mode;
@@ -1015,7 +1036,7 @@ void rcsp_device_status_setting_stop(void)
         printf("RTC_FUNCTION STOP\n");
 #if TCFG_APP_RTC_EN
         // RTC模式是否播放
-        rtc_func_stop();
+        /* rtc_func_stop(); */
 #endif
         break;
     case LINEIN_FUNCTION:
@@ -1026,10 +1047,13 @@ void rcsp_device_status_setting_stop(void)
         break;
     case FM_FUNCTION:
         printf("FM_FUNCTION STOP\n");
+#if TCFG_APP_FM_EN
+        rcsp_fm_func_stop();
+#endif
         break;
-    case FMTX_FUNCTION:
-        printf("FMTX_FUNCTION STOP\n");
-        break;
+        /* case FMTX_FUNCTION: */
+        /*     printf("FMTX_FUNCTION STOP\n"); */
+        /*     break; */
     }
     // 调用各种设置的release函数
     rcsp_opt_release();

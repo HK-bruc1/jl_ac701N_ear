@@ -6,6 +6,7 @@
 #include "poweroff.h"
 #include "app_config.h"
 #include "bt_background.h"
+#include "earphone.h"
 
 enum {
     SYS_POWERON_BY_KEY = 1,
@@ -129,6 +130,7 @@ void app_power_off(void *priv);
 void bt_bredr_enter_dut_mode(u8 mode, u8 inquiry_scan_en);
 void bt_bredr_exit_dut_mode();
 u8 get_charge_online_flag(void);
+u8 check_local_not_accept_sniff_by_remote();
 
 struct app_mode *app_mode_switch_handler(int *msg);
 

@@ -4,7 +4,7 @@
 #include "generic/typedef.h"
 #include "system/task.h"
 #include "media/audio_def.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 
 enum {
     ANCDB_ERR_CRC = 1,

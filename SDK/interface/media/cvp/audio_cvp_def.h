@@ -38,10 +38,13 @@
 #define CVP_CFG_USER_DEFINED	1	//用户自定义开发算法
 #define CVP_CFG_AIS_3MIC		2	//思必驰3mic算法
 
-/*DMS版本定义*/
-#define DMS_GLOBAL_V100    0xB1
-#define DMS_GLOBAL_V200    0xB2
+/*SMS DNS版本定义*/
+#define SMS_DNS_V100        0xC1
+#define SMS_DNS_V200        0xC2
 
+/*DMS DNS版本定义*/
+#define DMS_GLOBAL_V100     0xB1
+#define DMS_GLOBAL_V200     0xB2
 /*
  * V200新算法回声消除nlp模式
  * JLSP_NLP_MODE1: 模式1为单独的NLP回声抑制，回声压制会偏过，该模式下NLP模块可以单独开启

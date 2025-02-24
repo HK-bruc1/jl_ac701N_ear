@@ -16,12 +16,12 @@ int putchar(int a)
     return a;
 }
 
-int puts(const char *out)
+int (puts)(const char *out)
 {
     return 0;
 }
 
-int printf(const char *format, ...)
+int (printf)(const char *format, ...)
 {
     return 0;
 }

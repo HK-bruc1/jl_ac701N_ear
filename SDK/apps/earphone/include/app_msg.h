@@ -31,6 +31,7 @@ enum {
 
     MSG_FROM_CI_UART,
     MSG_FROM_CDC,
+    MSG_FROM_CDC_DATA,
     MSG_FROM_CFGTOOL_TWS_SYNC,
 
     MSG_FROM_DEVICE,
@@ -125,6 +126,8 @@ enum {
     APP_MSG_BT_A2DP_OPEN_MEDIA_SUCCESS,
     APP_MSG_BT_STOP_A2DP_SLIENCE,
     APP_MSG_LE_AUDIO_MODE,
+    APP_MSG_LE_AUDIO_CALL_OPEN,
+    APP_MSG_LE_AUDIO_CALL_CLOSE,
     APP_MSG_BT_OPEN_DUT,
     APP_MSG_BT_CLOSE_DUT,
     APP_MSG_CALL_ANSWER,						// 接听电话
@@ -173,6 +176,7 @@ enum {
     APP_MSG_SPEAK_TO_CHAT_SWITCH,               //智能免摘
     APP_MSG_WAT_CLICK_SWITCH,                   //广域点击
     APP_MSG_WIND_DETECT_SWITCH,                 //风噪检测
+    APP_MSG_ADAPTIVE_VOL_SWITCH,                 //音量自适应
     APP_MSG_FIT_DET_SWITCH,
     APP_MSG_IMU_TRIM_START,                     //开始陀螺仪校准
     APP_MSG_IMU_TRIM_STOP,                      //关闭陀螺仪校准
@@ -221,6 +225,12 @@ enum {
     APP_MSG_MUSIC_CHANGE_EQ,
     APP_MSG_MUSIC_PLAY_BY_NUM,
     APP_MSG_MUSIC_PLAY_START_AT_DEST_TIME,
+    APP_MSG_MUSIC_FILE_NUM_CHANGED,
+    APP_MSG_MUSIC_PLAY_STATUS,
+
+    APP_MSG_REPEAT_MODE_CHANGED,
+    APP_MSG_PITCH_UP,
+    APP_MSG_PITCH_DOWN,
 
     //IR_NUM中间不允许插入msg
     APP_MSG_IR_NUM0,

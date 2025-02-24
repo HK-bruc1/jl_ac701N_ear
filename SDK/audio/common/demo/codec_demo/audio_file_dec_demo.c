@@ -11,6 +11,9 @@
 #include "codec/audio_decode_common_api.h"
 #include "audio_def.h"
 
+#if 0   //这里打开代码模块使能
+
+
 //-----------------------------------------------------------------------------
 //   decoder demo
 //-----------------------------------------------------------------------------
@@ -388,4 +391,4 @@ void audio_dec_demo_test_close(void *priv)
     }
 
 }
-
+#endif

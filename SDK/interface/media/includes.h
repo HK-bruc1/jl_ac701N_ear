@@ -9,24 +9,13 @@
 #ifdef CONFIG_AUDIO_ONCHIP
 
 #include "media/audio_decoder.h"
-#include "media/audio_encoder.h"
 #include "media/mixer.h"
 #include "media/automute.h"
-#include "media/audio_stream.h"
+#include "media/audio_dac.h"
+#include "media/audio_adc.h"
 
 #include "asm/cpu_includes.h"
 #include "effects/eq_func_define.h"
-/*
-#include "asm/dac.h"
-#include "asm/audio_adc.h"
-#if (defined CONFIG_CPU_BR26 || \
-     defined CONFIG_CPU_BR23 || \
-     defined CONFIG_CPU_BR21 || \
-     defined CONFIG_CPU_BR25 || \
-	 defined CONFIG_CPU_BR30)
-#include "asm/audio_src.h"
-#endif
-*/
 
 /*encoder init*/
 extern int msbc_encoder_init();
@@ -53,10 +42,6 @@ extern int mp3pick_decoder_init();
 extern int wmapick_decoder_init();
 extern int aac_decoder_init();
 
-#if defined CONFIG_CPU_BR23 || \
-    defined CONFIG_CPU_BR25
-#include "asm/audio_spdif.h"
-#endif
 
 #endif/*CONFIG_AUDIO_ONCHIP*/
 #endif

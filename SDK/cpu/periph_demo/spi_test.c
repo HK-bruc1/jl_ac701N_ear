@@ -14,6 +14,11 @@
 #include "asm/wdt.h"
 
 #define LOG_TAG             "[spi_demo]"
+#define LOG_ERROR_ENABLE
+#define LOG_DEBUG_ENABLE
+#define LOG_INFO_ENABLE
+#define LOG_CLI_ENABLE
+#define LOG_DUMP_ENABLE
 #include "debug.h"
 
 
@@ -60,7 +65,7 @@ void spi_master_test(hw_spi_dev spi)
         log_error("spi master dma send error(%d)!", ret);
     }
     log_info("spi(%d) master block dma tx ok!\n", spi);
-    spi_close(spi);
+    spi_deinit(spi);
 
 
 
@@ -123,7 +128,7 @@ void spi_master_test(hw_spi_dev spi)
     log_info_hexdump(spi_rx_buf_test, sizeof(spi_rx_buf_test));
 
     log_info("spi(%d) master irq byte tx&rx ok\n", spi);
-    spi_close(spi);
+    spi_deinit(spi);
 
     while (1) {
         wdt_clear();
@@ -376,7 +381,7 @@ void spi_slave_cs_test(hw_spi_dev spi)
         log_info("spi(%d) slave dma tx ok!(len:%d)", spi, spi_s_dma_data_len_test);
     }
 #endif
-    spi_close(spi);
+    spi_deinit(spi);
 
 
 
@@ -627,8 +632,8 @@ void spi_auto_test(hw_spi_dev spi_master, hw_spi_dev spi_slave)
 
 
         log_info("spi master irq byte tx&rx ok\n");
-        /* spi_close(spi_slave); */
-        /* spi_close(spi_master); */
+        /* spi_deinit(spi_slave); */
+        /* spi_deinit(spi_master); */
 
         wdt_clear();
         mdelay(1000);

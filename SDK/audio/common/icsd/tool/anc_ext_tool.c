@@ -22,7 +22,7 @@
 #include "audio_anc_debug_tool.h"
 #include "icsd_anc_v2_app.h"
 #if TCFG_ANC_BOX_ENABLE
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #endif
 
 #if 1

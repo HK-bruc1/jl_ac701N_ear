@@ -12,6 +12,7 @@ struct a2dp_media_frame {
 enum {
     SEND_ACL_ESCO_MODE = 1,
     SEND_ACL_SHARE_MODE,
+    SEND_ACL_A2DP_SOURCE_MODE = 0xfa,
 
 };
 
@@ -105,7 +106,7 @@ void lmp_hci_private_try_free_acl_packet(u8 *packet);
 
 int lmp_hci_send_packet(u8 *packet, int len, u8 mode);
 u16 lmp_private_get_acl_u_tx_packet_num(void *_conn, int mode);
-void lmp_private_del_acl_u_tx_packet(void *_conn, u8 tx_mode);
+void lmp_private_del_acl_u_tx_packet(void *_conn, u8 tx_mode, u32 del_num);
 u16 lmp_private_get_acl_u_tx_packet_len(void *_conn, int mode);
 
 int lmp_hci_send_packet_standard(const u8 *packet, int len);
@@ -297,5 +298,12 @@ void lp_winsize_init(const struct lp_ws_t *lp);
 
 void bt_max_pwr_set(u8 pwr, u8 pg_pwr, u8 iq_pwr, u8 ble_pwr);
 void lmp_esco_set_tx_notify(u8 *addr, void *priv, void (*notify)(void *, u32 clk));
+
+int lmp_private_get_speak_mic_data_len() ;
+u32 lmp_media_get_speak_mic_packet_num();
+void lmp_private_free_speak_mic_packet(void *packet);
+void *lmp_private_get_speak_mic_packet(int *len, u32 *hash);
+void lmp_jl_dongle_mic_set_rx_notify(u8 *addr, void *priv, void (*notify)(void *));
+int check_a2dp_source_send_packet_limit_cnt(u8 *addr, u8 dump_limit);
 
 #endif

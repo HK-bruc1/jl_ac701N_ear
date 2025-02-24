@@ -19,6 +19,11 @@ int audio_anc_production_exit(void);
 /*                         ANC_EXT 功能限制处理                     */
 /*------------------------------------------------------------------*/
 
+#if ((TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN || TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE) && \
+	(!TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN))
+#error "ANC自适应CMP、实时自适应必须先开启ANC耳道自适应"
+#endif/*TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN*/
+
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && (TCFG_AUDIO_ANC_TRAIN_MODE != ANC_HYBRID_EN)
 #error "ANC自适应，仅支持ANC HYBRID方案"
 #endif/*TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN*/
@@ -27,7 +32,9 @@ int audio_anc_production_exit(void);
 #error "贴合度检测，仅支持带ANC FB的方案"
 #endif/*TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN*/
 
-#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
+#if (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2) && \
+	 (TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN || \
+	 TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE)
 #define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		1
 #else
 #define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		0

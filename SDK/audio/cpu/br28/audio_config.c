@@ -35,13 +35,18 @@ const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 const int AAC_DEC_MP4A_LATM_ANALYSIS = 1;
 const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 #endif
-
+//***********************
+//*		MP3 Codec       *
+//***********************
 #ifdef MP3_DEC_IN_MASK
 const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 #else
 const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 #endif
 
+//***********************
+//*		WTS Codec       *
+//***********************
 #ifdef WTS_DEC_IN_MASK
 const int WTS_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 #else

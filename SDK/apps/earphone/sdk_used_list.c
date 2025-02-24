@@ -1,5 +1,7 @@
 #include "app_config.h"
 
+breakpoint_init
+
 #if TCFG_AUTOMUTE_NODE_ENABLE
 automute_node_adapter
 #endif
@@ -28,9 +30,14 @@ adc_file_plug
 tone_file_plug
 ring_file_plug
 key_tone_file_plug
-sbc_hwaccel
-sbc_decoder_plug
 msbc_decoder_plug
+
+#if 0
+sbc_decoder_sw_plug
+#else
+sbc_hwaccel
+sbc_decoder_hw_plug
+#endif
 
 #if TCFG_PDM_NODE_ENABLE
 pdm_mic_file_plug
@@ -110,6 +117,9 @@ stereo_widener_node_adapter
 linein_file_plug
 #endif
 
+#if TCFG_APP_MUSIC_EN
+music_file_plug
+#endif
 
 #if TCFG_ENERGY_DETECT_NODE_ENABLE
 energy_detect_node_adapter
@@ -196,6 +206,18 @@ mp3_dec_plug
 
 #if TCFG_DEC_WMA_ENABLE || TCFG_TONE_WMA_ENABLE
 wma_dec_plug
+#endif
+
+#if TCFG_DEC_FLAC_ENABLE
+flac_dec_plug
+#endif
+
+#if TCFG_DEC_M4A_ENABLE
+m4a_dec_plug
+#endif
+
+#if TCFG_DEC_APE_ENABLE
+ape_dec_plug
 #endif
 
 #if CONFIG_FATFS_ENABLE
@@ -436,22 +458,6 @@ debug_system_record
 debug_task_record
 #endif
 
-#if TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
-mulit_ch_iis0_file_plug
-mulit_ch_iis1_file_plug
-#endif
-
-#if TCFG_MULTI_CH_IIS_NODE_ENABLE
-multi_ch_iis0_node_adapter
-multi_ch_iis1_node_adapter
-#endif
-
-#if TCFG_IIS_NODE_ENABLE
-iis_node_adapter
-iis1_node_adapter
-iis_file_plug
-iis1_file_plug
-#endif
 
 #if TCFG_SIGNAL_GENERATOR_NODE_ENABLE
 signal_generator_file_plug
@@ -467,4 +473,55 @@ vocal_remover_node_adapter
 
 #if TCFG_NOISEGATE_PRO_NODE_ENABLE
 noisegate_pro_node_adapter
+#endif
+
+#if TCFG_SPLIT_GAIN_NODE_ENABLE
+split_gain_node_adapter
+#endif
+
+#if TCFG_DEC_SPEEX_ENABLE
+speex_dec_plug
+#endif
+
+#if TCFG_ENC_SPEEX_ENABLE
+speex_encoder_plug
+#endif
+
+#if TCFG_VIRTUAL_BASS_CLASSIC_NODE_ENABLE
+virtual_bass_classic_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_PRO_NODE_ENABLE
+upmix_node_adapter
+#endif
+
+#if TCFG_PHASER_NODE_ENABLE
+phaser_node_adapter
+#endif
+
+#if TCFG_FLANGER_NODE_ENABLE
+flanger_node_adapter
+#endif
+
+#if TCFG_CHORUS_ADVANCE_NODE_ENABLE
+chorus_advance_node_adapter
+#endif
+
+#if TCFG_PINGPONG_ECHO_NODE_ENABLE
+pingpong_echo_node_adapter
+#endif
+
+#if TCFG_STEREO_SPATIAL_WIDER_NDOE_ENABLE
+stereo_spatial_wider_node_adapter
+#endif
+
+#if TCFG_DISTORTION_CLIPPING_NDOE_ENABLE
+distortion_clipping_node_adapter
+#endif
+
+#if TCFG_FREQUENCY_COMPRESSOR_NODE_ENABLE
+frequency_compressor_node_adapter
+#endif
+#if TCFG_SPATIAL_ADV_NODE_ENABLE
+spatial_adv_node_adapter
 #endif

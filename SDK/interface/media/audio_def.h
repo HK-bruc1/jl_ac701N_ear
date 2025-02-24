@@ -10,8 +10,37 @@
 #ifndef _AUDIO_DEF_H_
 #define _AUDIO_DEF_H_
 
+/*
+ *******************************************************************
+ *						Audio Common Definitions
+ *******************************************************************
+ */
+//Audio I/O Mode
+#define AUDIO_IO_SINGLE_ENDED			0	//单端:Single-Ended
+#define AUDIO_IO_DIFFERENTIAL			1	//差分:Differential
 
+//Volume Mode
+#define  VOL_TYPE_DIGITAL				0	//软件数字音量
+#define  VOL_TYPE_ANALOG				1	//硬件模拟音量
+#define  VOL_TYPE_AD					2	//联合音量(模拟数字混合调节)
+#define  VOL_TYPE_DIGITAL_HW			3  	//硬件数字音量
 
+//数据位宽定义
+#define  DATA_BIT_WIDE_16BIT  			0
+#define  DATA_BIT_WIDE_24BIT  			1
+#define  DATA_BIT_WIDE_32BIT  			2
+#define  DATA_BIT_WIDE_32BIT_FLOAT  	3
+
+/*
+ *audio state define
+ */
+#define APP_AUDIO_STATE_IDLE        0
+#define APP_AUDIO_STATE_MUSIC       1
+#define APP_AUDIO_STATE_CALL        2
+#define APP_AUDIO_STATE_WTONE       3
+#define APP_AUDIO_STATE_KTONE       4
+#define APP_AUDIO_STATE_RING       	5
+#define APP_AUDIO_CURRENT_STATE     6
 /*
  *******************************************************************
  *						DAC Definitions
@@ -20,15 +49,15 @@
 #define DAC_DSM_6MHz                       (0)
 #define DAC_DSM_12MHz                      (1)
 
-#define DAC_OUTPUT_MONO_L                  (0)   //左声道
-#define DAC_OUTPUT_MONO_R                  (1)   //右声道
-#define DAC_OUTPUT_LR                      (2)   //立体声
-#define DAC_OUTPUT_MONO_LR_DIFF            (3)   //左右差分输出
+#define DAC_OUTPUT_MONO_L                  ((1 << 4) | 0)   //左声道
+#define DAC_OUTPUT_MONO_R                  ((1 << 4) | 1)   //右声道
+#define DAC_OUTPUT_LR                      ((2 << 4) | 2)   //立体声
+#define DAC_OUTPUT_MONO_LR_DIFF            ((1 << 4) | 3)   //左右差分输出
 
-#define DAC_OUTPUT_DUAL_LR_DIFF            (6)   //双声道差分
-#define DAC_OUTPUT_FRONT_LR_REAR_L         (7)   //三声道单端输出 前L+前R+后L (不可设置vcmo公共端)
-#define DAC_OUTPUT_FRONT_LR_REAR_R         (8)   //三声道单端输出 前L+前R+后R (可设置vcmo公共端)
-#define DAC_OUTPUT_FRONT_LR_REAR_LR        (9)   //四声道单端输出
+#define DAC_OUTPUT_DUAL_LR_DIFF            ((2 << 4) | 6)   //双声道差分
+#define DAC_OUTPUT_FRONT_LR_REAR_L         ((3 << 4) | 7)   //三声道单端输出 前L+前R+后L (不可设置vcmo公共端)
+#define DAC_OUTPUT_FRONT_LR_REAR_R         ((3 << 4) | 8)   //三声道单端输出 前L+前R+后R (可设置vcmo公共端);
+#define DAC_OUTPUT_FRONT_LR_REAR_LR        ((4 << 4) | 9)   //四声道单端输出
 
 #define DAC_BIT_WIDTH_16                   (0)   //16bit 位宽
 #define DAC_BIT_WIDTH_24                   (1)   //24bit 位宽
@@ -59,6 +88,20 @@
 #define EPA_PWM_MODE2                      (2)
 /*
  *******************************************************************
+ *						PDM Definitions
+ *******************************************************************
+ */
+//PDM Version definitions
+#define AUDIO_PDM_V1						(1UL << 0)
+#define AUDIO_PDM_V2						(1UL << 1)
+
+#define AUDIO_PDM_MIC_0						(1UL << 0)
+#define AUDIO_PDM_MIC_1                     (1UL << 1)
+#define AUDIO_PDM_MIC_2                     (1UL << 2)
+#define AUDIO_PDM_MIC_3                     (1UL << 3)
+
+/*
+ *******************************************************************
  *						Analog Aux Definitions
  *******************************************************************
  */
@@ -75,18 +118,23 @@
  *						ADC Definitions
  *******************************************************************
  */
-#define ADC_BIT_WIDTH_16                   (0)   //16bit 位宽
-#define ADC_BIT_WIDTH_24                   (1)   //24bit 位宽
+#define ADC_BIT_WIDTH_16                    (0)   //16bit 位宽
+#define ADC_BIT_WIDTH_24                    (1)   //24bit 位宽
 
-#define ADC_AIN_PORT0                      (1UL << 0)
-#define ADC_AIN_PORT1                      (1UL << 1)
-#define ADC_AIN_PORT2                      (1UL << 2)
-#define ADC_AIN_PORT3                      (1UL << 3)
-#define ADC_AIN_PORT4                      (1UL << 4)
+#define ADC_AIN_PORT0                       (1UL << 0)
+#define ADC_AIN_PORT1                       (1UL << 1)
+#define ADC_AIN_PORT2                       (1UL << 2)
+#define ADC_AIN_PORT3                       (1UL << 3)
+#define ADC_AIN_PORT4                       (1UL << 4)
 
-#define MIC_LDO_STA_CLOSE                  (0)   //MICLDO电源关闭
-#define MIC_LDO_STA_OPEN                   (1)   //MICLDO电源开启
+#define MIC_LDO_STA_CLOSE                   (0)   //MICLDO电源关闭
+#define MIC_LDO_STA_OPEN                    (1)   //MICLDO电源开启
 
+/*省电容MIC版本定义*/
+#define MIC_CAPLESS_VER0					(0)	//693N 695N 696N
+#define MIC_CAPLESS_VER1					(1)	//697N 897N 698N
+#define MIC_CAPLESS_VER2					(2)	//700N 701N
+#define MIC_CAPLESS_VER3					(3)	//703N 706N AW32N
 /*
  *******************************************************************
  *						FFT Definitions
@@ -204,20 +252,22 @@
 
 /*
  *******************************************************************
- *						Common Definitions
+ *						Effect Definitions
  *******************************************************************
  */
-#define  VOL_TYPE_DIGITAL			0	//软件数字音量
-#define  VOL_TYPE_ANALOG			1	//硬件模拟音量
-#define  VOL_TYPE_AD				2	//联合音量(模拟数字混合调节)
-#define  VOL_TYPE_DIGITAL_HW		3  	//硬件数字音量
+//算法输入输出位宽使能位定义
+#define  EFx_BW_UNUSED 	                    (0)
+#define  EFx_BW_16t16 	                    (1UL << (0))
+#define  EFx_BW_16t32		                (1UL << (1))
+#define  EFx_BW_32t16		                (1UL << (2))
+#define  EFx_BW_32t32		                (1UL << (3))
+#define  EFx_PRECISION_NOR                  (1UL << (4)) //precision(精度为高 普通 最低使能)
+#define  EFx_PRECISION_PRO                  (1UL << (5)) //precision+(精度为最高使能)
+#define  EFx_MODULE_MONO_EN                 (1UL << (6)) //支持单进单出
+#define  EFx_MODULE_STEREO_EN               (1UL << (7)) //支持双进双出
 
-//数据位宽定义
-#define  DATA_BIT_WIDE_16BIT  			0
-#define  DATA_BIT_WIDE_24BIT  			1
-#define  DATA_BIT_WIDE_32BIT  			2
-#define  DATA_BIT_WIDE_32BIT_FLOAT  	3
-
-
+//Limiter精度使能位定义
+#define  LIMITER_PRECISION_HIGH_NORMAL_LOW  EFx_PRECISION_NOR//高、普通、最低
+#define  LIMITER_PRECISION_MAX              EFx_PRECISION_PRO //最高
 
 #endif/*_AUDIO_DEF_H_*/

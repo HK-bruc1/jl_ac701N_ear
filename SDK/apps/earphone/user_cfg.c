@@ -56,6 +56,10 @@ const struct btif_item btif_table[] = {
 // 	 	item id 		   	   len   	//
     {CFG_BT_MAC_ADDR, 			6 },
     {CFG_BT_FRE_OFFSET,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET1,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET2,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET3,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET4,   		6 },   //测试盒矫正频偏值
 #if TCFG_CHARGE_CALIBRATION_ENABLE
     {VM_CHARGE_CALIBRATION,     sizeof(calibration_result) },   //充电电流校准
 #endif
@@ -70,6 +74,7 @@ const int vm_max_page_align_size_config   = TCFG_VM_SIZE; 		//page对齐vm管理
 const int vm_max_sector_align_size_config = TCFG_VM_SIZE; 	//sector对齐vm管理空间最大值配置
 //======================================================================================//
 
+#if TCFG_BT_SNIFF_ENABLE
 const struct lp_ws_t lp_winsize = {
     .lrc_ws_inc = CONFIG_LRC_WIN_STEP,      //260
     .lrc_ws_init = CONFIG_LRC_WIN_SIZE,
@@ -77,6 +82,7 @@ const struct lp_ws_t lp_winsize = {
     .bt_osc_ws_init = CONFIG_OSC_WIN_SIZE,
     .osc_change_mode = 1,                       //低功耗时钟，0：仅使用LRC 1：自动切换 2：保留
 };
+#endif
 
 u16 bt_get_tws_device_indicate(u8 *tws_device_indicate)
 {

@@ -40,8 +40,7 @@ struct le_audio_stream_params {
     struct le_audio_stream_format fmt;
     enum LEA_SERVICE service_type;
     int latency;
-    void *conn;
-    u32(*reference_time)(void *conn, u8 cmd, void *arg);
+    u16 conn;
 };
 
 struct le_audio_frame {
@@ -57,7 +56,7 @@ struct le_audio_latch_time {
     u16 us_1_12th;
 };
 
-void *le_audio_stream_create(void *conn, struct le_audio_stream_format *fmt, u32(*reference_time)(void *, u8, void *));
+void *le_audio_stream_create(u16 conn, struct le_audio_stream_format *fmt);
 
 void le_audio_stream_free(void *le_audio);
 

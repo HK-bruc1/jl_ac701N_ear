@@ -16,33 +16,45 @@
 #include "online_db_deal.h"
 
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
+
+//如果以下声道数的配置覆盖不了所有情况的话，spk eq声道数需由用户根据实际声道数指定
+#if TCFG_DAC_NODE_ENABLE
+
+#if ((TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) || (TCFG_AUDIO_DAC_CONNECT_MODE ==DAC_OUTPUT_DUAL_LR_DIFF))
+static u8 spk_eq_ch_num = 2;
+#else
+static u8 spk_eq_ch_num = 1;
+#endif
+
+#else
+static u8 spk_eq_ch_num = 2;
+#endif
+
+#define SPK_EQ_NSECTION  10
+static u32 spk_eq_tab_size = 0;
+static struct eq_seg_info *spk_eq_tab = NULL;//按实际声道数做申请,只申请,不做释放
 static u8 spk_eq_read_from_ram = 0;
 static float spk_eq_global_gain[2];
-static struct eq_seg_info spk_eq_tab[20] = {
-    //left
-    {0, EQ_IIR_TYPE_BAND_PASS, 31,    0, 0.7f},
-    {1, EQ_IIR_TYPE_BAND_PASS, 62,    0, 0.7f},
-    {2, EQ_IIR_TYPE_BAND_PASS, 125,   0, 0.7f},
-    {3, EQ_IIR_TYPE_BAND_PASS, 250,   0, 0.7f},
-    {4, EQ_IIR_TYPE_BAND_PASS, 500,   0, 0.7f},
-    {5, EQ_IIR_TYPE_BAND_PASS, 1000,  0, 0.7f},
-    {6, EQ_IIR_TYPE_BAND_PASS, 2000,  0, 0.7f},
-    {7, EQ_IIR_TYPE_BAND_PASS, 4000,  0, 0.7f},
-    {8, EQ_IIR_TYPE_BAND_PASS, 8000,  0, 0.7f},
-    {9, EQ_IIR_TYPE_BAND_PASS, 16000, 0, 0.7f},
 
-    //right
-    {0, EQ_IIR_TYPE_BAND_PASS, 31,    0, 0.7f},
-    {1, EQ_IIR_TYPE_BAND_PASS, 62,    0, 0.7f},
-    {2, EQ_IIR_TYPE_BAND_PASS, 125,   0, 0.7f},
-    {3, EQ_IIR_TYPE_BAND_PASS, 250,   0, 0.7f},
-    {4, EQ_IIR_TYPE_BAND_PASS, 500,   0, 0.7f},
-    {5, EQ_IIR_TYPE_BAND_PASS, 1000,  0, 0.7f},
-    {6, EQ_IIR_TYPE_BAND_PASS, 2000,  0, 0.7f},
-    {7, EQ_IIR_TYPE_BAND_PASS, 4000,  0, 0.7f},
-    {8, EQ_IIR_TYPE_BAND_PASS, 8000,  0, 0.7f},
-    {9, EQ_IIR_TYPE_BAND_PASS, 16000, 0, 0.7f},
-};
+static void spk_eq_tab_init()
+{
+    if (!spk_eq_tab) {
+        spk_eq_tab_size = sizeof(struct eq_seg_info) * SPK_EQ_NSECTION * spk_eq_ch_num;
+        spk_eq_tab = malloc(spk_eq_tab_size);
+        struct eq_seg_info seg;
+        for (int i = 0; i < SPK_EQ_NSECTION; i++) {
+            seg.index = i;
+            seg.freq = 100;
+            seg.iir_type = EQ_IIR_TYPE_BAND_PASS;
+            seg.gain = 0.0f;
+            seg.q = 0.7f;
+            memcpy(&spk_eq_tab[i], &seg, sizeof(seg));
+            if (spk_eq_ch_num == 2) {
+                memcpy(&spk_eq_tab[i + SPK_EQ_NSECTION], &seg, sizeof(seg));
+            }
+        }
+    }
+}
 
 /*
  *spk_eq 系数更新接口,更新第几段eq系数
@@ -54,6 +66,7 @@ static struct eq_seg_info spk_eq_tab[20] = {
  * */
 void spk_eq_seg_update(struct eq_seg_info *seg)
 {
+    spk_eq_tab_init();
     //段系数更新
     struct spk_eq_seg_parm sparm;
     sparm.type  = UPDATE_SPK_EQ_SEG;
@@ -76,6 +89,11 @@ void spk_eq_seg_update(struct eq_seg_info *seg)
  * */
 void spk_eq_seg_update_R(struct eq_seg_info *seg)
 {
+    if (spk_eq_ch_num != 2) {
+        return;
+    }
+
+    spk_eq_tab_init();
     //段系数更新
     struct spk_eq_seg_parm sparm;
     sparm.type  = UPDATE_SPK_EQ_SEG;
@@ -83,7 +101,7 @@ void spk_eq_seg_update_R(struct eq_seg_info *seg)
     memcpy(&sparm.seg, seg, sizeof(struct eq_seg_info));
     int ret = jlstream_set_node_param(NODE_UUID_SPEAKER_EQ, "spk_eq", &sparm, sizeof(sparm));
     if (ret <= 0) {
-        struct eq_seg_info *tar_seg = (struct eq_seg_info *)&spk_eq_tab[10];
+        struct eq_seg_info *tar_seg = (struct eq_seg_info *)&spk_eq_tab[SPK_EQ_NSECTION];
         memcpy(&tar_seg[sparm.seg.index], &sparm.seg, sizeof(struct eq_seg_info));
     }
 }
@@ -117,16 +135,17 @@ void spk_eq_global_gain_udapte_R(float global_gain)
 
 int spk_eq_save_to_vm(void)
 {
+    spk_eq_tab_init();
     int ret_tmp = 0;
     struct spk_eq_get_seg_tab seg_tab = {0};
     seg_tab.type = GET_SPK_EQ_SEG_TAB;//获取系数表
     int ret = jlstream_get_node_param(NODE_UUID_SPEAKER_EQ, "spk_eq", (void *)&seg_tab, sizeof(seg_tab));
     if (ret <= 0) {
         seg_tab.seg = (struct eq_seg_info *)spk_eq_tab;
-        seg_tab.tab_size = sizeof(spk_eq_tab);
+        seg_tab.tab_size = spk_eq_tab_size;
     }
 
-    ret = syscfg_write(CFG_SPK_EQ_SEG_SAVE, seg_tab.seg, seg_tab.tab_size);
+    ret = syscfg_write(CFG_SPK_EQ_SEG_SAVE, seg_tab.seg, spk_eq_tab_size);
     if (ret <= 0) {
         printf("spk_eq tab write to vm err, ret %d\n", ret);
         ret_tmp = -1;
@@ -150,10 +169,11 @@ int spk_eq_save_to_vm(void)
  * */
 int spk_eq_read_from_vm(void *priv)
 {
+    spk_eq_tab_init();
     struct spk_eq_get_parm *spk_parm = (struct spk_eq_get_parm *)priv;
     if (spk_parm->type == GET_SPK_EQ_SEG_TAB) {
         spk_parm->seg_tab.seg = (struct eq_seg_info *)spk_eq_tab;
-        spk_parm->seg_tab.tab_size = sizeof(spk_eq_tab) / 2;
+        spk_parm->seg_tab.tab_size = spk_eq_tab_size / spk_eq_ch_num;
         //printf("-------spk tab %x, %d\n", (int)spk_eq_tab, spk_parm->seg_tab.tab_size);
     } else if (spk_parm->type == GET_SPK_EQ_VM_DATA) {
         struct spk_eq_get_seg_tab *seg_tab = (struct spk_eq_get_seg_tab *)&spk_parm->seg_tab;
@@ -164,7 +184,7 @@ int spk_eq_read_from_vm(void *priv)
             return 0;
         }
         spk_eq_read_from_ram = 1;
-        int ret = syscfg_read(CFG_SPK_EQ_SEG_SAVE, seg_tab->seg, seg_tab->tab_size);
+        int ret = syscfg_read(CFG_SPK_EQ_SEG_SAVE, seg_tab->seg, spk_eq_tab_size);
         if (ret <= 0) {
             printf("skp_eq read from vm err\n");
             return -1;
@@ -286,7 +306,7 @@ int spk_eq_spp_rx_packet(u8 *packet, u8 len)
         break;
     case CMD_RESET_PARM:
         struct eq_seg_info seg;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < SPK_EQ_NSECTION; i++) {
             seg.index = i;
             seg.freq = 100;
             seg.iir_type = EQ_IIR_TYPE_BAND_PASS;
@@ -303,10 +323,12 @@ int spk_eq_spp_rx_packet(u8 *packet, u8 len)
         //suuport global_gain
         break;
     case CMD_READ_SEG_L:
-        spk_eq_ack_packet(parse_seq, (u8 *)spk_eq_tab, sizeof(spk_eq_tab) / 2);
+        spk_eq_ack_packet(parse_seq, (u8 *)spk_eq_tab, spk_eq_tab_size / spk_eq_ch_num);
         return 1;
     case CMD_READ_SEG_R:
-        spk_eq_ack_packet(parse_seq, (u8 *)&spk_eq_tab[10], sizeof(spk_eq_tab) / 2);
+        if (spk_eq_ch_num == 2) {
+            spk_eq_ack_packet(parse_seq, (u8 *)&spk_eq_tab[SPK_EQ_NSECTION], spk_eq_tab_size / spk_eq_ch_num);
+        }
         return 1;
     case CMD_READ_GLOBAL_L:
         spk_eq_ack_packet(parse_seq, (u8 *)&spk_eq_global_gain[0], 4);
@@ -325,17 +347,16 @@ int spk_eq_spp_rx_packet(u8 *packet, u8 len)
 int spk_eq_read_seg_l(u8 **buf)
 {
     *buf = (u8 *)(&spk_eq_tab[0]);
-    return sizeof(spk_eq_tab) / 2;
+    return spk_eq_tab_size / spk_eq_ch_num;
 }
 
 int spk_eq_read_seg_r(u8 **buf)
 {
-#if AUDIO_SPK_EQ_STERO
-    *buf = (u8 *)(&spk_eq_tab[10]);
-    return sizeof(spk_eq_tab) / 2;
-#else
+    if (spk_eq_ch_num == 2) {
+        *buf = (u8 *)(&spk_eq_tab[SPK_EQ_NSECTION]);
+        return spk_eq_tab_size / spk_eq_ch_num;
+    }
     return 0;
-#endif
 }
 
 int spk_eq_app_online_parse(u8 *packet, u8 size, u8 *ext_data, u16 ext_size)

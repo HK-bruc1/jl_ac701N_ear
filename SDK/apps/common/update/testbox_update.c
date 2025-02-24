@@ -48,11 +48,12 @@ static void testbox_bt_classic_update_private_param_fill(UPDATA_PARM *p)
 static void testbox_bt_classic_update_before_jump_handle(int type)
 {
     if (CONFIG_UPDATE_ENABLE && CONFIG_UPDATE_BT_LMP_EN) {
+        y_printf("\n >>>[test]:func = %s,line= %d\n", __FUNCTION__, __LINE__);
+#if (defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28)
 #if TCFG_USER_TWS_ENABLE || TCFG_USER_BLE_ENABLE
         log_info("close ble hw\n");
         ll_hci_destory();
 #endif
-        y_printf("\n >>>[test]:func = %s,line= %d\n", __FUNCTION__, __LINE__);
 
         update_close_hw("bredr");
         if (__bt_updata_save_connection_info()) {
@@ -63,7 +64,6 @@ static void testbox_bt_classic_update_before_jump_handle(int type)
         ram_protect_close();
         //note:last func will not return;
 
-#if (defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28)
         __bt_updata_reset_bt_bredrexm_addr();       //仅36、27、28使用跳转，后续CPU升级都直接reset
 #else
 #if CONFIG_UPDATE_JUMP_TO_MASK
@@ -239,7 +239,7 @@ void testbox_update_msg_handle(int msg)
 void testbox_update_init(void)
 {
     if (CONFIG_UPDATE_ENABLE && (CONFIG_UPDATE_BLE_TEST_EN || CONFIG_UPDATE_BT_LMP_EN)) {
-        log_info("testbox msg handle reg:%x\n", testbox_update_msg_handle);
+        log_info("testbox msg handle reg:%x\n", (void *)testbox_update_msg_handle);
         btctrler_testbox_update_msg_handle_register(testbox_update_msg_handle);
     }
 }

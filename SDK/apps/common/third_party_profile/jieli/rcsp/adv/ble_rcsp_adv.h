@@ -37,6 +37,7 @@ void upay_ble_regiest_recv_handle(void (*handle)(const uint8_t *data, u16 len));
 void adv_seq_vaule_sync(void);
 
 u8 get_ble_adv_modify(void);
+void send_version_to_sibling(void);
 
 /**
  * tws主从切换后会调用此函数进行ble的开关

@@ -422,16 +422,31 @@ static void audio_aec_task(void *priv)
 
                 /*6.数据导出*/
                 if (CONST_AEC_EXPORT) {
-                    aec_uart_fill(0, aec_hdl->mic, 512);		//主mic数据
-                    aec_uart_fill(1, aec_hdl->mic_ref, 512);	//副mic数据
-                    aec_uart_fill(2, aec_hdl->pFar, 512);	//扬声器数据
-                    if (aec_hdl->mic_num == 3) {
+                    aec_uart_fill(0, aec_hdl->mic, 512);            //主mic数据
+                    if (aec_hdl->mic_num == 1) {
+                        aec_uart_fill(1, aec_hdl->pFar, 512);       //扬声器数据
+                        aec_uart_fill(2, aec_hdl->out, out_len);        //算法运算结果
+                    } else if (aec_hdl->mic_num == 2) {
+                        if (CONST_AEC_EXPORT == 3) {
+                            aec_uart_fill(1, aec_hdl->pFar, 512);
+                        } else {
+                            aec_uart_fill(1, aec_hdl->mic_ref, 512);
+                        }
+
+                        if (CONST_AEC_EXPORT == 1) {
+                            aec_uart_fill(2, aec_hdl->pFar, 512);
+                        } else {
+                            aec_uart_fill(2, aec_hdl->out, out_len);
+                        }
+                    } else {
+                        aec_uart_fill(1, aec_hdl->mic_ref, 512);    //副mic数据
                         aec_uart_fill(2, aec_hdl->mic_ref_1, 512);  //扬声器数据
-                        aec_uart_fill(3, aec_hdl->pFar, 512);    //扬声器数据
-                        aec_uart_fill(4, aec_hdl->out, out_len); //算法运算结果
+                        aec_uart_fill(3, aec_hdl->pFar, 512);       //扬声器数据
+                        aec_uart_fill(4, aec_hdl->out, out_len);    //算法运算结果
                     }
                     aec_uart_write();
                 }
+
                 bulk->used = 0;
                 if (aec_hdl->mic_num >= 2) {
                     bulk_ref->used = 0;

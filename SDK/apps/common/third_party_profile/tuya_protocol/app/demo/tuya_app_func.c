@@ -4,6 +4,7 @@
 #pragma const_seg(".tuya_app_func.text.const")
 #pragma code_seg(".tuya_app_func.text")
 #endif
+#include "app_config.h"
 #include "tuya_ble_app_demo.h"
 #include "effects/eq_config.h"
 #include "audio_config.h"
@@ -13,6 +14,8 @@
 #include "app_msg.h"
 #include "bt_tws.h"
 #include "btstack/avctp_user.h"
+
+#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
 
 static struct VM_INFO_MODIFY {
     char eq_info[11];
@@ -219,10 +222,12 @@ void tuya_eq_data_setting(char *eq_setting, char eq_mode)
         char eq_info[11] = {0};
         memcpy(eq_info, eq_setting, 10);
         eq_info[10] = eq_mode;
+#if TCFG_USER_TWS_ENABLE
         if (get_bt_tws_connect_status()) {
             printf("start eq sync!");
             tuya_sync_info_send(eq_info, APP_TWS_TUYA_SYNC_EQ);
         }
+#endif
         syscfg_write(CFG_RCSP_ADV_EQ_DATA_SETTING, eq_info, sizeof(eq_info));
         tuya_eq_data_deal(eq_setting);
     }
@@ -265,14 +270,14 @@ void tuya_eq_info_deal(__tuya_info tuya_info, char *data)
 
 void tuya_eq_info_reset(__tuya_info tuya_info, u8 *data)
 {
-    /*if(data){
+    if (data) {
         tuya_info.eq_info.eq_onoff = data[0];
-    }else{
+    } else {
         tuya_info.eq_info.eq_onoff = 0;
     }
     for (int i = 0; i < 10; i++) {
         tuya_info.eq_info.eq_data[i] = 0;
-    }*/
+    }
     char eq_info[11] = {0};
     tuya_sync_info_send(eq_info, APP_TWS_TUYA_SYNC_EQ);
     eq_mode_set(EQ_MODE_NORMAL);
@@ -316,6 +321,7 @@ void tuya_earphone_key_remap(int *value, int *msg)
     struct key_event *key = (struct key_event *)msg;
     int index = key->event;
     g_printf("key_remap: 0x%x, 0x%x, 0x%x, 0x%x\n", index, msg[0], msg[1], APP_KEY_MSG_FROM_TWS);
+#if TCFG_USER_TWS_ENABLE
     if (get_bt_tws_connect_status()) {
         if (tws_api_get_local_channel() == 'R') {
             if (msg[1] == APP_KEY_MSG_FROM_TWS) {
@@ -330,7 +336,9 @@ void tuya_earphone_key_remap(int *value, int *msg)
                 *value = key_table_l[index];
             }
         }
-    } else {
+    } else
+#endif
+    {
         *value = key_table_l[index];
     }
 }
@@ -448,6 +456,5 @@ void tuya_update_vm_key_info(u8 key_value_record[][6])
     }
 }
 
-
-
+#endif
 

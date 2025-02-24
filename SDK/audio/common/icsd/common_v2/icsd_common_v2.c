@@ -66,4 +66,89 @@ void icsd_anc_fft128(int *in_cur, int *out)
     hw_fft_run(fft_config, in_cur, out);
 }
 
+void icsd_anc_fft64(int *in_cur, int *out)
+{
+    u32 fft_config;
+    fft_config = hw_fft_config(64, 6, 1, 0, 1);
+    hw_fft_run(fft_config, in_cur, out);
+}
+
+float db_diff_v2(float *in1, int in1_idx, float *in2, int in2_idx)
+{
+    float in1_pxx = in1[in1_idx * 2] * in1[in1_idx * 2] + in1[in1_idx * 2 + 1] * in1[in1_idx * 2 + 1];
+    float in2_pxx = in2[in2_idx * 2] * in2[in2_idx * 2] + in2[in2_idx * 2 + 1] * in2[in2_idx * 2 + 1];
+    float in1_db = 10 * icsd_log10_anc(in1_pxx);
+    float in2_db = 10 * icsd_log10_anc(in2_pxx);
+    return in1_db - in2_db;
+}
+
+static int *icsd_de_alloc_addr = NULL;
+void icsd_de_malloc()
+{
+    printf("icsd_de_malloc\n");
+    struct icsd_de_libfmt libfmt;
+    struct icsd_de_infmt  fmt;
+    icsd_de_get_libfmt(&libfmt);
+    if (icsd_de_alloc_addr == NULL) {
+        printf("DE RAM SIZE:%d\n", libfmt.lib_alloc_size);
+        icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
+    }
+    fmt.alloc_ptr = icsd_de_alloc_addr;
+    icsd_de_set_infmt(&fmt);
+}
+
+void icsd_de_free()
+{
+    printf("icsd_de_free\n");
+    if (icsd_de_alloc_addr) {
+        printf("DE RAM FREE\n");
+        free(icsd_de_alloc_addr);
+        icsd_de_alloc_addr = NULL;
+    }
+}
+
+
+#define	ICSD_COMMON_4CH_CIC8_DEBUG		0
+#if ICSD_COMMON_4CH_CIC8_DEBUG
+#define CIC8_DEBUG_LEN		(1024*4)
+#define ANC_DMA_POINTS		(1024*2)
+s16 wptr_dma1_h_debug[CIC8_DEBUG_LEN];
+s16 wptr_dma1_l_debug[CIC8_DEBUG_LEN];
+s16 wptr_dma2_h_debug[CIC8_DEBUG_LEN];
+s16 wptr_dma2_l_debug[CIC8_DEBUG_LEN];
+s16 wptr_dma1_h[ANC_DMA_POINTS / 8];
+s16 wptr_dma1_l[ANC_DMA_POINTS / 8];
+s16 wptr_dma2_h[ANC_DMA_POINTS / 8];
+s16 wptr_dma2_l[ANC_DMA_POINTS / 8];
+u16 cic8_wptr = 0;
+u8 cic8_debug_end = 0;
+void icsd_common_ancdma_4ch_cic8_demo(s32 *anc_dma_ppbuf, u8 anc_done_flag)
+{
+    if (cic8_debug_end) {
+        return;
+    }
+    static u8 cnt = 0;
+    if (cnt < 30) {
+        cnt++;
+        return;
+    }
+    int *r_ptr = anc_dma_ppbuf + (1 - anc_done_flag) * 2 * ANC_DMA_POINTS;
+    icsd_common_ancdma_4ch_cic8(r_ptr, wptr_dma1_h, wptr_dma1_l, wptr_dma2_h, wptr_dma2_l, ANC_DMA_POINTS);
+    memcpy(&wptr_dma1_h_debug[cic8_wptr], wptr_dma1_h, 2 * ANC_DMA_POINTS / 8);
+    memcpy(&wptr_dma1_l_debug[cic8_wptr], wptr_dma1_l, 2 * ANC_DMA_POINTS / 8);
+    memcpy(&wptr_dma2_h_debug[cic8_wptr], wptr_dma2_h, 2 * ANC_DMA_POINTS / 8);
+    memcpy(&wptr_dma2_l_debug[cic8_wptr], wptr_dma2_l, 2 * ANC_DMA_POINTS / 8);
+    cic8_wptr += ANC_DMA_POINTS / 8;
+    if (cic8_wptr >= CIC8_DEBUG_LEN) {
+        cic8_debug_end = 1;
+        local_irq_disable();
+        for (int i = 0; i < CIC8_DEBUG_LEN; i++) {
+            printf("DMA1H,DMA1L,DMA2H,DMA2L:%d                         %d                           %d                                %d\n",
+                   wptr_dma1_h_debug[i], wptr_dma1_l_debug[i], wptr_dma2_h_debug[i], wptr_dma2_l_debug[i]);
+        }
+        local_irq_enable();
+    }
+}
+#endif
+
 #endif/*TCFG_AUDIO_ANC_ENABLE*/

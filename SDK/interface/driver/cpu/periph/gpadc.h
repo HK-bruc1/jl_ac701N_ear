@@ -1,60 +1,226 @@
-#ifndef PLATFORM_ADC_API_H
-#define PLATFORM_ADC_API_H
+#ifndef  __GPADC_H__
+#define  __GPADC_H__
 
 #include "asm/gpadc_hw.h"
-#include "asm/efuse.h"
 
-#define AD_CH_IO_VBAT_PORT        0//IO_PORTA_02   //选择一个有ADC功能IO口采集vbat电压，电压不能超过 vddio
-#define ENABLE_PREEMPTIVE_MODE 1    //阻塞式采集使能
-#define AD_CH_PMU_VBG_TRIM_NUM  32  //初始化时，VBG通道校准的采样次数
-#define PMU_CH_SAMPLE_PERIOD    500 //CPU模式采样周期默认值 单位：ms
-#define ADC_MAX_CH  10  //采集队列支持的最大通道数
-
-struct adc_info_t { //adc采集队列信息结构体
-    u32 jiffies;
-    u32 ch;
-    union {
-        u16 value;
-        float voltage;
-    } v;
-    u16 adc_voltage_mode;
-    u16 sample_period;
+enum AD_MODE {
+    AD_MODE_DEFAULT, //普通模式,存储在队列中为原始值
+    AD_MODE_VOLTAGE, //电压模式,存储在队列中为电压值
 };
-extern u8 cur_ch;  //adc采集队列当前编号
-extern u8 adc_clk_div; //adc时钟分频系数
-// extern u16 vbat_voltage; //电池电压值，默认一直刷新
-// extern u16 vbg_value; //vbg adc原始值，默认一直刷新
-extern struct adc_info_t adc_queue[ADC_MAX_CH + ENABLE_PREEMPTIVE_MODE];  //采集队列声明
+enum BATTERY_MODE {
+    MEAN_FILTERING_MODE = 0, //均值滤波
+    WEIGHTING_MODE = 1, //加权求值
+};
 
-float adc_value_update(enum AD_CH ch, float adc_value_old, float adc_value_new); //vbat, vbg 值更新
-void adc_init(void); //adc初始化
-u32 adc_get_next_ch();    //获取采集队列中下一个通道的队列编号
-u32 adc_set_sample_period(enum AD_CH ch, u32 ms); //设置一个指定通道的采样周期
-u32 adc_value_to_voltage(u32 adc_vbg, u32 adc_value);   //adc_value-->voltage   用传入的 vbg 计算
-u32 adc_value_to_voltage_filter(u32 adc_value);   //adc_value-->voltage   用 vbg_value_array 数组均值计算
+//以下为用户常用api
+/**@brief 获取指定通道原始值,从队列中获取
+  * @param[in]  ch      指定通道
+  * @return     value   原始值,范围根据采样精度变化
+  */
+u32 adc_get_value(enum AD_CH ch);
 
-u32 adc_get_value(enum AD_CH ch);   //获取一个指定通道的原始值，从队列中获取
-u32 adc_get_voltage(enum AD_CH ch); //获取一个指定通道的电压值，从队列中获取
-u32 adc_get_value_blocking(enum AD_CH ch);    //阻塞式采集一个指定通道的adc原始值
-u32 adc_get_value_blocking_filter(enum AD_CH ch, u32 sample_times);    //阻塞式采集一个指定通道的adc原始值,均值滤波
-u32 adc_get_voltage_blocking(enum AD_CH ch);  //阻塞式采集一个指定通道的电压值（经过均值滤波处理）
-u32 adc_cpu_mode_process(u32 adc_value);    //adc_isr 中断中，cpu模式的公共处理函数
+/**@brief 获取指定通道电压值,从队列中获取
+  * @param[in]  ch      指定通道
+  * @return     voltage 电压值, 单位:mv
+  */
+u32 adc_get_voltage(enum AD_CH ch);
 
-void adc_update_vbg_value_restart(u8 cur_miovdd_level, u8 new_miovdd_level);//iovdd变化之后，重新计算vbg_value
-u32 adc_get_vbg_voltage();
-u32 adc_io2ch(int gpio);   //根据传入的GPIO，返回对应的ADC_CH
-void adc_io_ch_set(enum AD_CH ch, u32 mode); //adc io通道 模式设置
-void adc_internal_signal_to_io(u32 analog_ch, u16 adc_io); //将内部通道信号，接到IO口上，输出
-u32 adc_add_sample_ch(enum AD_CH ch);   //添加一个指定的通道到采集队列
-u32 adc_delete_ch(enum AD_CH ch);    //将一个指定的通道从采集队列中删除
-void adc_sample(enum AD_CH ch, u32 ie); //启动一次cpu模式的adc采样
-void adc_close();     //adc close
-void adc_wait_enter_idle(); //等待adc进入空闲状态，才可进行阻塞式采集
-void adc_set_enter_idle(); //设置 adc cpu模式为空闲状态
-u16 adc_wait_pnd();   //cpu采集等待pnd
-void adc_dma_sample(enum AD_CH ch, u16 *buf, u32 sample_times); //dma模式连续采集n次, 没有dma模块的软件方式连续采集
-void adc_hw_init(void);    //adc初始化子函数
+/**@brief 将原始值换算为电压值
+  * @param[in]  adc_vbg     VBG原始值
+  * @param[in]  adc_value   需要换算的原始值
+  * @return     voltage     换算得到的电压值, 单位:mv
+  */
+u32 adc_value_to_voltage(u32 adc_vbg, u32 adc_value);
 
-u32 adc_check_vbat_lowpower();  //兼容旧芯片，直接return 0
-void adc_reset(); //复位adc内部队列的缓冲数据
+/**@brief 阻塞式采集指定通道原始值,采集一次
+  * @param[in]  ch      指定通道
+  * @return     value   原始值,范围根据采样精度变化
+  */
+u32 adc_get_value_blocking(enum AD_CH ch);
+
+/**@brief 阻塞式采集指定通道原始值,采集 sample_times次, 求平均值
+  * @param[in]  ch              指定通道
+  * @param[in]  sample_times    采样次数
+  * @return     value           原始值,范围根据采样精度变化
+  */
+u32 adc_get_value_blocking_filter(enum AD_CH ch, u32 sample_times);
+
+/**@brief 阻塞式dma模式采集指定通道原始值,采集 sample_times次,
+  * @param[in]  ch              指定通道
+  * @param[in]  buffer          dma缓冲区域
+  * @param[in]  sample_times    采样次数
+  * @return     value           sample_times次采样，去掉最大，最小值之后的ad值累加
+  */
+u32 adc_get_value_blocking_filter_dma(enum AD_CH ch, u32 *buffer, u32 sample_times);
+
+/**@brief 阻塞式采集指定通道电压值,采集一次
+  * @param[in]  ch      指定通道
+  * @return     voltage 电压值, 单位:mv
+  */
+u32 adc_get_voltage_blocking(enum AD_CH ch);
+
+/**@brief 阻塞式采集指定通道电压值,采集 sample_times次, 求平均值
+  * @param[in]  ch              指定通道
+  * @param[in]  sample_times    采样次数
+  * @return     voltage 电压值, 单位:mv
+  */
+u32 adc_get_voltage_blocking_filter(enum AD_CH ch, u32 sample_times);
+
+/**@brief 将IO通道转换为合法的AD通道 如:传入IO_PORTA_00, 返回AD_CH_IO_PA0
+  * @param[in]  gpio    IO通道
+  * @return     ch      合法的AD通道
+  */
+u32 adc_io2ch(int gpio);
+
+/**@brief 添加指定通道到队采样队列中
+  * @param[in]  ch  指定通道
+  * @return     num 通道在队列中的编号
+  */
+u32 adc_add_sample_ch(enum AD_CH ch);
+
+/**@brief 从队采样队列中删除指定通道
+  * @param[in]  ch  指定通道
+  * @return     num 通道在队列中的编号
+  */
+u32 adc_delete_ch(enum AD_CH ch);
+
+/**@brief 设置指定通道的采样周期
+  * @param[in]  ch  指定通道
+  * @param[in]  ms  采样周期,单位:ms
+  * @return     num 通道在队列中的编号
+  */
+u32 adc_set_sample_period(enum AD_CH ch, u32 ms);
+
+/**@brief 设置指定通道的采样模式,初始化时设置,采样中设置需调用adc_reset刷新队列数据
+  * @param[in]  ch      指定通道
+  * @param[in]  mode    采样模式, 1:电压模式,队列中存储为电压值,单位:mv; 0:普通模式,队列中存储为原始值
+  * @return     num     通道在队列中的编号
+  */
+u32 adc_set_voltage_mode(enum AD_CH ch, enum AD_MODE mode);
+//以上为用户常用api
+
+
+/**@brief ADC模块初始化
+  * @param[in]  无
+  * @return     无
+  */
+void adc_init(void);
+
+/**@brief 触发一次adc队列采集,定时调用
+  * @param[in]  无
+  * @return     无
+  */
+void adc_scan(void *priv);
+
+/**@brief ADC模块复位,将已注册的通道全部刷新一次
+  * @param[in]  无
+  * @return     无
+  */
+void adc_refresh(void);
+
+/**@brief 打印ADC相关所有信息
+  * @param[in]  无
+  * @return     无
+  */
+void adc_dump(void);
+
+/**@brief 获取电池电压
+  * @param[in]  无
+  * @return     电池电压值,单位:mv   注意:底层已做换算,不需要乘以倍数
+  */
+u32 gpadc_battery_get_voltage();
+
+/**@brief 电池电压采集初始化
+  * @param[in]  无
+  * @return     0
+  */
+int gpadc_battery_init();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//兼容老版本芯片
+u32 adc_check_vbat_lowpower();
+void adc_update_vbg_value_restart(u8 cur_miovdd_level, u8 new_miovdd_level);
+
+
+//gpadc_hw.c 实现
+void adc_pmu_vbg_enable();
+void adc_pmu_vbg_disable();
+void adc_ana_ch_sel(enum AD_CH ch, u32 *_adc_con);
+void adc_internal_signal_to_io(enum AD_CH analog_ch, u16 gpio);
+// void adc_pmu_ch_select(u32 ch);
+// void adc_audio_ch_select(u32 ch_sel);
+void adc_adjust_div(void);
+_INLINE_ u8 adc_get_clk_div();
+
+//gpadc_hw_vxx.c 实现
+void adc_close();
+void adc_sample(enum AD_CH ch, u32 ie, u32 calibrate_en);
+void adc_wait_enter_idle();
+u32 adc_wait_pnd();
+void adc_set_enter_idle();
+u32 adc_get_res();
+_INLINE_ u32 adc_idle_query();
+_INLINE_ void adc_register_clear();
+void adc_data_res_check();
+void adc_suspend();
+void adc_resume();
+
+
+
+// CPU-----版本   对应表
+// br27----gpadc_hw_v20
+// br28----gpadc_hw_v10
+// br29----gpadc_hw_v10
+// br35----gpadc_hw_v40
+// br36----gpadc_hw_v10
+// br50----gpadc_hw_v10
+// br52----gpadc_hw_v10
+// br56----gpadc_hw_v11
+
+
+
+#include "spinlock.h"
+#if CPU_CORE_NUM > 1
+
+#define gpadc_spin_lock(lock) \
+	do { \
+		q32DSP_testset(lock);\
+	}while(0)
+
+#define gpadc_spin_unlock(lock) \
+	do{ \
+		q32DSP_testclr(lock) ;\
+	}while(0)
+
+#else
+
+#define gpadc_spin_lock(lock)
+
+#define gpadc_spin_unlock(lock)
+
+#endif
+
+
 #endif

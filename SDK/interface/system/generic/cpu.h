@@ -3,6 +3,14 @@
 
 #include <asm/cpu.h>
 
+__attribute__((always_inline))
+static inline u32 ucPortCountLeadingZeros(u32 ulBitmap)
+{
+    u32 ucReturn;
+    __asm__ volatile("%0 = clz(%1)" : "=r"(ucReturn) : "r"(ulBitmap));
+    return ucReturn;
+}
+
 extern const int config_asser;
 extern void cpu_assert(char *file, int line, bool condition, char *cond_str);
 extern void cpu_assert_debug();
@@ -66,10 +74,9 @@ extern void cpu_assert_debug();
 			}else {\
 				if(!(a)){ \
                     cpu_assert(NULL, __LINE__, a ? true : false, #a); \
-                    // cpu_assert(__FILE__, __LINE__, a ? true : false, #a); \
-}\
-}\
-} while (0);
+                }\
+            }\
+        } while (0);
 
 
 #if defined(CONFIG_256K_FLASH) && defined(CONFIG_RELEASE_ENABLE)

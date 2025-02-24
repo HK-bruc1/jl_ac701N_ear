@@ -21,6 +21,9 @@
 #include "bt_common.h"
 #include "battery_manager.h"
 #include "app_charge.h"
+#include "gpadc.h"
+#include "update.h"
+#include "dual_bank_updata_api.h"
 
 #define LOG_TAG_CONST       APP_CHARGE
 #define LOG_TAG             "[APP_CHARGE]"
@@ -31,8 +34,6 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
-extern u32 dual_bank_update_exist_flag_get(void);
-extern u32 classic_update_task_exist_flag_get(void);
 
 #if TCFG_CHARGE_ENABLE
 
@@ -60,6 +61,18 @@ static void charge_full_deal(void)
     log_info("%s\n", __func__);
 
     charge_full_flag = 1;
+#if TCFG_REFERENCE_V_ENABLE
+    int ret;
+    u16 save_vbat_voltage, now_vbat_voltage;
+    now_vbat_voltage = gpadc_battery_get_voltage();
+    log_info("get vbat voltage: %d\n", now_vbat_voltage);
+    ret = syscfg_read(CFG_CHARGE_FULL_VBAT_VOLTAGE, &save_vbat_voltage, 2);
+    if ((ret != 2) || (now_vbat_voltage > save_vbat_voltage)) {
+        log_info("save vbat voltage: %d\n", now_vbat_voltage);
+        syscfg_write(CFG_CHARGE_FULL_VBAT_VOLTAGE, &now_vbat_voltage, 2);
+        update_vbat_full_voltage();
+    }
+#endif
     charge_close();
 
     for_each_app_charge_handler(handler) {

@@ -102,6 +102,25 @@ const u8 CONST_DNS_SNR_EST = 0;
 /* DNS后处理 */
 const u8 CONST_DNS_POST_ENHANCE = 0;
 
+/*
+ *SMS DNS版本配置
+ *SMS_DNS_V100:第一版dns降噪算法，拆分aec nlp dns模块
+ *SMS_DNS_V200:第二版dns回音消除算法，集成aec nlp dns模块
+ */
+#if (TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE) && (defined TCFG_AUDIO_SMS_DNS_VERSION) && (TCFG_AUDIO_SMS_DNS_VERSION == SMS_DNS_V200)
+const u8 CONST_SMS_DNS_VERSION = SMS_DNS_V200;
+#else
+const u8 CONST_SMS_DNS_VERSION = SMS_DNS_V100;
+#endif
+
+/*
+ * 非线性压制模式选择
+ * JLSP_NLP_MODE1: 模式1为单独的NLP回声抑制，回声压制会偏过，该模式下NLP模块可以单独开启
+ * JLSP_NLP_MODE2: 模式2下回声信号会先经过AEC线性压制，然后进行NLP非线性压制
+ *                 此模式NLP不能单独打开需要同时打开AEC,使用AEC模块压制不够时，建议开启该模式
+ */
+const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
+
 //*******************************DNS配置 end**************************************//
 
 /*Splittingfilter模式：0 or 1
@@ -186,7 +205,7 @@ struct audio_aec_hdl {
     u8 input_clear;			//清0输入数据标志
     u16 dump_packet;		//前面如果有杂音，丢掉几包
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     void *dcc_hdl;
 #endif
     struct aec_s_attr attr;
@@ -236,7 +255,8 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
     if (aec_hdl->pre.pre_gain_en) {
         GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
     }
-#if TCFG_SUPPORT_MIC_CAPLESS
+
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     if (aec_hdl->dcc_hdl) {
         audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
     }
@@ -439,6 +459,13 @@ static void audio_aec_param_init(struct aec_s_attr *p)
     p->aec_tail_length = AEC_TAIL_LENGTH;
     p->ES_OverSuppressThr = 0.02f;
     p->ES_OverSuppress = 2.f;
+
+    if (CONST_SMS_DNS_VERSION == SMS_DNS_V200) {
+        p->AEC_Process_MaxFrequency = 8000;
+        p->AEC_Process_MinFrequency = 0;
+        p->NLP_Process_MaxFrequency = 8000;
+        p->NLP_Process_MinFrequency = 0;
+    }
     /* aec_param_dump(p); */
 }
 
@@ -568,7 +595,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
     /* clk_set("sys", 0); */
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
         aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
@@ -681,7 +708,7 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
         if (aec_hdl->dcc_hdl) {
             audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
             aec_hdl->dcc_hdl = NULL;

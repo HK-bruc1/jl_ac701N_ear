@@ -10,7 +10,7 @@
 #include "app_online_cfg.h"
 #include "uart.h"
 #include "app_config.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "cfg_tool.h"
 #include "app_msg.h"
 

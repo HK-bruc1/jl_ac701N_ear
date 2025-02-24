@@ -26,6 +26,6 @@ bool get_vbat_need_shutdown(void);
 u8  get_self_battery_level(void);
 
 void app_power_set_tws_sibling_bat_level(u8 vbat, u8 percent);
-
+void update_vbat_full_voltage(void);
 #endif
 

@@ -131,6 +131,8 @@ struct gpio_irq_config_st {
 //禁止同一个io同一边沿多次注册
 //单边沿与双边沿切换: 请先注销(PORT_IRQ_DISABLE)再注册
 int gpio_irq_config(enum gpio_port port, const struct gpio_irq_config_st *config);//pa,pb,pc,pp0,usb
+//注销io中断接口
+int gpio_irq_deinit(enum gpio_port port, u32 pin);
 //修改中断回调函数
 int gpio_irq_set_callback(enum gpio_port port, u32 pin, gpio_irq_callback_p callback);
 //快速切换使能同组多个io中断响应

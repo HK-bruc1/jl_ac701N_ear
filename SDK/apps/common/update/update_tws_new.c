@@ -46,9 +46,6 @@ static u32(*sync_update_crc_calc_hdl)(u32 init_crc, const void *data, u32 len) =
 extern const int support_dual_bank_update_no_erase;
 extern const int support_dual_bank_update_breakpoint;
 
-extern void norflash_set_write_protect_en(void);
-extern void norflash_set_write_protect_remove(void);
-
 struct _bt_event {
     u8 event;
     u8 args[7];
@@ -117,7 +114,7 @@ void tws_ota_timeout_del(void)
     }
 }
 
-
+extern void tws_sniff_controle_check_disable(void);
 int tws_ota_trans_to_sibling(u8 *data, u16 len)
 {
     if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {

@@ -6,7 +6,7 @@
 #endif
 #include "update.h"
 #include "update_loader_download.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "asm/wdt.h"
 #include "os/os_api.h"
 #include "os/os_cpu.h"
@@ -32,6 +32,9 @@
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
+#include "tws_dual_conn.h"
+#else
+#include "dual_conn.h"
 #endif
 
 #if TCFG_UI_ENABLE
@@ -286,7 +289,9 @@ void update_close_hw(void *filter_name)
     list_for_each_update_target(p) {
         if (memcmp(filter_name, p->name, strlen(filter_name)) != 0) {
             printf("close Hw Name : %s\n", p->name);
-            p->driver_close();
+            if (p->driver_close) {
+                p->driver_close();
+            }
         }
     }
 }
@@ -407,6 +412,9 @@ static void update_param_ram_set(u8 *buf, u16 len)
 void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PARM *p), void (*priv_update_jump_handle)(int type))
 {
     u16 update_param_len = UPDATA_PARM_SIZE;//sizeof(UPDATA_PARM) + UPDATE_PRIV_PARAM_LEN;
+    if (update_param_len > (u32)(&UPDATA_SIZE)) {
+        update_param_len = (u32)(&UPDATA_SIZE);
+    }
 
     UPDATA_PARM *p = malloc(update_param_len);
 
@@ -568,15 +576,21 @@ static void update_init_common_handle(int type)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
-        // 关闭pack_scan
-        write_scan_conn_enable(0, 0);
-        // 退出sniff并关闭sniff
-        update_start_exit_sniff();
-        // 关闭主从切换
-        tws_api_auto_role_switch_disable();
-        tws_sync_update_api_register(get_tws_update_api());
-        tws_ota_init();
+        if ((BT_UPDATA != type) || (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
+            // 关闭page_scan
+            lmp_hci_write_scan_enable((0 << 1) | 0);
+            // 退出sniff并关闭sniff
+            update_start_exit_sniff();
+            // 关闭主从切换
+            tws_api_auto_role_switch_disable();
+            tws_sync_update_api_register(get_tws_update_api());
+            tws_ota_init();
+        }
 #endif
+        if (BT_UPDATA == type) {
+            // 关闭page_scan，测试盒升级关闭可以提速
+            lmp_hci_write_scan_enable((0 << 1) | 0);
+        }
         if (support_dual_bank_update_no_erase) {
             extern void verify_os_time_dly_set(u32 time);
             verify_os_time_dly_set(1); // 校验每包延时10ms
@@ -609,7 +623,7 @@ static void update_exit_common_handle(int type, void *priv)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
-    if (UPDATE_DUAL_BANK_IS_SUPPORT()) {
+    if (UPDATE_DUAL_BANK_IS_SUPPORT() && ((BT_UPDATA != type) || (TESTBOX_UART_UPDATA != type))) { // 测试盒升级不支持同步升级
         // 打开主从切换
         tws_api_auto_role_switch_enable();
         // 打开pack_scan
@@ -653,6 +667,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
     switch (state) {
     case UPDATE_CH_EXIT:
         update_exit_common_handle(info->type, priv);
+        dlog_flush2flash(100);
         break;
     }
 }

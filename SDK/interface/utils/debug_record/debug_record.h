@@ -39,6 +39,7 @@ struct debug_record_head {
     u16 len; 				//所有子项item的总长度, 不包含本结构体本身
     u32 run_time; 		    //系统运行时间
     struct sys_time time;   //rtc时间
+    u32 algorithm_auth;     //多算法授权认证检查
     u32 data[0];
 };
 
@@ -164,4 +165,17 @@ void user_debug_record_info_get(struct debug_record_info *info);
 /* ---------------------------------------------------------------------------- */
 void user_debug_record_info_clear(void);
 
+/* ---------------------------------------------------------------------------- */
+/**
+ * @brief 获取异常信息ram buffer
+ */
+/* ---------------------------------------------------------------------------- */
+u32 *debug_record_buf_get(void);
+
+/* ---------------------------------------------------------------------------- */
+/**
+ * @brief 获取是否发生过异常的标记
+ */
+/* ---------------------------------------------------------------------------- */
+u8 debug_record_get_info_exist_flag(void);
 #endif /* #ifndef __DEBUG_RECORD_H__ */

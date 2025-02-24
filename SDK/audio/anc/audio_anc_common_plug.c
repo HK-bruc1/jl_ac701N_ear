@@ -57,6 +57,7 @@ struct anc_music_dyn_gain_t {
 #define ANC_MUSIC_DYNAMIC_GAIN_NORGAIN				1024	/*正常默认增益*/
 #define ANC_MUSIC_DYNAMIC_GAIN_TRIGGER_INTERVAL		6		/*音乐响度取样间隔*/
 
+extern struct audio_dac_hdl dac_hdl;
 static struct anc_music_dyn_gain_t *music_dyn_hdl = NULL;
 
 static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hdl *hdl);
@@ -167,11 +168,15 @@ static void audio_anc_music_dynamic_gain_dB_get(int dB)
     }
 }
 
-void audio_anc_music_dynamic_gain_det(s16 *data, int len)
+void audio_anc_music_dynamic_gain_det(void *data, int len)
 {
     /* putchar('l'); */
     if (anc_mode_get() == ANC_ON) {
-        loudness_meter_short(&music_dyn_hdl->loud_hdl, data, len >> 1);
+        if (dac_hdl.pd->bit_width) {
+            loudness_meter_24bit(&music_dyn_hdl->loud_hdl, (int *)data, len >> 2);
+        } else {
+            loudness_meter_short(&music_dyn_hdl->loud_hdl, (s16 *)data, len >> 1);
+        }
         audio_anc_music_dynamic_gain_dB_get(music_dyn_hdl->loud_hdl.peak_val);
     }
 }
@@ -221,7 +226,7 @@ static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hd
 static void audio_anc_music_dynamic_gain_dac_node_write_cb(void *buf, int len)
 {
     if (music_dyn_hdl->state == ANC_MUSIC_DYN_STATE_START) {
-        audio_anc_music_dynamic_gain_det((s16 *)buf, len);
+        audio_anc_music_dynamic_gain_det(buf, len);
     }
 }
 
@@ -358,12 +363,11 @@ REGISTER_TWS_FUNC_STUB(tws_anc_power_adaptive_compare) = {
 static int bt_tws_anc_power_adaptive_compare_send(int ref_lvl, int err_lvl)
 {
     u8 data[2];
-    int ret = -EINVAL;
     data[0] = ref_lvl;
     data[1] = err_lvl;
     /* r_printf("tws_anc_power_adaptive_sync: %d, %d\n", data[0], data[1]); */
     local_irq_disable();
-    ret = tws_api_send_data_to_sibling(data, 2, TWS_FUNC_ID_ANC_POWER_ADAPTIVE_COMPARE_SYNC);
+    int ret = tws_api_send_data_to_sibling(data, 2, TWS_FUNC_ID_ANC_POWER_ADAPTIVE_COMPARE_SYNC);
     local_irq_enable();
     return ret;
 }

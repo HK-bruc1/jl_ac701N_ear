@@ -409,9 +409,9 @@ const struct led_state_map g_led_state_table[] = {
     { LED_STA_POWERON,                  TIME_EFFECT_MODE, &led_blue_on_1s_config },
 #endif
 
-    //{ LED_STA_RED_BLUE_SLOW_FLASH_ALTERNATELY,   TIME_EFFECT_MODE, &led_red_blue_slow_flash_alternately_config },
-    //{ LED_STA_RED_BLUE_FAST_FLASH_ALTERNATELY,   TIME_EFFECT_MODE, &led_red_blue_fast_flash_alternately_config },
-    //{ LED_STA_RED_BLUE_BREATHE_ALTERNATELY,      TIME_EFFECT_MODE, &led_red_blue_breathe_alternately_config },
+    { LED_STA_RED_BLUE_SLOW_FLASH_ALTERNATELY,   TIME_EFFECT_MODE, &led_red_blue_slow_flash_alternately_config },
+    { LED_STA_RED_BLUE_FAST_FLASH_ALTERNATELY,   TIME_EFFECT_MODE, &led_red_blue_fast_flash_alternately_config },
+    { LED_STA_RED_BLUE_BREATHE_ALTERNATELY,      TIME_EFFECT_MODE, &led_red_blue_breathe_alternately_config },
 
     // 软件组合灯效
     //{ LED_STA_RED_BLUE_5S_FLASHS_3_TIMES,       LED_STATE_TABLE(red_blue_led_5s_flashs_3_times) },

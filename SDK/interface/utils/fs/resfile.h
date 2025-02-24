@@ -28,7 +28,7 @@
 
 //外置flash根路径声明:
 //#define EXFLASH_ROOT		"exflash"
-#if CONFIG_RESFILE_SUPPORT_MULT_DEVICE
+#ifdef CONFIG_RESFILE_SUPPORT_MULT_DEVICE
 typedef struct __resfile {
     void *ops;
     void *priv_data;

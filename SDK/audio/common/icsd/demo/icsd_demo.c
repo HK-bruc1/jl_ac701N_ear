@@ -26,6 +26,9 @@
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
 #include "icsd_aeq_app.h"
 #endif
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
 
 
 /*
@@ -54,7 +57,7 @@ void audio_dot_end_result(int result)
 /*
 *********************************************************************
 *                  audio_adaptive_eq_app_open
-* Description: 自适应EQ (单独)
+* Description: 单次（自适应EQ）
 * Note(s)    : 播提示音 + 自适应EQ, 运行结束调用audio_adaptive_eq_end_result
 *********************************************************************
 */
@@ -95,7 +98,7 @@ __exit:	//处理启动异常的问题
 /*
 *********************************************************************
 *                  audio_dot_app_open
-* Description: 贴合度检测 (单独)
+* Description: 单次（贴合度检测）
 * Note(s)    : 播提示音 + 贴合度检测, 运行结束调用audio_dot_end_result
 *********************************************************************
 */
@@ -136,7 +139,7 @@ __exit:	//处理启动异常的问题
 /*
 *********************************************************************
 *                  audio_afq_open_demo
-* Description: 自适应EQ + 贴合度检测
+* Description: 单次（自适应EQ + 贴合度检测）
 * Note(s)    : 一次提示音流程输出的SZ，挂载多个算法处理
 *********************************************************************
 */
@@ -190,7 +193,7 @@ __exit:	//处理启动异常的问题
 /*
 *********************************************************************
 *                  audio_ear_adaptive_open_demo
-* Description: ANC耳道自适应 + 自适应EQ + 贴合度检测
+* Description: 单次（ANC耳道自适应 + 自适应EQ + 贴合度检测）
 * Note(s)    : ANC耳道自适应输出的SZ，挂载多个算法处理
 *********************************************************************
 */
@@ -239,5 +242,87 @@ __exit:	//处理启动异常的问题
     audio_icsd_dot_close();
 #endif
 }
+
+/*
+*********************************************************************
+                audio_real_time_adaptive_app_open_demo
+* Description: 打开实时（ANC耳道自适应 + 自适应EQ）
+* Note(s)    : ANC实时自适应输出的SZ，挂载多个算法处理
+*********************************************************************
+*/
+void audio_real_time_adaptive_app_open_demo(void)
+{
+    int ret = 0;
+    printf("%s\n", __func__);
+
+    //选择数据来源ANC
+    int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //1. 注册 实时自适应EQ 流程
+    ret = audio_real_time_adaptive_eq_open(fre_sel, audio_adaptive_eq_end_result);
+    if (ret) {
+        printf("adaptive eq open fail\n");
+        goto __exit;
+    }
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //2.打开实时自适应ANC
+    ret = audio_anc_real_time_adaptive_open();
+    if (ret) {
+        printf("real time adaptive anc open fail\n");
+        goto __exit;
+    }
+#endif
+
+    return;
+__exit:	//处理启动异常的问题
+
+    printf("fail process\n");
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    audio_adaptive_eq_close();
+#endif
+
+#if TCFG_AUDIO_FIT_DET_ENABLE
+    audio_icsd_dot_close();
+#endif
+}
+
+/*
+*********************************************************************
+                audio_real_time_adaptive_app_close_demo
+* Description: 关闭实时（ANC耳道自适应 + 自适应EQ）
+* Note(s)    : ANC实时自适应输出的SZ，挂载多个算法处理
+*********************************************************************
+*/
+void audio_real_time_adaptive_app_close_demo(void)
+{
+    printf("%s\n", __func__);
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //1. 关闭实时自适应EQ
+    audio_adaptive_eq_close();
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //2.关闭实时自适应ANC
+    audio_anc_real_time_adaptive_close();
+#endif
+}
+
+#if 0
+void audio_real_time_adaptive_app_ctr_demo(void)
+{
+
+    static u8 flag = 0;
+    flag ^= 1;
+    if (flag) {
+        audio_real_time_adaptive_app_open_demo();
+    } else {
+        audio_real_time_adaptive_app_close_demo();
+    }
+}
+#endif
+
+
 
 #endif

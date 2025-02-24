@@ -33,6 +33,7 @@
 #include "btstack_rcsp_user.h"
 #include "rcsp_ch_loader_download.h"
 #include "clock_manager/clock_manager.h"
+#include "update.h"
 
 #if RCSP_MODE == RCSP_MODE_EARPHONE
 #include "earphone.h"
@@ -349,6 +350,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
                 }
 #endif
             }
+            rcsp_ble_adv_enable_with_con_dev();
         } else {
             //slave disable
             printf("\nConnect Slave!!!222\n\n");
@@ -527,7 +529,6 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
             return 0;
         } else {
 #if TCFG_RCSP_DUAL_CONN_ENABLE
-            extern u32 classic_update_task_exist_flag_get(void);
             if (classic_update_task_exist_flag_get()) {
                 return 0;
             }
@@ -759,7 +760,7 @@ void JL_rcsp_auth_flag_tws_sync(void)
 
 static void rcsp_bound_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
-    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE) && rcsp_handle_get()) {
         /* printf("bound %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
         u16 auth_hdl_size = sizeof(JL_rcsp_bound_hdl);
@@ -785,7 +786,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_bnd_sync) = {
 // rcsp协议库调用，用于tws同步设备的协议绑定信息，勿删
 void rcsp_protocol_bound_tws_sync(void)
 {
-    if (IS_CHARGE_EN()) {
+    if (IS_CHARGE_EN() || (rcsp_handle_get() == NULL)) {
         /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         return;
     }
@@ -841,6 +842,7 @@ static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool 
         int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
         if (ret) {
             log_e("taskq post err \n");
+            free(rx_data);
         }
     }
 }
@@ -858,6 +860,9 @@ void rcsp_interface_bt_handle_tws_sync(void)
     }
     /* if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) { */
     u16 buf_size = rcsp_interface_tws_sync_buf_size();
+    if (buf_size == 0) {
+        return;
+    }
     u8 *buf = malloc(buf_size);
     ASSERT(buf, "rcsp_interface_bt_handle_tws_sync buf malloc fail!");
     rcsp_interface_tws_sync_buf_content(buf);
@@ -867,6 +872,18 @@ void rcsp_interface_bt_handle_tws_sync(void)
     tws_api_send_data_to_sibling(buf, buf_size, TWS_FUNC_ID_RCSP_INTERFACE_HDL_TWS_SYNC);
     free(buf);
     /* } */
+}
+
+/**
+ * 清除rcsp蓝牙ble连接信息并同步到tws对端
+ */
+void rcsp_clear_ble_hdl_and_tws_sync(void)
+{
+    u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
+    bt_rcsp_set_conn_info(ble_con_handle, NULL, 0);
+    u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
+    bt_rcsp_set_conn_info(ble_con_handle1, NULL, 0);
+    rcsp_interface_bt_handle_tws_sync();
 }
 
 #endif

@@ -7,140 +7,30 @@
 #include "app_config.h"
 #if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
 	 TCFG_AUDIO_ANC_ENABLE)
+#include "os/os_api.h"
 #include "system/task.h"
-#include "icsd_adt.h"
-#include "icsd_adt_app.h"
 #include "classic/tws_api.h"
 #include "tone_player.h"
+#include "icsd_adt.h"
+#include "icsd_adt_app.h"
 #include "icsd_anc_user.h"
-#include "asm/audio_adc.h"
 #include "audio_anc.h"
+#include "asm/audio_src.h"
+#include "audio_anc_debug_tool.h"
+#include "effects/convert_data.h"
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
 
 #define ICSD_ANC_TASK_NAME  "icsd_anc"
 #define ICSD_ADT_TASK_NAME  "icsd_adt"
 #define ICSD_SRC_TASK_NAME  "icsd_src"
+#define ICSD_RTANC_TASK_NAME "rt_anc"
 
-int wind_adc_sr = 8000;//
-
-int (*adt_printf)(const char *format, ...);
-int (*wat_printf)(const char *format, ...);
-int (*ein_printf)(const char *format, ...);
-int (*wind_printf)(const char *format, ...);
-int printf_off(const char *format, ...)
-{
-    return 0;
-}
-
-#define ADT_DATA_DEBUG  0
-
-void icsd_envnl_output(int result)
-{
-    printf("icsd_envnl_output:%d\n", result);
-}
-
-static u8 icsd_wind_lvl = 0;
-void icsd_wind_output(u8 wind_lvl)
-{
-    wind_printf("%s:%d", wind_lvl);
-    icsd_wind_lvl = wind_lvl;
-    if (ICSD_WIND_EN && ICSD_WIND_MODE) {
-        audio_acoustic_detector_output_hdl(0, icsd_wind_lvl, 0);
-    }
-}
-
-void icsd_adt_run_output(__adt_result *adt_result)
-{
-    u8 voice_state = adt_result->voice_state;
-    u8 wind_lvl    = icsd_wind_lvl;
-    u8 wat_result  = adt_result->wat_result;
-    u8 ein_state   = adt_result->ein_state;
-    adt_printf("%s:%d, %d, %d, %d", voice_state, wind_lvl, wat_result, ein_state);
-#if ADT_DATA_DEBUG
-    adt_result->wind_lvl = icsd_wind_lvl;
-    extern void icsd_adt_output_demo(__adt_result * adt_result);
-    icsd_adt_output_demo(adt_result);
-#else
-    audio_acoustic_detector_output_hdl(voice_state, wind_lvl, wat_result);
-#endif
-}
-
-#define AUDIO_ADC_CH0   BIT(0)
-#define AUDIO_ADC_CH1   BIT(1)
-#define AUDIO_ADC_CH2   BIT(2)
-#define AUDIO_ADC_CH3   BIT(3)
-
-void icsd_adt_mic_ch_analog_open(u32 ch)
-{
-    audio_adc_mic_mana_t *mic_param = audio_anc_mic_param_get();
-    u8 ch_tmp = ch;
-    u8 ch_num;
-    //获取MIC序号;
-    for (ch_num = 0; ch_num < AUDIO_ADC_MAX_NUM; ch_num++) {
-        ch_tmp >>= 1;
-        if (ch_tmp == 0) {
-            break;
-        }
-    }
-    //不需要打开ADC数字部分，走 ANC 开MIC流程
-    audio_adc_mic_open(NULL, ch, &adc_hdl, &mic_param[ch_num].mic_p);
-}
-
-void icsd_adt_mic_ch_analog_close(u32 ch)
-{
-    audio_adc_mic_ch_analog_close(&adc_hdl, ch);
-}
-
-u8 talk_mic_analog_close = 0;
-u8 audio_adt_talk_mic_analog_close()
-{
-    if (talk_mic_analog_close == 0) {
-        printf("-----------audio_adt_talk_mic_analog_close\n");
-        u8 talk_mic_ch = icsd_get_talk_mic_ch();
-        icsd_adt_mic_ch_analog_close(talk_mic_ch);
-        talk_mic_analog_close = 1;
-        return 1;
-    }
-    return 0;
-}
-
-u8 audio_adt_talk_mic_analog_open()
-{
-    if (talk_mic_analog_close) {
-        printf("-----------audio_adt_talk_mic_analog_open\n");
-        u8 talk_mic_ch = icsd_get_talk_mic_ch();
-        icsd_adt_mic_ch_analog_open(talk_mic_ch);
-        talk_mic_analog_close = 0;
-        return 1;
-    }
-    return 0;
-}
-
-int icsd_adt_get_mic_sr()
-{
-    wind_adc_sr = 8000;
-    return wind_adc_sr;
-}
-
-int icsd_audio_dac_read(s16 points_offset, void *data, int len, u8 read_channel)
-{
-    return audio_dac_read_anc(points_offset, data, len, read_channel);
-}
-
-float adt_pow10(float n)
-{
-    float pow10n = exp_float((float)n / adt_log10_anc(exp_float((float)1.0)));
-    return pow10n;
-}
-
-u32 icsd_adt_get_role()
-{
-    return tws_api_get_role();
-}
-
-u32 icsd_adt_get_tws_state()
-{
-    return tws_api_get_tws_state();
-}
+struct adt_function	*ADT_FUNC;
+__adt_anc46k_ctl *ANC46K_CTL = NULL;
+int (*adt_printf)(const char *format, ...) = _adt_printf;
 
 #define TWS_FUNC_ID_SDADT_M2S    TWS_FUNC_ID('A', 'D', 'T', 'M')
 REGISTER_TWS_FUNC_STUB(icsd_adt_m2s) = {
@@ -153,46 +43,100 @@ REGISTER_TWS_FUNC_STUB(icsd_adt_s2m) = {
     .func    = icsd_adt_s2m_cb,
 };
 
+u8 icsd_adt_tws_state()
+{
+    u32 tws_state = ADT_FUNC->tws_api_get_tws_state();
+    if (tws_state & TWS_STA_SIBLING_CONNECTED) {
+        return 1;
+    }
+    return 0;
+}
+
 void icsd_adt_tws_m2s(u8 cmd)
 {
-    local_irq_disable();
+    ADT_FUNC->local_irq_disable();
     s8 data[8];
     icsd_adt_m2s_packet(data, cmd);
     int ret = tws_api_send_data_to_sibling(data, 8, TWS_FUNC_ID_SDADT_M2S);
-    local_irq_enable();
+    ADT_FUNC->local_irq_enable();
 }
 
 void icsd_adt_tws_s2m(u8 cmd)
 {
-    local_irq_disable();
+    ADT_FUNC->local_irq_disable();
     s8 data[8];
     icsd_adt_s2m_packet(data, cmd);
     int ret = tws_api_send_data_to_sibling(data, 8, TWS_FUNC_ID_SDADT_S2M);
-    local_irq_enable();
+    ADT_FUNC->local_irq_enable();
 }
 
-void icsd_adt_anc_dma_on(u8 out_sel, int *buf, int len)
+int icsd_adt_tws_msync(u8 *data, s16 len)
 {
-    anc_dma_on_double(out_sel, buf, len);
+    int err = 0;
+    if (ADT_FUNC->icsd_adt_tws_state()) {
+        icsd_adt_tx_unsniff_req();
+        u32 role = ADT_FUNC->tws_api_get_role();
+        if (role == 0) { //master
+            int ret = tws_api_send_data_to_sibling(data, len, TWS_FUNC_ID_SDADT_S2M);
+            if (ret) {
+                err = 2;//发送失败
+            }
+        } else {
+            err = 1;//不需要发送
+        }
+    } else {
+        err = 3;//蓝牙断开
+    }
+    return err;
 }
 
-static u8 icsd_adt_dma_done_flag = 0;
-void icsd_adt_dma_done()
+int icsd_adt_tws_ssync(u8 *data, s16 len)
 {
-    if (icsd_adt_dma_done_flag) {
-        icsd_acoustic_detector_ancdma_done();
+    int err = 0;
+    if (ADT_FUNC->icsd_adt_tws_state()) {
+        icsd_adt_tx_unsniff_req();
+        u32 role = ADT_FUNC->tws_api_get_role();
+        if (role == 0) { //master
+            err = 1;
+        } else {
+            int ret = tws_api_send_data_to_sibling(data, len, TWS_FUNC_ID_SDADT_S2M);
+            if (ret) {
+                err = 2;
+            }
+        }
+    } else {
+        err = 3;
+    }
+    return err;
+}
+
+//gali lib inside malloc
+void icsd_adt_dac_loopbuf_malloc(u16 points)
+{
+    if (adt_dac_loopbuf) {
+        free(adt_dac_loopbuf);
+        adt_dac_loopbuf = NULL;
+    }
+    adt_dac_loopbuf = zalloc(points * 2);
+    printf("dac loopbuf ram size:%d\n", points * 2);
+}
+
+void icsd_adt_dac_loopbuf_free()
+{
+    if (adt_dac_loopbuf) {
+        free(adt_dac_loopbuf);
+        adt_dac_loopbuf = NULL;
     }
 }
 
-void set_icsd_adt_dma_done_flag(u8 flag)
+void icsd_adt_dma_done()
 {
-    icsd_adt_dma_done_flag = flag;
+    icsd_acoustic_detector_ancdma_done();
 }
 
 void icsd_adt_hw_suspend()
 {
-    anc_core_dma_ie(0);
-    anc_core_dma_stop();
+    anc_dma_off();
 }
 
 void icsd_adt_hw_resume()
@@ -200,135 +144,63 @@ void icsd_adt_hw_resume()
     audio_acoustic_detector_updata();
 }
 
-void icsd_adt_FFT_radix256(int *in_cur, int *out)
+
+/*********************** icsd task api ***********************/
+static void adt_post_msg(const char *name, u8 cmd, u8 id)
 {
-    u32 fft_config;
-    fft_config = hw_fft_config(256, 8, 1, 0, 1);
-    hw_fft_run(fft_config, in_cur, out);
+    int err = os_taskq_post_msg(name, 2, cmd, id);
+    if (err != OS_NO_ERR) {
+        printf("%s err %d", __func__, err);
+    }
 }
 
-void icsd_adt_FFT_radix128(int *in_cur, int *out)
-{
-    u32 fft_config;
-    fft_config = hw_fft_config(128, 7, 1, 0, 1);
-    hw_fft_run(fft_config, in_cur, out);
-}
-
-void icsd_adt_FFT_radix64(int *in_cur, int *out)
-{
-    u32 fft_config;
-    fft_config = hw_fft_config(64, 6, 1, 0, 1);
-    hw_fft_run(fft_config, in_cur, out);
-}
-
-/*********************** icsd adt task api ***********************/
-static u8 icsd_anc_task = 0;
 void icsd_post_anctask_msg(u8 cmd)
 {
     icsd_anctask_cmd_check(cmd);
-    int err = os_taskq_post_msg(ICSD_ANC_TASK_NAME, 2, ANC_MSG_ADT, cmd);
-    if (err != OS_NO_ERR) {
-        printf("%s err %d", __func__, err);
-    }
+    adt_post_msg(ICSD_ANC_TASK_NAME, cmd, 0);
 }
 
-void icsd_anc_process_task(void *priv)
+void icsd_post_adttask_msg(u8 cmd, u8 id)
 {
-    int res = 0;
-    int msg[30];
-    while (1) {
-        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
-        if (res == OS_TASKQ) {
-            switch (msg[1]) {
-            case ANC_MSG_ADT:
-                icsd_adt_anctask_handle((u8)msg[2]);
-                break;
-            }
-        } else {
-            printf("res:%d,%d", res, msg[1]);
-        }
-    }
-
+    adt_post_msg(ICSD_ADT_TASK_NAME, cmd, id);
 }
 
-void icsd_anc_task_create()
-{
-    if (icsd_anc_task == 0) {
-        task_create(icsd_anc_process_task, NULL, ICSD_ANC_TASK_NAME);
-        icsd_anc_task = 1;
-    }
-}
-
-void icsd_anc_task_kill()
-{
-    if (icsd_anc_task) {
-        task_kill(ICSD_ANC_TASK_NAME);
-        icsd_anc_task = 0;
-    }
-}
-
-/*********************** icsd adt task api ***********************/
-static u8 adt_task = 0;
-void icsd_post_adttask_msg(u8 cmd)
-{
-    int err = os_taskq_post_msg(ICSD_ADT_TASK_NAME, 1, cmd);
-    if (err != OS_NO_ERR) {
-        printf("%s err %d", __func__, err);
-    }
-}
-
-void icsd_adt_task(void *priv)
-{
-    int res = 0;
-    int msg[30];
-    while (1) {
-        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
-        if (res == OS_TASKQ) {
-            icsd_adt_task_handler(msg[1]);
-        }
-    }
-}
-
-void icsd_adt_task_create()
-{
-    if (adt_task == 0) {
-        task_create(icsd_adt_task, NULL, ICSD_ADT_TASK_NAME);
-        adt_task = 1;
-    }
-}
-
-void icsd_adt_task_kill()
-{
-    if (adt_task) {
-        task_kill(ICSD_ADT_TASK_NAME);
-        adt_task = 0;
-    }
-}
-
-/*********************** icsd src task api ***********************/
-static u8 src_task = 0;
 void icsd_post_srctask_msg(u8 cmd)
 {
     icsd_srctask_cmd_check(cmd);
-    int err = os_taskq_post_msg(ICSD_SRC_TASK_NAME, 1, cmd);
-    if (err != OS_NO_ERR) {
-        printf("%s err %d", __func__, err);
-    }
+    adt_post_msg(ICSD_SRC_TASK_NAME, cmd, 0);
 }
 
-//ANC TASK 发送
-//SRC_TASK_SUSPEND,
-//ICSD_ADT_SUSPEND,
-//ICSD_ADT_RESUME,
-void icsd_post_srctask_msg_wait(u8 cmd)
+void icsd_post_rtanctask_msg(u8 cmd)
 {
-    int err = os_taskq_post_msg("icsd_src", 1, cmd);
-    if (err != OS_NO_ERR) {
-        printf("%s err %d", __func__, err);
+    adt_post_msg(ICSD_RTANC_TASK_NAME, cmd, 0);
+}
+
+static void icsd_anc_process_task(void *priv)
+{
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            icsd_adt_anctask_handle(msg[1]);
+        }
     }
 }
 
-void icsd_src_task(void *priv)
+static void icsd_adt_task(void *priv)
+{
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            icsd_adt_task_handler(msg[1], msg[2]);
+        }
+    }
+}
+
+static void icsd_src_task(void *priv)
 {
     int res = 0;
     int msg[30];
@@ -340,200 +212,191 @@ void icsd_src_task(void *priv)
     }
 }
 
-void icsd_src_task_create()
+static void icsd_rtanc_task(void *priv)
 {
-    if (src_task == 0) {
-        task_create(icsd_src_task, NULL, ICSD_SRC_TASK_NAME);
-        src_task = 1;
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            icsd_rtanc_task_handler(msg[1]);
+        }
     }
 }
 
-void icsd_src_task_kill()
+static u8 icsd_anc_task = 0;
+static u8 adt_task = 0;
+static u8 src_task = 0;
+static u8 rtanc_task = 0;
+static void adt_task_create(void (*task)(void *p), const char *name, u8 *task_flag)
 {
-    if (src_task) {
-        task_kill(ICSD_SRC_TASK_NAME);
-        src_task = 0;
+    if (*task_flag == 0) {
+        task_create(task, NULL, name);
+        *task_flag = 1;
     }
 }
 
-void icsd_printf_debug_start()
+static void adt_task_kill(const char *name, u8 *task_flag)
 {
-    adt_printf = _adt_printf;
-    wat_printf = _wat_printf;
-    ein_printf = _ein_printf;
-    wind_printf = _wind_printf;
-    printf("icsd_printf_debug_start====================================\n");
+    if (*task_flag) {
+        task_kill(name);
+        *task_flag = 0;
+    }
 }
 
 void icsd_task_create()
 {
-    icsd_anc_task_create();
-    icsd_adt_task_create();
-    icsd_src_task_create();
-    icsd_printf_debug_start();
+    adt_task_create(icsd_anc_process_task, ICSD_ANC_TASK_NAME, &icsd_anc_task);
+    adt_task_create(icsd_adt_task, ICSD_ADT_TASK_NAME, &adt_task);
+    adt_task_create(icsd_src_task, ICSD_SRC_TASK_NAME, &src_task);
+    if (ICSD_RTANC_EN) {
+        adt_task_create(icsd_rtanc_task, ICSD_RTANC_TASK_NAME, &rtanc_task);
+    }
 }
 
 void icsd_task_kill()
 {
-    icsd_anc_task_kill();
-    icsd_adt_task_kill();
-    icsd_src_task_kill();
-}
-
-void icsd_adt_init_pre()
-{
-    icsd_debug_adt_en();
-    if ((ICSD_WIND_EN && (ICSD_WIND_MODE)) || ICSD_ENVNL_EN) {
-        if (ICSD_WIND_3MIC) {
-            ADT_PATH_CONFIG |= ADT_PATH_3M_EN;
-        } else {
-            ADT_PATH_CONFIG &= ~ADT_PATH_3M_EN;
-        }
+    adt_task_kill(ICSD_ANC_TASK_NAME, &icsd_anc_task);
+    adt_task_kill(ICSD_ADT_TASK_NAME, &adt_task);
+    adt_task_kill(ICSD_SRC_TASK_NAME, &src_task);
+    if (ICSD_RTANC_EN) {
+        adt_task_kill(ICSD_RTANC_TASK_NAME, &rtanc_task);
     }
 }
 
-#ifndef ADT_CLIENT_BOARD
-const u8 ADT_EIN_VER  = ADT_EIN_TWS_V0;
-void icsd_adt_ein_parm_HT03(__icsd_adt_parm *_ADT_PARM)
+void icsd_adt_anc46k_out_reset()
 {
-    _ADT_PARM->anc_in_pz_sum = -80;
-    _ADT_PARM->anc_out_pz_sum = 0;
-    _ADT_PARM->anc_in_sz_mean = 1;
-    _ADT_PARM->anc_out_sz_mean = -12;
-    _ADT_PARM->anc_in_fb_sum = 60;
-    _ADT_PARM->anc_out_fb_sum = 30;
-
-    _ADT_PARM->pnc_in_pz_sum = -80;
-    _ADT_PARM->pnc_out_pz_sum = 0;
-    _ADT_PARM->pnc_in_sz_mean = 1;
-    _ADT_PARM->pnc_out_sz_mean = -12;
-    _ADT_PARM->pnc_in_fb_sum = 60;
-    _ADT_PARM->pnc_out_fb_sum = 30;
-
-    _ADT_PARM->trans_in_pz_sum = 2;
-    _ADT_PARM->trans_out_pz_sum = 26;
-    _ADT_PARM->trans_in_sz_mean = 2;
-    _ADT_PARM->trans_out_sz_mean = -7;
-    _ADT_PARM->trans_in_fb_sum = 20;
-    _ADT_PARM->trans_out_fb_sum = -20;
+    ANC46K_CTL->rptr = 0;
 }
 
-void icsd_adt_voice_board_data()
+void icsd_adt_anc46k_out_isr()
 {
-    __icsd_adt_parm *ADT_PARM;
-    ADT_PARM = zalloc(sizeof(__icsd_adt_parm));
-    extern const float HT03_ADT_FLOAT_DATA[];
-    extern const float HT03_sz_out_data[28];
-    extern const float HT03_pz_out_data[28];
-    ADT_PARM->adt_float_data = (void *)HT03_ADT_FLOAT_DATA;
-    ADT_PARM->sz_inptr = (float *)HT03_sz_out_data;
-    ADT_PARM->pz_inptr = (float *)HT03_pz_out_data;
-    icsd_adt_ein_parm_HT03(ADT_PARM);
-    icsd_adt_parm_set(ADT_PARM);
-    free(ADT_PARM);
-}
-#else
-#include "icsd_adt_client_board.c"
-#endif/*ADC_CLIENT_BOARD*/
-//=======================================================================================================
-
-#if ADT_DATA_DEBUG
-void icsd_play_num0()
-{
-    icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
-}
-void icsd_play_num1()
-{
-    icsd_adt_tone_play(ICSD_ADT_TONE_NUM1);
-}
-void icsd_play_num2()
-{
-    icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
-}
-void icsd_play_num3()
-{
-    icsd_adt_tone_play(ICSD_ADT_TONE_NUM3);
-}
-void icsd_play_normal()
-{
-    icsd_adt_tone_play(ICSD_ADT_TONE_NORMAL);
-}
-
-
-extern u8 cepst_on;
-void icsd_adt_output_demo(__adt_result *adt_result)
-{
-#if ADT_EAR_IN_EN
-    static u8 hold = 0;
-    static u8 hold_flg = 0;
-    static int hold_time = 0;
-    if (adt_result->ein_state == 0) {
-        hold = 1;
-        hold_flg = 1;
-        hold_time = 0;
-        printf("------------------------------------------------------------------ein state:0\n");
-    } else {
-        if (hold_flg) {
-            hold_flg = 0;
-            hold_time = jiffies;
-            printf("set hold time:%d\n", hold_time);
-        }
-        if ((hold_time > 0) && (hold)) {
-            if (jiffies > (hold_time + 100)) {
-                printf("hold time out:%d\n", jiffies);
-                hold = 0;
-            }
-        }
-        printf("--------------------------------ein state:1\n");
+    //该函数为中断内部函数只能做简单的流程处理，不能占用太多时间
+    if (ANC46K_CTL->loop_remain >= 512) {
+        os_taskq_post_msg("anc", 1, ANC_MSG_46KOUT_DEMO);
     }
-    if (hold) {
-        //return;
-    }
+}
+
+//////临时添加
+u8 audio_adt_talk_mic_analog_close()
+{
+    printf("talk_mic_analog_close\n");
+    return 0;
+}
+u8 audio_adt_talk_mic_analog_open()
+{
+    printf("talk_mic_analog_open\n");
+    return 0;
+}
+
+u8  audio_anc_debug_busy_get(void);
+int audio_dac_read_anc_reset(void);
+int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
+void adt_function_init()
+{
+    printf("adt_function_init\n");
+    //sys
+    ADT_FUNC->os_time_dly = os_time_dly;
+    ADT_FUNC->os_sem_set = os_sem_set;
+    ADT_FUNC->os_sem_create = os_sem_create;
+    ADT_FUNC->os_sem_del = os_sem_del;
+    ADT_FUNC->os_sem_pend = os_sem_pend;
+    ADT_FUNC->os_sem_post = os_sem_post;
+    ADT_FUNC->local_irq_disable = local_irq_disable;
+    ADT_FUNC->local_irq_enable = local_irq_enable;
+    ADT_FUNC->icsd_post_adttask_msg = icsd_post_adttask_msg;
+    ADT_FUNC->icsd_post_srctask_msg = icsd_post_srctask_msg;
+    ADT_FUNC->icsd_post_anctask_msg = icsd_post_anctask_msg;
+    ADT_FUNC->icsd_post_rtanctask_msg = icsd_post_rtanctask_msg;
+    ADT_FUNC->jiffies_usec = jiffies_usec;
+    ADT_FUNC->jiffies_usec2offset = jiffies_usec2offset;
+    ADT_FUNC->audio_anc_debug_send_data = audio_anc_debug_send_data;
+    ADT_FUNC->audio_anc_debug_busy_get = audio_anc_debug_busy_get;
+    ADT_FUNC->audio_adt_talk_mic_analog_close = audio_adt_talk_mic_analog_close;
+    ADT_FUNC->audio_adt_talk_mic_analog_open = audio_adt_talk_mic_analog_open;
+    ADT_FUNC->audio_anc_mic_gain_get = audio_anc_mic_gain_get;
+    //tws
+    ADT_FUNC->tws_api_get_role = tws_api_get_role;
+    ADT_FUNC->tws_api_get_tws_state = tws_api_get_tws_state;
+    ADT_FUNC->icsd_adt_tws_state = icsd_adt_tws_state;
+    //anc
+    ADT_FUNC->anc_dma_done_ppflag = anc_dma_done_ppflag;
+    ADT_FUNC->anc_dma_on_double = anc_dma_on_double;
+#if ANC_CHIP_VERSION != ANC_VERSION_BR28
+    ADT_FUNC->anc_dma_on_double_4ch = anc_dma_on_double_4ch;
+#endif
+    ADT_FUNC->icsd_adt_hw_suspend = icsd_adt_hw_suspend;
+    ADT_FUNC->icsd_adt_hw_resume = icsd_adt_hw_resume;
+    ADT_FUNC->icsd_adt_anc46k_out_reset = icsd_adt_anc46k_out_reset;
+    ADT_FUNC->icsd_adt_anc46k_out_isr = icsd_adt_anc46k_out_isr;
+    //dac
+    ADT_FUNC->audio_dac_read_anc_reset = audio_dac_read_anc_reset;
+    ADT_FUNC->audio_dac_read_anc = audio_dac_read_anc;
+    //src
+    ADT_FUNC->icsd_adt_src_write = icsd_adt_src_write;
+    ADT_FUNC->icsd_adt_src_push = icsd_adt_src_push;
+    ADT_FUNC->icsd_adt_src_close = icsd_adt_src_close;
+    ADT_FUNC->icsd_adt_src_init = icsd_adt_src_init;
+    //OUTPUT
+    ADT_FUNC->icsd_VDT_output = icsd_VDT_output_demo;
+    ADT_FUNC->icsd_WAT_output = icsd_WAT_output_demo;
+    ADT_FUNC->icsd_WDT_output = icsd_WDT_output_demo;
+    ADT_FUNC->icsd_EIN_output = icsd_EIN_output_demo;
+    ADT_FUNC->icsd_AVC_output = icsd_AVC_output_demo;
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    ADT_FUNC->icsd_RTANC_output = audio_adt_rtanc_output_handle;
 #endif
 
-    if (adt_result->wind_lvl) {
-        printf("------wind lvl:%d\n", adt_result->wind_lvl);
-    }
-    if (adt_result->voice_state) {
-        icsd_play_normal();
-    }
-    switch (adt_result->wat_result) {
+}
+
+void icsd_adt_tone_play_handler(u8 idx)
+{
+    switch (idx) {
+    case 0:
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
+        break;
+    case 1:
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM1);
+        break;
     case 2:
-        icsd_play_num2();
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
         break;
     case 3:
-        icsd_play_num3();
-        break;
-    default:
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM3);
         break;
     }
 }
-#endif /*ADT_DATA_DEBUG*/
 
-
-double adt_log10_anc(double x)
+extern int audio_dac_read_base(s16 points_offset, void *data, int len, u8 read_channel, u8 autocorrection);
+extern int audio_dac_read_reset(void);
+extern struct dac_platform_data dac_data;
+int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel)
 {
-    double tmp = x;
-    if (tmp == 0) {
-        tmp = 0.0000001;
+    int rlen;
+    if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
+        s32 *tmp_buf = zalloc(len * 2 * read_channel);
+        rlen = audio_dac_read_base(points_offset, tmp_buf, len * 2, read_channel, 0);
+        if (rlen) {
+            audio_convert_data_32bit_to_16bit_round((s32 *)tmp_buf, (s16 *)data, (len * 2 * read_channel) >> 2);
+        }
+        free(tmp_buf);
+    } else {
+        rlen = audio_dac_read_base(points_offset, data, len, read_channel, 0);
     }
-    return log10_float(tmp);
+    return rlen;
 }
 
-float adt_anc_pow10(float n)
+int audio_dac_read_anc_reset(void)
 {
-    float pow10n = exp_float((float)n / adt_log10_anc(exp_float((float)1.0)));
-    return pow10n;
+    audio_dac_read_reset();
+    if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
+        audio_dac_read(0, 0, 124 * 2, 1);
+    } else {
+        audio_dac_read(0, 0, 124, 1);
+    }
+    return 0;
 }
-
-void adt_icsd_anc_fft256(int *in, int *out)
-{
-    u32 fft_config;
-    fft_config = hw_fft_config(256, 8, 1, 0, 1);
-    hw_fft_run(fft_config, in, out);
-}
-
-
 
 #endif /*(defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 

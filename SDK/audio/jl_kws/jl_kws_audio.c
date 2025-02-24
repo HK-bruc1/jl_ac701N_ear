@@ -7,7 +7,7 @@
 #include "jl_kws_common.h"
 #include "jl_kws_api.h"
 #include "adc_file.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "circular_buf.h"
 #include "effects/convert_data.h"
 

@@ -26,6 +26,7 @@
 #include "rcsp_config.h"
 #include "rcsp_ch_loader_download.h"
 #include "btstack_rcsp_user.h"
+#include "mic_effect.h"
 #if RCSP_ADV_EN
 #include "rcsp_setting_opt.h"
 #endif
@@ -112,7 +113,7 @@ static void rcsp_update_prepare()
 #endif
 
 #if (TCFG_MIC_EFFECT_ENABLE && (0 == RCSP_REVERBERATION_SETTING))
-    mic_effect_stop();
+    mic_effect_player_close();
 #endif
 
 }
@@ -120,7 +121,7 @@ static void rcsp_update_prepare()
 static void rcsp_update_fail_and_resume(void)
 {
 #if (TCFG_MIC_EFFECT_ENABLE)
-    mic_effect_start();
+    mic_effect_player_open();
 #endif
 
 #if (SOUNDCARD_ENABLE)
@@ -406,12 +407,13 @@ int JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 l
                     r_printf("slave close adv...\n");
                     sys_timeout_add(NULL,  update_slave_adv_reopen, 1000 * 60);     //延迟一分钟再开广播
                 }
-                if (RCSP_USE_SPP == get_curr_device_type()) {
-#if TCFG_USER_TWS_ENABLE
-                    tws_api_detach(TWS_DETACH_BY_LOCAL, 5000); //单备份升级断开tws
-                    tws_cancle_all_noconn();
-#endif
-                }
+                // 断开tws会导致spp断连，不断开也可以正常升级
+                /*                 if (RCSP_USE_SPP == get_curr_device_type()) { */
+                /* #if TCFG_USER_TWS_ENABLE */
+                /*                     tws_api_detach(TWS_DETACH_BY_LOCAL, 5000); //单备份升级断开tws */
+                /*                     tws_cancle_all_noconn(); */
+                /* #endif */
+                /*                 } */
 
 #else
 
@@ -777,6 +779,9 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
         if ((10 == wait_cnt) || (rcsp_send_list_is_empty() && check_ble_all_packet_sent())) {
             wait_cnt = 0;
             ble_app_disconnect();
+#if TCFG_USER_TWS_ENABLE
+            rcsp_clear_ble_hdl_and_tws_sync();
+#endif
             if (check_edr_is_disconnct()) {
                 puts("-need discon edr\n");
                 bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);

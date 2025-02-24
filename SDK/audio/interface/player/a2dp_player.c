@@ -89,7 +89,6 @@ u8  a2dp_player_update_steromix_param(struct a2dp_player *player, int channel)
 }
 #endif
 
-extern void dac_try_power_on_task_delete();
 static struct a2dp_player *g_a2dp_player = NULL;
 extern const int CONFIG_BTCTLER_TWS_ENABLE;
 
@@ -136,23 +135,22 @@ static void a2dp_player_callback(void *private_data, int event)
 #endif
         musci_vocal_remover_update_parm();
         break;
-    case STREAM_EVENT_PREEMPTED:
-#if ANC_EAR_ADAPTIVE_EN
-        audio_anc_ear_adaptive_a2dp_suspend_cb();
-#endif
-        break;
     }
 }
 
 static void a2dp_player_set_audio_channel(struct a2dp_player *player)
 {
-    int channel = AUDIO_CH_MIX;
+    int channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
     if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
         channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
     }
 
     player->channel = channel;
+#if (defined(TCFG_SPATIAL_ADV_NODE_ENABLE) && TCFG_SPATIAL_ADV_NODE_ENABLE)
+    jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_LR);
+#else
     jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, channel);
+#endif
 }
 
 void a2dp_player_tws_event_handler(int *msg)
@@ -232,7 +230,6 @@ static void retry_start_a2dp_player(void *p)
     if (g_a2dp_player && g_a2dp_player->stream) {
         int err = jlstream_start(g_a2dp_player->stream);
         if (err == 0) {
-            dac_try_power_on_task_delete();
             sys_timer_del(g_a2dp_player->retry_timer);
             g_a2dp_player->retry_timer = 0;
         }
@@ -262,14 +259,24 @@ int a2dp_player_open(u8 *btaddr)
     jlstream_set_callback(player->stream, NULL, a2dp_player_callback);
     jlstream_set_scene(player->stream, STREAM_SCENE_A2DP);
 
+#if (defined(TCFG_SPATIAL_ADV_NODE_ENABLE) && TCFG_SPATIAL_ADV_NODE_ENABLE)
+    //空间音效需要解码器输出真立体声
+    jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_LR);
+#else
     if (CONFIG_BTCTLER_TWS_ENABLE) {
         if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
-            player->channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
-            jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, player->channel);
+            if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) {	//如果dac配置的立体声，tws 连接上时解码也要配置输出立体声，由channel_adapter节点做tws 声道适配;
+                player->channel = AUDIO_CH_LR; 					// 避免断开tws 连接时，立体声输出无法声道分离
+            } else {
+                player->channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
+            }
         } else {
-            jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_MIX);
+            player->channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
         }
+        printf("a2dp player channel setup:0x%x", player->channel);
+        jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, player->channel);
     }
+#endif
     err = jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
                               NODE_IOC_SET_BTADDR, (int)player->bt_addr);
 
@@ -279,13 +286,31 @@ int a2dp_player_open(u8 *btaddr)
                              BREAKER_TARGER_NODE_UUID, BREAKER_TARGER_NODE_NEME);
 #endif
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    //iphone sbc解码帧长短得情况下，使用三线程推数
+    jlstream_add_thread(player->stream, "media0");
+    jlstream_add_thread(player->stream, "media1");
+
+    int codec_type = 0xff;
+    void *file = a2dp_open_media_file(player->bt_addr);
+    if (file) {
+        codec_type = a2dp_media_get_codec_type(file);
+    }
+    if (codec_type == A2DP_CODEC_SBC) {
+#if defined(CONFIG_CPU_BR28)
+        jlstream_add_thread(player->stream, "media2");
+#endif
+    }
+
+#endif
+
+
+
     if (err == 0) {
         err = jlstream_start(player->stream);
         if (err) {
             g_a2dp_player->retry_timer = sys_timer_add(NULL, retry_start_a2dp_player, 200);
             return 0;
-        } else {
-            dac_try_power_on_task_delete();
         }
     }
     if (err) {
@@ -379,6 +404,33 @@ void a2dp_player_reset(void)
         a2dp_player_open(bt_addr);
     }
 }
+
+#if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
+extern void set_a2dp_spatial_audio_mode(enum SPATIAL_EFX_MODE mode);
+//此函数用于开空间音频时将全局采样率降低到48k
+//关空间音频且开着ldac的时候将采样率还原到96k
+void a2dp_player_reset_spatial(void)
+{
+    u8 bt_addr[6];
+    if (g_a2dp_player) {
+        memcpy(bt_addr, g_a2dp_player->bt_addr, 6);
+        a2dp_player_close(bt_addr);
+        u8 mode = get_a2dp_spatial_audio_mode();
+        if (mode == SPATIAL_EFX_OFF) { //开空间音频,设置采样率为48k
+            mode = SPATIAL_EFX_TRACKED;
+            extern int audio_general_set_global_sample_rate(int sample_rate);
+            audio_general_set_global_sample_rate(48000);
+            set_a2dp_spatial_audio_mode(mode);
+        } else { //关空间音频,设置采样率为96k
+            mode = SPATIAL_EFX_OFF;
+            extern int audio_general_set_global_sample_rate(int sample_rate);
+            audio_general_set_global_sample_rate(96000);
+            set_a2dp_spatial_audio_mode(mode);
+        }
+        a2dp_player_open(bt_addr);
+    }
+}
+#endif
 
 //变调接口
 int a2dp_file_pitch_up()

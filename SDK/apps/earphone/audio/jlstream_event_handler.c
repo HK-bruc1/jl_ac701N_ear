@@ -17,9 +17,14 @@
 #include "audio_manager.h"
 #include "classic/tws_api.h"
 #include "esco_recoder.h"
+#include "clock.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
+#endif
+
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
 #endif
 
 #define PIPELINE_UUID_TONE_NORMAL   0x7674
@@ -149,6 +154,13 @@ static int get_pipeline_uuid(const char *name)
     }
 #endif
 
+#if TCFG_APP_MUSIC_EN
+    if (!strcmp(name, "music")) {
+        clock_alloc("music", 64 * 1000000UL);
+        return PIPELINE_UUID_A2DP;
+    }
+#endif
+
     if (!strcmp(name, "ai_voice")) {
         /* clock_alloc("a2dp", 24 * 1000000UL); */
         return PIPELINE_UUID_AI_VOICE;
@@ -165,12 +177,16 @@ static int get_pipeline_uuid(const char *name)
 #endif
 #if LE_AUDIO_STREAM_ENABLE
     if (!strcmp(name, "le_audio")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_LE_AUDIO;
     }
     if (!strcmp(name, "le_audio_call") || \
         !strcmp(name, "mic_le_audio_call")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_ESCO;
     }
 #endif
@@ -194,6 +210,24 @@ static void player_close_handler(const char *name)
     }
 }
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+//调整解码器输出帧长
+static const int frame_unit_size[] = { 64, 128, 256, 384, 512, 1024, 2048, 4096, 8192};
+int decoder_check_frame_unit_size(int dest_len)
+{
+    for (int i = 0; i < ARRAY_SIZE(frame_unit_size); i++) {
+        if (dest_len <= frame_unit_size[i]) {
+            dest_len = frame_unit_size[i];
+            return dest_len;
+        }
+    }
+    dest_len = 8192;
+    return dest_len ;
+}
+
+#endif
+
+
 static int load_decoder_handler(struct stream_decoder_info *info)
 {
 #if TCFG_BT_SUPPORT_AAC
@@ -204,11 +238,18 @@ static int load_decoder_handler(struct stream_decoder_info *info)
 #endif
     if (info->scene == STREAM_SCENE_A2DP) {
         info->task_name = "a2dp_dec";
+
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+        info->frame_time = 16;
+#endif
     }
-    if (info->scene == STREAM_SCENE_LEA_CALL) {
+    if (info->scene == STREAM_SCENE_LEA_CALL || info->scene == STREAM_SCENE_LE_AUDIO) {
         //printf("decoder scene:LEA CALL\n");
         info->frame_time = 10;
         info->task_name = "a2dp_dec";
+    }
+    if (info->scene == STREAM_SCENE_MUSIC) {
+        info->task_name = "file_dec";
     }
     return 0;
 }
@@ -288,6 +329,11 @@ static int get_merge_node_callback(const char *arg)
     return (int)tws_get_output_channel;
 }
 
+static int get_spatial_adv_node_callback(const char *arg)
+{
+    return (int)tws_get_output_channel;
+}
+
 int jlstream_event_notify(enum stream_event event, int arg)
 {
     int ret = 0;
@@ -336,6 +382,17 @@ int jlstream_event_notify(enum stream_event event, int arg)
         ret = get_merge_node_callback((const char *)arg);
         break;
 #endif
+#if TCFG_SPATIAL_ADV_NODE_ENABLE
+    case STREAM_EVENT_GET_SPATIAL_ADV_CALLBACK:
+        ret = get_spatial_adv_node_callback((const char *)arg);
+        break;
+#endif
+    case STREAM_EVENT_GLOBAL_PAUSE:
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+        audio_anc_ear_adaptive_a2dp_suspend_cb();
+#endif
+        break;
+
     default:
         break;
     }

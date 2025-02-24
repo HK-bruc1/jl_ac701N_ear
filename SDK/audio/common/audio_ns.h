@@ -6,7 +6,7 @@
 #include "cvp_ns.h"
 
 /*降噪数据帧长(单位：点数)*/
-#define ANS_FRAME_POINTS		160
+#define ANS_FRAME_POINTS		256
 #define ANS_FRAME_SIZE		(ANS_FRAME_POINTS << 1)
 /*降噪输出buf长度*/
 #define ANS_OUT_POINTS_MAX	(ANS_FRAME_POINTS << 1)

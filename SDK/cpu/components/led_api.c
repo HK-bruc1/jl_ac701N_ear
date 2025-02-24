@@ -268,7 +268,7 @@ void led_effect_init(led_pdata_t *led_effect, int cbpriv)
     if (use_pwm_led) {
         led_effect_output_by_hardware(led_effect, cbpriv);
     } else {
-#if TCFG_LED_LAYOUT == TWO_IO_TWO_LED
+#if TCFG_LED_LAYOUT >= TWO_IO_TWO_LED
         led_effect_output_by_software(led_effect, cbpriv);
 #endif
         return;
@@ -294,10 +294,31 @@ void led_effect_output(led_pdata_t *led_effect, int cbpriv)
     os_taskq_post_type("led_driver", MSG_LED_EFFECT, 2, msg);
 }
 
+
+#if LED_IO_SUPPORT_MUX
+static void led_com_ploe_io_mux_free(void *priv)
+{
+    gpio_set_mode(IO_PORT_SPILT(led_board_cfg->com_pole_port), PORT_OUTPUT_HIGH);
+    gpio_disable_function(IO_PORT_SPILT(led_board_cfg->com_pole_port), PORT_FUNC_NULL);
+}
+#endif
+
 void led_driver_task(void *priv)
 {
     int ret;
     int msg[16] = {0};
+
+#if LED_IO_SUPPORT_MUX
+    if ((led_board_cfg->layout == THREE_IO_TWO_LED) && \
+        (resource_multiplex_is_registered(led_board_cfg->com_pole_port))) {
+        src_mux_cbfunc_info cbfunc_info;
+        cbfunc_info.cbfunc_mode = 0;
+        cbfunc_info.cbfunc_owner = (u32)led_board_cfg;
+        cbfunc_info.cbfunc = (void *)led_com_ploe_io_mux_free;
+        cbfunc_info.cbfunc_arg = NULL;
+        resource_multiplex_register_free_cbfunc(led_board_cfg->com_pole_port, &cbfunc_info);
+    }
+#endif
 
     os_sem_post(led_driver_ready_sem);
 

@@ -6,8 +6,7 @@
 #ifndef _ASM_MEDIA_INCLUDES_H_
 #define _ASM_MEDIA_INCLUDES_H_
 
-#include "asm/audio_adc.h"
-#include "asm/audio_linein.h"
+#include "audio_adc.h"
 #include "asm/audio_src.h"
 #include "asm/audio_sync_resample.h"
 #include "dac.h"

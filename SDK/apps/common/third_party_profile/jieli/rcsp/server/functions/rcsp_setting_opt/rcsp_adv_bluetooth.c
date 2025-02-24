@@ -265,38 +265,45 @@ int JL_rcsp_adv_event_handler(struct rcsp_event *rcsp)
     return 0;
 }
 
-// 下面是弹窗的其他设置
-int app_core_data_for_send(u8 *packet, u16 size)
+// 下面是adv的其他设置
+int app_core_data_for_send(u8 *packet, u16 size, u8 *tws_phone_addr)
 {
     //printf("for app send size %d\n", size);
 
-    if (JL_rcsp_get_auth_flag()) {
-        *packet = 1;
-    } else {
-        *packet = 0;
-    }
-
-    if (bt_rcsp_spp_conn_num() > 0) {
-        if (get_ble_adv_notify()) {
-            *(packet + 1) = 1;
+    if (size >= 4) {
+        if (JL_rcsp_get_auth_flag()) {
+            *packet = 1;
         } else {
-            *(packet + 1) = 0;
+            *packet = 0;
         }
+
+        if (bt_rcsp_spp_conn_num() > 0) {
+            if (get_ble_adv_notify()) {
+                *(packet + 1) = 1;
+            } else {
+                *(packet + 1) = 0;
+            }
 
 #if RCSP_ADV_MUSIC_INFO_ENABLE
-        if (get_player_time_en()) {
-            *(packet + 2) = 1;
-        } else {
-            *(packet + 2) = 0;
-        }
+            if (get_player_time_en()) {
+                *(packet + 2) = 1;
+            } else {
+                *(packet + 2) = 0;
+            }
 #else
-        *(packet + 2) = 0;
+            *(packet + 2) = 0;
 #endif
 
-        *(packet + 3) = get_connect_flag();
+            *(packet + 3) = get_connect_flag();
+        } else {
+            // 处理偶尔无法进入低功耗的问题
+            *(packet + 1) = 0;
+            *(packet + 2) = 0;
+            *(packet + 3) = 0;
+        }
+        return 4;
     }
-
-    return 4;
+    return 0;
 }
 
 #if TCFG_USER_TWS_ENABLE
@@ -306,12 +313,12 @@ int app_core_data_for_send(u8 *packet, u16 size)
 	 ((u8)('C' + 'O' + 'R' + 'E') << (1 * 8)) | \
 	 ((u8)('D' + 'A' + 'T' + 'A') << (0 * 8)))
 
-void app_core_data_for_set(u8 *packet, u16 size);
+void app_core_data_for_set(u8 *packet, u16 size, u8 *tws_phone_addr);
 static void rcsp_app_core_data_in_irq(void *_data, u16 len, bool rx)
 {
     if (rx) {
         u8 *data = (u8 *)_data;
-        app_core_data_for_set(data, len);
+        app_core_data_for_set(data, len, NULL);
     }
 }
 
@@ -321,7 +328,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_spp_status) = {
 };
 #endif
 
-void app_core_data_for_set(u8 *packet, u16 size)
+void app_core_data_for_set(u8 *packet, u16 size, u8 *tws_phone_addr)
 {
     /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
     /* u8 rcsp_auth_flag =  *packet; */

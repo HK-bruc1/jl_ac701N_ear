@@ -94,6 +94,7 @@ struct pc_mic_node_hdl {
     u8 iport_bit_width;     //保存输入节点的位宽
     u8 syncts_enabled;
     u8 start;
+    u8 force_write_slience_data_en;
     u8 force_write_slience_data;
     u8 reference_network;
 };
@@ -159,7 +160,6 @@ int audio_pcmic_channel_buffered_frames(struct audio_pcmic_channel *ch)
 
     int buffered_frames = 0;
 
-    os_mutex_pend(&hdl->mutex, 0);
     if (ch->state != AUDIO_CFIFO_START) {
         goto ret_value;
     }
@@ -170,7 +170,6 @@ int audio_pcmic_channel_buffered_frames(struct audio_pcmic_channel *ch)
     }
 
 ret_value:
-    os_mutex_post(&hdl->mutex);
 
     return buffered_frames;
 }
@@ -224,21 +223,17 @@ static int audio_pcmic_add_syncts_with_timestamp(struct audio_pcmic_channel *ch,
     if (!hdl) {
         return 0;
     }
-
-    spin_lock(&pc_mic_lock);
+#if TCFG_DAC_NODE_ENABLE
     if (dac_adapter_link_to_syncts_check(syncts)) {
-        spin_unlock(&pc_mic_lock);
+        log_debug("syncts has beed link to dac");
         return 0;
     }
+#endif
 
+    spin_lock(&pc_mic_lock);
     if (iis_adapter_link_to_syncts_check(syncts)) {
         log_debug("syncts has beed link to iis");
         spin_unlock(&pc_mic_lock);
-        return 0;
-    }
-    if (dac_adapter_link_to_syncts_check(syncts)) {
-        spin_unlock(&pc_mic_lock);
-        log_debug("syncts has beed link to dac");
         return 0;
     }
 
@@ -295,7 +290,9 @@ static int audio_pcmic_syncts_handler(struct stream_iport *iport, int arg)
 
     switch (params->cmd) {
     case AUDIO_SYNCTS_MOUNT_ON_SNDPCM:
-        audio_pcmic_add_syncts_with_timestamp(&hdl->pcmic_ch, (void *)params->data[0], params->data[1]);
+        if (hdl->attr.dev_properties != SYNC_TO_MASTER_DEV) {
+            audio_pcmic_add_syncts_with_timestamp(&hdl->pcmic_ch, (void *)params->data[0], params->data[1]);
+        }
         if (hdl->reference_network == 0xff) {
             hdl->reference_network = params->data[2];
         }
@@ -365,12 +362,9 @@ static int audio_pcmic_channel_fifo_write(struct audio_pcmic_channel *ch, void *
     }
 
     os_mutex_pend(&hdl->mutex, 0);
-    int w_len = 0;
-    if (is_fixed_data) {
-        w_len = audio_cfifo_channel_write_fixed_data(&ch->fifo, (s16)data, len);
-    } else {
-        w_len = audio_cfifo_channel_write(&ch->fifo, data, len);
-    }
+
+    int w_len = audio_cfifo_channel_write(&ch->fifo, data, len, is_fixed_data);
+
     os_mutex_post(&hdl->mutex);
     return w_len;
 }
@@ -591,7 +585,7 @@ static int pcmic_adpater_detect_timestamp(struct pc_mic_node_hdl *hdl, struct st
         return 0;
     }
 
-    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE)) {
+    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE) || hdl->force_write_slience_data_en) {
         if (!hdl->force_write_slience_data) { //无播放同步时，强制填一段静音包
             hdl->force_write_slience_data = 1;
             int slience_time_us = (hdl->attr.protect_time ? hdl->attr.protect_time : 8) * 1000;
@@ -818,13 +812,6 @@ static void pc_mic_ioc_start(struct pc_mic_node_hdl *hdl)
     hdl->iport_bit_width = hdl_node(hdl)->iport->prev->fmt.bit_wide;
     hdl->start = 1;
 
-    int ret = jlstream_read_node_data_new(hdl_node(hdl)->uuid, hdl_node(hdl)->subid, (void *)&hdl->attr, hdl->name);
-    if (!ret) {
-        hdl->attr.delay_time = 50;
-        hdl->attr.protect_time = 8;
-        hdl->attr.write_mode = WRITE_MODE_BLOCK;
-        log_error("pcmic node param read err, set default\n");
-    }
     pcmic_hdl.iport_bit_width = audio_general_out_dev_bit_width();;
     log_debug("---------------------- %s, pcmic_hdl.iport_bit_width %d\n", hdl->name, pcmic_hdl.iport_bit_width);
     audio_pcmic_new_channel(hdl, (void *)&hdl->pcmic_ch);
@@ -947,7 +934,9 @@ static int pc_mic_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
     case NODE_IOC_SET_PARAM:
         hdl->reference_network = arg;
         break;
-
+    case NODE_IOC_SET_PRIV_FMT: //手动控制是否预填静音包
+        hdl->force_write_slience_data_en = arg;
+        break;
     default:
         break;
     }
@@ -967,6 +956,15 @@ static int pc_mic_adapter_bind(struct stream_node *node, u16 uuid)
         INIT_LIST_HEAD(&pcmic_hdl.dev_sync_list);
         init = 1;
     }
+
+    int ret = jlstream_read_node_data_new(hdl_node(hdl)->uuid, hdl_node(hdl)->subid, (void *)&hdl->attr, hdl->name);
+    if (!ret) {
+        hdl->attr.delay_time = 50;
+        hdl->attr.protect_time = 8;
+        hdl->attr.write_mode = WRITE_MODE_BLOCK;
+        log_error("pcmic node param read err, set default\n");
+    }
+    hdl->reference_network = 0xff;
     return 0;
 }
 

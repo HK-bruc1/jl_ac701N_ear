@@ -41,6 +41,10 @@
 #include "icsd_aeq_app.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #define anctool_printf  log_i
 #define anctool_put_buf put_buf
 
@@ -48,6 +52,13 @@
 #define CONFIG_VERSION  "V2.1.0"
 #else
 #define CONFIG_VERSION  "V2.1.1"
+#endif
+
+#if ((ANC_CHIP_VERSION == ANC_VERSION_BR30) || (ANC_CHIP_VERSION == ANC_VERSION_BR30C) || \
+	(ANC_CHIP_VERSION == ANC_VERSION_BR36))
+#define ANCTOOL_MIC_DATA_EXPORT_EN			0
+#else
+#define ANCTOOL_MIC_DATA_EXPORT_EN			1	//MIC 数据导出使能
 #endif
 
 #ifndef ANC_EAR_ADAPTIVE_EN
@@ -142,6 +153,7 @@ enum {
     CMD_PRODUCTION_MODE_SET = 0X5D,	//产测模式设置
 
     CMD_ANC_EXT_TOOL = 0XB0,
+    CMD_DEBUG_USER_CMD = 0XB1,		//用户自定义命令
 
     CMD_PASSTHROUGH     = 0xFD, //透传命令
     CMD_FAIL            = 0xFE, //执行失败
@@ -468,7 +480,7 @@ void app_anctool_ack_mute_train_get_pow(void)
     anctool_api_write(cmd, 7);
 }
 
-#if ANC_CHIP_VERSION == ANC_VERSION_BR28
+#if ANCTOOL_MIC_DATA_EXPORT_EN
 void app_anctool_ack_mic_power(void)
 {
     u8 *cmd;
@@ -534,43 +546,38 @@ static void anctool_ack_read_file_start(u32 id)
             ret = -1;
         }
         break;
-#if ADPTIVE_EQ_TOOL_BETA_ENABLE
     case FILE_ID_ADAPTIVE:
-        extern anc_packet_data_t *adaptive_eq_data;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_ANC_DEBUG_CMD_RTANC_EN
+        u8 packet_sel = audio_anc_debug_cmd_packet_sel();
+        g_printf("ANC ADAPTIVE PACKET_SEL %d\n", packet_sel);
+        switch (packet_sel) {
+        case ANC_DEBUG_PACKET_SEL_EAR_ANC:
+            ret = audio_anc_ear_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+            break;
+        case ANC_DEBUG_PACKET_SEL_AEQ:	//仅挂起RTANC才能获取
+#if ADPTIVE_EQ_TOOL_BETA_ENABLE
+            if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get())) {
+                ret = audio_adaptive_eq_tool_data_get(&__this->file_hdl, &__this->file_len);
+            }
+            break;
+#endif
+        case ANC_DEBUG_PACKET_SEL_RTANC: //仅挂起RTANC才能获取
+            if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get())) {
+                ret = audio_anc_real_time_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+            }
+            break;
+        }
+#elif ADPTIVE_EQ_TOOL_BETA_ENABLE
         if (audio_adaptive_eq_is_running()) {
             printf("error:Adaptive EQ is running, return!\n");
             ret = -1;
             break;
         }
-        if (adaptive_eq_data == NULL) {
-            printf("packet is NULL, return!\n");
-            ret = -1;
-            break;
-        }
-        if (adaptive_eq_data->dat_len == 0) {
-            printf("error: dat_len == 0\n");
-            ret = -1;
-            break;
-        }
-        __this->file_len = adaptive_eq_data->dat_len;
-        __this->file_hdl = (u8 *)(adaptive_eq_data->dat);
-        break;
+        ret = audio_adaptive_eq_tool_data_get(&__this->file_hdl, &__this->file_len);
 #elif ANC_EAR_ADAPTIVE_EN
-    case FILE_ID_ADAPTIVE:
-        if (anc_adaptive_data == NULL) {
-            printf("packet is NULL, return!\n");
-            ret = -1;
-            break;
-        }
-        if (anc_adaptive_data->dat_len == 0) {
-            printf("error: dat_len == 0\n");
-            ret = -1;
-            break;
-        }
-        __this->file_len = anc_adaptive_data->dat_len;
-        __this->file_hdl = (u8 *)(anc_adaptive_data->dat);
+        ret = audio_anc_ear_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+#endif
         break;
-#endif/*ANC_EAR_ADAPTIVE_EN*/
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     case FILE_ID_ANC_EXT_START ... FILE_ID_ANC_EXT_STOP:
         ret = anc_ext_tool_read_file_start(__this->file_id, &__this->file_hdl, &__this->file_len);
@@ -814,6 +821,9 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
         //ANC_EXT内部回复
         break;
 #endif
+    case CMD_DEBUG_USER_CMD:
+        audio_anc_debug_user_cmd_process(data + 1, len - 1);
+        break;
     case CMD_DEVELOP_MODE_SET:
         //ANC_DESIGNER 独有命令
         anctool_printf("CMD_DEVELOP_MODE_SET\n");
@@ -843,7 +853,7 @@ static void app_anctool_module_deal(u8 *data, u16 len)
     anctool_printf("recv packet:\n");
     anctool_put_buf(data, len);
     __this->connected_flag = 1;
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#if 0//TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     /*关闭所有模块*/
     if (audio_icsd_adt_is_running()) {
         audio_icsd_adt_close_all();
@@ -1042,7 +1052,7 @@ static void app_anctool_module_deal(u8 *data, u16 len)
         anctool_printf("CMD_GET_ANC_HEARAID_EN\n");
         app_anctool_ack_get_anc_hearaid_en();
         break;
-#if ANC_CHIP_VERSION == ANC_VERSION_BR28
+#if ANCTOOL_MIC_DATA_EXPORT_EN
     case CMD_MIC_DATA_EXPORT_EN://开启/关闭mic数据采集
         anctool_printf("CMD_MIC_DATA_EXPORT_EN: %d, mic_type: %d\n", data[1], data[2]);
         __this->mic_pow_type = data[2] - ANC_POW_SEL_R_DAC_REF;	//数组下标对齐

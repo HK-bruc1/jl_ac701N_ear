@@ -42,6 +42,8 @@
 #include "md5.h"
 #include "tuya_ble_data_handler.h"
 #include "circular_buf.h"
+#include "btstack/le/le_user.h"
+#include "app_ble_spp_api.h"
 
 #undef __TUYA_BLE_WEAK
 #define __TUYA_BLE_WEAK
@@ -60,6 +62,9 @@ extern void tuya_tws_bind_info_sync();
 extern uint32_t tuya_ble_storage_save_sys_settings(void);
 extern void tuya_set_adv_disable();
 extern void tuya_set_adv_enable();
+extern void tuya_set_adv_data(u8 *data, u8 length);
+extern void tuya_set_rsp_data(u8 *data, u8 length);
+extern void *tuya_ble_hdl;
 
 //涂鸦会调我们的接口开task，这个结构体用来保存一下信息
 struct ble_task_param ble_task = {
@@ -85,17 +90,9 @@ void tuya_app_set_rsp_data_register(void (*handler)(u8 *rsp_data, u8 rsp_len))
  * */
 __TUYA_BLE_WEAK tuya_ble_status_t tuya_ble_gap_advertising_adv_data_update(uint8_t const *p_ad_data, uint8_t ad_len)
 {
-#if CONFIG_BT_GATT_COMMON_ENABLE
-    ble_gatt_server_adv_enable(0);
-    if (app_set_adv_data) {
-        app_set_adv_data((void *)p_ad_data, (int)ad_len);
-    }
-    ble_gatt_server_adv_enable(1);
-#else
     tuya_set_adv_disable();
-    ble_op_set_adv_data((int)ad_len, (void *)p_ad_data);
+    tuya_set_adv_data((u8 *)p_ad_data, ad_len);
     tuya_set_adv_enable();
-#endif
     return TUYA_BLE_SUCCESS;
 }
 /*
@@ -107,17 +104,9 @@ __TUYA_BLE_WEAK tuya_ble_status_t tuya_ble_gap_advertising_adv_data_update(uint8
  * */
 __TUYA_BLE_WEAK tuya_ble_status_t tuya_ble_gap_advertising_scan_rsp_data_update(uint8_t const *p_sr_data, uint8_t sr_len)
 {
-#if CONFIG_BT_GATT_COMMON_ENABLE
-    ble_gatt_server_adv_enable(0);
-    if (app_set_rsp_data) {
-        app_set_rsp_data((void *)p_sr_data, (int)sr_len);
-    }
-    ble_gatt_server_adv_enable(1);
-#else
     tuya_set_adv_disable();
-    ble_op_set_rsp_data((int)sr_len, (void *)p_sr_data);
+    tuya_set_rsp_data((u8 *)p_sr_data, sr_len);
     tuya_set_adv_enable();
-#endif
     return TUYA_BLE_SUCCESS;
 }
 
@@ -395,11 +384,11 @@ __TUYA_BLE_WEAK tuya_ble_status_t tuya_ble_gap_addr_set(tuya_ble_gap_addr_t *p_a
     TUYA_BLE_LOG_DEBUG("%s\n", __func__);
     TUYA_BLE_LOG_DEBUG("tuya_ble_gap_addr_set=%d\n", p_addr->addr_type);
     TUYA_BLE_LOG_HEXDUMP_DEBUG("addr", p_addr->addr, 6);
-    ble_op_set_own_address_type(p_addr->addr_type);
+    app_ble_adv_address_type_set(tuya_ble_hdl, p_addr->addr_type);
     if (p_addr->addr_type == TUYA_BLE_ADDRESS_TYPE_PUBLIC) {
-        ret = le_controller_set_mac(p_addr->addr);
+        ret = app_ble_set_mac_addr(tuya_ble_hdl, (void *)p_addr->addr);
     } else if (p_addr->addr_type == TUYA_BLE_ADDRESS_TYPE_RANDOM) {
-        ret = le_controller_set_random_mac(p_addr->addr);
+        ret = app_ble_set_mac_addr(tuya_ble_hdl, (void *)p_addr->addr);
     }
     tuya_set_adv_enable();
     return ret ? TUYA_BLE_ERR_INVALID_ADDR : TUYA_BLE_SUCCESS;

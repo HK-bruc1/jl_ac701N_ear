@@ -177,10 +177,12 @@ static int led_ui_app_connected_conn_status_event_handler(int *msg)
         break;
     case CIG_EVENT_ACL_DISCONNECT:
         break;
+    case CIG_EVENT_JL_DONGLE_CONNECT:
     case CIG_EVENT_PHONE_CONNECT:
         log_info("CIG_EVENT_PHONE_CONNECT\n");
         led_ui_set_state(LED_STA_BLUE_ON_1S, DISP_NON_INTR);
         break;
+    case CIG_EVENT_JL_DONGLE_DISCONNECT:
     case CIG_EVENT_PHONE_DISCONNECT:
         break;
     default:

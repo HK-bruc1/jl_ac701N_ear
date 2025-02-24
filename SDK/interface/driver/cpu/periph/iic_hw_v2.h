@@ -3,6 +3,7 @@
 
 #include "system/generic/typedef.h"
 #include "gpio.h"
+#include "os/os_api.h"
 
 #define MASTER_IIC_WRITE_MODE_FAST_RESP 0
 #define MASTER_IIC_READ_MODE_FAST_RESP 0//接收移位,客户根据协议修改
@@ -15,6 +16,7 @@
 #define iic_init_prepare(reg)       (reg->CON = 1)
 #define iic_enable(reg)             (reg->CON |= BIT(0))
 #define iic_disable(reg)            (reg->CON &= ~BIT(0))
+#define is_iic_enable(reg)          ((reg->CON & 0x03)==0x03)
 #define iic_rst_rst(reg)            (reg->CON &= ~BIT(1))
 #define iic_rst_release(reg)        (reg->CON |= BIT(1))
 #define iic_role_host(reg)          (reg->CON &= ~BIT(2))
@@ -125,7 +127,7 @@ typedef const int hw_iic_dev;
 
 struct hw_iic_slave_config {
     struct iic_master_config config;
-    void (*iic_slave_irq_callback)(void);
+    void (*iic_slave_irq_func)(void);
     u8 slave_addr;//bit7~bit1
 };
 
@@ -133,14 +135,15 @@ struct hw_iic_slave_config {
 
 struct iic_master_config *get_hw_iic_config(hw_iic_dev iic);
 enum iic_state_enum hw_iic_init(hw_iic_dev iic, struct iic_master_config *i2c_config);
-enum iic_state_enum hw_iic_uninit(hw_iic_dev iic);
+enum iic_state_enum hw_iic_deinit(hw_iic_dev iic);
 enum iic_state_enum hw_iic_resume(hw_iic_dev iic);
 enum iic_state_enum hw_iic_suspend(hw_iic_dev iic);
 enum iic_state_enum hw_iic_check_busy(hw_iic_dev iic);
 
-void hw_iic_start(hw_iic_dev iic);
+enum iic_state_enum hw_iic_start(hw_iic_dev iic);
 void hw_iic_stop(hw_iic_dev iic);
 void hw_iic_reset(hw_iic_dev iic);
+void iic_hw_err_reset(hw_iic_dev iic);
 u8 hw_iic_tx_byte(hw_iic_dev iic, u8 byte);
 u8 hw_iic_rx_byte(hw_iic_dev iic, u8 ack);
 int hw_iic_read_buf(hw_iic_dev iic, void *buf, int len);
@@ -152,6 +155,31 @@ void hw_iic_set_ie(hw_iic_dev iic, i2c_pnd_typedef png, u8 en);
 u8 hw_iic_get_pnd(hw_iic_dev iic, i2c_pnd_typedef png);
 void hw_iic_clr_pnd(hw_iic_dev iic, i2c_pnd_typedef png);
 void hw_iic_clr_all_pnd(hw_iic_dev iic);
+//iic主机中断接口
+struct hw_iic_master_isr_transmit {
+    u8 *data_buf;//收发数据buf
+    u8 *reg_buf;//寄存器buf
+    OS_SEM sem;
+    u16 tx_len;//要发送的长tx_len,rx_len不能同时赋值
+    u16 rx_len;//要接收的长tx_len,rx_len不能同时赋值
+    u16 xfer_postion;//=0,返回通信数据长
+    enum iic_state_enum result;//通信结果。0:ok,<0:error
+    u8 reg_len;
+    u8 dev_addr;//从机设备地址
+    u8 restart_flag;//是否有restart.1:发送restart,0不发
+};
+//支持协议：
+//tx: start,addr write,data0,data1,,,,,,stop
+//rx：start,addr read,data0,data1,,,,,nack,stop
+//tx: start,addr write,regx,data0,data1,,,,,,stop
+//rx：start,addr write,regx,start,addr read,data0,data1,,,,,nack,stop
+//tx/rx：start,addr,regx write/read,data0,data1,,,,,nack,stop
+//会修改结构体值,每次调用需初始化结构体
+//timeout:等待时间。0:一直等, >0:*10ms(超时未通信完直接stop), <0:不等(需确保结构体参数有效)
+//不可在低优先级中断等
+enum iic_state_enum hw_iic_master_isr_transmit_cfg(hw_iic_dev iic, struct hw_iic_master_isr_transmit *info, int timeout);
+//非阻塞获取iic主机中断传输状态
+enum iic_state_enum  hw_iic_master_isr_get_status(hw_iic_dev iic);
 
 
 
@@ -168,7 +196,7 @@ enum iic_slave_rx_state {
 
 enum iic_state_enum hw_iic_slave_init(hw_iic_dev iic, struct hw_iic_slave_config *i2c_config);
 void hw_iic_slave_set_addr(hw_iic_dev iic, u8 addr, u8 addr_ack);
-void hw_iic_slave_set_callback(hw_iic_dev iic, void (*iic_slave_irq_callback)(void));
+void hw_iic_slave_set_isr_func(hw_iic_dev iic, void (*iic_slave_irq_func)(void));
 u8 hw_iic_slave_get_addr(hw_iic_dev iic);
 
 enum iic_slave_rx_state hw_iic_slave_rx_prepare(hw_iic_dev iic, u8 ack, u32 wait_time);//轮询, 准备收

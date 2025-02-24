@@ -22,6 +22,8 @@
 #include "bt_key_func.h"
 #include "low_latency.h"
 #include "rcsp_cfg.h"
+#include "app_music.h"
+#include "usb/device/usb_stack.h"
 
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
@@ -29,6 +31,11 @@
 
 #if RCSP_MODE && RCSP_ADV_KEY_SET_ENABLE
 #include "adv_anc_voice_key.h"
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN))
+#include "btstack_rcsp_user.h"
+#include "bt_key_func.h"
 #endif
 
 #if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
@@ -95,6 +102,126 @@ u8 get_sys_audio_mute_statu(void)
 #else
     return 0;
 #endif
+}
+
+void app_common_key_msg_handler(int *msg)
+{
+    int from_tws = msg[1];
+
+    switch (msg[0]) {
+    case APP_MSG_VOL_UP:
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN))
+        if (bt_rcsp_device_conn_num() && JL_rcsp_get_auth_flag() && (app_get_current_mode()->name != APP_MODE_BT)) {
+            bt_key_rcsp_vol_up();
+        } else {
+            app_audio_volume_up(1);
+        }
+#else
+        app_audio_volume_up(1);
+#endif
+
+        if (app_audio_get_volume(APP_AUDIO_CURRENT_STATE) == app_audio_get_max_volume()) {
+            if (tone_player_runing() == 0) {
+#if TCFG_MAX_VOL_PROMPT
+                play_tone_file(get_tone_files()->max_vol);
+#endif
+            }
+        }
+        app_send_message(APP_MSG_VOL_CHANGED, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        break;
+    case APP_MSG_VOL_DOWN:
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN))
+        if (bt_rcsp_device_conn_num() && JL_rcsp_get_auth_flag() && (app_get_current_mode()->name != APP_MODE_BT)) {
+            bt_key_rcsp_vol_down();
+        } else {
+            app_audio_volume_down(1);
+        }
+#else
+        app_audio_volume_down(1);
+#endif
+        app_send_message(APP_MSG_VOL_CHANGED, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        break;
+    case APP_MSG_SWITCH_SOUND_EFFECT:
+        effect_scene_switch();
+        break;
+#if TCFG_MIC_EFFECT_ENABLE
+    case APP_MSG_MIC_EFFECT_ON_OFF://混响开关
+
+        if (from_tws == APP_KEY_MSG_FROM_TWS) {
+            break;
+        }
+
+#if TCFG_APP_BT_EN
+        if (bt_get_call_status() != BT_CALL_HANGUP) {//通话中
+            break;
+        }
+#endif
+        if (mic_effect_player_runing()) {
+            mic_effect_player_close();
+        } else {
+            mic_effect_player_open();
+        }
+        break;
+    case APP_MSG_SWITCH_MIC_EFFECT://混响音效场景切换
+        mic_effect_scene_switch();
+        break;
+    case APP_MSG_MIC_VOL_UP:
+        mic_effect_dvol_up();
+        break;
+    case APP_MSG_MIC_VOL_DOWN:
+        mic_effect_dvol_down();
+        break;
+#if TCFG_BASS_TREBLE_NODE_ENABLE
+    case APP_MSG_MIC_BASS_UP:
+        puts("\n APP_MSG_MIC_BASS_UP \n");
+        mic_bass_treble_eq_udpate("BassTreEff", BASS_TREBLE_LOW, 20);
+        break;
+    case APP_MSG_MIC_BASS_DOWN:
+        puts("\n APP_MSG_MIC_BASS_DOWN \n");
+        mic_bass_treble_eq_udpate("BassTreEff", BASS_TREBLE_LOW, -20);
+        break;
+    case APP_MSG_MIC_TREBLE_UP:
+        puts("\n APP_MSG_MIC_TREBLE_UP \n");
+        mic_bass_treble_eq_udpate("BassTreEff", BASS_TREBLE_HIGH, 20);
+        break;
+    case APP_MSG_MIC_TREBLE_DOWN:
+        puts("\n APP_MSG_MIC_TREBLE_DOWN \n");
+        mic_bass_treble_eq_udpate("BassTreEff", BASS_TREBLE_HIGH, -20);
+        break;
+#endif // TCFG_BASS_TREBLE_NODE_ENABLE
+#endif
+    case APP_MSG_VOCAL_REMOVE:
+#if TCFG_APP_BT_EN
+        if (bt_get_call_status() != BT_CALL_HANGUP) {//通话中
+            break;
+        }
+#endif
+        if (from_tws == APP_KEY_MSG_FROM_TWS) {
+            break;
+        }
+
+        music_vocal_remover_switch();
+        break;
+    case APP_MSG_MUSIC_CHANGE_EQ:
+        //  for test eq切换接口,工具上需要配置多份EQ配置
+        u8 music_eq_preset_index = get_music_eq_preset_index();
+        music_eq_preset_index ^= 1;
+        set_music_eq_preset_index(music_eq_preset_index);
+        eq_update_parm(get_current_scene(), "MusicEqBt", music_eq_preset_index);
+        app_send_message(APP_MSG_EQ_CHANGED, get_music_eq_preset_index() + 1); //显示EQ从1开始
+        printf("APP_MSG_MUSIC_CHANGE_EQ:%d\n", music_eq_preset_index);
+        break;
+
+    case APP_MSG_SYS_MUTE:
+        sys_audio_mute_statu = app_audio_get_dac_digital_mute() ^ 1;
+        if (sys_audio_mute_statu) {
+            app_audio_mute(AUDIO_MUTE_DEFAULT);
+        } else {
+            app_audio_mute(AUDIO_UNMUTE_DEFAULT);
+        }
+        app_send_message(APP_MSG_MUTE_CHANGED, sys_audio_mute_statu);
+        break;
+    }
 }
 
 int app_common_device_event_handler(int *msg)
@@ -236,6 +363,11 @@ static void app_common_app_event_handler(int *msg)
 #if (defined TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE) && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
     case APP_MSG_WIND_DETECT_SWITCH:
         audio_icsd_wind_detect_demo();
+        break;
+#endif
+#if (defined TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE) && TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE
+    case APP_MSG_ADAPTIVE_VOL_SWITCH:
+        audio_icsd_adaptive_vol_demo();
         break;
 #endif
 #if (defined ANC_EAR_ADAPTIVE_EN) && ANC_EAR_ADAPTIVE_EN

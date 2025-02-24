@@ -40,8 +40,10 @@
 #include "app_key_dut.h"
 #include "linein.h"
 #include "pc.h"
+#include "app_music.h"
 #include "rcsp_user_api.h"
 #include "pwm_led/led_ui_api.h"
+#include "dual_bank_updata_api.h"
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
 #include "icsd_adt_app.h"
 #endif
@@ -75,6 +77,14 @@ const struct task_info task_info_table[] = {
     {"jlstream_6",          5,     0,  768,   0 },
     {"jlstream_7",          5,     0,  768,   0 },
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    /*virtual surround pro*/
+
+    {"media0",          5,     0,  768,   0 },
+    {"media1",          5,     0,  768,   0 },
+    {"media2",          5,     0,  768,   0 },
+#endif
+
 #if (TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LHDC_V5)
     {"a2dp_dec",            4,     1,   256 + 512,   0 },
 #else
@@ -82,7 +92,11 @@ const struct task_info task_info_table[] = {
 #endif
 
     {"aec",					2,	   1,   768,   128 },
-
+    /*
+     *file dec任务不打断jlstream任务运行,故优先级低于jlstream
+     */
+    {"file_dec",            4,     0,  640,   0 },
+    {"file_cache",          6,     0,  512 - 128,   0 },
     {"aec_dbg",				3,	   0,   512,   128 },
     {"update",				1,	   0,   256,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
@@ -128,6 +142,10 @@ const struct task_info task_info_table[] = {
     {"led_driver",         	5,     0,   256,   128 },
 #endif
 
+#if TCFG_LP_TOUCH_KEY_ENABLE
+    {"lp_touch_key",        5,     0,   256,   32  },
+#endif
+
     {"audio_vad",           1,     1,   512,   128 },
 #if TCFG_KEY_TONE_EN
     {"key_tone",            5,     0,   256,   32  },
@@ -157,7 +175,7 @@ const struct task_info task_info_table[] = {
     {"icsd_src",            2,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
-#if ANC_REAL_TIME_ADAPTIVE_ENABLE
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     {"rt_anc",              3,     1,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
@@ -173,6 +191,12 @@ const struct task_info task_info_table[] = {
 #if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     /*Head Action Detection*/
     {"HA_Detect",           2,     0,  512,   0 },
+#endif
+#if TCFG_ANC_BOX_ENABLE && TCFG_AUDIO_ANC_ENABLE
+    {"anc_box",             7,     0,  512,   128},//配置高优先级避免产测被打断
+#endif
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    {"dlog",                1,     0,  256,   128 },
 #endif
     {0, 0},
 };
@@ -338,12 +362,19 @@ static struct app_mode *app_task_init()
 
     sdfile_init();
     syscfg_tools_init();
+    cfg_file_parse(0);
+
+    jlstream_init();
 
     do_early_initcall();
     board_init();
     do_platform_initcall();
 
-    cfg_file_parse(0);
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    dlog_init();
+    dlog_enable(1);
+#endif
+
     key_driver_init();
 
     do_initcall();
@@ -567,6 +598,15 @@ static void app_task_loop(void *p)
         realme_check_upgrade_area(update);
     }
 #endif /* #if (VFS_ENABLE == 1) */
+#else
+    extern const int support_dual_bank_update_no_erase;
+    if (support_dual_bank_update_no_erase) {
+        if (0 == dual_bank_update_bp_info_get()) {
+            norflash_set_write_protect_remove();
+            dual_bank_check_flash_update_area(0);
+            norflash_set_write_protect_en();
+        }
+    }
 #endif
 
     while (1) {
@@ -591,6 +631,11 @@ static void app_task_loop(void *p)
 #if TCFG_APP_PC_EN
         case APP_MODE_PC:
             mode = app_enter_pc_mode(g_mode_switch_arg);
+            break;
+#endif
+#if TCFG_APP_MUSIC_EN
+        case APP_MODE_MUSIC:
+            mode = app_enter_music_mode(g_mode_switch_arg);
             break;
 #endif
         }

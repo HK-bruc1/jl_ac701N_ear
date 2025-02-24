@@ -35,4 +35,7 @@ u8 audio_get_mic_num(u32 mic_ch);
 
 u8 audio_max_adc_ch_num_get();
 
+/*判断adc 节点是否再跑*/
+u8 adc_file_is_runing(void);
+
 #endif // #ifndef _ADC_FILE_H_

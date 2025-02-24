@@ -13,7 +13,15 @@
 #include "btstack_rcsp_user.h"
 #include "ble_rcsp_server.h"
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+#include "xmly_protocol.h"
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
+#include "dma_platform_api.h"
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 #define ATT_LOCAL_PAYLOAD_SIZE    (517)//(517)              //note: need >= 20
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
@@ -157,8 +165,12 @@ extern int realme_protocol_exit(void);
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
-extern int dma_protocol_init(void);
-extern int dma_protocol_exit(void);
+extern int dma_protocol_all_init(void);
+extern int dma_protocol_all_exit(void);
+extern int dueros_process();
+extern int dueros_send_process(void);
+extern void dma_tx_resume_register(void (*handler)(void));
+extern void dma_rx_resume_register(void (*handler)(void));
 
 extern const u8 sdp_dueros_spp_service_data[];
 extern const u8 sdp_dueros_ota_service_data[];
@@ -292,12 +304,16 @@ static void multi_protocol_profile_init(void)
 #endif
 
 #endif
-
     app_ble_init();
 
     app_ble_state_update_callback_regitster(multi_protocol_state_update_callback);
 
     ble_op_multi_att_send_init(att_ram_buffer, ATT_RAM_BUFSIZE, ATT_LOCAL_PAYLOAD_SIZE);
+#endif
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    extern int auracast_delegator_init(u8 addr_type);
+    auracast_delegator_init(0xfb);//BD_ADDR_TYPE_EDR_ATT
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
@@ -333,6 +349,11 @@ static void multi_protocol_profile_init(void)
     ancs_ams_set_ios_pair_request_enable(0);
     extern void fmy_bt_ble_init(void);
     fmy_bt_ble_init();
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
+    extern void tuya_ble_profile_init(void);
+    tuya_ble_profile_init();
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & (MMA_EN | DMA_EN))
@@ -371,7 +392,11 @@ void multi_protocol_bt_init(void)
 #if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
     dma_tx_resume_register(multi_protocol_send_resume);
     dma_rx_resume_register(multi_protocol_resume);
-    dma_protocol_init();
+    dma_protocol_all_init();
+#endif
+#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+    extern void tuya_bt_ble_init(void);
+    tuya_bt_ble_init();
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
@@ -381,6 +406,10 @@ void multi_protocol_bt_init(void)
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_init();
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+    ximalaya_protocol_init();
 #endif
 }
 
@@ -409,7 +438,11 @@ void multi_protocol_bt_exit(void)
     swift_pair_all_exit();
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
-    dma_protocol_exit();
+    dma_protocol_all_exit();
+#endif
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
+    extern void tuya_bt_ble_exit(void);
+    tuya_bt_ble_exit();
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
     extern void online_spp_exit(void);
@@ -418,6 +451,10 @@ void multi_protocol_bt_exit(void)
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_exit();
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+    ximalaya_protocol_exit();
 #endif
 
     app_ble_exit();
@@ -435,6 +472,10 @@ void bt_ble_adv_enable(u8 enable)
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_bt_ble_adv_enable(enable);
+#endif
+#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
+    extern void tuya_bt_ble_adv_enable(u8 enable);
+    tuya_bt_ble_adv_enable(enable);
 #endif
 }
 

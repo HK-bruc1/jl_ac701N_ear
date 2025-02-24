@@ -1,5 +1,5 @@
 #include "source_node.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_config.h"
 #include "adc_file.h"
 #include "gpio_config.h"
@@ -348,7 +348,7 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
         hdl->dump_cnt++;
         return;
     }
-    hdl->timestamp = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
+    hdl->timestamp = adc_hdl.timestamp * TIMESTAMP_US_DENOMINATOR;
     for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
             handler = (void (*)(void *, void *, int))adc_chx_handle[i];

@@ -44,7 +44,7 @@
 #define NTC_IS_NORMAL(value, offset) (value >= NTC_DET_LOWER+(offset) && value <= NTC_DET_UPPER-(offset))
 #define NTC_IS_BAD_RES(value) (value >= 1020 || value <= 5)
 
-#define PULLUPRES_IS_TRIM           (efuse_get_io_pu_100k() != 0xFF)
+#define PULLUPRES_IS_TRIM           efuse_get_io_pu_100k()
 #define GET_PULLUPRES_SIGN          ((efuse_get_io_pu_100k() & 0x80) ? -1 : 1)
 #define GET_PULLUPRES_TRIM_SIZE     (efuse_get_io_pu_100k() & 0x7F)
 

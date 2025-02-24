@@ -153,7 +153,7 @@ typedef struct _ALINK_PARM {
     ALINK_CLK_MODE clk_mode; 			//更新和采样边沿
     ALINK_DATA_WIDTH  bitwide;   //数据位宽16/32bit
     ALINK_FRAME_MODE sclk_per_frame;  	//32/64 sclk/frame
-    u16 dma_len; 						//buf长度: byte
+    u32 dma_len; 						//buf长度: byte
     ALINK_SR sample_rate;					//采样
     ALINK_BUF_MODE 	buf_mode;  	//乒乓buf or 循环buf率
     u32 init_cnt; 						//buf长度: byte
@@ -198,5 +198,7 @@ void audio_alink_lock(u8 module_idx);
 void audio_alink_unlock(u8 module_idx);
 
 #define IIS_CH_NUM  2
+#define ALINK_SR_NUM 11
+extern u32 alink_sr_tab[ALINK_SR_NUM];
 
 #endif

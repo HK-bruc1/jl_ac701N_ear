@@ -24,5 +24,8 @@ int audio_anc_debug_send_data(u8 *buf, int len);
 
 u8 audio_anc_debug_busy_get(void);
 
+//自定义命令处理函数
+int audio_anc_debug_user_cmd_process(u8 *data, int len);
+
 
 #endif/*_AUDIO_ANC_DEBUG_TOOL_H_*/

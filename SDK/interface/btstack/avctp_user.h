@@ -327,6 +327,11 @@ typedef enum {
     USER_CTRL_PAN_SEND_DATA,
     USER_CTRL_PAN_CMD_END,
 
+    //OPP功能发送命令
+    USER_CTRL_OPP_CMD_BEGIN       = 0xF5,
+    USER_CTRL_OPP_CONNECTION,
+    USER_CTRL_OPP_DISCONNECTION,
+    USER_CTRL_OPP_CMD_END,
 
     //蓝牙其他操作
     //蓝牙关闭
@@ -697,6 +702,8 @@ extern u8 bt_a2dp_is_source_dev_null();
 // 配置LDAC支持的采样率
 extern void bt_set_a2dp_ldac_sampling_freq(u8 a2dp_ldac_sampling_freq);
 #define LE_AUDIO_CLASS              BIT(14)
+//VIVO special
+#define LE_AUDIO_VIVO_CLASS         BIT(15)
 
 //LHDC_V5 采样率
 #define LHDC_V5_SAMPLING_FREQ_192000    0x01

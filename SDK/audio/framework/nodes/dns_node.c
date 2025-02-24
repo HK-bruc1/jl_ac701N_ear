@@ -74,9 +74,8 @@ int dns_param_cfg_read(struct stream_node *node)
      * */
     if (config_audio_cfg_online_enable) {
         ret = jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config));
-        if (ret != sizeof(config)) {
-            printf("get dns online param err\n");
-            return -1 ;
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config))) {
+            printf("get dns online param succ\n");
         }
     }
 

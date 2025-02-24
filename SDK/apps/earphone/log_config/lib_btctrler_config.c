@@ -21,10 +21,12 @@
  * @brief Bluetooth Module
  */
 #if TCFG_BT_DONGLE_ENABLE
-	const int CONFIG_DONGLE_SPEAK_ENABLE  = 1;
+	const int CONFIG_DONGLE_SPEAK_ENABLE  = 1;//dongle_slave
 #else
-	const int CONFIG_DONGLE_SPEAK_ENABLE  = 0;
+	const int CONFIG_DONGLE_SPEAK_ENABLE  = 0;//dongle slave
 #endif
+const int CONFIG_BTCTLER_JL_DONGLE_SOURCE_ENABLE=0;//dongle master
+const int config_master_qos_poll=0;
 #if TCFG_BT_DUAL_CONN_ENABLE
 const int CONFIG_LMP_CONNECTION_NUM = 2;
 const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 2;
@@ -72,6 +74,13 @@ const int config_force_bt_pwr_tab_using_normal_level  = 0;
 //配置BLE广播发射功率的等级:0-最大功率等级;1~10-固定发射功率等级
 const int config_ble_adv_tx_pwr_level  = 0;
 
+//only for br52
+#ifdef CONFIG_CPU_BR52
+const u8 config_fre_offset_trim_mode = 1; //0:trim pll 1:trim osc 2:trim pll&osc
+#else
+const u8 config_fre_offset_trim_mode = 0; //0:trim pll 1:trim osc 2:trim pll&osc
+#endif
+
 const int CONFIG_BLE_SYNC_WORD_BIT = 30;
 const int CONFIG_LNA_CHECK_VAL = -80;
 
@@ -113,7 +122,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
 	const int CONFIG_BTCTLER_TWS_ENABLE     = 1;
 
-#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+    #if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
 		const int CONFIG_TWS_AUTO_ROLE_SWITCH_ENABLE = 1;
 	#else
 		const int CONFIG_TWS_AUTO_ROLE_SWITCH_ENABLE = 0;
@@ -121,13 +130,10 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
     const int CONFIG_TWS_POWER_BALANCE_ENABLE   = TCFG_TWS_POWER_BALANCE_ENABLE;
     const int CONFIG_LOW_LATENCY_ENABLE         = 1;
+    const int CONFIG_TWS_DATA_TRANS_ENABLE = 0;
 #else //TCFG_USER_TWS_ENABLE
 	#if (TCFG_USER_BLE_ENABLE)
-        #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
-		const int config_btctler_modules        = BT_MODULE_LE;
-        #else
 		const int config_btctler_modules        = BT_MODULE_CLASSIC | BT_MODULE_LE;
-        #endif
 	#else
 		const int config_btctler_modules        = BT_MODULE_CLASSIC;
 	#endif
@@ -137,6 +143,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	const int CONFIG_LOW_LATENCY_ENABLE     = 0;
 	const int CONFIG_TWS_POWER_BALANCE_ENABLE   = 0;
 	const int CONFIG_BTCTLER_FAST_CONNECT_ENABLE     = 0;
+    const int CONFIG_TWS_DATA_TRANS_ENABLE = 0;
 #endif//end TCFG_USER_TWS_ENABLE
 
 
@@ -153,7 +160,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
-		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 8;
+		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
 	#endif
 #endif
 
@@ -199,6 +206,18 @@ const int CONFIG_A2DP_DELAY_TIME_SBC = TCFG_A2DP_DELAY_TIME_SBC;
 const int CONFIG_A2DP_DELAY_TIME_SBC_LO = TCFG_A2DP_DELAY_TIME_SBC_LO;
 const int CONFIG_A2DP_DELAY_TIME_AAC_LO = TCFG_A2DP_DELAY_TIME_AAC_LO;
 const int CONFIG_A2DP_ADAPTIVE_MAX_LATENCY = TCFG_A2DP_ADAPTIVE_MAX_LATENCY;
+#ifdef TCFG_A2DP_DELAY_TIME_LDAC
+const int CONFIG_A2DP_DELAY_TIME_LDAC = TCFG_A2DP_DELAY_TIME_LDAC;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LDAC_LO
+const int CONFIG_A2DP_DELAY_TIME_LDAC_LO = TCFG_A2DP_DELAY_TIME_LDAC_LO;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LHDC
+const int CONFIG_A2DP_DELAY_TIME_LHDC = TCFG_A2DP_DELAY_TIME_LHDC;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LHDC_LO
+const int CONFIG_A2DP_DELAY_TIME_LHDC_LO = TCFG_A2DP_DELAY_TIME_LHDC_LO;
+#endif
 const int CONFIG_JL_DONGLE_PLAYBACK_DYNAMIC_LATENCY_ENABLE  = 1;    //jl_dongle 动态延时
 
 const int CONFIG_PAGE_POWER                 = 9;
@@ -257,13 +276,15 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 
 #ifdef CONFIG_SUPPORT_AES_CCM_FOR_EDR
     #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 1;
+        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #else
         const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #endif
 #else
     const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
 #endif
+
+    const int CONFIG_MPR_CLOSE_WHEN_ESCO = 0;
 
 #ifdef CONFIG_SUPPORT_WIFI_DETECT
 	#if TCFG_USER_TWS_ENABLE
@@ -275,19 +296,20 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 	#endif
 
 #else
-#if defined CONFIG_CPU_BR50
-/* #if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR29 */
-	const int CONFIG_WIFI_DETECT_ENABLE = 3;
+
+#if defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28 || defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR42
+
+        const int CONFIG_WIFI_DETECT_ENABLE = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
+#else
+        const int CONFIG_WIFI_DETECT_ENABLE = 3;
 
 #if TCFG_USER_TWS_ENABLE
-    const int CONFIG_TWS_AFH_ENABLE     = 1;
+        const int CONFIG_TWS_AFH_ENABLE     = 1;
 #else
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 
-#else
-	const int CONFIG_WIFI_DETECT_ENABLE = 0;
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 #endif//end CONFIG_SUPPORT_WIFI_DETECT
 
@@ -370,6 +392,8 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (1)
 #else
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #endif
@@ -393,11 +417,7 @@ const int config_btctler_le_acl_total_nums = 15;
  * @brief Bluetooth Analog setting
  */
 /*-----------------------------------------------------------*/
-#if ((!TCFG_USER_BT_CLASSIC_ENABLE) && TCFG_USER_BLE_ENABLE)
-	const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
-#else
-	const int config_btctler_single_carrier_en = 0;
-#endif
+const int config_btctler_single_carrier_en = 0;   // 单载波，如果是单模ble建议设置为1，否则会有部分芯片测试盒连接不上的情况。by zhibin
 
 const int sniff_support_reset_anchor_point = 0;   //sniff状态下是否支持reset到最近一次通信点，用于HID
 const int sniff_long_interval = (500 / 0.625);    //sniff状态下进入long interval的通信间隔(ms)

@@ -6,6 +6,11 @@
 #define KHz_UNIT	(1000L)
 #define MHz	        (1000000L)
 
+
+#define SYS_CLOCK_INPUT_BT_OSC      0
+#define SYS_CLOCK_INPUT_PLL_RCL     1
+
+
 enum pll_ref_source : u8 {
     PLL_REF_XOSC,       //外部晶振，单端模式
     PLL_REF_XOSC_DIFF,  //外部晶振，差分模式
@@ -13,6 +18,7 @@ enum pll_ref_source : u8 {
     PLL_REF_HRC,
     PLL_REF_RTC_OSC,
     PLL_REF_XCLK,
+    PLL_REF_STD24M,
 };
 
 ///VAD时钟源

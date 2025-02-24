@@ -44,5 +44,9 @@ typedef enum {
     RCSP_BT_EVENT_BLE_STATUS,
 } RCSP_BT_EVENT;
 
-void send_version_to_sibling(void);
+
+/**
+ * @brief 清除rcsp蓝牙ble连接信息并同步到tws对端
+ */
+void rcsp_clear_ble_hdl_and_tws_sync(void);
 #endif

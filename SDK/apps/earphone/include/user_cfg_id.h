@@ -25,17 +25,12 @@
 #define    	CFG_IMU_GYRO_OFFEST_ID          28	//空间音频imu陀螺仪偏置
 #define    	CFG_IMU_ACC_OFFEST_ID           29	//空间音频imu加速度偏置
 
-#define     VM_LP_TOUCH_KEY0_ALOG_CFG       32
-#define     VM_LP_TOUCH_KEY1_ALOG_CFG       33
-#define     VM_LP_TOUCH_KEY2_ALOG_CFG       34
-#define     VM_LP_TOUCH_KEY3_ALOG_CFG       35
-#define     VM_LP_TOUCH_KEY4_ALOG_CFG       36
-
-#define     VM_LP_TOUCH_KEY0_IDTY_ALGO       37
-#define     VM_LP_TOUCH_KEY1_IDTY_ALGO       38
-#define     VM_LP_TOUCH_KEY2_IDTY_ALGO       39
-#define     VM_LP_TOUCH_KEY3_IDTY_ALGO       40
-#define     VM_LP_TOUCH_KEY4_IDTY_ALGO       41
+#define     VM_LP_TOUCH_KEY0_ALOG_CFG       31
+#define     VM_LP_TOUCH_KEY1_ALOG_CFG       32
+#define     VM_LP_TOUCH_KEY2_ALOG_CFG       33
+#define     VM_LP_TOUCH_KEY0_IDTY_ALGO      34
+#define     VM_LP_TOUCH_KEY1_IDTY_ALGO      35
+#define     VM_LP_TOUCH_KEY2_IDTY_ALGO      36
 
 #define     CFG_SPK_EQ_SEG_SAVE             37
 #define     CFG_SPK_EQ_GLOBAL_GAIN_SAVE     38
@@ -51,6 +46,9 @@
 #define     CFG_RCSP_ADV_LED_SETTING         47
 #define     CFG_RCSP_ADV_KEY_SETTING         48
 
+#define     CFG_CHARGE_FULL_VBAT_VOLTAGE     49//充满电后记当前的VBAT的ADC值
+#define     VM_CHARGE_PROGI_VOLT             50//恒流充电的PROGI
+
 #define 	CFG_HAVE_MASS_STORAGE       52
 #define     CFG_MUSIC_MODE              53
 
@@ -64,6 +62,7 @@
 #define     CFG_ANC_ADAPTIVE_DATA_ID   		59//保存ANC自适应参数id
 #define     CFG_ANC_ADAPTIVE_DUT_ID   		61//保存ANC自适应产测参数id
 #define     CFG_VBG_TRIM                    60//保存VBG配置参数id
+#define     CFG_DACLDO_TRIM                 62//保存DACLDO配置参数id
 
 #define     TUYA_SYNC_KEY_INFO          55
 

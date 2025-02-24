@@ -21,6 +21,7 @@
 #include "audio_config.h"
 #include "volume_node.h"
 #include "audio_anc_debug_tool.h"
+#include "icsd_aeq.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
@@ -34,6 +35,10 @@
 #include "icsd_anc_v2_interactive.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #if 1
 #define aeq_printf printf
 #else
@@ -42,6 +47,7 @@
 
 struct audio_aeq_t {
     u8 eff_mode;							//AEQ效果模式
+    u8 real_time_eq_en;						//实时自适应EQ使能
     enum audio_adaptive_fre_sel fre_sel;	//AEQ数据来源
     volatile u8 state;						//状态
     s16 now_volume;							//当前EQ参数的音量
@@ -205,11 +211,21 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
     return 0;
 }
 
+
+int audio_real_time_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(int result))
+{
+    int ret = audio_adaptive_eq_open(fre_sel, result_cb);
+    if (!ret) {
+        aeq_hdl->real_time_eq_en = 1;
+    }
+    return ret;
+}
+
 int audio_adaptive_eq_close()
 {
     aeq_printf("%s\n", __func__);
     if (aeq_hdl) {
-        if (aeq_hdl->state == ADAPTIVE_EQ_STATE_OPEN) {
+        if (aeq_hdl->state != ADAPTIVE_EQ_STATE_CLOSE) {
             if (strcmp(os_current_task(), "afq_common") == 0) {
                 //aeq close在AEQ线程执行会造成死锁，需改为在APP任务执行
                 aeq_printf("aeq close post to app_core\n");
@@ -243,6 +259,7 @@ int audio_adaptive_eq_close()
             s16 volume = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
             aeq_hdl->now_volume = volume;
             audio_icsd_eq_eff_update(audio_adaptive_eq_cur_list_query(volume));
+            aeq_hdl->real_time_eq_en = 0;
 
             aeq_hdl->state = ADAPTIVE_EQ_STATE_CLOSE;
 
@@ -666,6 +683,13 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     struct eq_default_seg_tab *eq_output;
     float maxgain_dB;
     aeq_printf("AEQ RUN \n");
+    aeq_hdl->state = ADAPTIVE_EQ_STATE_RUN;
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
+        audio_anc_real_time_adaptive_suspend();
+    }
+#endif
 
     //释放上一次AEQ存储空间
     audio_adaptive_eq_cur_list_del();
@@ -685,6 +709,7 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     int vol_list_num = sizeof(aeq_volume_grade_list);
     for (u8 i = 0; i < vol_list_num; i++) {
         /* maxgain_dB = 0 - audio_adaptive_eq_vol_gain_get(aeq_volume_grade_list[i]); */
+        os_time_dly(2); //避免系统跑不过来
         maxgain_dB = aeq_volume_grade_maxdB_table[dot_lvl][i];
         r_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
         audio_adaptive_eq_start();
@@ -701,10 +726,24 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
 #endif
 
 __aeq_close:
-    //关闭AEQ
-    audio_adaptive_eq_close();
+    if (aeq_hdl->real_time_eq_en) {
+        //实时AEQ 在线更新EQ效果
+        aeq_printf("aeq updata \n");
+        aeq_hdl->eff_mode = AEQ_EFF_MODE_ADAPTIVE;
+        s16 volume = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
+        aeq_hdl->now_volume = volume;
+        audio_icsd_eq_eff_update(audio_adaptive_eq_cur_list_query(volume));
 
-    aeq_printf("AEQ END\n");
+        aeq_printf("AEQ END\n");
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
+            audio_anc_real_time_adaptive_resume();
+        }
+#endif
+    } else {
+        //单次AEQ 执行关闭
+        audio_adaptive_eq_close();
+    }
 }
 
 int audio_adaptive_eq_eff_set(enum ADAPTIVE_EFF_MODE mode)
@@ -781,6 +820,21 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
         }
     } else {
         printf("[AEQ]user vol cfg parm read err ret %d\n", ret);
+    }
+    return 0;
+}
+
+// 自适应EQ强制退出
+int audio_adaptive_eq_force_exit(void)
+{
+    aeq_printf("func:%s, aeq_hdl->state:%d", __FUNCTION__, aeq_hdl->state);
+    switch (aeq_hdl->state) {
+    case ADAPTIVE_EQ_STATE_RUN:
+        icsd_aeq_force_exit();  // RUN才跑算法流程
+        break;
+    case ADAPTIVE_EQ_STATE_OPEN:
+        audio_adaptive_eq_close();
+        break;
     }
     return 0;
 }

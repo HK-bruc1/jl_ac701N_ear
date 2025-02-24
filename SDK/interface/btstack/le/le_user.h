@@ -136,13 +136,41 @@ extern "C" {
     extern void ll_hci_connection_updata(u8 *data);
 
 
-
     /*************************************************************************************************/
 //le_audio_profile.a的对外接口说明
 //unicast是连接状态的le audio播放，走CIS链路传输音频数据
 //broadcast，auracast是广播的le audio叫法，走BIS链路传输音频数据
     /*************************************************************************************************/
-
+// LEA_SUPPORT_MASK_协议名简称_S/C（S for server，C for client）
+// 用来配置变量u32 lea_cfg_support_profile = 0; 的位定义，控制协议节省代码量
+#define LEA_SUPPORT_MASK_BAS_C     0x0001     //电量
+#define LEA_SUPPORT_MASK_BAS_S     0x0002     //电量
+#define LEA_SUPPORT_MASK_DIS_C     0x0004
+#define LEA_SUPPORT_MASK_DIS_S     0x0008
+#define LEA_SUPPORT_MASK_PACS_C    0x0010
+#define LEA_SUPPORT_MASK_PACS_S    0x0020
+#define LEA_SUPPORT_MASK_ASCS_C    0x0040
+#define LEA_SUPPORT_MASK_ASCS_S    0x0080
+#define LEA_SUPPORT_MASK_MCS_C     0x0100
+#define LEA_SUPPORT_MASK_MCS_S     0x0200
+#define LEA_SUPPORT_MASK_TBS_C     0x0400
+#define LEA_SUPPORT_MASK_TBS_S     0x0800
+#define LEA_SUPPORT_MASK_VCS_C     0x1000
+#define LEA_SUPPORT_MASK_VCS_S     0x2000
+#define LEA_SUPPORT_MASK_CSIS_C    0x4000
+#define LEA_SUPPORT_MASK_CSIS_S    0x8000
+#define LEA_SUPPORT_MASK_BASS_C    0x10000
+#define LEA_SUPPORT_MASK_BASS_S    0x20000
+#define LEA_SUPPORT_MASK_HAS_C     0x40000
+#define LEA_SUPPORT_MASK_HAS_S     0x80000
+#define LEA_SUPPORT_MASK_TMAP_C    0x100000
+#define LEA_SUPPORT_MASK_TMAP_S    0x200000
+#define LEA_SUPPORT_MASK_MICS_C    0x400000
+#define LEA_SUPPORT_MASK_MICS_S    0x800000
+#define LEA_SUPPORT_MASK_VOCS_S    0x1000000
+#define LEA_SUPPORT_MASK_AICS_S    0x2000000
+#define LEA_SUPPORT_MASK_UNICAST   0x4000000
+#define LEA_SUPPORT_MASK_AURACAST  0x8000000
     /*************************************************************************************************/
     /*!
      *  \brief      配置广播包的名字，一般开了le audio unicast使用的是双模同地址，一般配置成经典蓝牙名字就行
