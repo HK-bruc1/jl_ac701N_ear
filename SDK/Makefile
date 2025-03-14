@@ -123,7 +123,6 @@ DEFINES := \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
 	-DCONFIG_CODE_MOVABLE_ENABLE \
-	-DCONFIG_FLOAT_DEBUG_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
 	-DCONFIG_OS_AFFINITY_ENABLE=0 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
@@ -266,6 +265,7 @@ INCLUDES := \
 	-Iaudio/framework/plugs/source \
 	-Iaudio/CVP \
 	-Iaudio/test_tools \
+	-Iaudio/common/icsd/adjdcc \
 	-Iaudio/common/icsd/adt \
 	-Iaudio/common/icsd/anc \
 	-Iaudio/common/icsd/common \
@@ -284,6 +284,7 @@ INCLUDES := \
 	-Iaudio/common/icsd/vdt \
 	-Iaudio/common/icsd/wat \
 	-Iaudio/common/icsd/ein \
+	-Iaudio/common/icsd/howl \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br28/audio_dai \
@@ -722,6 +723,7 @@ c_SRC_FILES := \
 	audio/common/demo/codec_demo/audio_sbc_codec_demo.c \
 	audio/common/demo/codec_demo/audio_speex_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
+	audio/common/icsd/adjdcc/icsd_adjdcc_config.c \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_alg.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
@@ -740,30 +742,39 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/avc/icsd_avc_app.c \
 	audio/common/icsd/avc/icsd_avc_config.c \
 	audio/common/icsd/cmp/icsd_cmp_app.c \
-	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
 	audio/common/icsd/common_v2/icsd_common_v2.c \
 	audio/common/icsd/common_v2/icsd_common_v2_app.c \
 	audio/common/icsd/config/icsd_anc_v2_config.c \
+	audio/common/icsd/config/icsd_cmp_config.c \
 	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/ein/icsd_ein_config.c \
+	audio/common/icsd/env_noise_det/icsd_env_noise_det_app.c \
+	audio/common/icsd/howl/icsd_howl_app.c \
+	audio/common/icsd/howl/icsd_howl_config.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
 	audio/common/icsd/rt_anc/rt_anc_app.c \
 	audio/common/icsd/rt_anc/rt_anc_config.c \
 	audio/common/icsd/tool/anc_ext_tool.c \
 	audio/common/icsd/tool/anc_ext_tool_file.c \
+	audio/common/icsd/vdt/icsd_vdt_app.c \
 	audio/common/icsd/vdt/icsd_vdt_config.c \
+	audio/common/icsd/wat/icsd_wat_app.c \
 	audio/common/icsd/wat/icsd_wat_config.c \
+	audio/common/icsd/wind/cvp_wind_app.c \
+	audio/common/icsd/wind/icsd_wind_app.c \
 	audio/common/icsd/wind/icsd_wind_config.c \
 	audio/common/online_debug/aud_data_export.c \
 	audio/common/online_debug/aud_mic_dut.c \
 	audio/common/online_debug/aud_spatial_effect_dut.c \
 	audio/common/online_debug/audio_capture.c \
 	audio/common/online_debug/audio_online_debug.c \
+	audio/common/pcm_data/sine_pcm.c \
 	audio/common/power/mic_power_manager.c \
 	audio/common/uartPcmSender.c \
 	audio/common/wm8978/iic.c \
@@ -1082,6 +1093,8 @@ LFLAGS := \
 	cpu/br28/liba/lib_icsd_wat.a \
 	cpu/br28/liba/lib_icsd_vdt.a \
 	cpu/br28/liba/lib_icsd_ein.a \
+	cpu/br28/liba/lib_icsd_avc.a \
+	cpu/br28/liba/lib_icsd_howl.a \
 	cpu/br28/liba/libjlsp_kws_far_keyword.a \
 	cpu/br28/liba/libjlsp_kws_india_english.a \
 	cpu/br28/liba/3DSpatial.a \
@@ -1104,8 +1117,9 @@ LFLAGS := \
 	cpu/br28/liba/lib_iir_filter.a \
 	cpu/br28/liba/spatial_adv.a \
 	cpu/br28/liba/le_audio_profile.a \
-	cpu/br28/liba/jla_codec_lib.a \
+	cpu/br28/liba/lib_jla_codec.a \
 	cpu/br28/liba/lib_lc3_codec.a \
+	cpu/br28/liba/lib_jl_codec_common.a \
 	cpu/br28/liba/lib_noisegate_pro.a \
 	cpu/br28/liba/lib_eq_design_coeff.a \
 	cpu/br28/liba/libSAS_pi32v2_OnChip.a \

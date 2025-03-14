@@ -11,10 +11,10 @@
 #include "icsd_vdt.h"
 #include "icsd_adt.h"
 
-struct vdt_function *VDT_FUNC;
 
 
 const u8 ICSD_VDT_ALG_BT_INF = 0;
+const u8 ICSD_VDT_BT_DATA = 1;
 //调试信息使能
 const u16 ADT_DEBUG_INF = 0;//ADT_INF_5 | ADT_INF_1 ;//| ADT_INF_12 ;//| ADT_INF_9; //state
 const u8 VDT_TRAIN_EN = 0;
@@ -23,6 +23,12 @@ const u8 VDT_TRAIN_EN = 0;
 //    智能免摘参数配置
 //==============================================//
 u8    ADT_PATH_CONFIG = ADT_PATH_3M_EN;
+
+const float vdt_refgain = 1;
+const float vdt_errgain = 1;
+const float vdt_tlkgain = 1;
+const float vdt_dmahgain = 2;
+
 const u16 adt_dov_thr = 100;
 const u16 adt_dov_diff_thr = 3;
 const u8 final_speech_even_thr = 4;     //dov
@@ -107,9 +113,9 @@ void vdt_config_init(__vdt_config *_vdt_config)
     //DITHER
 }
 
-void vdt_function_init()
-{
-    VDT_FUNC->vdt_config_init = vdt_config_init;
-}
+const struct vdt_function VDT_FUNC_t = {
+    .vdt_config_init = vdt_config_init,
+};
+struct vdt_function *VDT_FUNC = (struct vdt_function *)(&VDT_FUNC_t);
 
 #endif/*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/

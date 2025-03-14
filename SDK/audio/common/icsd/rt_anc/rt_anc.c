@@ -18,9 +18,11 @@
 #include "rt_anc.h"
 #include "icsd_adt.h"
 #include "icsd_adt_alg.h"
+#include "rt_anc_app.h"
+#include "clock_manager/clock_manager.h"
 
-struct rt_anc_function	RT_ANC_FUNC;
 
+int (*hz_printf)(const char *format, ...) = _hz_printf;
 int (*rt_printf)(const char *format, ...) = _rt_printf;
 int rt_printf_off(const char *format, ...)
 {
@@ -136,36 +138,39 @@ void rt_anc_config_init(__rt_anc_config *_rt_anc_config)
 
 }
 
-void rt_anc_function_init(void)
-{
-    RT_ANC_FUNC.anc_dma_on = anc_dma_on;
-    RT_ANC_FUNC.anc_dma_on_double = anc_dma_on_double;
-    RT_ANC_FUNC.anc_dma_done_ppflag = anc_dma_done_ppflag;
-    RT_ANC_FUNC.anc_core_dma_ie = anc_dma_ie;
-    RT_ANC_FUNC.anc_core_dma_stop = anc_dma_stop;
-    RT_ANC_FUNC.sys_timeout_add = sys_timeout_add;
-    RT_ANC_FUNC.sys_timeout_del = sys_timeout_del;
-    RT_ANC_FUNC.rt_anc_post_rttask_cmd = icsd_post_rtanctask_msg;
-
-    RT_ANC_FUNC.rt_anc_post_anctask_cmd = rt_anc_post_anctask_cmd;
-    RT_ANC_FUNC.rt_anc_dma_2ch_on = anc_dma_on_double;
-    RT_ANC_FUNC.rt_anc_dma_4ch_on = anc_dma_on_double_4ch;
-    RT_ANC_FUNC.rt_anc_task_create = rt_anc_task_create;
-    RT_ANC_FUNC.rt_anc_task_kill = rt_anc_task_kill;
-    RT_ANC_FUNC.rt_anc_alg_output = icsd_adt_rtanc_alg_output;
-    RT_ANC_FUNC.icsd_rtanc_need_updata = icsd_rtanc_need_updata;
-    RT_ANC_FUNC.icsd_rtanc_master_send = icsd_rtanc_master_send;
-    RT_ANC_FUNC.icsd_rtanc_slave_send = icsd_rtanc_slave_send;
-    RT_ANC_FUNC.jiffies_usec = jiffies_usec;
-    RT_ANC_FUNC.jiffies_usec2offset = jiffies_usec2offset;
-    RT_ANC_FUNC.audio_anc_debug_send_data = audio_anc_debug_send_data;
-    //tws
-    RT_ANC_FUNC.tws_api_get_role = tws_api_get_role;
-    RT_ANC_FUNC.tws_api_get_tws_state = tws_api_get_tws_state;
-    RT_ANC_FUNC.rt_anc_config_init = rt_anc_config_init;
-    RT_ANC_FUNC.rt_anc_param_updata_cmd = rt_anc_param_updata_cmd;
-}
-
+const struct rt_anc_function RT_ANC_FUNC_t = {
+    .anc_dma_on = anc_dma_on,
+    .anc_dma_on_double = anc_dma_on_double,
+    .anc_dma_done_ppflag = anc_dma_done_ppflag,
+    .anc_core_dma_ie = anc_dma_ie,
+    .anc_core_dma_stop = anc_dma_stop,
+    .sys_timeout_add = sys_timeout_add,
+    .sys_timeout_del = sys_timeout_del,
+    .rt_anc_post_rttask_cmd = icsd_post_rtanctask_msg,
+    .rt_anc_post_anctask_cmd = rt_anc_post_anctask_cmd,
+    .icsd_post_detask_msg = icsd_post_detask_msg,
+    .rt_anc_dma_2ch_on = anc_dma_on_double,
+    .rt_anc_dma_4ch_on = anc_dma_on_double_4ch,
+    .rt_anc_task_create = rt_anc_task_create,
+    .rt_anc_task_kill = rt_anc_task_kill,
+    .rt_anc_alg_output = icsd_adt_rtanc_alg_output,
+    .icsd_rtanc_need_updata = icsd_rtanc_need_updata,
+    .icsd_rtanc_master_send = icsd_rtanc_master_send,
+    .icsd_rtanc_slave_send = icsd_rtanc_slave_send,
+    .jiffies_usec = jiffies_usec,
+    .jiffies_usec2offset = jiffies_usec2offset,
+    .audio_anc_debug_send_data = audio_anc_debug_send_data,
+    .tws_api_get_role = tws_api_get_role,
+    .tws_api_get_tws_state = tws_api_get_tws_state,
+    .rt_anc_config_init = rt_anc_config_init,
+    .rt_anc_param_updata_cmd = rt_anc_param_updata_cmd,
+    .clock_refurbish = clock_refurbish,
+    .get_wind_lvl = icsd_adt_alg_rtanc_get_wind_lvl,
+    .get_adjdcc_result = icsd_adt_alg_rtanc_get_adjdcc_result,
+    .icsd_self_talk_output = audio_rtanc_self_talk_output,
+    .icsd_adt_rtanc_suspend = icsd_adt_rtanc_suspend,
+};
+struct rt_anc_function *RT_ANC_FUNC = (struct rt_anc_function *)(&RT_ANC_FUNC_t);
 
 #if RT_ANC_DSF8_DATA_DEBUG
 s16 DSF8_DEBUG_H[RT_ANC_DMA_DOUBLE_LEN / 8 * RT_ANC_DMA_DOUBLE_CNT];

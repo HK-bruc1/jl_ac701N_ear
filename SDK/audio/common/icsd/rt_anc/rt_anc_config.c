@@ -11,6 +11,7 @@
 #include "audio_anc.h"
 #include "rt_anc.h"
 
+const u8 rt_anc_tool_data = 1;
 const u8 rt_anc_dma_ch_num = 4;
 const u8 rt_cmp_en = 0;
 const u8 rt_anc_dac_en = 1;

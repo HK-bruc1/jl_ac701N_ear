@@ -48,7 +48,6 @@
 #include "icsd_adt_app.h"
 #endif
 
-
 #define LOG_TAG             "[APP]"
 #define LOG_ERROR_ENABLE
 #define LOG_DEBUG_ENABLE
@@ -172,14 +171,15 @@ const struct task_info task_info_table[] = {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     {"icsd_anc",            5,     0,   512,   128 },
     {"icsd_adt",            2,     0,   512,   128 },
-    {"icsd_src",            2,     0,   512,   256 },
+    {"icsd_src",            3,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    {"rt_anc",              3,     1,   512,   128 },
+    {"rt_anc",              3,     0,   512,   128 },
+    {"rt_de",              	1,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
-    {"afq_common",         	2,     1,   512,   128 },
+    {"afq_common",         	1,     0,   512,   128 },
 #endif
 #endif
 
@@ -198,6 +198,7 @@ const struct task_info task_info_table[] = {
 #if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
     {"dlog",                1,     0,  256,   128 },
 #endif
+    {"aud_adc_demo",        1,     0,  512,   128 },
     {0, 0},
 };
 
@@ -577,12 +578,28 @@ struct app_mode *app_mode_switch_handler(int *msg)
     }
 }
 
+#if 0
+static void test_printf(void *_arg)
+{
+    //extern void mem_unfree_dump(void);
+    //mem_unfree_dump();
+    extern void mem_stats(void);   //打印当前内存
+    mem_stats();
+
+    int role = tws_api_get_role();
+    printf(">>>>>tws role:%d\n", role);   //打印tws主从
+
+    char channel = tws_api_get_local_channel();
+    printf(">>>>>tws channel:%c\n", channel);    //打印tws通道
+}
+#endif
+
 static void app_task_loop(void *p)
 {
     struct app_mode *mode;
 
     mode = app_task_init();
-
+    //sys_timer_add(NULL, test_printf, 2000);  //定时调试打印
 #if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #if (VFS_ENABLE == 1)
     if (mount(NULL, "mnt/sdfile", "sdfile", 0, NULL)) {

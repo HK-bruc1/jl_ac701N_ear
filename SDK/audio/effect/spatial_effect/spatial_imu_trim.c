@@ -211,7 +211,7 @@ static int spatial_imu_trim_init()
         printf("sensor open fail !!!");
         return -1;
     }
-
+    clock_alloc("imu_trim", 96 * 1000000L);
     global_imu_trim_state = -1;//校准中
     return 0;
 }
@@ -255,6 +255,7 @@ static int spatial_imu_trim_exit()
         }
         free(imu_trim_hdl);
         imu_trim_hdl = NULL;
+        clock_free("imu_trim");
     }
     return 0;
 }
@@ -344,6 +345,10 @@ static int spatial_imu_trim_acc_gyro()
 /*开始校准*/
 int spatial_imu_trim_start()
 {
+    if (imu_trim_hdl) {
+        printf("imu trim is alreadly init !!!");
+        return -1;
+    }
     int msg[2];
     msg[0] = APP_MSG_IMU_TRIM_START;
     msg[1] = 0;

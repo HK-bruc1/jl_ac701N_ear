@@ -13,6 +13,7 @@
 #define     CFG_DMS_MALFUNC_STATE_ID         5//dms故障麦克风检测默认使用哪个mic的参数id
 #define     CFG_MIC_TARGET_DIFF_CMP          6//目标MIC补偿值
 #define     CFG_LE_AUDIO_EN                  7
+#define     CFG_ANC_MIC_CMP_GAIN			 8//ANC MIC补偿配置
 
 #define     CFG_EQ0_INDEX               	19
 #define     CFG_MIC_EFF_VOLUME_INDEX        20

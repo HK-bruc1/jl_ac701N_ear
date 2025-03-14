@@ -43,10 +43,6 @@
 #include "audio_anc.h"
 #endif
 
-#if defined(TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-#include "icsd_adt_app.h"
-#endif
-
 #if TCFG_SMART_VOICE_ENABLE
 #include "smart_voice.h"
 #endif
@@ -386,28 +382,6 @@ static int audio_init()
     vad_mic_data.mic_data.mic_bias_inside = (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAP_DIFF_MODE) ? 0 : 1;
     audio_smart_voice_detect_init((struct vad_mic_platform_data *)&vad_mic_data);
 #endif /* #if TCFG_SMART_VOICE_ENABLE */
-
-#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    /*需要再dac trim后调用*/
-    /*同时开ANC和免摘功能时，配置ADC固定打开的adc数字通道数*/
-    u16 mic_ch = 0;
-    if (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL) {
-        mic_ch |= BIT(TCFG_AUDIO_ANCL_FF_MIC);
-    }
-    if (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL) {
-        mic_ch |= BIT(TCFG_AUDIO_ANCL_FB_MIC);
-    }
-
-    if (get_icsd_adt_mic_num() == 3) {
-        mic_ch |= icsd_get_talk_mic_ch();
-    }
-
-    for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
-        if (mic_ch & BIT(i)) {
-            audio_adc_add_ch(&adc_hdl, i);
-        }
-    }
-#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
     audio_local_time_init();
     __this->audio_inited = 1;

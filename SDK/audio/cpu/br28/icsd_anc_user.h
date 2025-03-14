@@ -6,6 +6,7 @@
 #include "esco_player.h"
 #include "adc_file.h"
 #include "audio_adc.h"
+#include "audio_anc_fade_ctr.h"
 
 typedef struct {
     u16 mic_ch_sel;
@@ -51,7 +52,7 @@ void icsd_adt_clock_add();
 void icsd_adt_clock_del();
 void icsd_set_clk();
 
-void icsd_anc_fade_set(int gain);
+void icsd_anc_fade_set(enum anc_fade_mode_t mode, int gain);
 
 void *icsd_adt_src_init(int in_rate, int out_rate, int (*handler)(void *, void *, int));
 void icsd_adt_src_write(void *data, int len, void *resample);
@@ -68,8 +69,10 @@ void icsd_anc_src_write(void *data, int len);
 void icsd_audio_adc_mic_close();
 
 u8 icsd_get_talk_mic_ch(void);
-u8 icsd_get_ref_mic_ch(void);
-u8 icsd_get_fb_mic_ch(void);
+u8 icsd_get_ref_mic_L_ch(void);
+u8 icsd_get_fb_mic_L_ch(void);
+u8 icsd_get_ref_mic_R_ch(void);
+u8 icsd_get_fb_mic_R_ch(void);
 u8 icsd_get_esco_mic_en_map(void);
 
 #endif

@@ -6,9 +6,20 @@
 #include "icsd_adt.h"
 #include "icsd_adt_app.h"
 #include "rt_anc.h"
+#include "icsd_avc.h"
 
 
 /*==================算法输出===========================*/
+void icsd_HOWL_output_demo(u8 result)
+{
+    printf("icsd_adt_alg_howl_output:%d\n", result);
+}
+
+void icsd_ADJDCC_output_demo(u8 result)
+{
+    /* printf("icsd_adt_alg_adjdcc_output:%d\n", result); */
+}
+
 void icsd_EIN_output_demo(u8 ein_state)
 {
     printf("icsd_adt_alg_ein_output:%d\n", ein_state); //1:入耳	0:出耳
@@ -20,31 +31,21 @@ void icsd_EIN_output_demo(u8 ein_state)
 void icsd_VDT_output_demo(u8 vdt_result)
 {
     if (vdt_result) {
-        printf("VDT OUTPUT:%d---------------------\n", vdt_result);
+        printf("--------------------------------VDT OUTPUT:%d---------------------\n", vdt_result);
     }
 }
 
 void icsd_WAT_output_demo(u8 wat_result)
 {
-    if (wat_result) {
-        printf("WAT OUTPUT:%d---------------------\n", wat_result);
+    if ((wat_result == 2) || (wat_result == 3)) {
+        printf("--------------------------------WAT OUTPUT:%d---------------------\n", wat_result);
     }
 }
 
 void icsd_WDT_output_demo(u8 wind_lvl)
 {
     if (wind_lvl) {
-        printf("WDT OUTPUT:%d---------------------\n", wind_lvl);
-    }
-    static u8 wind_sus_rtanc = 0;
-    if (wind_lvl > 50) {
-        wind_sus_rtanc = 1;
-        icsd_adt_rtanc_suspend();
-    } else {
-        if (wind_sus_rtanc) {
-            wind_sus_rtanc = 0;
-            icsd_adt_rtanc_resume();
-        }
+        printf("--------------------------------WDT OUTPUT:%d---------------------\n", wind_lvl);
     }
     audio_acoustic_detector_output_hdl(0, wind_lvl, 0);
 }
@@ -52,10 +53,16 @@ void icsd_WDT_output_demo(u8 wind_lvl)
 void icsd_AVC_output_demo(__adt_avc_output *_output)
 {
     if (_output->ctl_lvl) {
-        printf("--------------------------------------icsd_adt_avc_output:%d\n", _output->ctl_lvl);
-    } else {
-        printf("icsd_adt_avc_output:%d\n", _output->ctl_lvl);
+        printf("--------------------------------icsd_adt_avc_output:%d %d------------\n", _output->ctl_lvl, (int)(100 * _output->spldb_iir));
     }
+}
+
+void icsd_adt_avc_config_update_demo()
+{
+    __avc_config config;
+    config.alpha_db = 0.990;
+    config.db_cali = 13;
+    icsd_adt_avc_config_update(&config);
 }
 
 void icsd_envnl_output(int result)
@@ -63,7 +70,7 @@ void icsd_envnl_output(int result)
     printf("icsd_envnl_output:>>>>>>>>>>>>>>>>>>%d\n", result);
 }
 
-#define	ICSD_ANCDMA_4CH_46K_DEBUG_EN		1
+#define	ICSD_ANCDMA_4CH_46K_DEBUG_EN		0
 #if ICSD_ANCDMA_4CH_46K_DEBUG_EN
 #define anc46k_DEBUG_LEN		(1024*3)
 s16 wptr_dma1_h_debug[anc46k_DEBUG_LEN];
@@ -130,8 +137,6 @@ void icsd_adt_rtanc_demo(void *param)
     icsd_acoustic_detector_set_infmt(&fmt);
     icsd_acoustic_detector_open();
     extern void icsd_adt_anc_part1_start();
-    extern void rt_anc_function_init();
-    rt_anc_function_init();
     icsd_adt_anc_part1_start();
     icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_ON);
 }

@@ -19,6 +19,23 @@
 
 unsigned long jiffies_usec(void);
 
+
+enum {
+    DEBUG_FUNCTION_ICSD = 0,
+    DEBUG_FUNCTION_APP,
+};
+
+enum {
+    WIND_DATA = 0,
+    WIND_ALG,
+};
+
+
+enum {
+    norm_rtanc = 0,	//正常模式
+    tidy_rtanc,		//轻量模式，节省RAM
+};
+
 enum {
     DEBUG_FUNCTION_PRINTF = 0,
     DEBUG_FUNCTION_ADT,
@@ -61,6 +78,8 @@ enum {
     DEBUG_ADT_VDT_TRAIN,
     DEBUG_ADT_RESET,
     DEBUG_ADT_DP_STATE,
+    DEBUG_ADT_WIND_RUN_DATA,
+    DEBUG_ADT_VDT_DATA,
 };
 
 enum {
@@ -129,18 +148,34 @@ typedef struct {
     u8    dir;
     u16   dov;
     s16   *data;
+    s16   *angle_thr;
     float *hz_angle;
-    float *angle_thr;
 } __self_talk_ram;
+
+
+struct aeq_seg_info {
+    u16 index;
+    u16 iir_type;
+    int freq;
+    float gain;
+    float q;
+};
+
+struct aeq_default_seg_tab {
+    float global_gain;
+    int seg_num;
+    struct aeq_seg_info *seg;
+};
 
 
 #define ADT_DMA_BUF_LEN     	512
 #define ADT_FFT_LENS   			256
 
-#define TARLEN2   					120
-#define TARLEN2_L					0 //40
-#define DRPPNT2  					0 //10
+#define TARLEN2   				(120)// + 318)
+#define TARLEN2_L				0 //40
+#define DRPPNT2  				0 //10
 #define MEMLEN                  50
+#define MSELEN                  (44*2)
 
 #define FS 375000
 
@@ -269,6 +304,7 @@ void DeAlorithm_enable();
 void DeAlorithm_disable();
 float db_diff_v2(float *in1, int in1_idx, float *in2, int in2_idx);
 void target_cmp_out(void *_tar_param, float *target, float *freqz, float *sz, int *tight_degree, int ear_mem_en, float *alg_buf);
+void icsd_aeq_fgq2eq(struct aeq_default_seg_tab *eq_par, float *iir_ab, float *hz, float *freq, float fs, int len);
 
 extern const u8 ICSD_ANC_CPU;
 
@@ -292,8 +328,12 @@ struct icsd_de_infmt {
 };
 void icsd_de_get_libfmt(struct icsd_de_libfmt *libfmt);
 void icsd_de_set_infmt(struct icsd_de_infmt *fmt);
+void icsd_sde_get_libfmt(struct icsd_de_libfmt *libfmt);
+void icsd_sde_set_infmt(struct icsd_de_infmt *fmt);
 void icsd_de_malloc();
 void icsd_de_free();
+void icsd_sde_malloc();
+void icsd_sde_free();
 
 
 void icsd_common_ancdma_4ch_cic8(int *r_ptr, s16 *__wptr_dma1_h, s16 *__wptr_dma1_l, s16 *__wptr_dma2_h, s16 *__wptr_dma2_l, u16 inpoints);

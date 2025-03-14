@@ -31,10 +31,17 @@ static int g_rcsp_spp_conn_num = 0;
 #define ATT_CHARACTERISTIC_2a05_01_VALUE_HANDLE 0x0056
 #define ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE 0x0057
 
+#if 0
 #define rcsp_lib_puts(x)				puts(x)         //app_puts(RCSP_INTERFACE_LOG, x)
 #define rcsp_lib_putchar(x)				putchar(x)      //app_putchar(RCSP_INTERFACE_LOG, x)
 #define rcsp_lib_printf					printf          //app_log(RCSP_INTERFACE_LOG)
 #define rcsp_lib_printf_buf(x, y)		put_buf(x, y)   //app_log_dump(RCSP_INTERFACE_LOG, x, y)
+#else
+#define rcsp_lib_puts(...)
+#define rcsp_lib_putchar(...)
+#define rcsp_lib_printf(...)
+#define rcsp_lib_printf_buf(...)
+#endif
 
 extern const u8 adt_profile_support;
 extern u8 rcsp_dual_support; // 是否支持一拖二
@@ -230,7 +237,7 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     u16 spp_hdl_size = (u16)app_spp_hdl_core_data_size();
     u8 *ble_hdl = zalloc(ble_hdl_size);
     ASSERT(ble_hdl, "rcsp tws sync, ble_buf malloc fail!");
-    app_ble_hdl_core_data_get(rcsp_server_ble_hdl, (u8 *)&ble_hdl);
+    app_ble_hdl_core_data_get(rcsp_server_ble_hdl, ble_hdl);
     /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
     /* put_buf((u8 *)&ble_hdl, ble_hdl_size); */
     memcpy(tws_sync_buf, ble_hdl, ble_hdl_size);

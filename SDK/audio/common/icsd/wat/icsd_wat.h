@@ -54,7 +54,6 @@ void icsd_wat_get_libfmt(struct icsd_wat_libfmt *libfmt);
 void icsd_wat_set_infmt(struct icsd_wat_infmt *fmt);
 void icsd_alg_wat_run(__icsd_wat_run_parm *run_parm, __icsd_wat_output *output);
 void icsd_wat_ram_clean();
-void wat_function_init();
 
 extern const u8 wat_data_en;
 

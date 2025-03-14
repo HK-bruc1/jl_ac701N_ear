@@ -91,11 +91,11 @@ u8 power_soff_callback()
 
 void power_early_flowing()
 {
-    // 默认关闭长按复位0，由key_driver配置
-    gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, PORT_KEEP_STATE);
-    //长按复位1默认配置8s
-#if TCFG_CHARGE_ENABLE
-    gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 1, 8, 1);
+    /* // 默认关闭长按复位0，由key_driver配置 */
+    /* gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, 1, 0); */
+    // 不开充电功能，将长按复位关闭
+#if (!TCFG_CHARGE_ENABLE)
+    gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 0, 0, 0);
 #endif
 
     power_early_init(0);

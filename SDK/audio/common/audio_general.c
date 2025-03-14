@@ -31,6 +31,7 @@ const int config_mixer_32bit_enable = 1;
 const int config_jlstream_fade_32bit_enable = 1;
 const int config_audio_eq_xfade_enable = 1;
 const int config_peak_rms_32bit_enable = 1;
+const int config_audio_vocal_track_synthesis_32bit_enable = 1;
 
 #if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L)
 const int config_audio_dac_channel_left_enable = 1;
@@ -98,7 +99,7 @@ const int SRC_HW_VERSION_SEL = 0;//0:srv_v2 1:src_v3
 //输出级限幅使能
 const int config_out_dev_limiter_enable = 0;
 const float config_bandmerge_node_fade_step = 0.0f;//淡入步进 0:默认不淡入 非0：淡入步进，范围：0.01f~10.0f，建议值0.1f,步进越大，更新越快
-const int config_bandmerge_node_processing_method = 0;//0：bandmerge 拿到所有iport的数据后，一次性叠加完成。 1：逐个叠加到目标地址，不做等待
+const int config_bandmerge_node_processing_method = 1;//0：bandmerge 拿到所有iport的数据后，一次性叠加完成。 1：逐个叠加到目标地址，不做等待
 
 
 /*控制 eq_design.c中的butterworth 函数 设计的系数是定点还是浮点 */
@@ -285,6 +286,12 @@ const int iir_filter_run_mode = 0  //不支持32进16出
                                 | EFx_BW_16t16 | EFx_BW_16t32 | EFx_BW_32t32  //不支持32进16出
 #endif
                                 ;
+
+#ifdef TCFG_AUDIO_EFX_BFE4_RUN_MODE
+const int frequency_compressor_run_mode  = TCFG_AUDIO_EFX_BFE4_RUN_MODE; //只支持16进16出与32进32出
+#else
+const int frequency_compressor_run_mode  = EFx_BW_16t32 | EFx_BW_32t32;
+#endif
 
 #ifdef TCFG_AUDIO_EFX_A64E_RUN_MODE
 const int spatial_adv_run_mode       = TCFG_AUDIO_EFX_A64E_RUN_MODE;

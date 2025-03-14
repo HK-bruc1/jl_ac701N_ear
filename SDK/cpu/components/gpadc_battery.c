@@ -160,5 +160,5 @@ u32 gpadc_battery_get_voltage()
     }
 }
 
-#include "init.h"
-platform_initcall(gpadc_battery_init);
+/* #include "init.h" */
+/* platform_initcall(gpadc_battery_init); */

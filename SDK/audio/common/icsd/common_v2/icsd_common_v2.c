@@ -12,8 +12,16 @@
 	 TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
 
 #include "icsd_common_v2.h"
-
 #include "audio_anc.h"
+
+#define ICSD_DE_RUN_TIME_DEBUG				0  //DE 算法运行时间测试
+
+#if 0
+#define common_log printf
+#else
+#define common_log(...)
+#endif
+
 #if ANC_CHIP_VERSION == ANC_VERSION_BR28
 const u8 ICSD_ANC_CPU = ICSD_BR28;
 #else /*ANC_CHIP_VERSION == ANC_VERSION_BR50*/
@@ -83,14 +91,20 @@ float db_diff_v2(float *in1, int in1_idx, float *in2, int in2_idx)
 }
 
 static int *icsd_de_alloc_addr = NULL;
+#if ICSD_DE_RUN_TIME_DEBUG
+u32 icsd_de_run_time_last = 0;
+#endif
 void icsd_de_malloc()
 {
-    printf("icsd_de_malloc\n");
+    common_log("icsd_de_malloc\n");
+#if ICSD_DE_RUN_TIME_DEBUG
+    icsd_de_run_time_last = jiffies_usec();
+#endif
     struct icsd_de_libfmt libfmt;
     struct icsd_de_infmt  fmt;
     icsd_de_get_libfmt(&libfmt);
     if (icsd_de_alloc_addr == NULL) {
-        printf("DE RAM SIZE:%d\n", libfmt.lib_alloc_size);
+        common_log("DE RAM SIZE:%d\n", libfmt.lib_alloc_size);
         icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
     }
     fmt.alloc_ptr = icsd_de_alloc_addr;
@@ -99,9 +113,36 @@ void icsd_de_malloc()
 
 void icsd_de_free()
 {
-    printf("icsd_de_free\n");
+    common_log("icsd_de_free\n");
+#if ICSD_DE_RUN_TIME_DEBUG
+    common_log("ICSD DE RUN time: %d us\n", (int)(jiffies_usec2offset(icsd_de_run_time_last, jiffies_usec())));
+#endif
     if (icsd_de_alloc_addr) {
-        printf("DE RAM FREE\n");
+        common_log("DE RAM FREE\n");
+        free(icsd_de_alloc_addr);
+        icsd_de_alloc_addr = NULL;
+    }
+}
+
+void icsd_sde_malloc()
+{
+    common_log("icsd_sde_malloc\n");
+    struct icsd_de_libfmt libfmt;
+    struct icsd_de_infmt  fmt;
+    icsd_sde_get_libfmt(&libfmt);
+    if (icsd_de_alloc_addr == NULL) {
+        common_log("sDE RAM SIZE:%d\n", libfmt.lib_alloc_size);
+        icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
+    }
+    fmt.alloc_ptr = icsd_de_alloc_addr;
+    icsd_sde_set_infmt(&fmt);
+}
+
+void icsd_sde_free()
+{
+    common_log("icsd_sde_free\n");
+    if (icsd_de_alloc_addr) {
+        common_log("sDE RAM FREE\n");
         free(icsd_de_alloc_addr);
         icsd_de_alloc_addr = NULL;
     }
@@ -143,8 +184,8 @@ void icsd_common_ancdma_4ch_cic8_demo(s32 *anc_dma_ppbuf, u8 anc_done_flag)
         cic8_debug_end = 1;
         local_irq_disable();
         for (int i = 0; i < CIC8_DEBUG_LEN; i++) {
-            printf("DMA1H,DMA1L,DMA2H,DMA2L:%d                         %d                           %d                                %d\n",
-                   wptr_dma1_h_debug[i], wptr_dma1_l_debug[i], wptr_dma2_h_debug[i], wptr_dma2_l_debug[i]);
+            common_log("DMA1H,DMA1L,DMA2H,DMA2L:%d                         %d                           %d                                %d\n",
+                       wptr_dma1_h_debug[i], wptr_dma1_l_debug[i], wptr_dma2_h_debug[i], wptr_dma2_l_debug[i]);
         }
         local_irq_enable();
     }

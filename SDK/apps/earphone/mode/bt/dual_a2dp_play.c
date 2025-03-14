@@ -515,8 +515,9 @@ static int a2dp_bt_status_event_handler(int *event)
         put_buf(bt->args, 6);
         a2dp_suspend_by_call(addr_b, device_b);
         break;
+    case BT_STATUS_PHONE_HANGUP:
     case BT_STATUS_SCO_DISCON:
-        puts("BT_STATUS_SCO_DISCON\n");
+        printf("BT_STATUS_SCO_DISCON:%d\n", bt->event);
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }

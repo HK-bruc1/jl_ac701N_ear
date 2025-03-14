@@ -23,7 +23,6 @@
 #include "anc_ext_tool.h"
 #include "audio_anc_debug_tool.h"
 
-#define EXT_PRINTF_DEBUG 0 //前期调试工具使用，后期上传该宏定义相关删除
 u8 const ICSD_ANC_TOOL_DEBUG = 0;
 OS_SEM icsd_anc_sem;
 
@@ -108,26 +107,6 @@ int icsd_anc_v2_get_tws_state()
 
 #endif
 
-#if EXT_PRINTF_DEBUG
-static void de_vrange_printf(float *vrange, int order)
-{
-    printf(" ff oreder = %d\n", order);
-    for (int i = 0; i < order; i++) {
-        printf("%d >>>>>>>>>>> g:%d, %d, f:%d, %d, q:%d, %d\n", i, (int)(vrange[6 * i + 0] * 1000), (int)(vrange[6 * i + 1] * 1000)
-               , (int)(vrange[6 * i + 2] * 1000), (int)(vrange[6 * i + 3] * 1000)
-               , (int)(vrange[6 * i + 4] * 1000), (int)(vrange[6 * i + 5] * 1000));
-    }
-}
-
-static void de_biquad_printf(float *biquad, int order)
-{
-    printf(" ff oreder = %d\n", order);
-    for (int i = 0; i < order; i++) {
-        printf("%d >>>>> g:%d, f:%d, q:%d\n", i, (int)(biquad[3 * i + 0] * 1000), (int)(biquad[3 * i + 1]), (int)(biquad[3 * i + 2] * 1000));
-    }
-    printf("total gain = %d\n", (int)(biquad[order * 3] * 1000));
-}
-#endif
 
 static void icsd_anc_v2_time_data_init(u8 *buf)
 {

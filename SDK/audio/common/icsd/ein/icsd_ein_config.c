@@ -12,14 +12,13 @@
 #include "icsd_ein.h"
 #include "icsd_adt.h"
 
-struct ein_function *EIN_FUNC;
 int (*ein_printf)(const char *format, ...) = _ein_printf;
 
 
 void ein_config_init(__ein_config *_ein_config)
 {
     ein_printf("ein_config_init \n");
-    _ein_config->tot_checkin_cnt_thr = 2;
+    _ein_config->tot_checkin_cnt_thr = 5;
     _ein_config->thr1_trn2in_pz 	 = 0.51;
     _ein_config->thr1_anc2in_pz 	 = 0.52;//0.85;
     _ein_config->thr1_pnc2in_pz 	 = 0.53;
@@ -43,18 +42,16 @@ void ein_config_init(__ein_config *_ein_config)
     _ein_config->pzcorr_thr_trans    = 0.01;
 }
 
-void ein_function_init()
-{
-    ein_printf("ein_function_init");
-    EIN_FUNC->ein_config_init = ein_config_init;
-    EIN_FUNC->HanningWin_pwr_s1 = icsd_HanningWin_pwr_s1;
-    EIN_FUNC->FFT_radix64 = icsd_FFT_radix64;
-    EIN_FUNC->FFT_radix256 = icsd_FFT_radix256;
-    EIN_FUNC->complex_mul  = icsd_complex_mul_v2;
-    EIN_FUNC->complex_div  = icsd_complex_div_v2;
-    EIN_FUNC->log10_float  = icsd_log10_anc;
-}
-
+const struct ein_function EIN_FUNC_t = {
+    .ein_config_init = ein_config_init,
+    .HanningWin_pwr_s1 = icsd_HanningWin_pwr_s1,
+    .FFT_radix64 = icsd_FFT_radix64,
+    .FFT_radix256 = icsd_FFT_radix256,
+    .complex_mul  = icsd_complex_mul_v2,
+    .complex_div  = icsd_complex_div_v2,
+    .log10_float  = icsd_log10_anc,
+};
+struct ein_function *EIN_FUNC = (struct ein_function *)(&EIN_FUNC_t);
 
 const u8 ein_train 		  = 0;
 const u8 EIN_BT_INF_EN    = 0;

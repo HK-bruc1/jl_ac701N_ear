@@ -73,7 +73,13 @@ void icsd_vdt_data_init(u8 _anc_mode_ind, float ref_mgain, float err_mgain, floa
 
 extern const u8 VDT_TRAIN_EN;
 extern const u8 ICSD_VDT_ALG_BT_INF;
+extern const u8 ICSD_VDT_BT_DATA;
+extern const float vdt_refgain;
+extern const float vdt_errgain;
+extern const float vdt_tlkgain;
+extern const float vdt_dmahgain;
+
+
 void vdt_config_init(__vdt_config *_vdt_config);
-void vdt_function_init();
 
 #endif

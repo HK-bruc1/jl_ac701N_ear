@@ -60,6 +60,24 @@ extern const struct deepsleep_target deepsleep_target_end[];
 #define list_for_each_deepsleep_target(p) \
     for (p = deepsleep_target_begin; p < deepsleep_target_end; p++)
 
+/**************************************************************************************
+ * sleep register
+ */
+struct sleep_target {
+    char *name;
+    u8(*enter)(void);
+    u8(*exit)(void);
+};
+
+#define SLEEP_TARGET_REGISTER(target) \
+        const struct sleep_target target sec(.sleep_target)
+
+extern const struct sleep_target sleep_target_begin[];
+extern const struct sleep_target sleep_target_end[];
+
+#define list_for_each_sleep_target(p) \
+    for (p = sleep_target_begin; p < sleep_target_end; p++)
+
 
 u32 lower_power_bt_group_query();
 u32 low_power_sys_not_idle_cnt(void);
@@ -121,11 +139,5 @@ struct phw_dev_ops {
 #define REGISTER_PHW_DEV_PMU_OPS(ops) \
 		const struct phw_dev_ops *phw_pmu_ops = &ops
 extern const struct phw_dev_ops *phw_pmu_ops;
-
-
-//******************************************************************************************
-
-
-
 
 #endif

@@ -511,11 +511,11 @@ chorus_advance_node_adapter
 pingpong_echo_node_adapter
 #endif
 
-#if TCFG_STEREO_SPATIAL_WIDER_NDOE_ENABLE
+#if TCFG_STEREO_SPATIAL_WIDER_NODE_ENABLE
 stereo_spatial_wider_node_adapter
 #endif
 
-#if TCFG_DISTORTION_CLIPPING_NDOE_ENABLE
+#if TCFG_DISTORTION_CLIPPING_NODE_ENABLE
 distortion_clipping_node_adapter
 #endif
 

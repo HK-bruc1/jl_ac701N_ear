@@ -38,11 +38,27 @@ const u8 ICSD_RTANC_EN		=  1;//实时自适应ANC
 const u8 ICSD_RTANC_EN		=  0;
 #endif
 
+#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+const u8 ICSD_AVC_EN  		=  1;//自适应音量
+#else
+const u8 ICSD_AVC_EN  		=  0;//自适应音量
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+const u8 ICSD_ADJDCC_EN     =  1;
+#else
+const u8 ICSD_ADJDCC_EN     =  0;
+#endif
+
+#if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
+const u8 ICSD_HOWL_EN 		=  1;//啸叫检测
+#else
+const u8 ICSD_HOWL_EN 		=  0;//啸叫检测
+#endif
+
 const u8 ICSD_ENVNL_EN		=  0;//环境声检测使能
 const u8 ICSD_RTAEQ_EN		=  0;//实时自适应EQ
-const u8 ICSD_HOWL_EN 		=  0;//啸叫检测
 const u8 ICSD_EIN_EN  		=  0;//入耳检测
-const u8 ICSD_AVC_EN  		=  0;//自适应音量
 const u8 ICSD_46KOUT_EN     =  0;//ANC 48K数据输出
 const u8 ICSD_ADT_EP_TYPE   =  ADT_TWS;
 
@@ -51,6 +67,11 @@ const u8 WIND_DATA_CHECK    = 0;//串口查看风噪数据通路
 const u8 BT_ADT_INF_EN	    = 0;//查看ADT启动信息
 const u8 BT_ADT_DP_STATE_EN = 0;//查看ADT数据通路状态
 const u8 mic_input_v2       = 1;//使用新MIC数据接口
+const u8 ICSD_WDT_V2        = 1;//风噪快速输出
+const u8 ICSD_HOWL_REF_EN   = 0;//使能后使用REF实现HOWL，该模式只支持同时打开风噪检测
+
+const u8 avc_run_interval   = 32;//实际运行间隔为  avc_run_interval * 11ms
+const u8 tidy_avc_run_interval = 16;//实际运行间隔为  tidy_avc_run_interval * 16ms
 //==============================================//
 //    环境声参数配置
 //==============================================//

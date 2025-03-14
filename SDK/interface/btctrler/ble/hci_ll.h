@@ -740,6 +740,7 @@ void ll_cig_set_vendor_param(uint8_t *vendor_param, size_t size);
 void ll_cig_tx_align_callback_register(uint8_t cig_id, const void *callback);
 void ll_conn_rx_acl_callback_register(void (*callback)(uint8_t *packet, size_t size));
 void ll_set_scan_priority(uint8_t priority);
+void ll_hci_ext_scan_set_priority(uint8_t priority);
 void rf_mdm_con_ble_sync_word(int tws_esco);
 uint8_t ll_iso_unpack_hdr(const uint8_t *sdu, hci_iso_hdr_t *hdr);
 void access_addr_generate(u8 *aa);

@@ -20,9 +20,25 @@
 #include "anctool.h"
 #include "audio_anc.h"
 #include "audio_anc_debug_tool.h"
-#include "icsd_anc_v2_app.h"
+#include "icsd_demo.h"
 #if TCFG_ANC_BOX_ENABLE
 #include "chargestore/chargestore.h"
+#endif
+
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
+#include "icsd_anc_v2_app.h"
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#include "icsd_adt_app.h"
 #endif
 
 #if 1
@@ -33,6 +49,7 @@
 
 //解析数据打印使能
 #define ANC_EXT_CFG_LOG_EN		0
+#define ANC_EXT_CFG_FLOAT_EN	0			//打印目标参数中的浮点数据
 
 //耳道自适应产测数据最大长度
 #define ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN	60 * 2 * 2 * 4	//(pz[60]+sz[60]) * channel * sizeof(float)
@@ -65,12 +82,48 @@ enum {
     CMD_EAR_ADAPTIVE_SIGN_TRIM	 = 0x0A, //耳道自适应符号校准
     CMD_EAR_ADAPTIVE_DUT_EN_SET	 = 0x0B, //耳道自适应产测使能
     CMD_EAR_ADAPTIVE_DUT_CLEAR	 = 0x0C, //耳道自适应产测数据清0
+    CMD_RTANC_ADAPTIVE_OPEN		 = 0x0D, //打开RTANC
+    CMD_RTANC_ADAPTIVE_CLOSE	 = 0x0E, //关闭RTANC
+    CMD_RTANC_ADAPTIVE_SUSPEND	 = 0x0F, //挂起RTANC
+    CMD_RTANC_ADAPTIVE_RESUME	 = 0x10, //恢复RTANC
+    CMD_ADAPTIVE_EQ_RUN			 = 0x11, //运行AEQ（根据提示音生成SZ）
+    CMD_ADAPTIVE_EQ_EFF_SEL		 = 0x12, //AEQ 选择参数(0 normal / 1 adaptive)
+
+    CMD_WIND_DET_OPEN			 = 0x13, //打开风噪检测	data 0 normal; 1/2 ADT only wind_det
+    CMD_WIND_DET_STOP			 = 0x14, //关闭风噪检测
+
+    CMD_SOFT_HOWL_DET_OPEN		 = 0x15, //打开软件啸叫检测
+
+    CMD_RTANC_ADAPTIVE_DUT_CLOSE = 0x16, //关闭RTANC_DUT
+    CMD_RTANC_ADAPTIVE_DUT_OPEN = 0x17, //打开RTANC_DUT
+    CMD_RTANC_ADAPTIVE_DUT_SUSPEND = 0x18, //暂停RTANC_DUT
+    CMD_RTANC_ADAPTIVE_DUT_CMP_EN = 0x19, //使能RTANC 产测补偿
+
+    CMD_SOFT_HOWL_DET_CLOSE		 = 0x1A, //关闭软件啸叫检测
+
+    CMD_ADAPTIVE_DCC_OPEN		 = 0x1B, 	//打开自适应DCC
+    CMD_ADAPTIVE_DCC_STOP		 = 0x1C, 	//关闭自适应DCC
 };
+
+struct __anc_ext_tool_hdl {
+    enum ANC_EXT_UART_SEL  uart_sel;				//工具协议选择
+    u8 tool_online;									//工具在线连接标志
+    u8 tool_ear_adaptive_en;						//工具启动耳道自适应标志
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    u8 rtanc_suspend;								//工具挂起RTANC标志
+#endif
+    u8 DEBUG_TOOL_FUNCTION;							//工具调试模式
+    struct list_head alloc_list;
+    struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
+};
+
 
 #define EAR_ADAPTIVE_STR_OFFSET(x)		offsetof(struct anc_ext_ear_adaptive_param, x)
 
 //ANC_EXT 耳道自适应 参数ID/存储目标地址对照表
 static const struct __anc_ext_subfile_id_table ear_adaptive_id_table[] = {
+
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
     //BASE 界面参数 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_BASE
     { 0, ANC_EXT_EAR_ADAPTIVE_BASE_CFG_ID, 			EAR_ADAPTIVE_STR_OFFSET(base_cfg)},
 
@@ -140,11 +193,63 @@ static const struct __anc_ext_subfile_id_table ear_adaptive_id_table[] = {
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_PZ_ID, 	EAR_ADAPTIVE_STR_OFFSET(rff_ear_mem_pz)},
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_SZ_ID, 	EAR_ADAPTIVE_STR_OFFSET(rff_ear_mem_sz)},
 
-    //FF->耳道自适应产测数据
+    //FF->耳道自适应产测数据 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_DUT_PZ_CMP_ID,	EAR_ADAPTIVE_STR_OFFSET(ff_dut_pz_cmp)},
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_DUT_SZ_CMP_ID,	EAR_ADAPTIVE_STR_OFFSET(ff_dut_sz_cmp)},
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_PZ_CMP_ID,	EAR_ADAPTIVE_STR_OFFSET(rff_dut_pz_cmp)},
     { 0, ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_SZ_CMP_ID,	EAR_ADAPTIVE_STR_OFFSET(rff_dut_sz_cmp)},
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //RTANC adaptive 配置 文件ID FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG
+    { 0, ANC_EXT_RTANC_ADAPTIVE_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(rtanc_adaptive_cfg)},
+    { 0, ANC_EXT_RTANC_R_ADAPTIVE_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(r_rtanc_adaptive_cfg)},
+#endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //CMP 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA
+    { 0, ANC_EXT_ADAPTIVE_CMP_GAINS_ID,	EAR_ADAPTIVE_STR_OFFSET(cmp_gains)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_IIR_ID,	EAR_ADAPTIVE_STR_OFFSET(cmp_iir)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_WEIGHT_ID,	EAR_ADAPTIVE_STR_OFFSET(cmp_weight)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_MSE_ID,	EAR_ADAPTIVE_STR_OFFSET(cmp_mse)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_R_GAINS_ID,	EAR_ADAPTIVE_STR_OFFSET(rcmp_gains)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_R_IIR_ID,	EAR_ADAPTIVE_STR_OFFSET(rcmp_iir)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_R_WEIGHT_ID,	EAR_ADAPTIVE_STR_OFFSET(rcmp_weight)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_R_MSE_ID,	EAR_ADAPTIVE_STR_OFFSET(rcmp_mse)},
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //AEQ 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_EQ_DATA
+    { 0, ANC_EXT_ADAPTIVE_EQ_GAINS_ID,	EAR_ADAPTIVE_STR_OFFSET(aeq_gains)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_IIR_ID,	EAR_ADAPTIVE_STR_OFFSET(aeq_iir)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_WEIGHT_ID,	EAR_ADAPTIVE_STR_OFFSET(aeq_weight)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_MSE_ID,	EAR_ADAPTIVE_STR_OFFSET(aeq_mse)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_THR_ID,	EAR_ADAPTIVE_STR_OFFSET(aeq_thr)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_R_GAINS_ID,	EAR_ADAPTIVE_STR_OFFSET(raeq_gains)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_R_IIR_ID,	EAR_ADAPTIVE_STR_OFFSET(raeq_iir)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_R_WEIGHT_ID,	EAR_ADAPTIVE_STR_OFFSET(raeq_weight)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_R_MSE_ID,	EAR_ADAPTIVE_STR_OFFSET(raeq_mse)},
+    { 0, ANC_EXT_ADAPTIVE_EQ_R_THR_ID,	EAR_ADAPTIVE_STR_OFFSET(raeq_thr)},
+#endif
+
+    //参考 SZ 数据 文件ID FILE_ID_ANC_EXT_REF_SZ_DATA
+    { 0, ANC_EXT_REF_SZ_DATA_ID,	EAR_ADAPTIVE_STR_OFFSET(sz_ref)},
+    { 0, ANC_EXT_REF_SZ_R_DATA_ID,	EAR_ADAPTIVE_STR_OFFSET(rsz_ref)},
+
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    //风噪检测 配置 文件ID FILE_ID_ANC_EXT_WIND_DET_CFG
+    { 0, ANC_EXT_WIND_DET_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(wind_det_cfg)},
+    { 0, ANC_EXT_WIND_TRIGGER_CFG_ID, EAR_ADAPTIVE_STR_OFFSET(wind_trigger_cfg)},
+#endif
+
+    //软件-啸叫检测 配置 文件ID FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG
+    { 0, ANC_EXT_SOFT_HOWL_DET_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(soft_howl_det_cfg)},
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    //自适应DCC 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG
+    { 0, ANC_EXT_ADAPTIVE_DCC_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(adaptive_dcc_cfg)},
+#endif
+
 };
 
 
@@ -155,12 +260,15 @@ static void anc_file_ear_adaptive_iir_general_printf(int id, void *buf, int len)
 static void anc_file_ear_adaptive_iir_gains_printf(int id, void *buf, int len);
 static void anc_file_ear_adaptive_iir_printf(int id, void *buf, int len);
 static void anc_file_ear_adaptive_weight_param_printf(int id, void *buf, int len);
-static void anc_file_ear_adaptive_weight_printf(int id, void *buf, int len);
+static void anc_file_cfg_data_float_printf(int id, void *buf, int len);
 static void anc_file_ear_adaptive_target_param_printf(int id, void *buf, int len);
-static void anc_file_ear_adaptive_target_printf(int id, void *buf, int len);
 static void anc_file_ear_adaptive_mem_param_printf(int id, void *buf, int len);
-static void anc_file_ear_adaptive_mem_data_printf(int id, void *buf, int len);
-static void anc_file_ear_adaptive_dut_cmp_printf(int id, void *buf, int len);
+static void anc_file_rtanc_adaptive_cfg_printf(int id, void *buf, int len);
+static void anc_file_adaptive_eq_thr_printf(int id, void *buf, int len);
+static void anc_file_wind_det_cfg_printf(int id, void *buf, int len);
+static void anc_file_wind_trigger_cfg_printf(int id, void *buf, int len);
+static void anc_file_soft_howl_det_cfg_printf(int id, void *buf, int len);
+static void anc_file_adaptive_dcc_cfg_printf(int id, void *buf, int len);
 
 struct __anc_ext_printf {
     void (*p)(int id, void *buf, int len);
@@ -168,6 +276,8 @@ struct __anc_ext_printf {
 
 //各个参数的打印信息，需严格按照ear_adaptive_id_table的顺序排序
 const struct __anc_ext_printf anc_ext_printf[] = {
+
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
     { anc_file_ear_adaptive_base_cfg_printf },
 
     /*--------头戴式 左声道 / TWS LR---------*/
@@ -179,18 +289,18 @@ const struct __anc_ext_printf anc_ext_printf[] = {
     { anc_file_ear_adaptive_iir_printf },
     { anc_file_ear_adaptive_iir_printf },
     { anc_file_ear_adaptive_weight_param_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
     { anc_file_ear_adaptive_target_param_printf },
-    { anc_file_ear_adaptive_target_printf },
-    { anc_file_ear_adaptive_target_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
     { anc_file_ear_adaptive_mem_param_printf },
-    { anc_file_ear_adaptive_mem_data_printf },
-    { anc_file_ear_adaptive_mem_data_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
 
     /*------------头戴式 右声道--------------*/
     { anc_file_ear_adaptive_iir_general_printf },
@@ -201,24 +311,76 @@ const struct __anc_ext_printf anc_ext_printf[] = {
     { anc_file_ear_adaptive_iir_printf },
     { anc_file_ear_adaptive_iir_printf },
     { anc_file_ear_adaptive_weight_param_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
-    { anc_file_ear_adaptive_weight_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
     { anc_file_ear_adaptive_target_param_printf },
-    { anc_file_ear_adaptive_target_printf },
-    { anc_file_ear_adaptive_target_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
     { anc_file_ear_adaptive_mem_param_printf },
-    { anc_file_ear_adaptive_mem_data_printf },
-    { anc_file_ear_adaptive_mem_data_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
 
     //FF->耳道自适应产测数据
-    { anc_file_ear_adaptive_dut_cmp_printf },
-    { anc_file_ear_adaptive_dut_cmp_printf },
-    { anc_file_ear_adaptive_dut_cmp_printf },
-    { anc_file_ear_adaptive_dut_cmp_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //RTANC 配置
+    { anc_file_rtanc_adaptive_cfg_printf },
+    { anc_file_rtanc_adaptive_cfg_printf },
+#endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //RTCMP 配置
+    { anc_file_ear_adaptive_iir_gains_printf },
+    { anc_file_ear_adaptive_iir_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+
+    { anc_file_ear_adaptive_iir_gains_printf },
+    { anc_file_ear_adaptive_iir_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //RTAEQ
+    { anc_file_ear_adaptive_iir_gains_printf },
+    { anc_file_ear_adaptive_iir_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_adaptive_eq_thr_printf },
+
+    { anc_file_ear_adaptive_iir_gains_printf },
+    { anc_file_ear_adaptive_iir_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+    { anc_file_adaptive_eq_thr_printf },
+#endif
+
+    //参考SZ
+    { anc_file_cfg_data_float_printf },
+    { anc_file_cfg_data_float_printf },
+
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    //风噪检测配置
+    { anc_file_wind_det_cfg_printf },
+    { anc_file_wind_trigger_cfg_printf },
+#endif
+
+    //啸叫检测配置
+    { anc_file_soft_howl_det_cfg_printf },
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    { anc_file_adaptive_dcc_cfg_printf },
+#endif
 
 };
 
@@ -349,11 +511,23 @@ static void anc_ext_tool_cmd_ack(u8 cmd2pc, u8 ret, u8 err_num)
 #endif
 }
 
+#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+//ANC_EXT 工具 RTANC挂起标志清0
+void anc_ext_tool_rtanc_suspend_clear(void)
+{
+    if (tool_hdl) {
+        tool_hdl->rtanc_suspend = 0;
+    }
+}
+#endif
+
 //ANC_EXT CMD事件处理
 void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
 {
+    int ret = TRUE;
+    int err = ERR_NO;
+    int func_ret;
     u8 cmd = data[0];
-    int ret;
     tool_hdl->uart_sel = uart_sel;
     switch (cmd) {
     case CMD_GET_VERSION:
@@ -366,14 +540,12 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
             tool_hdl->ear_adaptive.time_domain_len = sizeof(__icsd_time_data);
             tool_hdl->ear_adaptive.time_domain_buf = malloc(tool_hdl->ear_adaptive.time_domain_len);
             if (!tool_hdl->ear_adaptive.time_domain_buf) {
-                anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
-                break;
+                ret = FALSE;
             }
         } else {
             free(tool_hdl->ear_adaptive.time_domain_buf);
             tool_hdl->ear_adaptive.time_domain_buf = NULL;
         }
-        anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         break;
 
     case CMD_BYPASS_TEST:
@@ -387,20 +559,20 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
             } else {
                 anc_ear_adaptive_train_set_bypass_off();
             }
-            anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         } else {
-            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO_ANC_MODE);
+            ret = FALSE;
         }
         break;
 
     case CMD_EAR_ADAPTIVE_RUN:
         anc_ext_log("CMD_EAR_ADAPTIVE_RUN, mode %d\n", data[1]);
         tool_hdl->ear_adaptive.train_mode = data[1];
-        ret = audio_anc_mode_ear_adaptive(1);
-        if (ret) {
-            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_EAR_FAIL);
+        if (audio_anc_mode_ear_adaptive(1)) {
+            ret = FALSE;
+            err = ERR_EAR_FAIL;
         } else {
             tool_hdl->tool_ear_adaptive_en = 1;
+            return;	//等耳道自适应训练结束才回复
         }
         break;
     case CMD_DEBUG_TOOL:
@@ -410,7 +582,6 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         } else {
             audio_anc_debug_tool_close();
         }
-        anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         break;
     case CMD_ADAPTIVE_TYPE_GET:
         anc_ext_log("CMD_ADAPTIVE_TYPE_GET\n");
@@ -425,7 +596,25 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
     case CMD_FUNCTION_ENABLEBIT_GET:
         anc_ext_log("CMD_FUNCTION_ENABLEBIT_GET\n");
         tool_hdl->tool_online = 1;
-        u16 en = ANC_EXT_FUNC_EN_ADAPTIVE;
+        u16 en = 0;
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE;
+#endif
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        en |= ANC_EXT_FUNC_EN_RTANC;
+#endif
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_CMP;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_EQ;
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+        en |= ANC_EXT_FUNC_EN_WIND_DET;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_DCC;
+#endif
         audio_anc_param_map_init();
         anc_ext_tool_send_buf(cmd, (u8 *)&en, 2);
         break;
@@ -433,20 +622,18 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         anc_ext_log("CMD_EAR_ADAPTIVE_DUT_SAVE\n");
         struct anc_ext_alloc_bulk_t *bulk = anc_ext_tool_data_alloc_query(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP);
         if (bulk) {
-            ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, bulk->alloc_addr, bulk->alloc_len);
-            if (ret <= 0) {
-                anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, ret %d\n", ret);
-                anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
-                break;
+            func_ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, bulk->alloc_addr, bulk->alloc_len);
+            if (func_ret <= 0) {
+                anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, ret %d\n", func_ret);
+                ret = FALSE;
             }
         }
-        /* ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_EN_ID, &tool_hdl->ear_adaptive.dut_cmp_en, 1); */
-        /* if (ret <= 0) { */
-        /* anc_ext_log("ANC_EAR_ADAPTIVE DUT_EN write to vm err, ret %d\n", ret); */
-        /* anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO); */
+        /* func_ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_EN_ID, &tool_hdl->ear_adaptive.dut_cmp_en, 1); */
+        /* if (func_ret <= 0) { */
+        /* anc_ext_log("ANC_EAR_ADAPTIVE DUT_EN write to vm err, ret %d\n", func_ret); */
+        /* ret = FALSE; */
         /* break; */
         /* } */
-        anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         break;
     case CMD_EAR_ADAPTIVE_DUT_EN_SET:
         anc_ext_log("CMD_EAR_ADAPTIVE_DUT_EN_SET %d \n", data[1]);
@@ -455,7 +642,8 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
     case CMD_EAR_ADAPTIVE_DUT_CLEAR:
         anc_ext_log("CMD_EAR_ADAPTIVE_DUT_CLEAR\n");
         if (anc_ear_adaptive_busy_get()) {
-            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_EAR_FAIL);
+            ret = FALSE;
+            err = ERR_EAR_FAIL;
             break;
         }
         //填充0数据,避免产测读数异常
@@ -469,28 +657,90 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         tool_hdl->ear_adaptive.ff_dut_sz_cmp = NULL;
         tool_hdl->ear_adaptive.rff_dut_pz_cmp = NULL;
         tool_hdl->ear_adaptive.rff_dut_sz_cmp = NULL;
-
-        ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, (u8 *)&dut_tmp, dut_tmp.file_len);
-        if (ret <= 0) {
-            anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, ret %d\n", ret);
-            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
-            break;
+        func_ret = syscfg_write(CFG_ANC_ADAPTIVE_DUT_ID, (u8 *)&dut_tmp, dut_tmp.file_len);
+        if (func_ret <= 0) {
+            anc_ext_log("ANC_EAR_ADAPTIVE DUT write to vm err, ret %d\n", func_ret);
+            ret = FALSE;
         }
-        anc_ext_tool_cmd_ack(cmd, TRUE, ERR_NO);
         break;
     case CMD_EAR_ADAPTIVE_SIGN_TRIM:
         anc_ext_log("CMD_EAR_ADAPTIVE_SIGN_TRIM\n");
         tool_hdl->ear_adaptive.train_mode = EAR_ADAPTIVE_MODE_SIGN_TRIM;
-        ret = audio_anc_mode_ear_adaptive(1);
-        if (ret) {
-            anc_ext_tool_cmd_ack(cmd, FALSE, ERR_EAR_FAIL);
+        if (!audio_anc_mode_ear_adaptive(1)) {
+            //符号校准完毕后回复命令
+            return;
         }
-        //符号校准完毕后回复命令
+        ret = FALSE;
+        err = ERR_EAR_FAIL;
         break;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    case CMD_RTANC_ADAPTIVE_OPEN:
+    case CMD_RTANC_ADAPTIVE_DUT_OPEN:
+        anc_ext_log("CMD_RTANC_ADAPTIVE_OPEN\n");
+        audio_real_time_adaptive_app_open_demo();
+        break;
+    case CMD_RTANC_ADAPTIVE_CLOSE:
+    case CMD_RTANC_ADAPTIVE_DUT_CLOSE:
+        anc_ext_log("CMD_RTANC_ADAPTIVE_CLOSE\n");
+        audio_real_time_adaptive_app_close_demo();
+        break;
+    case CMD_RTANC_ADAPTIVE_SUSPEND:
+    case CMD_RTANC_ADAPTIVE_DUT_SUSPEND:
+        anc_ext_log("CMD_RTANC_ADAPTIVE_SUSPEND\n");
+        if (!tool_hdl->rtanc_suspend) {
+            tool_hdl->rtanc_suspend = 1;
+            audio_anc_real_time_adaptive_suspend();
+        }
+        break;
+    case CMD_RTANC_ADAPTIVE_RESUME:
+        anc_ext_log("CMD_RTANC_ADAPTIVE_RESUME\n");
+        if (tool_hdl->rtanc_suspend) {
+            tool_hdl->rtanc_suspend = 0;
+            audio_anc_real_time_adaptive_resume();
+        }
+        break;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    case CMD_ADAPTIVE_EQ_RUN:
+        anc_ext_log("CMD_ADAPTIVE_EQ_RUN\n");
+        if (audio_adaptive_eq_app_open()) {
+            ret = FALSE;
+        }
+        break;
+    case CMD_ADAPTIVE_EQ_EFF_SEL:
+        anc_ext_log("CMD_ADAPTIVE_EQ_EFF_SEL %d\n", data[1]);
+        if (audio_adaptive_eq_eff_set(data[1])) {
+            ret = FALSE;
+        }
+        break;
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    case CMD_WIND_DET_OPEN:
+        anc_ext_log("CMD_WIND_DET_OPEN data %d\n", data[1]);
+        tool_hdl->DEBUG_TOOL_FUNCTION = data[1];
+        audio_icsd_wind_detect_en(1);
+        break;
+    case CMD_WIND_DET_STOP:
+        anc_ext_log("CMD_WIND_DET_CLOSE\n");
+        audio_icsd_wind_detect_en(0);
+        break;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    case CMD_ADAPTIVE_DCC_OPEN:
+        anc_ext_log("CMD_ADAPTIVE_DCC_OPEN data %d\n", data[1]);
+        tool_hdl->DEBUG_TOOL_FUNCTION = data[1];
+        /* audio_icsd_wind_detect_en(1); */
+        break;
+    case CMD_ADAPTIVE_DCC_STOP:
+        anc_ext_log("CMD_ADAPTIVE_DCC_STOP\n");
+        /* audio_icsd_wind_detect_en(0); */
+        break;
+#endif
     default:
-        anc_ext_tool_cmd_ack(cmd, FALSE, ERR_NO);
+        ret = FALSE;
         break;
-    };
+    }
+    anc_ext_tool_cmd_ack(cmd, ret, err);
 }
 
 //耳道自适应执行结果回调函数
@@ -582,6 +832,13 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_WEIGHT:
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_TARGET:
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_RECORDER:
+    case FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG:
+    case FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA:
+    case FILE_ID_ANC_EXT_ADAPTIVE_EQ_DATA:
+    case FILE_ID_ANC_EXT_REF_SZ_DATA:
+    case FILE_ID_ANC_EXT_WIND_DET_CFG:
+    case FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG:
+    case FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG:
         ret = anc_cfg_analysis_ear_adaptive(data, len, alloc_flag);
         /* put_buf(data, len); */
         break;
@@ -616,6 +873,7 @@ int anc_ext_tool_write_end(u32 file_id, u8 *data, int len, u8 alloc_flag)
 //SUBFILE 工具开始读文件
 int anc_ext_tool_read_file_start(u32 file_id, u8 **data, u32 *len)
 {
+    g_printf("anc_ext_tool_read_file_start %x, \n", file_id);
     switch (file_id) {
     case FILE_ID_ANC_EXT_BIN:
         anc_ext_log("read FILE_ID_ANC_EXT_BIN\n");
@@ -633,6 +891,7 @@ int anc_ext_tool_read_file_start(u32 file_id, u8 **data, u32 *len)
         }
         break;
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP:
+        anc_ext_log("read FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP\n");
         struct anc_ext_alloc_bulk_t *bulk = anc_ext_tool_data_alloc_query(FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP);
         if (bulk) {
             *len = bulk->alloc_len;
@@ -641,8 +900,24 @@ int anc_ext_tool_read_file_start(u32 file_id, u8 **data, u32 *len)
             return 1;
         }
         break;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    case FILE_ID_ANC_EXT_RTANC_DEBUG_DATA:
+        anc_ext_log("read FILE_ID_ANC_EXT_RTANC_DEBUG_DATA\n");
+        return audio_anc_real_time_adaptive_tool_data_get(data, len);
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    case FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA:
+        anc_ext_log("read FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA\n");
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE	//打开RTANC，则需挂起RTANC才能获取
+        if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get()))
+#endif
+            return audio_adaptive_eq_tool_data_get(data, len);
+    case FILE_ID_ANC_EXT_REF_SZ_DATA:
+        anc_ext_log("read FILE_ID_ANC_EXT_REF_SZ_DATA\n");
+        return audio_adaptive_eq_tool_sz_data_get(data, len);
+#endif
     default:
-        break;
+        return 1;
     }
     return 0;
 }
@@ -697,7 +972,7 @@ static void anc_file_ear_adaptive_iir_general_printf(int id, void *buf, int len)
 static void anc_file_ear_adaptive_iir_gains_printf(int id, void *buf, int len)
 {
     struct __anc_ext_ear_adaptive_iir_gains *cfg = (struct __anc_ext_ear_adaptive_iir_gains *)buf;
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_GAINS_ID 0x%x---\n", id);
+    anc_ext_log("---ANC_EXT_ADAPTIVE_GAINS_ID 0x%x---\n", id);
     anc_ext_log("iir_target_gain_limit :%d/100 \n", (int)(cfg->iir_target_gain_limit * 100));
     anc_ext_log("def_total_gain        :%d/100 \n", (int)(cfg->def_total_gain * 100));
     anc_ext_log("upper_limit_gain      :%d/100 \n", (int)(cfg->upper_limit_gain * 100));
@@ -708,7 +983,7 @@ static void anc_file_ear_adaptive_iir_printf(int id, void *buf, int len)
 {
 
     struct __anc_ext_ear_adaptive_iir *iir = (struct __anc_ext_ear_adaptive_iir *)buf;
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_IIR_ID 0x%x---\n", id);
+    anc_ext_log("---ANC_EXT_ADAPTIVE_IIR_ID 0x%x---\n", id);
     int cnt = len / sizeof(struct __anc_ext_ear_adaptive_iir);
     for (int i = 0; i < cnt; i++) {
         anc_ext_log("iir type_%d %d, fixed_en %d\n", i, iir[i].type, iir[i].fixed_en);
@@ -729,14 +1004,45 @@ static void anc_file_ear_adaptive_weight_param_printf(int id, void *buf, int len
     anc_ext_log("mse_level_h           :%d \n", cfg->mse_level_h);
 }
 
-static void anc_file_ear_adaptive_weight_printf(int id, void *buf, int len)
+static void anc_file_cfg_data_float_printf(int id, void *buf, int len)
 {
     struct __anc_ext_ear_adaptive_weight *cfg = (struct __anc_ext_ear_adaptive_weight *)buf;
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_WEIGHT/MSE_ID 0x%x---\n", id);
     int cnt = len / sizeof(float);
+    switch (id) {
+    case ANC_EXT_EAR_ADAPTIVE_FF_HIGH_WEIGHT_ID ... ANC_EXT_EAR_ADAPTIVE_FF_LOW_MSE_ID:
+    case ANC_EXT_EAR_ADAPTIVE_FF_R_HIGH_WEIGHT_ID ... ANC_EXT_EAR_ADAPTIVE_FF_R_LOW_MSE_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_WEIGHT/MSE_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    case ANC_EXT_EAR_ADAPTIVE_FF_TARGET_SV_ID ... ANC_EXT_EAR_ADAPTIVE_FF_TARGET_CMP_ID:
+    case ANC_EXT_EAR_ADAPTIVE_FF_R_TARGET_SV_ID ... ANC_EXT_EAR_ADAPTIVE_FF_R_TARGET_CMP_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_TARGET_SV/CMP_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    case ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_PZ_ID:
+    case ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_SZ_ID:
+    case ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_PZ_ID:
+    case ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_SZ_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    case ANC_EXT_EAR_ADAPTIVE_FF_DUT_PZ_CMP_ID ... ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_SZ_CMP_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_DUT_CMP_ID 0x%x, cnt %d---\n", id, cnt);
+    case ANC_EXT_ADAPTIVE_CMP_WEIGHT_ID ... ANC_EXT_ADAPTIVE_CMP_MSE_ID:
+    case ANC_EXT_ADAPTIVE_CMP_R_WEIGHT_ID ... ANC_EXT_ADAPTIVE_CMP_R_MSE_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_CMP_WEIGHT/MSE_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    case ANC_EXT_ADAPTIVE_EQ_WEIGHT_ID ... ANC_EXT_ADAPTIVE_EQ_MSE_ID:
+    case ANC_EXT_ADAPTIVE_EQ_R_WEIGHT_ID ... ANC_EXT_ADAPTIVE_EQ_R_MSE_ID:
+        anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_EQ_WEIGHT/MSE_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    case ANC_EXT_REF_SZ_DATA_ID ... ANC_EXT_REF_SZ_R_DATA_ID:
+        anc_ext_log("---ANC_EXT_REF_SZ_DATA_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
+    }
+#if ANC_EXT_CFG_FLOAT_EN
     for (int i = 0; i < cnt; i++) {
         anc_ext_log("data :%d/100 \n", (int)(cfg->data[i] * 100));
     }
+#endif
+    //put_buf(buf, len);
 }
 
 static void anc_file_ear_adaptive_target_param_printf(int id, void *buf, int len)
@@ -744,16 +1050,6 @@ static void anc_file_ear_adaptive_target_param_printf(int id, void *buf, int len
     struct __anc_ext_ear_adaptive_target_param *cfg = (struct __anc_ext_ear_adaptive_target_param *)buf;
     anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_TARGET_PARAM_ID 0x%x---\n", id);
     anc_ext_log("cmp_en           :%d \n", cfg->cmp_en);
-}
-
-static void anc_file_ear_adaptive_target_printf(int id, void *buf, int len)
-{
-    struct __anc_ext_ear_adaptive_target_cmp *cfg = (struct __anc_ext_ear_adaptive_target_cmp *)buf;
-    int cnt = len / sizeof(float);
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_TARGET_SV/CMP_ID 0x%x, len %d---\n", id, cnt);
-    for (int i = 0; i < cnt; i++) {
-        anc_ext_log("%d \n", (int)(cfg->data[i] * 1000));
-    }
 }
 
 static void anc_file_ear_adaptive_mem_param_printf(int id, void *buf, int len)
@@ -764,27 +1060,165 @@ static void anc_file_ear_adaptive_mem_param_printf(int id, void *buf, int len)
     anc_ext_log("ear_recorder       :%d \n", cfg->ear_recorder);
 }
 
-static void anc_file_ear_adaptive_mem_data_printf(int id, void *buf, int len)
+static void anc_file_rtanc_adaptive_cfg_printf(int id, void *buf, int len)
 {
-    struct __anc_ext_ear_adaptive_mem_data *cfg = (struct __anc_ext_ear_adaptive_mem_data *)buf;
-    int cnt = len / sizeof(float);
-    int i;
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_ID 0x%x, len %d---\n", id, cnt);
-    for (i = 0; i < cnt; i++) {
-        anc_ext_log("%d\n", (int)(cfg->data[i] * 1000));
+    struct __anc_ext_rtanc_adaptive_cfg *cfg = (struct __anc_ext_rtanc_adaptive_cfg *)buf;
+    anc_ext_log("---ANC_EXT_RTANC_ADAPTIVE_CFG_ID 0x%x---\n", id);
+
+    // 基本参数
+    anc_ext_log("angle_direct      :%d\n", cfg->angle_direct);
+    anc_ext_log("dov_cnt          :%d\n", cfg->dov_cnt);
+    anc_ext_log("ref_cali         :%d\n", cfg->ref_cali);
+    anc_ext_log("err_cali         :%d\n", cfg->err_cali);
+
+    // hz_db_thr数组
+    anc_ext_log("hz_db_thr        :[%d, %d, %d]\n",
+                cfg->hz_db_thr[0], cfg->hz_db_thr[1], cfg->hz_db_thr[2]);
+
+    anc_ext_log("frame_cnt        :%d\n", cfg->frame_cnt);
+    anc_ext_log("num_thr          :%d\n", cfg->num_thr);
+    anc_ext_log("n_mse_thr        :%d\n", cfg->n_mse_thr);
+    anc_ext_log("pz_min_thr       :%d\n", cfg->pz_min_thr);
+    anc_ext_log("pz_iir_thr1      :%d\n", cfg->pz_iir_thr1);
+    anc_ext_log("pz_iir_thr2      :%d\n", cfg->pz_iir_thr2);
+
+    // 索引和选择参数
+    anc_ext_log("idx_thr          :%d\n", cfg->idx_thr);
+    anc_ext_log("hist_select_l    :%d\n", cfg->hist_select_l);
+    anc_ext_log("hist_select_h    :%d\n", cfg->hist_select_h);
+    anc_ext_log("trim_lock        :%d\n", cfg->trim_lock);
+
+    // 功率相关参数
+    anc_ext_log("spk_pwr_min      :%d\n", cfg->spk_pwr_min);
+    anc_ext_log("ref_pwr_max      :%d\n", cfg->ref_pwr_max);
+    anc_ext_log("spk2ref          :%d\n", cfg->spk2ref);
+
+    // angle相关参数
+    anc_ext_log("angle_thr        :[%d, %d, %d, %d, %d, %d]\n",
+                cfg->angle_thr[0], cfg->angle_thr[1], cfg->angle_thr[2],
+                cfg->angle_thr[3], cfg->angle_thr[4], cfg->angle_thr[5]);
+
+    anc_ext_log("dov_thr          :%d\n", cfg->dov_thr);
+    anc_ext_log("angle_pz_thr1    :%d\n", cfg->angle_pz_thr1);
+    anc_ext_log("angle_pz_thr2    :%d\n", cfg->angle_pz_thr2);
+
+    // 浮点数参数
+    anc_ext_log("mse_ctl_thr1     :%d/100\n", (int)(cfg->mse_ctl_thr1 * 100.f));
+    anc_ext_log("mse_ctl_thr2     :%d/100\n", (int)(cfg->mse_ctl_thr2 * 100.f));
+    anc_ext_log("mse_ctl_thr3     :%d/100\n", (int)(cfg->mse_ctl_thr3 * 100.f));
+    anc_ext_log("anc_performance  :%d/100\n", (int)(cfg->anc_performance * 100.f));
+    anc_ext_log("pz_db_thr0       :%d/100\n", (int)(cfg->pz_db_thr0 * 100.f));
+    anc_ext_log("pz_db_thr1       :%d/100\n", (int)(cfg->pz_db_thr1 * 100.f));
+    anc_ext_log("fitness          :%d/100\n", (int)(cfg->fitness * 100.f));
+    anc_ext_log("hist_select_thr  :%d/100\n", (int)(cfg->hist_select_thr * 100.f));
+    anc_ext_log("diff_thr         :%d/100\n", (int)(cfg->diff_thr * 100.f));
+    anc_ext_log("sz_stable_thr    :%d/100\n", (int)(cfg->sz_stable_thr * 100.f));
+    anc_ext_log("sz_iir_thr       :%d/100\n", (int)(cfg->sz_iir_thr * 100.f));
+    anc_ext_log("sz_diff_cmp_thr  :%d/100\n", (int)(cfg->sz_diff_cmp_thr * 100.f));
+    anc_ext_log("sz_diff_tp_thr   :%d/100\n", (int)(cfg->sz_diff_tp_thr * 100.f));
+
+    anc_ext_log("undefine_par2    :");
+    for (int i = 0; i < 10; i++) {
+        anc_ext_log("%d", cfg->undefine_par2[i]);
+    }
+
+    anc_ext_log("undefine_par1    :");
+    for (int i = 0; i < 10; i++) {
+        anc_ext_log("%d/100\n", (int)(cfg->undefine_par1[i] * 100));
     }
 }
 
-static void anc_file_ear_adaptive_dut_cmp_printf(int id, void *buf, int len)
+static void anc_file_adaptive_eq_thr_printf(int id, void *buf, int len)
 {
-    struct __anc_ext_ear_adaptive_dut_data *cfg = (struct __anc_ext_ear_adaptive_dut_data *)buf;
-    int cnt = len / sizeof(float);
-    int i;
-    anc_ext_log("---ANC_EXT_EAR_ADAPTIVE_FF_DUT_CMP_ID 0x%x, len %d---\n", id, cnt);
-    for (i = 0; i < cnt; i++) {
-        anc_ext_log("%d\n", (int)(cfg->data[i] * 1000));
+    struct __anc_ext_adaptive_eq_thr *cfg = (struct __anc_ext_adaptive_eq_thr *)buf;
+    anc_ext_log("---ANC_EXT_ADAPTIVE_EQ_THR_ID 0x%x---\n", id);
+
+    // 音量阈值参数
+    anc_ext_log("vol_thr1         :%d\n", cfg->vol_thr1);
+    anc_ext_log("vol_thr2         :%d\n", cfg->vol_thr2);
+
+    // 打印二维数组 max_dB[3][3]
+    anc_ext_log("max_dB           :\n");
+    for (int i = 0; i < 3; i++) {
+        anc_ext_log("                [%d, %d, %d]\n", cfg->max_dB[i][0], cfg->max_dB[i][1], cfg->max_dB[i][2]);
+    }
+
+    // dot阈值参数
+    anc_ext_log("dot_thr1         :%d/100\n", (int)(cfg->dot_thr1 * 100.f));
+    anc_ext_log("dot_thr2         :%d/100\n", (int)(cfg->dot_thr2 * 100.f));
+}
+
+//风噪检测配置打印
+static void anc_file_wind_det_cfg_printf(int id, void *buf, int len)
+{
+    struct __anc_ext_wind_det_cfg *cfg = (struct __anc_ext_wind_det_cfg *)buf;
+
+    anc_ext_log("---ANC_EXT_WIND_DET_CFG_ID 0x%x---\n", id);
+
+    anc_ext_log("wind_lvl_scale   :%d \n", cfg->wind_lvl_scale);
+    anc_ext_log("icsd_wind_num_thr1 :%d \n", cfg->icsd_wind_num_thr1);
+    anc_ext_log("icsd_wind_num_thr2 :%d \n", cfg->icsd_wind_num_thr2);
+    anc_ext_log("wind_iir_alpha   :%d/100 \n", (int)(cfg->wind_iir_alpha * 100.0f));
+    anc_ext_log("corr_thr         :%d/100 \n", (int)(cfg->corr_thr * 100.0f));
+    anc_ext_log("msc_lp_thr       :%d/100 \n", (int)(cfg->msc_lp_thr * 100.0f));
+    anc_ext_log("msc_mp_thr       :%d/100 \n", (int)(cfg->msc_mp_thr * 100.0f));
+    anc_ext_log("cpt_1p_thr       :%d/100 \n", (int)(cfg->cpt_1p_thr * 100.0f));
+    anc_ext_log("ref_pwr_thr      :%d/100 \n", (int)(cfg->ref_pwr_thr * 100.0f));
+    for (int i = 0; i < 6; i++) {
+        anc_ext_log("param[%d]         :%d/100 \n", i, (int)(cfg->param[i] * 100.0f));
     }
 }
+
+//风噪触发配置打印
+static void anc_file_wind_trigger_cfg_printf(int id, void *buf, int len)
+{
+    struct __anc_ext_wind_trigger_cfg *cfg = (struct __anc_ext_wind_trigger_cfg *)buf;
+
+    anc_ext_log("---ANC_EXT_WIND_TRIGGER_CFG_ID 0x%x---\n", id);
+
+    for (int i = 0; i < 5; i++) {
+        anc_ext_log("thr[%d]            :%d \n", i, cfg->thr[i]);
+        anc_ext_log("gain[%d]           :%d \n", i, cfg->gain[i]);
+    }
+}
+
+static void anc_file_soft_howl_det_cfg_printf(int id, void *buf, int len)
+{
+    struct __anc_ext_soft_howl_det_cfg *cfg = (struct __anc_ext_soft_howl_det_cfg *)buf;
+
+    anc_ext_log("---ANC_EXT_SOFT_HOWL_DET_CFG_ID 0x%x---\n", id);
+    anc_ext_log("hd_scale          :%d/100 \n", (int)(cfg->hd_scale * 100.0f));
+    anc_ext_log("hd_sat_thr        :%d \n", cfg->hd_sat_thr);
+    anc_ext_log("hd_det_thr        :%d/100 \n", (int)(cfg->hd_det_thr * 100.0f));
+    anc_ext_log("hd_diff_pwr_thr   :%d/100 \n", (int)(cfg->hd_diff_pwr_thr * 100.0f));
+    anc_ext_log("hd_maxind_thr1    :%d \n", cfg->hd_maxind_thr1);
+    anc_ext_log("hd_maxind_thr2    :%d \n", cfg->hd_maxind_thr2);
+
+    for (int i = 0; i < 6; i++) {
+        anc_ext_log("param[%d]         :%d/100 \n", i, (int)(cfg->param[i] * 100.0f));
+    }
+}
+
+static void anc_file_adaptive_dcc_cfg_printf(int id, void *buf, int len)
+{
+    struct __anc_ext_adaptive_dcc_cfg *cfg = (struct __anc_ext_adaptive_dcc_cfg *)buf;
+
+    printf("---ANC_EXT_ADAPTIVE_DCC_CFG_ID 0x%x---\n", id);
+    printf("ff_dc_par         :%d \n", cfg->ff_dc_par);
+    printf("refmic_max_thr    :%d \n", cfg->refmic_max_thr);
+    printf("refmic_mp_thr     :%d \n", cfg->refmic_mp_thr);
+
+    for (int i = 0; i < ARRAY_SIZE(cfg->err_overload_list); i++) {
+        printf("err_overload_list[%d]:%d/100 \n", i, (int)(cfg->err_overload_list[i] * 100.0f));
+    }
+    for (int i = 0; i < ARRAY_SIZE(cfg->param1); i++) {
+        printf("param1[%d]         :%d \n", i, cfg->param1[i]);
+    }
+    for (int i = 0; i < ARRAY_SIZE(cfg->param2); i++) {
+        printf("param2[%d]         :%d/100 \n", i, (int)(cfg->param2[i] * 100.0f));
+    }
+}
+
 
 /*
    ANCEXT 耳道自适应SUBFILE内参数ID解析
@@ -800,14 +1234,14 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
     int table_cnt = ARRAY_SIZE(ear_adaptive_id_table);
 
     if (file) {
-        anc_ext_log("file->cnt %d\n", file->id_cnt);
+        /* anc_ext_log("file->cnt %d\n", file->id_cnt); */
         if (!file->id_cnt) {
             return 1;
         }
         struct anc_ext_id_head *id_head = (struct anc_ext_id_head *)file->data;
         temp_dat = file->data + (file->id_cnt * sizeof(struct anc_ext_id_head));
         for (i = 0; i < file->id_cnt; i++) {
-            anc_ext_log("id:0X%x, offset:%d,len:%d\n", id_head->id, id_head->offset, id_head->len);
+            /* anc_ext_log("id:0X%x, offset:%d,len:%d\n", id_head->id, id_head->offset, id_head->len); */
             for (j = 0; j < table_cnt; j++) {
                 if (id_head->id == table[j].id) {
                     if (id_head->len) {
@@ -862,6 +1296,13 @@ u8 anc_ext_ear_adaptive_param_check(void)
         anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! param %p\n", cfg->ff_ear_mem_param);
         return 1;
     }
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    if (!cfg->cmp_gains) {
+        anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->cmp_gains);
+        return 1;
+    }
+#endif
+
     if (ICSD_EP_TYPE_V2 == ICSD_HEADSET) {
         for (u32 i = (u32)(&cfg->rff_iir_high_gains); i <= (u32)(&cfg->rff_target_param); i += 4) {
             if ((*(u32 *)i) == 0) {
@@ -885,11 +1326,17 @@ u8 anc_ext_ear_adaptive_param_check(void)
             anc_ext_log("ERR:ANC_EXT R ear_recoder cfg no enough! param %p\n", cfg->rff_ear_mem_param);
             return 1;
         }
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+        if (!cfg->rcmp_gains) {
+            anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->rcmp_gains);
+            return 1;
+        }
+#endif
     }
     return 0;
 }
 
-//ANC_EXT 获取耳道自适应的配置参数
+//ANC_EXT 获取工具配置参数句柄
 struct anc_ext_ear_adaptive_param *anc_ext_ear_adaptive_cfg_get(void)
 {
     if (tool_hdl) {
@@ -897,6 +1344,17 @@ struct anc_ext_ear_adaptive_param *anc_ext_ear_adaptive_cfg_get(void)
     }
     return NULL;
 }
+
+#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+//ANC_EXT 获取RTANC 工具参数
+struct __anc_ext_rtanc_adaptive_cfg *anc_ext_rtanc_adaptive_cfg_get(void)
+{
+    if (tool_hdl) {
+        return tool_hdl->ear_adaptive.rtanc_adaptive_cfg;
+    }
+    return NULL;
+}
+#endif
 
 //ANC_EXT 查询工具是否在线
 u8 anc_ext_tool_online_get(void)
@@ -940,6 +1398,14 @@ s8 anc_ext_ear_adaptive_sz_calr_sign_get(void)
         if (tool_hdl->ear_adaptive.base_cfg) {
             return tool_hdl->ear_adaptive.base_cfg->calr_sign[0];
         }
+    }
+    return 0;
+}
+
+u8 anc_ext_debug_tool_function_get(void)
+{
+    if (tool_hdl) {
+        return tool_hdl->DEBUG_TOOL_FUNCTION;
     }
     return 0;
 }

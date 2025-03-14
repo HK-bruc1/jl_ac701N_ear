@@ -77,7 +77,6 @@ void icsd_afq_set_infmt(struct icsd_afq_infmt *fmt);
 void icsd_afq_dma_handler();
 void icsd_afq_run(u32 slience_frames, u32 sample_rate, void (*output_cb)(__afq_output *_AFQ_OUT));
 void icsd_afq_forced_exit();
-void afq_function_init();
 void icsd_afq_anctask_handler(void *param, int *msg);
 
 void icsd_afq_dsf8_data_debug(u8 belong, s16 *dsf_out_ch0, s16 *dsf_out_ch1, s16 *dsf_out_ch2, s16 *dsf_out_ch3);

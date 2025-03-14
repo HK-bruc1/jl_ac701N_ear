@@ -404,9 +404,14 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
     #define TWS_RCSP_LE_ROLE_SW_EN (0)
 #endif
 
+#ifdef TCFG_BLE_HIGH_PRIORITY_ENABLE
+    const bool config_le_high_priority = TCFG_BLE_HIGH_PRIORITY_ENABLE;  //开启后ble优先级更高，esco下想保证ble一直建立连接和主从切换正常，必须置为1
+#else
+    const bool config_le_high_priority = 0;
+#endif
+
 const int config_btctler_le_afh_en = 0;
 const u32 config_vendor_le_bb = 0;
-const bool config_le_high_priority = 0;  //ecso下 想保证ble 建立连接 和 主从切换正常 必须置为1
 const bool config_tws_le_role_sw =(TWS_LE_AUDIO_LE_ROLE_SW_EN|TWS_RCSP_LE_ROLE_SW_EN);
 const int config_btctler_le_rx_nums = 20;
 const int config_btctler_le_acl_packet_length = 255;

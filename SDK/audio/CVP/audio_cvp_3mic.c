@@ -40,6 +40,10 @@
 #if TCFG_AUDIO_DUT_ENABLE
 //#include "audio_dut_control.h"
 #endif/*TCFG_AUDIO_DUT_ENABLE*/
+#if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
+        TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
+#include "icsd_adt_app.h"
+#endif
 
 #if !defined(TCFG_CVP_DEVELOP_ENABLE) || (TCFG_CVP_DEVELOP_ENABLE == 0)
 
@@ -270,6 +274,16 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_
 */
 static int audio_aec_post(s16 *data, u16 len)
 {
+
+#if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
+        TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
+    if (get_cvp_icsd_wind_lvl_det_state()) {
+        int wd_flag = 0, wind_lvl = 0, wd_lev = 0;
+        audio_cvp_get_wind_detect_info(&wd_flag, &wind_lvl, &wd_lev);
+        audio_cvp_wind_lvl_output_handle(wind_lvl);
+    }
+#endif
+
 #if WIND_DETECT_INFO_SPP_DEBUG_ENABLE
 #if TCFG_USER_TWS_ENABLE
     if ((tws_api_get_role() == TWS_ROLE_MASTER))
@@ -834,7 +848,12 @@ void audio_aec_close(void)
         }
 
         aec_close();
+
+#if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
+        TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
+        audio_cvp_icsd_wind_det_close();
 #endif
+#endif /*CVP_TOGGLE*/
 #if TCFG_AUDIO_CVP_SYNC
         //在AEC关闭之后再关，否则还会跑cvp_sync_run,导致越界
         audio_cvp_sync_close();

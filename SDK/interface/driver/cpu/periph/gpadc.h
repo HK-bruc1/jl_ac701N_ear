@@ -141,6 +141,13 @@ int gpadc_battery_init();
 
 
 
+/**
+ * @brief gpadc_get_ntc_temperature
+ *
+ * @return 芯片内置的ntc温度
+ */
+s32 gpadc_get_ntc_temperature();
+
 
 
 

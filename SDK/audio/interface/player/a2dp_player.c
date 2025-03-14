@@ -39,6 +39,10 @@
 #include "audio_anc.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 extern struct audio_dac_hdl dac_hdl;
 struct a2dp_player {
     u8 bt_addr[6];
@@ -245,6 +249,11 @@ int a2dp_player_open(u8 *btaddr)
         audio_speak_to_char_sync_suspend();
     }
 #endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
+#endif
+
     err = a2dp_player_create(btaddr);
     if (err) {
         if (err == -EFAULT) {
@@ -391,6 +400,10 @@ void a2dp_player_close(u8 *btaddr)
 
 #if (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC)
     audio_smart_voice_aec_close();
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
 #endif
 }
 

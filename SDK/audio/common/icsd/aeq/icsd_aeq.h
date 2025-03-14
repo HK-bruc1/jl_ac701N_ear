@@ -9,32 +9,19 @@
 #include "icsd_aeq_config.h"
 
 extern int (*aeq_printf)(const char *format, ...);
-#if 1
+#if 0
 #define _aeq_printf printf                  //打开自适应ANC参数调试信息
 #else
 #define _aeq_printf icsd_printf_off
 #endif
 
-#define AEQ_FLEN (TARLEN2+TARLEN2_L-DRPPNT2)
+#define AEQ_FLEN 120// (TARLEN2+TARLEN2_L-DRPPNT2)
 
 typedef struct {
     u8 state;
     float *h_freq;
     float *target;
 } _aeq_output;
-
-struct aeq_seg_info {
-    u16 index;
-    u16 iir_type;
-    int freq;
-    float gain;
-    float q;
-};
-struct aeq_default_seg_tab {
-    float global_gain;
-    int seg_num;
-    struct aeq_seg_info *seg;
-};
 
 #define AEG_SEG_NUM         5
 
@@ -52,7 +39,7 @@ struct icsd_aeq_libfmt {
 void icsd_aeq_get_libfmt(struct icsd_aeq_libfmt *libfmt);
 void icsd_aeq_set_infmt(struct icsd_aeq_infmt *fmt);
 void icsd_aeq_force_exit();
-_aeq_output *icsd_aeq_run(float *sz_goal, float *sz_in, float *EQ_data, float *delta_data, float maxgain_dB, float *fgq_best);
+_aeq_output *icsd_aeq_run(float *sz_goal, float *sz_in, float *EQ_data, float *delta_data, float maxgain_dB, float *fgq_best, __adpt_aeq_cfg *aeq_cfg);
 //
 void icsd_aeq_demo(float *_sz_in);
 //
@@ -64,7 +51,7 @@ struct eq_function {
 
 };
 
-extern struct eq_function EQ_FUNC;
+extern struct eq_function *EQ_FUNC;
 
 
 

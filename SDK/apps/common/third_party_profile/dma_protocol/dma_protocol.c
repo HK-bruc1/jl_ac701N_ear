@@ -697,7 +697,7 @@ int dma_app_check_status(int status_flag)
         return dma_get_tws_side();
     }
 #endif
-    return 0;
+    return 1;
 }
 
 extern bool vbat_is_low_power(void);

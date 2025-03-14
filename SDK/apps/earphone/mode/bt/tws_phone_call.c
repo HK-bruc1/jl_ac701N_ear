@@ -94,8 +94,6 @@ enum {
     CMD_PHONE_OUTBAND_RING_STOP,
 };
 
-static u8 g_play_addr[6];
-
 void tone_ring_player_stop()
 {
     tone_player_stop();
@@ -726,8 +724,9 @@ REGISTER_LP_TARGET(phone_incom_lp_target) = {
 static void bt_tws_phone_num_callback(int priv, enum stream_event event)
 {
     if (event == STREAM_EVENT_STOP) {
-        if (tws_api_get_role() == TWS_ROLE_MASTER &&
-            g_bt_hdl.phone_ring_flag && g_bt_hdl.inband_ringtone == 0) {
+        printf("bt_tws_phone_num_callback:%d\n", bt_get_call_status());
+        if ((bt_get_call_status() != BT_CALL_HANGUP) && (tws_api_get_role() == TWS_ROLE_MASTER) &&
+            g_bt_hdl.phone_ring_flag && (g_bt_hdl.inband_ringtone == 0)) {
 #if TCFG_USER_TWS_ENABLE
             tws_play_ring_file_alone(get_tone_files()->phone_in, SYNC_TONE_PHONE_RING_TIME);
 #endif
@@ -1140,7 +1139,6 @@ static int call_tws_msg_handler(int *msg)
         memcpy(phone_addr, &(evt->args[3]), 6);
         put_buf(phone_addr, 6);
 
-        memset(g_play_addr, 0xff, 6);
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
 #if SECONDE_PHONE_IN_RING_COEXIST
             if (bt_get_call_status_for_addr(phone_addr) == BT_CALL_INCOMING) {

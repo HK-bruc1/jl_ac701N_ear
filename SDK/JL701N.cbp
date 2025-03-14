@@ -55,7 +55,6 @@
 <Add option="-D__GCC_PI32V2__" />
 <Add option="-DCONFIG_NEW_ECC_ENABLE" />
 <Add option="-DCONFIG_CODE_MOVABLE_ENABLE" />
-<Add option="-DCONFIG_FLOAT_DEBUG_ENABLE" />
 <Add option="-DCONFIG_EFFECT_CORE_V2_ENABLE" />
 <Add option="-DCONFIG_OS_AFFINITY_ENABLE=0" />
 <Add option="-DEVENT_HANDLER_NUM_CONFIG=2" />
@@ -192,6 +191,7 @@
 <Add directory="audio/framework/plugs/source" />
 <Add directory="audio/CVP" />
 <Add directory="audio/test_tools" />
+<Add directory="audio/common/icsd/adjdcc" />
 <Add directory="audio/common/icsd/adt" />
 <Add directory="audio/common/icsd/anc" />
 <Add directory="audio/common/icsd/common" />
@@ -210,6 +210,7 @@
 <Add directory="audio/common/icsd/vdt" />
 <Add directory="audio/common/icsd/wat" />
 <Add directory="audio/common/icsd/ein" />
+<Add directory="audio/common/icsd/howl" />
 <Add directory="audio/common/power" />
 <Add directory="audio/anc" />
 <Add directory="audio/cpu/br28/audio_dai" />
@@ -332,6 +333,8 @@
 <Add option="cpu/br28/liba/lib_icsd_wat.a" />
 <Add option="cpu/br28/liba/lib_icsd_vdt.a" />
 <Add option="cpu/br28/liba/lib_icsd_ein.a" />
+<Add option="cpu/br28/liba/lib_icsd_avc.a" />
+<Add option="cpu/br28/liba/lib_icsd_howl.a" />
 <Add option="cpu/br28/liba/libjlsp_kws_far_keyword.a" />
 <Add option="cpu/br28/liba/libjlsp_kws_india_english.a" />
 <Add option="cpu/br28/liba/3DSpatial.a" />
@@ -354,8 +357,9 @@
 <Add option="cpu/br28/liba/lib_iir_filter.a" />
 <Add option="cpu/br28/liba/spatial_adv.a" />
 <Add option="cpu/br28/liba/le_audio_profile.a" />
-<Add option="cpu/br28/liba/jla_codec_lib.a" />
+<Add option="cpu/br28/liba/lib_jla_codec.a" />
 <Add option="cpu/br28/liba/lib_lc3_codec.a" />
+<Add option="cpu/br28/liba/lib_jl_codec_common.a" />
 <Add option="cpu/br28/liba/lib_noisegate_pro.a" />
 <Add option="cpu/br28/liba/lib_eq_design_coeff.a" />
 <Add option="cpu/br28/liba/libSAS_pi32v2_OnChip.a" />
@@ -1162,6 +1166,7 @@
 <Unit filename="audio/common/demo/codec_demo/audio_speex_codec_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/frame_length_adaptive.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/frame_length_adaptive.h" />
+<Unit filename="audio/common/icsd/adjdcc/icsd_adjdcc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_alg.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_app.c"><Option compilerVer="CC"/></Unit>
@@ -1183,9 +1188,9 @@
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_app.h" />
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_interactive.h" />
+<Unit filename="audio/common/icsd/avc/icsd_avc_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/avc/icsd_avc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/cmp/icsd_cmp_app.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/common/icsd/cmp/icsd_cmp_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/common/icsd_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/common_v2/anc_DeAlg_v2.h" />
 <Unit filename="audio/common/icsd/common_v2/icsd_common_v2.c"><Option compilerVer="CC"/></Unit>
@@ -1194,20 +1199,28 @@
 <Unit filename="audio/common/icsd/common_v2/icsd_common_v2_app.h" />
 <Unit filename="audio/common/icsd/config/icsd_anc_v2_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/config/icsd_anc_v2_config.h" />
+<Unit filename="audio/common/icsd/config/icsd_cmp_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/demo/icsd_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/dot/icsd_dot.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/dot/icsd_dot.h" />
 <Unit filename="audio/common/icsd/dot/icsd_dot_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/dot/icsd_dot_app.h" />
 <Unit filename="audio/common/icsd/ein/icsd_ein_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/env_noise_det/icsd_env_noise_det_app.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/howl/icsd_howl_app.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/howl/icsd_howl_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.h" />
 <Unit filename="audio/common/icsd/tool/anc_ext_tool_file.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/vdt/icsd_vdt_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/vdt/icsd_vdt_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/wat/icsd_wat_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/wat/icsd_wat_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/wind/cvp_wind_app.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/wind/icsd_wind_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/wind/icsd_wind_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/online_debug/aud_data_export.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/online_debug/aud_data_export.h" />
@@ -1219,6 +1232,8 @@
 <Unit filename="audio/common/online_debug/audio_capture.h" />
 <Unit filename="audio/common/online_debug/audio_online_debug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/online_debug/audio_online_debug.h" />
+<Unit filename="audio/common/pcm_data/sine_pcm.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/pcm_data/sine_pcm.h" />
 <Unit filename="audio/common/power/mic_power_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/power/mic_power_manager.h" />
 <Unit filename="audio/common/uartPcmSender.c"><Option compilerVer="CC"/></Unit>
@@ -1605,6 +1620,7 @@
 <Unit filename="interface/driver/device/usb/usb.h" />
 <Unit filename="interface/driver/device/usb/usb_phy.h" />
 <Unit filename="interface/driver/gpio_config.h" />
+<Unit filename="interface/driver/power/lib_power_config.h" />
 <Unit filename="interface/driver/power/low_power.h" />
 <Unit filename="interface/driver/power/lp_msg.h" />
 <Unit filename="interface/driver/power/power_app.h" />
@@ -1674,6 +1690,7 @@
 <Unit filename="interface/media/effects/HowlingGate_api.h" />
 <Unit filename="interface/media/effects/UpmixSystem.h" />
 <Unit filename="interface/media/effects/VirtualBass_api.h" />
+<Unit filename="interface/media/effects/audio_autoduck.h" />
 <Unit filename="interface/media/effects/audio_autotune.h" />
 <Unit filename="interface/media/effects/audio_bass_treble_eq.h" />
 <Unit filename="interface/media/effects/audio_chorus.h" />
@@ -1685,6 +1702,7 @@
 <Unit filename="interface/media/effects/audio_effects.h" />
 <Unit filename="interface/media/effects/audio_eq.h" />
 <Unit filename="interface/media/effects/audio_flanger.h" />
+<Unit filename="interface/media/effects/audio_frequency_compressor.h" />
 <Unit filename="interface/media/effects/audio_frequency_shift_howling.h" />
 <Unit filename="interface/media/effects/audio_gain_process.h" />
 <Unit filename="interface/media/effects/audio_harmonic_exciter.h" />
@@ -1730,6 +1748,7 @@
 <Unit filename="interface/media/effects/eq_func_define.h" />
 <Unit filename="interface/media/effects/excitor_api.h" />
 <Unit filename="interface/media/effects/fix_iir_filter_api.h" />
+<Unit filename="interface/media/effects/frequency_compressor_api.h" />
 <Unit filename="interface/media/effects/gain_mix_api.h" />
 <Unit filename="interface/media/effects/howling_pitchshifter_api.h" />
 <Unit filename="interface/media/effects/lf_chorusStereo_api.h" />

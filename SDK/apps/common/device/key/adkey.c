@@ -67,7 +67,7 @@ int adkey_init(void)
 #endif
 
     if (__this->long_press_enable) {
-        gpio_longpress_pin0_reset_config(__this->adkey_pin, 0, __this->long_press_time,  1,  PORT_KEEP_STATE);
+        gpio_longpress_pin0_reset_config(__this->adkey_pin, 0, __this->long_press_time,  1,  PORT_KEEP_STATE, 0);
     }
 
     return 0;

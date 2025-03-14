@@ -1,19 +1,50 @@
 #ifndef _ICSD_ADT_ALG_H
 #define _ICSD_ADT_ALG_H
 
+//==========ADJDCC=========================
+typedef struct {
+    s16 *refmic;
+    s16 *errmic;
+    u16 len;
+} __adt_adjdcc_run_parm;
+
+typedef struct {
+    u8 result;
+} __adt_adjdcc_output;
+
+int icsd_adt_adjdcc_get_libfmt();
+int icsd_adt_adjdcc_set_infmt(int _ram_addr, u8 TOOL_FUNCTION);
+u8  icsd_adt_adjdcc_run(__adt_adjdcc_run_parm *_run_parm, __adt_adjdcc_output *_output);
+//==========HOWL=========================
+typedef struct {
+    s16 *ref;
+    s16 *anco;
+} __adt_howl_run_parm;
+
+typedef struct {
+    u8 howl_output;
+} __adt_howl_output;
+
+int icsd_adt_howl_get_libfmt();
+int icsd_adt_howl_set_infmt(int _ram_addr);
+void icsd_adt_howl_run(__adt_howl_run_parm *_run_parm, __adt_howl_output *_output);
 //==========AVC=========================
 typedef struct {
     s16 *refmic;
     s16 *dac_data;
+    u8  type;
 } __adt_avc_run_parm;
 
 typedef struct {
     int ctl_lvl;
+    float spldb_iir;
 } __adt_avc_output;
 
-int icsd_adt_avc_get_libfmt();
-int icsd_adt_avc_set_infmt(int _ram_addr);
+int icsd_adt_avc_get_libfmt(u8 type);
+int icsd_adt_avc_set_infmt(int _ram_addr, u8 type);
 void icsd_adt_avc_run(__adt_avc_run_parm *_run_parm, __adt_avc_output *_output);
+void icsd_adt_avc_config_update_run(void *_config);
+void icsd_adt_tidy_avc_alg_run();
 //==========RTANC========================
 typedef struct {
     u8  dma_ch;
@@ -37,14 +68,16 @@ typedef struct {
     float *szpz_out;
 } __adt_rtanc_part2_parm;
 
-int  icsd_adt_rtanc_get_libfmt();
-int  icsd_adt_rtanc_set_infmt(int _ram_addr);
+int  icsd_adt_rtanc_get_libfmt(u8 rtanc_type);
+int  icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool, u8 rtanc_type, u8 TOOL_FUNCTION);
 void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm);
 void icsd_adt_alg_rtanc_part2_parm_init();
-void icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);
+u8   icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);
 u8 	 icsd_adt_alg_rtanc_get_wind_lvl();
+u8   icsd_adt_alg_rtanc_get_adjdcc_result();
 void icsd_adt_alg_rtanc_part1_reset();
 void icsd_adt_rtanc_alg_output(void *rt_param_l, void *rt_param_r);
+void icsd_adt_rtanc_fadegain_update_run(void *_param);
 //==========EIN========================
 typedef struct {
     s16 *adc_ref_buf;
@@ -130,7 +163,7 @@ typedef struct {
 } __adt_win_output;
 
 int  icsd_adt_wind_get_libfmt();
-int  icsd_adt_wind_set_infmt(int _ram_addr);
+int  icsd_adt_wind_set_infmt(int _ram_addr, u8 TOOL_FUNCTION);
 void icsd_adt_alg_wind_run(__adt_win_run_parm *_run_parm, __adt_win_output *_output);
 void icsd_adt_alg_wind_run_part1(__adt_win_run_parm *_run_parm, __adt_win_output *_output);
 void icsd_adt_alg_wind_run_part2(__adt_win_run_parm *_run_parm, __adt_win_output *_output);
@@ -164,6 +197,10 @@ typedef struct {
 
 int  icsd_adt_vdt_get_libfmt();
 int  icsd_adt_vdt_set_infmt(int _ram_addr);
+void icsd_adt_alg_rtanc_de_run_l();
 void icsd_adt_alg_vdt_run(__adt_vdt_run_parm *_run_parm, __adt_vdt_output *_output);
 void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float ref_mgain, float err_mgain, float tlk_mgain);
+void icsd_adt_alg_rtanc_adjdcc_flag_set(u8 flag);
+u8 icsd_adt_alg_adjdcc_trigger_update(u8 env_level, float *table);
+u8 icsd_adt_alg_rtanc_adjdcc_flag_get();
 #endif

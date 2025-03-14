@@ -23,6 +23,7 @@
 
 #if defined(TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
+#include "icsd_anc_user.h"
 #endif
 
 #if TCFG_AUDIO_DUT_ENABLE
@@ -103,7 +104,7 @@ u8 audio_get_mic_index(u8 mic_ch)
 u8 audio_get_mic_num(u32 mic_ch)
 {
     u8 mic_num = 0;
-    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+    for (int i = 0; i < 8; i++) {
         if (mic_ch & BIT(i)) {
             mic_num++;
         }
@@ -244,8 +245,21 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
         }
 #endif
         esco_adc_f.read_flag = 1;
+
+        u32 mic_ch = esco_adc_f.cfg.mic_en_map;
+#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+        if (const_adc_async_en) {
+            /*同时开ANC和免摘功能时，配置ADC固定打开的adc数字通道数*/
+            mic_ch |= icsd_get_ref_mic_L_ch() | icsd_get_fb_mic_L_ch();
+
+            if (get_icsd_adt_mic_num() == 3) {
+                mic_ch |= icsd_get_talk_mic_ch();
+            }
+
+        }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
         for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
-            if (esco_adc_f.cfg.mic_en_map & BIT(i)) {
+            if (mic_ch & BIT(i)) {
                 audio_adc_add_ch(&adc_hdl, i);
             }
         }
@@ -260,6 +274,7 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
         }
     }
 #endif
+
     /* audio_all_adc_file_init(); */
     audio_adc_file_global_cfg_init();
 }

@@ -331,6 +331,14 @@ static int volume_ioc_update_parm(struct volume_hdl *hdl, int parm)
             ret = true;
         }
         break;
+    case VOLUME_NODE_CMD_SET_OFFSET:
+        float offset_dB = (float)(value / 100.f);
+        if (hdl && hdl->dvol_hdl) {
+            audio_digital_vol_offset_dB_set(hdl->dvol_hdl, offset_dB);
+            log_debug("SET vol offset update success : %d / 100\n", (int)(offset_dB * 100));
+            ret = true;
+        }
+        break;
     default:
         if (!hdl->dvol_hdl || hdl->online_update_disable) {
             break;

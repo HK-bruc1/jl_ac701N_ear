@@ -23,6 +23,10 @@
 #include "audio_anc.h"
 #include "audio_anc_fade_ctr.h"
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #if 0
 #define anc_fade_log	printf
 #else
@@ -130,12 +134,27 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
             }
         }
     }
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    struct rt_anc_fade_gain_ctr rt_anc_fade;
+    rt_anc_fade.lff_gain = lff_gain;
+    rt_anc_fade.lfb_gain = lfb_gain;
+    rt_anc_fade.rff_gain = rff_gain;
+    rt_anc_fade.rfb_gain = rfb_gain;
+    audio_rtanc_fade_gain_suspend(&rt_anc_fade);
+#endif
+
     anc_fade_log("fade lff %d, lfb %d, rff %d, rfb %d\n", lff_gain, lfb_gain, rff_gain, rfb_gain);
     audio_anc_fade_cfg_set(fade_en, 1, 0);
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFF, lff_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFB, lfb_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_RFF, rff_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_RFB, rfb_gain);
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    audio_rtanc_fade_gain_resume();
+#endif
+
     os_mutex_post(&fade_mutex);
 }
 

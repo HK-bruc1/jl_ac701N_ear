@@ -18,6 +18,7 @@
 #include "asm/audio_src.h"
 #include "audio_anc_debug_tool.h"
 #include "effects/convert_data.h"
+#include "asm/dac.h"
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -26,9 +27,9 @@
 #define ICSD_ANC_TASK_NAME  "icsd_anc"
 #define ICSD_ADT_TASK_NAME  "icsd_adt"
 #define ICSD_SRC_TASK_NAME  "icsd_src"
+#define ICSD_DE_TASK_NAME   "rt_de"
 #define ICSD_RTANC_TASK_NAME "rt_anc"
 
-struct adt_function	*ADT_FUNC;
 __adt_anc46k_ctl *ANC46K_CTL = NULL;
 int (*adt_printf)(const char *format, ...) = _adt_printf;
 
@@ -176,6 +177,11 @@ void icsd_post_rtanctask_msg(u8 cmd)
     adt_post_msg(ICSD_RTANC_TASK_NAME, cmd, 0);
 }
 
+void icsd_post_detask_msg(u8 cmd)
+{
+    adt_post_msg(ICSD_DE_TASK_NAME, cmd, 0);
+}
+
 static void icsd_anc_process_task(void *priv)
 {
     int res = 0;
@@ -224,10 +230,23 @@ static void icsd_rtanc_task(void *priv)
     }
 }
 
+static void icsd_de_task(void *priv)
+{
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            icsd_de_task_handler(msg[1]);
+        }
+    }
+}
+
 static u8 icsd_anc_task = 0;
 static u8 adt_task = 0;
 static u8 src_task = 0;
 static u8 rtanc_task = 0;
+static u8 de_task = 0;
 static void adt_task_create(void (*task)(void *p), const char *name, u8 *task_flag)
 {
     if (*task_flag == 0) {
@@ -251,6 +270,7 @@ void icsd_task_create()
     adt_task_create(icsd_src_task, ICSD_SRC_TASK_NAME, &src_task);
     if (ICSD_RTANC_EN) {
         adt_task_create(icsd_rtanc_task, ICSD_RTANC_TASK_NAME, &rtanc_task);
+        adt_task_create(icsd_de_task, ICSD_DE_TASK_NAME, &de_task);
     }
 }
 
@@ -261,6 +281,7 @@ void icsd_task_kill()
     adt_task_kill(ICSD_SRC_TASK_NAME, &src_task);
     if (ICSD_RTANC_EN) {
         adt_task_kill(ICSD_RTANC_TASK_NAME, &rtanc_task);
+        adt_task_kill(ICSD_DE_TASK_NAME, &de_task);
     }
 }
 
@@ -275,79 +296,6 @@ void icsd_adt_anc46k_out_isr()
     if (ANC46K_CTL->loop_remain >= 512) {
         os_taskq_post_msg("anc", 1, ANC_MSG_46KOUT_DEMO);
     }
-}
-
-//////临时添加
-u8 audio_adt_talk_mic_analog_close()
-{
-    printf("talk_mic_analog_close\n");
-    return 0;
-}
-u8 audio_adt_talk_mic_analog_open()
-{
-    printf("talk_mic_analog_open\n");
-    return 0;
-}
-
-u8  audio_anc_debug_busy_get(void);
-int audio_dac_read_anc_reset(void);
-int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
-void adt_function_init()
-{
-    printf("adt_function_init\n");
-    //sys
-    ADT_FUNC->os_time_dly = os_time_dly;
-    ADT_FUNC->os_sem_set = os_sem_set;
-    ADT_FUNC->os_sem_create = os_sem_create;
-    ADT_FUNC->os_sem_del = os_sem_del;
-    ADT_FUNC->os_sem_pend = os_sem_pend;
-    ADT_FUNC->os_sem_post = os_sem_post;
-    ADT_FUNC->local_irq_disable = local_irq_disable;
-    ADT_FUNC->local_irq_enable = local_irq_enable;
-    ADT_FUNC->icsd_post_adttask_msg = icsd_post_adttask_msg;
-    ADT_FUNC->icsd_post_srctask_msg = icsd_post_srctask_msg;
-    ADT_FUNC->icsd_post_anctask_msg = icsd_post_anctask_msg;
-    ADT_FUNC->icsd_post_rtanctask_msg = icsd_post_rtanctask_msg;
-    ADT_FUNC->jiffies_usec = jiffies_usec;
-    ADT_FUNC->jiffies_usec2offset = jiffies_usec2offset;
-    ADT_FUNC->audio_anc_debug_send_data = audio_anc_debug_send_data;
-    ADT_FUNC->audio_anc_debug_busy_get = audio_anc_debug_busy_get;
-    ADT_FUNC->audio_adt_talk_mic_analog_close = audio_adt_talk_mic_analog_close;
-    ADT_FUNC->audio_adt_talk_mic_analog_open = audio_adt_talk_mic_analog_open;
-    ADT_FUNC->audio_anc_mic_gain_get = audio_anc_mic_gain_get;
-    //tws
-    ADT_FUNC->tws_api_get_role = tws_api_get_role;
-    ADT_FUNC->tws_api_get_tws_state = tws_api_get_tws_state;
-    ADT_FUNC->icsd_adt_tws_state = icsd_adt_tws_state;
-    //anc
-    ADT_FUNC->anc_dma_done_ppflag = anc_dma_done_ppflag;
-    ADT_FUNC->anc_dma_on_double = anc_dma_on_double;
-#if ANC_CHIP_VERSION != ANC_VERSION_BR28
-    ADT_FUNC->anc_dma_on_double_4ch = anc_dma_on_double_4ch;
-#endif
-    ADT_FUNC->icsd_adt_hw_suspend = icsd_adt_hw_suspend;
-    ADT_FUNC->icsd_adt_hw_resume = icsd_adt_hw_resume;
-    ADT_FUNC->icsd_adt_anc46k_out_reset = icsd_adt_anc46k_out_reset;
-    ADT_FUNC->icsd_adt_anc46k_out_isr = icsd_adt_anc46k_out_isr;
-    //dac
-    ADT_FUNC->audio_dac_read_anc_reset = audio_dac_read_anc_reset;
-    ADT_FUNC->audio_dac_read_anc = audio_dac_read_anc;
-    //src
-    ADT_FUNC->icsd_adt_src_write = icsd_adt_src_write;
-    ADT_FUNC->icsd_adt_src_push = icsd_adt_src_push;
-    ADT_FUNC->icsd_adt_src_close = icsd_adt_src_close;
-    ADT_FUNC->icsd_adt_src_init = icsd_adt_src_init;
-    //OUTPUT
-    ADT_FUNC->icsd_VDT_output = icsd_VDT_output_demo;
-    ADT_FUNC->icsd_WAT_output = icsd_WAT_output_demo;
-    ADT_FUNC->icsd_WDT_output = icsd_WDT_output_demo;
-    ADT_FUNC->icsd_EIN_output = icsd_EIN_output_demo;
-    ADT_FUNC->icsd_AVC_output = icsd_AVC_output_demo;
-
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    ADT_FUNC->icsd_RTANC_output = audio_adt_rtanc_output_handle;
-#endif
-
 }
 
 void icsd_adt_tone_play_handler(u8 idx)
@@ -368,35 +316,144 @@ void icsd_adt_tone_play_handler(u8 idx)
     }
 }
 
-extern int audio_dac_read_base(s16 points_offset, void *data, int len, u8 read_channel, u8 autocorrection);
-extern int audio_dac_read_reset(void);
+static struct dac_read_handle icsd_dac_read_hdl = {
+    .read_pos = DAC_READ_MAGIC,
+    .cur_dac_hrp = 0,
+    .last_dac_hrp = 0,
+    .dac_hrp_diff = 0,
+};
+
+extern int audio_dac_read_base(struct dac_read_handle *hdl, s16 points_offset, void *data, int len, u8 read_channel, u8 autocorrection);
+extern int audio_dac_read_base_reset(struct dac_read_handle *hdl);
 extern struct dac_platform_data dac_data;
 int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel)
 {
     int rlen;
     if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
         s32 *tmp_buf = zalloc(len * 2 * read_channel);
-        rlen = audio_dac_read_base(points_offset, tmp_buf, len * 2, read_channel, 0);
+        rlen = audio_dac_read_base(&icsd_dac_read_hdl, points_offset, tmp_buf, len * 2, read_channel, 0);
         if (rlen) {
             audio_convert_data_32bit_to_16bit_round((s32 *)tmp_buf, (s16 *)data, (len * 2 * read_channel) >> 2);
         }
         free(tmp_buf);
     } else {
-        rlen = audio_dac_read_base(points_offset, data, len, read_channel, 0);
+        rlen = audio_dac_read_base(&icsd_dac_read_hdl, points_offset, data, len, read_channel, 0);
     }
     return rlen;
 }
 
 int audio_dac_read_anc_reset(void)
 {
-    audio_dac_read_reset();
+    audio_dac_read_base_reset(&icsd_dac_read_hdl);
     if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
-        audio_dac_read(0, 0, 124 * 2, 1);
+        audio_dac_read_base(&icsd_dac_read_hdl, 0, 0, 124 * 2, 1, 0);
     } else {
-        audio_dac_read(0, 0, 124, 1);
+        audio_dac_read_base(&icsd_dac_read_hdl, 0, 0, 124, 1, 0);
     }
     return 0;
 }
+
+
+//临时添加
+u8 audio_adt_talk_mic_analog_close()
+{
+    /* printf("talk_mic_analog_close\n"); */
+    return 0;
+}
+u8 audio_adt_talk_mic_analog_open()
+{
+    printf("talk_mic_analog_open\n");
+    return 0;
+}
+
+/*处理br28没有anc_dma_on_double_4ch函数，避免调用空指针死机问题*/
+void br28_test_fun_anc_dma_on_double_4ch(u8 ch1_out_sel, u8 ch2_out_sel, int *buf, int irq_point)
+{
+}
+
+extern u8  audio_anc_debug_busy_get(void);
+extern int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
+extern void audio_icsd_adptive_vol_output_handle(__adt_avc_output *_output);
+const struct adt_function ADT_FUNC_t = {
+    .os_time_dly = os_time_dly,
+    .os_sem_set = os_sem_set,
+    .os_sem_create = os_sem_create,
+    .os_sem_del = os_sem_del,
+    .os_sem_pend = os_sem_pend,
+    .os_sem_post = os_sem_post,
+    .local_irq_disable = local_irq_disable,
+    .local_irq_enable = local_irq_enable,
+    .icsd_post_adttask_msg = icsd_post_adttask_msg,
+    .icsd_post_srctask_msg = icsd_post_srctask_msg,
+    .icsd_post_anctask_msg = icsd_post_anctask_msg,
+    .icsd_post_rtanctask_msg = icsd_post_rtanctask_msg,
+    .icsd_post_detask_msg = icsd_post_detask_msg,
+    .jiffies_usec = jiffies_usec,
+    .jiffies_usec2offset = jiffies_usec2offset,
+    .audio_anc_debug_send_data = audio_anc_debug_send_data,
+    .audio_anc_debug_busy_get = audio_anc_debug_busy_get,
+    .audio_adt_talk_mic_analog_close = audio_adt_talk_mic_analog_close,
+    .audio_adt_talk_mic_analog_open = audio_adt_talk_mic_analog_open,
+    .audio_anc_mic_gain_get = audio_anc_mic_gain_get,
+    .tws_api_get_role = tws_api_get_role,
+    .tws_api_get_tws_state = tws_api_get_tws_state,
+    .icsd_adt_tws_state = icsd_adt_tws_state,
+    .anc_dma_done_ppflag = anc_dma_done_ppflag,
+    .anc_dma_on_double = anc_dma_on_double,
+    .icsd_adt_hw_suspend = icsd_adt_hw_suspend,
+    .icsd_adt_hw_resume = icsd_adt_hw_resume,
+    .icsd_adt_anc46k_out_reset = icsd_adt_anc46k_out_reset,
+    .icsd_adt_anc46k_out_isr = icsd_adt_anc46k_out_isr,
+    .audio_dac_read_anc_reset = audio_dac_read_anc_reset,
+    .audio_dac_read_anc = audio_dac_read_anc,
+    .icsd_adt_src_write = icsd_adt_src_write,
+    .icsd_adt_src_push = icsd_adt_src_push,
+    .icsd_adt_src_close = icsd_adt_src_close,
+    .icsd_adt_src_init = icsd_adt_src_init,
+#if ANC_CHIP_VERSION != ANC_VERSION_BR28
+    .anc_dma_on_double_4ch = anc_dma_on_double_4ch,
+#else
+    .anc_dma_on_double_4ch = br28_test_fun_anc_dma_on_double_4ch,
+#endif
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    .icsd_VDT_output = audio_speak_to_chat_output_handle,
+#else
+    .icsd_VDT_output = 0,
+#endif
+#if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
+    .icsd_WAT_output = audio_wat_click_output_handle,
+#else
+    .icsd_WAT_output = 0,
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    .icsd_WDT_output = audio_icsd_wind_detect_output_handle,
+#else
+    .icsd_WDT_output = 0,
+#endif
+#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+    .icsd_AVC_output = audio_icsd_adptive_vol_output_handle,
+#else
+    .icsd_AVC_output = 0,
+#endif
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    .icsd_RTANC_output = audio_adt_rtanc_output_handle,
+#else
+    .icsd_RTANC_output = 0,
+#endif
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    .icsd_ADJDCC_output = icsd_ADJDCC_output_demo,
+#else
+    .icsd_ADJDCC_output = 0,
+#endif
+#if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
+    .icsd_HOWL_output = audio_anc_howling_detect_output_handle,
+#else
+    .icsd_HOWL_output = 0,
+#endif
+
+    .icsd_EIN_output = icsd_EIN_output_demo,
+};
+struct adt_function	*ADT_FUNC = (struct adt_function *)(&ADT_FUNC_t);
 
 #endif /*(defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 

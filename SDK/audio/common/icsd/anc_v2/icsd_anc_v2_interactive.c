@@ -52,6 +52,10 @@
 #include "icsd_adt_app.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #if 1
 #define anc_log	printf
 #else
@@ -267,24 +271,29 @@ static void audio_anc_dac_check_slience_cb(void *buf, int len)
 int audio_anc_mode_ear_adaptive_permit(void)
 {
     if (anc_ext_ear_adaptive_param_check()) { //没有自适应参数
-        return 1;
+        return ANC_EXT_OPEN_FAIL_CFG_MISS;
     }
     if (hdl->param->mode != ANC_ON) {	//非ANC模式
-        return 1;
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
     if (hdl->adaptive_state != EAR_ADAPTIVE_STATE_END) { //重入保护
-        return 1;
+        return ANC_EXT_OPEN_FAIL_REENTRY;
     }
     if (adc_file_is_runing()) { //通话不支持
         /* if (esco_player_runing()) { //通话不支持 */
-        return 1;
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
     if (anc_mode_switch_lock_get()) { //其他切模式过程不支持
-        return 1;
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
     if (audio_icsd_afq_is_running()) {	//AFQ 运行过程中不支持
-        return 1;
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+    }
+#endif
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    if (audio_anc_real_time_adaptive_state_get()) {	//RTANC运行过程不支持
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
 #endif
     return 0;
@@ -294,7 +303,7 @@ int audio_anc_ear_adaptive_open(void)
 {
 
 #if ANC_EAR_ADAPTIVE_CMP_EN
-    audio_anc_ear_adaptive_cmp_open();
+    audio_anc_ear_adaptive_cmp_open(CMP_FROM_ANC_EAR_ADAPTIVE);
 #endif
 
 #if ANC_MULT_ORDER_ENABLE
@@ -361,10 +370,12 @@ void audio_anc_mode_ear_adaptive_sync_cb(void *_data, u16 len, bool rx)
 }
 
 #define TWS_FUNC_ID_ANC_EAR_ADAPTIVE_SYNC    TWS_FUNC_ID('A', 'D', 'A', 'P')
+#if TCFG_USER_TWS_ENABLE
 REGISTER_TWS_FUNC_STUB(anc_ear_adaptive_mode_sync) = {
     .func_id = TWS_FUNC_ID_ANC_EAR_ADAPTIVE_SYNC,
     .func    = audio_anc_mode_ear_adaptive_sync_cb,
 };
+#endif
 
 /*自适应模式-重新检测
  * param: tws_sync_en          1 TWS同步自适应，支持TWS降噪平衡，需左右耳一起调用此接口
@@ -843,6 +854,8 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
 
     float *lcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
     float *rcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
+    u8 *lcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
+    u8 *rcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
 #endif
 
     if (anc_ext_ear_adaptive_train_mode_get()) {
@@ -866,7 +879,7 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
     audio_anc_adaptive_fr_fail_fill(fb_dat, fb_yorder, (result & ANC_ADAPTIVE_RESULT_LFB));
 #if ANC_EAR_ADAPTIVE_CMP_EN
     cmp_dat = (u8 *)&iir->lcmp_gain;
-    audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, icsd_cmp_type);
+    audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, lcmp_type);
     audio_anc_adaptive_fr_fail_fill(cmp_dat, cmp_yorder, (result & ANC_ADAPTIVE_RESULT_LCMP));
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #endif/*ANC_CONFIG_LFB_EN*/
@@ -895,10 +908,10 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
     rcmp_dat = (u8 *)&iir->rcmp_gain;
     if (!ANC_CONFIG_LFB_EN) {	//TWS 单R声道使用
         cmp_dat = rcmp_dat;
-        audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, icsd_cmp_type);
+        audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, lcmp_type);
         audio_anc_adaptive_fr_fail_fill(cmp_dat, cmp_yorder, (result & ANC_ADAPTIVE_RESULT_LCMP));
     } else {
-        audio_anc_fr_format(rcmp_dat, rcmp_output, cmp_yorder, icsd_cmp_type);
+        audio_anc_fr_format(rcmp_dat, rcmp_output, cmp_yorder, rcmp_type);
         audio_anc_adaptive_fr_fail_fill(rcmp_dat, cmp_yorder, (result & ANC_ADAPTIVE_RESULT_RCMP));
     }
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
@@ -990,6 +1003,22 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
     }
 
 }
+
+int audio_anc_ear_adaptive_tool_data_get(u8 **buf, u32 *len)
+{
+    if (anc_adaptive_data == NULL) {
+        printf("EAR ANC packet is NULL, return!\n");
+        return -1;
+    }
+    if (anc_adaptive_data->dat_len == 0) {
+        printf("EAR ANC error: dat_len == 0\n");
+        return -1;
+    }
+    *buf = anc_adaptive_data->dat;
+    *len = anc_adaptive_data->dat_len;
+    return 0;
+}
+
 
 /* 开机自适应数据拼包，预备工具读取 */
 static void audio_anc_adaptive_poweron_catch_data(anc_adaptive_iir_t *iir)

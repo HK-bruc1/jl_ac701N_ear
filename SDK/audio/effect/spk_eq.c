@@ -359,6 +359,12 @@ int spk_eq_read_seg_r(u8 **buf)
     return 0;
 }
 
+//读取SPK EQ总增益, ch: 0 L; 1 R
+float spk_eq_read_global_gain(u8 ch)
+{
+    return spk_eq_global_gain[ch];
+}
+
 int spk_eq_app_online_parse(u8 *packet, u8 size, u8 *ext_data, u16 ext_size)
 {
     if (ext_data) {

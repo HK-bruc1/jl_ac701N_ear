@@ -89,7 +89,6 @@ typedef struct {
 void icsd_ein_get_libfmt(struct icsd_ein_libfmt *libfmt);
 void icsd_ein_set_infmt(struct icsd_ein_infmt *fmt);
 void icsd_alg_ein_run(__icsd_ein_run_parm *run_parm, __icsd_ein_output *output);
-void ein_function_init();
 
 
 extern const u8 ein_train;

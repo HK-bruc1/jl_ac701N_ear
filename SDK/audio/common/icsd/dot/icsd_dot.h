@@ -8,7 +8,7 @@
 #include "math.h"
 #include "icsd_common_v2.h"
 
-#if 1
+#if 0
 #define _dot_printf printf
 #else
 #define _dot_printf icsd_printf_off

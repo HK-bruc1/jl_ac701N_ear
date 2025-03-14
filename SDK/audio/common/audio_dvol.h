@@ -58,8 +58,12 @@ typedef struct {
     struct list_head entry;
 #endif
     float  min_db;         /*最小音量的分贝数*/
-    float  max_db;         /*最小音量的分贝数*/
+    float  max_db;         /*最大音量的分贝数*/
     u16 *vol_table;            /*自定义音量表*/
+    float  offset_dB;            /*音量偏移分贝数*/
+    s16    offset;              /*音量偏移大小*/
+    s16  min_vol;         /*最小音量幅度*/
+    s16  max_vol;         /*最大音量幅度*/
 } dvol_handle;
 
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max);
@@ -68,6 +72,7 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params *params);
 void audio_digital_vol_close(dvol_handle  *dvol);
 void audio_digital_vol_set(dvol_handle *dvol, u16 vol);
 void audio_digital_vol_set_mute(dvol_handle *dvol, u8 mute_en);
+void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB);
 int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len);
 void audio_digital_vol_reset_fade(dvol_handle *dvol);
 

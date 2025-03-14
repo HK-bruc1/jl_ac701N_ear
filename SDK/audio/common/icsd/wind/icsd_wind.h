@@ -41,8 +41,6 @@ extern int (*win_printf)(const char *format, ...);
 
 extern const u8 ICSD_WIND_PHONE_TYPE;
 extern const u8 ICSD_WIND_MIC_TYPE;
-extern const u8 ICSD_WIND_ALG_BT_INF;
-extern const u8 ICSD_WIND_DATA_BT_INF;
 
 struct icsd_win_libfmt {
     int lib_alloc_size;  //算法ram需求大小
@@ -51,6 +49,7 @@ struct icsd_win_libfmt {
 struct icsd_win_infmt {
     void *alloc_ptr;     //外部申请的ram地址
     int lib_alloc_size;  //算法ram需求大小
+    u8 TOOL_FUNCTION;
 };
 
 typedef struct {
@@ -86,15 +85,15 @@ typedef struct {
 } __icsd_win_output;
 
 typedef struct {
+    u8 wind_lvl_scale;
+    u8 icsd_wind_num_thr1;
+    u8 icsd_wind_num_thr2;
+    float wind_iir_alpha;
+    float corr_thr;
     float msc_lp_thr;
     float msc_mp_thr;
-    float corr_thr;
-    float cepst_1p_thr;
+    float cpt_1p_thr;
     float ref_pwr_thr;
-    float wind_iir_alpha;
-    u8 wind_lvl_scale;
-    u8 icsd_wind_num_thr2;
-    u8 icsd_wind_num_thr1;
 } __wind_config;
 
 struct wind_function {
@@ -121,7 +120,6 @@ void icsd_wind_set_infmt(struct icsd_win_infmt *fmt);
 float adt_pow10(float n);
 float angle_float(float x, float y);
 
-void wind_function_init();
 void icsd_wind_set_wind(float data);
 
 void icsd_alg_wind_run(__icsd_win_run_parm *run_parm, __icsd_win_output *output);

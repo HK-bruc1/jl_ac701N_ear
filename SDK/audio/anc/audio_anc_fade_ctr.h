@@ -20,6 +20,7 @@ enum anc_fade_mode_t {
     ANC_FADE_MODE_WIND_NOISE,		//ANC风噪检测
     ANC_FADE_MODE_SUSPEND,			//ANC挂起
     ANC_FADE_MODE_HOWLDET,			//啸叫检测
+    ANC_FADE_MODE_ENV_ADAPTIVE_GAIN,//ANC环境噪声自适应增益
     //可再此继续添加模式
     ANC_FADE_MODE_USER,				//用户模式
 };

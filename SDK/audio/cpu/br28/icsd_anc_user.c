@@ -23,12 +23,14 @@
 #if (TCFG_AUDIO_ANC_ENABLE && \
 	(((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) || \
 	((defined TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN) && TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN)))
+#include "icsd_adt_app.h"
 
 struct audio_mic_hdl {
     struct audio_adc_output_hdl adc_output;
     struct adc_mic_ch mic_ch;
     s16 *adc_buf;    //align 2Bytes
     u16 dump_packet;
+    u8 mic_ch_map;
 };
 static struct audio_mic_hdl *audio_mic = NULL;
 extern struct audio_dac_hdl dac_hdl;
@@ -51,6 +53,7 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 
         u16 mic_ch = mic_param->mic_ch_sel;
         u16 sr = mic_param->sample_rate;
+        audio_mic->mic_ch_map = mic_ch;
 
         u8 mic_num = 0;
         /*打开mic电压*/
@@ -88,13 +91,21 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
     } else {
         if (audio_mic) {
 #if TCFG_AUDIO_ANC_ENABLE
-            int mult_flag = audio_anc_mic_mana_fb_mult_get();
+            int mult_flag = audio_anc_mic_mult_flag_get(1);
             if (!mult_flag) {
                 /*设置fb mic为复用mic*/
-                audio_anc_mic_mana_fb_mult_set(1);
+                audio_anc_mic_mult_flag_set(1, 1);
+            }
+            int ff_mult_flag = audio_anc_mic_mult_flag_get(0);
+            if (!ff_mult_flag) {
+                audio_anc_mic_mult_flag_set(0, 1);
             }
 #endif
+#if ICSD_ADT_SHARE_ADC_ENABLE
+            audio_adc_mic_ch_close(&audio_mic->mic_ch, audio_mic->mic_ch_map);
+#else
             audio_adc_mic_close(&audio_mic->mic_ch);
+#endif
             audio_adc_del_output_handler(&adc_hdl, &audio_mic->adc_output);
             if (audio_mic->adc_buf) {
                 /* free(audio_mic->adc_buf);  */
@@ -102,7 +113,10 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 #if TCFG_AUDIO_ANC_ENABLE
             if (!mult_flag) {
                 /*清除fb mic为复用mic的标志*/
-                audio_anc_mic_mana_fb_mult_set(0);
+                audio_anc_mic_mult_flag_set(1, 0);
+            }
+            if (!ff_mult_flag) {
+                audio_anc_mic_mult_flag_set(0, 0);
             }
             if (anc_status_get() == 0)
 #endif
@@ -237,10 +251,10 @@ void icsd_set_clk()
     clock_alloc("icsd_adt", 128 * 1000000L);
 }
 
-void icsd_anc_fade_set(int gain)
+void icsd_anc_fade_set(enum anc_fade_mode_t mode, int gain)
 {
 #if TCFG_AUDIO_ANC_ENABLE
-    audio_anc_fade_ctr_set(ANC_FADE_MODE_WIND_NOISE, AUDIO_ANC_FDAE_CH_ALL, gain);
+    audio_anc_fade_ctr_set(mode, AUDIO_ANC_FDAE_CH_ALL, gain);
 #endif
 }
 
@@ -303,20 +317,49 @@ void icsd_set_tws_t_sniff(u16 slot)
     /* set_tws_t_sniff(slot); */
 }
 
+static u8 talk_mic_ch_cfg_read_flag = 0;
 u8 icsd_get_talk_mic_ch(void)
 {
-    cvp_param_cfg_read();
+    if (!talk_mic_ch_cfg_read_flag) {
+        talk_mic_ch_cfg_read_flag = 1;
+        cvp_param_cfg_read();
+    }
     return cvp_get_talk_mic_ch();
 }
 
-u8 icsd_get_ref_mic_ch(void)
+u8 icsd_get_ref_mic_L_ch(void)
 {
-    return BIT(TCFG_AUDIO_ANCL_FF_MIC);
+    if (ANC_CONFIG_LFF_EN && (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL)) {
+        return BIT(TCFG_AUDIO_ANCL_FF_MIC);
+    } else {
+        return 0;
+    }
 }
 
-u8 icsd_get_fb_mic_ch(void)
+u8 icsd_get_fb_mic_L_ch(void)
 {
-    return BIT(TCFG_AUDIO_ANCL_FB_MIC);
+    if (ANC_CONFIG_LFB_EN && (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL)) {
+        return BIT(TCFG_AUDIO_ANCL_FB_MIC);
+    } else {
+        return 0;
+    }
+}
+u8 icsd_get_ref_mic_R_ch(void)
+{
+    if (ANC_CONFIG_RFF_EN && (TCFG_AUDIO_ANCR_FF_MIC != MIC_NULL)) {
+        return BIT(TCFG_AUDIO_ANCR_FF_MIC);
+    } else {
+        return 0;
+    }
+}
+
+u8 icsd_get_fb_mic_R_ch(void)
+{
+    if (ANC_CONFIG_RFB_EN && (TCFG_AUDIO_ANCR_FB_MIC != MIC_NULL)) {
+        return BIT(TCFG_AUDIO_ANCR_FB_MIC);
+    } else {
+        return 0;
+    }
 }
 
 u8 icsd_get_esco_mic_en_map(void)

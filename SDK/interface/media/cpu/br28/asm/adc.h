@@ -400,7 +400,7 @@ int audio_adc_mic_start(struct adc_mic_ch *mic);
 *********************************************************************
 */
 int audio_adc_mic_close(struct adc_mic_ch *mic);
-int audio_adc_mic1_close(struct adc_mic_ch *mic);
+int audio_adc_mic_ch_close(struct adc_mic_ch *mic, u8 adc_ch);
 
 /*
    *********************************************************************

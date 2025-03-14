@@ -22,6 +22,9 @@
 #define ADT_RTANC_EN				BIT(4) //实时自适应ANC
 #define ADT_EIN_EN                  BIT(5) //入耳检测
 #define ADT_AVC_EN                  BIT(6) //自适应音量
+//#define ADT_RTANC_TIDY_EN                  BIT(7) //RTANC TIDY mode 占用
+#define ADT_ADJDCC_EN               BIT(8) //自适应DCC
+#define ADT_HOWL_EN                 BIT(9) //防啸叫
 
 #define ADT_PATH_3M_EN         		BIT(0)
 extern u8 ADT_PATH_CONFIG;
@@ -39,6 +42,14 @@ extern u8 ADT_PATH_CONFIG;
 #define ADT_INF_12					BIT(12)//open talk mic
 extern const u16 ADT_DEBUG_INF;
 
+//u16 mic_type
+#define ADT_REFMIC_L				BIT(0)
+#define ADT_REFMIC_R				BIT(1)
+#define ADT_ERRMIC_L				BIT(2)
+#define ADT_ERRMIC_R				BIT(3)
+#define ADT_TLKMIC_L				BIT(4)
+#define ADT_TLKMIC_R				BIT(5)
+
 struct adt_function {
     //sys
     void (*os_time_dly)(int tick);
@@ -53,6 +64,7 @@ struct adt_function {
     void (*icsd_post_srctask_msg)(u8 cmd);
     void (*icsd_post_anctask_msg)(u8 cmd);
     void (*icsd_post_rtanctask_msg)(u8 cmd);
+    void (*icsd_post_detask_msg)(u8 cmd);
     int (*jiffies_usec2offset)(unsigned long begin, unsigned long end);
     unsigned long (*jiffies_usec)(void);
     int (*audio_anc_debug_send_data)(u8 *buf, int len);
@@ -90,12 +102,16 @@ struct adt_function {
     void (*icsd_EIN_output)(u8 ein_state);
     void (*icsd_AVC_output)(__adt_avc_output *_output);
     void (*icsd_RTANC_output)(void *rt_param_l, void *rt_param_r);
+    void (*icsd_ADJDCC_output)(u8 result);
+    void (*icsd_HOWL_output)(u8 result);
 };
 extern struct adt_function	*ADT_FUNC;
 
 struct icsd_acoustic_detector_infmt {
+    u8 TOOL_FUNCTION;
     void *param;
     u16 sample_rate;     //当前播放采样率
+    u16 adc_sr;           //MIC数据采样率
     u8 ein_state;
     u8 ff_gain;
     u8 fb_gain;
@@ -122,6 +138,7 @@ struct icsd_acoustic_detector_infmt {
     u32   trans_alogm;
     u32   alogm;
     void *alloc_ptr;    //外部申请的ram地址
+    struct icsd_rtanc_tool_data *rtanc_tool;
     /*
         算法结果输出
         voice_state: 0 无讲话； 1 有讲话
@@ -137,6 +154,8 @@ struct icsd_acoustic_detector_libfmt {
     int adc_sr;          //ADC 采样率
     int lib_alloc_size;  //算法ram需求大小
     u8 mic_num;			 //需要打开的mic个数
+    u8 rtanc_type;      //RTANC类型(传入参数)
+    u16 mic_type;
 };
 
 typedef struct {
@@ -183,6 +202,7 @@ extern const u8 ICSD_AVC_EN;
 extern const u8 ICSD_RTANC_EN;
 extern const u8 ICSD_RTAEQ_EN;
 extern const u8 ICSD_46KOUT_EN;
+extern const u8 ICSD_ADJDCC_EN;
 
 extern s16 *adt_dac_loopbuf;
 extern int (*adt_printf)(const char *format, ...);
@@ -203,6 +223,7 @@ void icsd_adt_task_handler(int msg, int msg2);
 void icsd_src_task_handler(int msg);
 void icsd_adt_anctask_handle(u8 cmd);
 void icsd_rtanc_task_handler(int msg);
+void icsd_de_task_handler(int msg);
 void icsd_task_create();
 //anc
 void icsd_adt_dma_done();
@@ -210,8 +231,6 @@ void icsd_adt_dma_done();
 void icsd_adt_set_audio_sample_rate(u16 sample_rate);
 void icsd_adt_dac_loopbuf_malloc(u16 points);
 void icsd_adt_dac_loopbuf_free();
-//init
-void adt_function_init();
 //APP调用的LIB函数
 void icsd_acoustic_detector_get_libfmt(struct icsd_acoustic_detector_libfmt *libfmt, int function);
 void icsd_acoustic_detector_set_infmt(struct icsd_acoustic_detector_infmt *fmt);
@@ -234,12 +253,26 @@ void icsd_WAT_output_demo(u8 wat_result);
 void icsd_VDT_output_demo(u8 vdt_result);
 void icsd_EIN_output_demo(u8 ein_state);
 void icsd_AVC_output_demo(__adt_avc_output *_output);
+void icsd_RTANC_output_demo(void *rt_param_l, void *rt_param_r);
+void icsd_ADJDCC_output_demo(u8 result);
+//RTANC
+void icsd_adt_rtanc_fadegain_update(void *param);//使用该函数过程中需要锁住，确保调用过程中ADT空间不会被释放
+//AVC
+void icsd_adt_avc_config_update(void *_config);
+void icsd_HOWL_output_demo(u8 result);
 
 void icsd_adt_tone_play_handler(u8 idx);
 u8 	 icsd_adt_get_wind_lvl();
+u8 icsd_adt_get_adjdcc_result();
+int audio_dac_read_anc_reset(void);
 
 extern const u8 rt_anc_dac_en;
 extern const u8 mic_input_v2;
 extern const u8 RTANC_ALG_DEBUG;
+extern const u8 ICSD_WDT_V2;
+extern const u8 ICSD_HOWL_REF_EN;
+extern const u8 avc_run_interval;
+extern const u8 tidy_avc_run_interval;
+
 
 #endif

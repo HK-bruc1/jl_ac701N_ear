@@ -9,6 +9,12 @@ enum {
     AFQ_COMMON_MSG_RUN = 0xA1,
 };
 
+enum {
+    ANC_EXT_OPEN_FAIL_REENTRY = 0x1,	//重入
+    ANC_EXT_OPEN_FAIL_FUNC_CONFLICT,	//功能冲突
+    ANC_EXT_OPEN_FAIL_CFG_MISS,			//参数缺失
+};
+
 //频响获取选择
 enum audio_adaptive_fre_sel {
     AUDIO_ADAPTIVE_FRE_SEL_AFQ = 0,

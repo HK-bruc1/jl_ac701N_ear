@@ -150,7 +150,6 @@ bass_no_past_source_t no_past_broadcast_sink_notify;
 static u8 no_past_broadcast_num = 0;
 static u8 encry_lock = 0;
 static u16 auracast_scan_time = 0;
-extern void set_ext_scan_priority(u8 set_pr);
 
 #if TCFG_USER_TWS_ENABLE
 static auracast_delegator_info_t *g_tws_auracast_delegator = NULL;
@@ -562,10 +561,10 @@ void auracast_scan_switch_priority(void *_sw)
     //edr classic acl priority 30-11=19
     if (sw) {
         /* putchar('S'); */
-        set_ext_scan_priority(12);//30-12=18
+        ble_op_ext_scan_set_priority(12);//30-12=18
     } else {
         /* putchar('s'); */
-        set_ext_scan_priority(8);//30-8=22
+        ble_op_ext_scan_set_priority(8);//30-8=22
         timeout = a2dp_play ? 500 : 600;
     }
     sw = !sw;

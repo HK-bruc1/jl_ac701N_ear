@@ -83,7 +83,7 @@ int spatial_effect_imu_dut_start()
 {
 
     if (send_timer == 0) {
-        send_timer = usr_timer_add(NULL, spatial_effect_imu_dut_data_timer, IMU_DATA_SEND_INTERVAL, 1);
+        send_timer = sys_timer_add(NULL, spatial_effect_imu_dut_data_timer, IMU_DATA_SEND_INTERVAL);
     }
     return 0;
 }
@@ -91,7 +91,7 @@ int spatial_effect_imu_dut_start()
 int spatial_effect_imu_dut_stop()
 {
     if (send_timer) {
-        usr_timer_del(send_timer);
+        sys_timer_del(send_timer);
         send_timer = 0;
     }
     return 0;

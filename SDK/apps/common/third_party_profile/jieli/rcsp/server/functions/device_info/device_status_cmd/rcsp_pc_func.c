@@ -14,6 +14,7 @@
 #include "JL_rcsp_api.h"
 #include "JL_rcsp_attr.h"
 #include "pc_spk_player.h"
+#include "app_msg.h"
 
 #if (RCSP_MODE && TCFG_APP_PC_EN && TCFG_USB_SLAVE_AUDIO_SPK_ENABLE)
 
@@ -21,11 +22,10 @@
 
 bool rcsp_pc_func_set(void *priv, u8 *data, u16 len)
 {
-    r_printf("\n\n\n\nrcsp_pc_func_set\n");
     put_buf(data, len);
     u8 fun_cmd = data[1];
     u8 state = data[2];
-    printf("\n\n\nfun_cmd %d\n", fun_cmd);
+    printf("\n\nrcsp_pc_func_set fun_cmd %d\n", fun_cmd);
     switch (fun_cmd) {
     case 0:
         app_send_message(APP_MSG_MUSIC_PP, 0);
@@ -49,7 +49,7 @@ u32 rcsp_pc_func_get(void *priv, u8 *buf, u16 buf_size, u32 mask)
 {
     u16 offset  = 0;
 
-    r_printf("\n\n\nget mask %d\n", mask);
+    r_printf("\n\nrcsp_pc_func_get mask %d\n", mask);
 
     if (mask & BIT(PC_INFO_ATTR_STATUS)) {
         u8 status = pc_spk_player_runing();
@@ -71,15 +71,9 @@ void rcsp_pc_msg_deal(int msg)
     case APP_MSG_MUSIC_PP:
         rcsp_device_status_update(PC_FUNCTION_MASK, BIT(PC_INFO_ATTR_STATUS));
         break;
+    default:
+        break;
     }
-
-}
-
-void rcsp_pc_func_stop(void)
-{
-
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-#endif
 }
 
 #endif

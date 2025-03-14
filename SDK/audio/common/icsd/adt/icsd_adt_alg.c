@@ -16,7 +16,9 @@
 #define ICSD_EIN_LIB          0	//入耳检测
 #define ICSD_WIND_LIB         TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
 #define ICSD_RTANC_LIB        TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-#define ICSD_AVC_LIB		  0	//自适应音量
+#define ICSD_AVC_LIB		  TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE	//自适应音量
+#define ICSD_HOWL_LIB		  TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
+#define ICSD_ADJDCC_LIB		  TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
 // #define ICSD_RTAEQ_LIB        1
 
 #include "icsd_adt.h"
@@ -47,12 +49,101 @@
 #include "icsd_wind.h"
 #endif
 
+#if ICSD_HOWL_LIB
+#include "icsd_howl.h"
+#endif
+
+#if ICSD_ADJDCC_LIB
+#include "icsd_adjdcc.h"
+#endif
+//===========ADJDCC============================================
+int icsd_adt_adjdcc_get_libfmt()
+{
+    int add_size = 0;
+#if ICSD_ADJDCC_LIB
+    struct icsd_adjdcc_libfmt libfmt;
+    icsd_adjdcc_get_libfmt(&libfmt);
+    add_size = libfmt.lib_alloc_size;
+#else
+    printf("ADT need to include ADJDCC LIB ! ! !\n");
+    while (1);
+#endif
+    return add_size;
+}
+
+int icsd_adt_adjdcc_set_infmt(int _ram_addr, u8 TOOL_FUNCTION)
+{
+    int set_size = 0;
+#if ICSD_ADJDCC_LIB
+    struct icsd_adjdcc_infmt  fmt;
+    fmt.alloc_ptr = (void *)_ram_addr;
+    fmt.TOOL_FUNCTION = TOOL_FUNCTION;
+    icsd_adjdcc_set_infmt(&fmt);
+    set_size = fmt.lib_alloc_size;
+#endif
+    return set_size;
+}
+
+u8 icsd_adt_adjdcc_run(__adt_adjdcc_run_parm *_run_parm, __adt_adjdcc_output *_output)
+{
+#if ICSD_ADJDCC_LIB
+    __icsd_adjdcc_run_parm run_parm;
+    __icsd_adjdcc_output output;
+    run_parm.refmic = _run_parm->refmic;
+    run_parm.errmic = _run_parm->errmic;
+    run_parm.len = _run_parm->len;
+    icsd_alg_adjdcc_run(&run_parm, &output);
+    ADT_FUNC->icsd_ADJDCC_output(output.result);
+    return output.de_task;
+#else
+    return 0;
+#endif
+}
+//===========HOWL============================================
+int icsd_adt_howl_get_libfmt()
+{
+    int add_size = 0;
+#if ICSD_HOWL_LIB
+    struct icsd_howl_libfmt libfmt;
+    icsd_howl_get_libfmt(&libfmt);
+    add_size = libfmt.lib_alloc_size;
+#else
+    printf("ADT need to include HOWL LIB ! ! !\n");
+    while (1);
+#endif
+    return add_size;
+}
+
+int icsd_adt_howl_set_infmt(int _ram_addr)
+{
+    int set_size = 0;
+#if ICSD_HOWL_LIB
+    struct icsd_howl_infmt  fmt;
+    fmt.alloc_ptr = (void *)_ram_addr;
+    icsd_howl_set_infmt(&fmt);
+    set_size = fmt.lib_alloc_size;
+#endif
+    return set_size;
+}
+
+void icsd_adt_howl_run(__adt_howl_run_parm *_run_parm, __adt_howl_output *_output)
+{
+#if ICSD_HOWL_LIB
+    __icsd_howl_run_parm run_parm;
+    __icsd_howl_output output;
+    run_parm.ref = _run_parm->ref;
+    run_parm.anco = _run_parm->anco;
+    icsd_alg_howl_run(&run_parm, &output);
+    ADT_FUNC->icsd_HOWL_output(output.howl_output);
+#endif
+}
 //===========AVC============================================
-int icsd_adt_avc_get_libfmt()
+int icsd_adt_avc_get_libfmt(u8 type)
 {
     int add_size = 0;
 #if ICSD_AVC_LIB
     struct icsd_avc_libfmt libfmt;
+    libfmt.type = type;
     icsd_avc_get_libfmt(&libfmt);
     add_size = libfmt.lib_alloc_size;
 #else
@@ -62,12 +153,13 @@ int icsd_adt_avc_get_libfmt()
     return add_size;
 }
 
-int icsd_adt_avc_set_infmt(int _ram_addr)
+int icsd_adt_avc_set_infmt(int _ram_addr, u8 type)
 {
     int set_size = 0;
 #if ICSD_AVC_LIB
     struct icsd_avc_infmt  fmt;
     fmt.alloc_ptr = (void *)_ram_addr;
+    fmt.type = type;
     icsd_avc_set_infmt(&fmt);
     set_size = fmt.lib_alloc_size;
 #endif
@@ -81,6 +173,7 @@ void icsd_adt_avc_run(__adt_avc_run_parm *_run_parm, __adt_avc_output *_output)
     __icsd_avc_output output;
     run_parm.dac_data = _run_parm->dac_data;
     run_parm.refmic = _run_parm->refmic;
+    run_parm.type = _run_parm->type;
     /*
     for(int i=0;i<10;i++){
     	printf("avc DAC/REF:%d                 %d\n",run_parm.dac_data[20+i],run_parm.refmic[20+i]);
@@ -88,11 +181,18 @@ void icsd_adt_avc_run(__adt_avc_run_parm *_run_parm, __adt_avc_output *_output)
     */
     icsd_avc_run(&run_parm, &output);
     _output->ctl_lvl = output.ctl_lvl;
+    _output->spldb_iir = output.spldb_iir;
     ADT_FUNC->icsd_AVC_output(_output);
 #endif
 }
 
-
+void icsd_adt_avc_config_update_run(void *_config)
+{
+#if ICSD_AVC_LIB
+    __avc_config *config = (__avc_config *)_config;
+    avc_config_update(config);
+#endif
+}
 
 //===========RTANC============================================
 
@@ -104,12 +204,13 @@ void icsd_adt_rtanc_alg_output(void *rt_param_l, void *rt_param_r)
 #endif
 }
 
-int icsd_adt_rtanc_get_libfmt()
+int icsd_adt_rtanc_get_libfmt(u8 rtanc_type)
 {
     int add_size = 0;
 #if ICSD_RTANC_LIB
     struct icsd_rtanc_libfmt rtanc_libfmt;
     rtanc_libfmt.ch_num = rt_anc_dma_ch_num;
+    rtanc_libfmt.rtanc_type = rtanc_type;
     icsd_rtanc_get_libfmt(&rtanc_libfmt);
     add_size = rtanc_libfmt.lib_alloc_size;
 #else
@@ -120,20 +221,24 @@ int icsd_adt_rtanc_get_libfmt()
     return add_size;
 }
 
-int icsd_adt_rtanc_set_infmt(int _ram_addr)
+int icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool, u8 rtanc_type, u8 TOOL_FUNCTION)
 {
     int set_size = 0;
 #if ICSD_RTANC_LIB
+    DeAlorithm_enable();
     struct icsd_rtanc_infmt rtanc_fmt;
     rtanc_fmt.ep_type = ICSD_ADT_EP_TYPE;
     rtanc_fmt.ch_num = rt_anc_dma_ch_num;
     rtanc_fmt.alloc_ptr = (void *)_ram_addr;
+    rtanc_fmt.rtanc_tool = rtanc_tool;
+    rtanc_fmt.rtanc_type = rtanc_type;
+    rtanc_fmt.TOOL_FUNCTION = TOOL_FUNCTION;
     icsd_rtanc_set_infmt(&rtanc_fmt);
     set_size = rtanc_fmt.lib_alloc_size;
     extern void icsd_adt_rtanc_set_ch_num(u8 ch_num);
     icsd_adt_rtanc_set_ch_num(rt_anc_dma_ch_num);
 
-    audio_adt_rtanc_set_infmt();
+    audio_adt_rtanc_set_infmt(rtanc_tool);
 #endif
     return set_size;
 }
@@ -154,7 +259,7 @@ void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm)
 #endif
 }
 
-void icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
+u8 icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
 {
 #if ICSD_RTANC_LIB
     __icsd_rtanc_part2_parm part2_parm;
@@ -166,7 +271,10 @@ void icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
     part2_parm.sz_out1_sum = _part2_parm->sz_out1_sum;
     part2_parm.sz_out2_sum = _part2_parm->sz_out2_sum;
     part2_parm.szpz_out = _part2_parm->szpz_out;
-    icsd_alg_rtanc_run_part2(&part2_parm);
+
+    return icsd_alg_rtanc_run_part2(&part2_parm);
+#else
+    return 0;
 #endif
 }
 
@@ -186,10 +294,34 @@ void icsd_adt_alg_rtanc_part1_reset()
 
 u8 icsd_adt_alg_rtanc_get_wind_lvl()
 {
-#if ICSD_RTANC_LIB
+#if ICSD_WIND_LIB
     return icsd_adt_get_wind_lvl();
 #else
     return 0;
+#endif
+}
+
+u8 icsd_adt_alg_rtanc_get_adjdcc_result()
+{
+#if ICSD_RTANC_LIB
+    return icsd_adt_get_adjdcc_result();
+#else
+    return 0;
+#endif
+}
+
+void icsd_adt_alg_rtanc_de_run_l()
+{
+#if ICSD_RTANC_LIB
+    rtanc_cal_and_update_filter_l_task();
+#endif
+}
+
+void icsd_adt_rtanc_fadegain_update_run(void *_param)
+{
+#if ICSD_RTANC_LIB
+    struct rtanc_param *param = (struct rtanc_param *)_param;
+    icsd_alg_rtanc_fadegain_update(param);
 #endif
 }
 
@@ -292,6 +424,32 @@ void icsd_adt_alg_wat_ram_clean()
 #endif
 }
 
+u8 icsd_adt_alg_adjdcc_trigger_update(u8 env_level, float *table)
+{
+#if ICSD_RTANC_LIB
+    return adjdcc_trigger_update(env_level, table);
+#else
+    return 0;
+#endif
+
+}
+
+void icsd_adt_alg_rtanc_adjdcc_flag_set(u8 flag)
+{
+#if ICSD_RTANC_LIB
+    rtanc_adjdcc_flag_set(flag);
+#endif
+}
+
+u8 icsd_adt_alg_rtanc_adjdcc_flag_get()
+{
+#if ICSD_RTANC_LIB
+    return rtanc_adjdcc_flag_get();
+#else
+    return 0;
+#endif
+}
+
 
 //===========WIND===========================================
 #if ICSD_WIND_LIB
@@ -331,12 +489,14 @@ int icsd_adt_wind_get_libfmt()
     return add_size;
 }
 
-int icsd_adt_wind_set_infmt(int _ram_addr)
+int icsd_adt_wind_set_infmt(int _ram_addr, u8 TOOL_FUNCTION)
 {
     int set_size = 0;
 #if ICSD_WIND_LIB
     struct icsd_win_infmt  fmt;
     fmt.alloc_ptr = (void *)_ram_addr;
+    fmt.TOOL_FUNCTION = TOOL_FUNCTION;
+    printf("WIND TOOL FUNCTION:%d\n", TOOL_FUNCTION);
     icsd_wind_set_infmt(&fmt);
     set_size = fmt.lib_alloc_size;
 #endif

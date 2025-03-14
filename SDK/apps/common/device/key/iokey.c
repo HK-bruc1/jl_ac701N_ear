@@ -242,7 +242,7 @@ int iokey_init(void)
     key_io_reset();
 
     if (__this->long_press_enable) {
-        gpio_longpress_pin0_reset_config(__this->long_press_port, __this->long_press_level, __this->long_press_time, 1, PORT_KEEP_STATE);
+        gpio_longpress_pin0_reset_config(__this->long_press_port, __this->long_press_level, __this->long_press_time, 1, PORT_KEEP_STATE, 0);
     }
 
     return 0;

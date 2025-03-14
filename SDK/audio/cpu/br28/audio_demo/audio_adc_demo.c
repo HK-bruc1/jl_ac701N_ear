@@ -40,6 +40,8 @@ extern struct audio_adc_hdl adc_hdl;
 #define ADC_DEMO_IRQ_POINTS     256	/*采样中断点数*/
 #define ADC_DEMO_BUFS_SIZE      (ADC_DEMO_CH_NUM * ADC_DEMO_BUF_NUM * ADC_DEMO_IRQ_POINTS)
 
+#define ADC_DEMO_TASK_NAME      "aud_adc_demo"
+
 struct adc_demo {
     u8 adc_2_dac;
     u8 mic_idx;
@@ -47,9 +49,13 @@ struct adc_demo {
     struct audio_adc_output_hdl adc_output;
     struct adc_mic_ch mic_ch;
     struct adc_linein_ch linein_ch;
-    s16 adc_buf[ADC_DEMO_BUFS_SIZE];
+    s16 *adc_buf;
     u8 linein_ch_num;
     u8 linein_ch_sel;
+    OS_SEM sem;
+    cbuffer_t cbuf;
+    u8 c_buf[ADC_DEMO_BUFS_SIZE << 1];
+    s16 runbuf[ADC_DEMO_IRQ_POINTS << 1];
 };
 static struct adc_demo *mic_demo = NULL;
 static struct adc_demo *linein_demo = NULL;
@@ -61,6 +67,36 @@ void linein_output_channel_sel()
         linein_demo->linein_ch_sel += 1;
         if (linein_demo->linein_ch_sel > linein_demo->linein_ch_num - 1) {
             linein_demo->linein_ch_sel = 0;
+        }
+    }
+}
+
+static int mic_demo_task_data_write(void *data, int len)
+{
+    int wlen = cbuf_write(&mic_demo->cbuf, data, len);
+    if (wlen == len) {
+        os_sem_post(&mic_demo->sem);
+    } else {
+        printf("mic_demo cbuf write  err %d, %d", wlen, len);
+    }
+    return wlen;
+}
+
+static void adc_demo_task(void *priv)
+{
+    int rlen;
+    int wlen;
+    while (1) {
+        os_sem_pend(&mic_demo->sem, 0);
+        rlen = cbuf_read(&mic_demo->cbuf, mic_demo->runbuf, ADC_DEMO_IRQ_POINTS << 1);
+        if (rlen == (ADC_DEMO_IRQ_POINTS << 1)) {
+            putchar('w');
+            wlen = audio_dac_channel_write(NULL, (void *)mic_demo->runbuf, rlen);
+            if (wlen != rlen) {
+                printf("output write err %d  %d", wlen, rlen);
+            }
+        } else {
+            printf("mic demo cbuf read fail");
         }
     }
 }
@@ -99,7 +135,7 @@ static void adc_mic_demo_output(void *priv, s16 *data, int len)
 #if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR)
             /*输出两个mic的数据到DAC两个通道*/
             putchar('a');
-            audio_dac_write(&dac_hdl, data, len * 2);
+            mic_demo_task_data_write(data, len * 2);
 #else
             /*输出其中一个mic的数据到DAC一个通道*/
             putchar('b');
@@ -108,12 +144,12 @@ static void adc_mic_demo_output(void *priv, s16 *data, int len)
                 mono_data[i] = data[i * 2];			/*MIC_L*/
                 //mono_data[i] = data[i * 2 + 1];		/*MIC_R*/
             }
-            audio_dac_write(&dac_hdl, mono_data, len);
+            mic_demo_task_data_write(mono_data, len);
 #endif/*TCFG_AUDIO_DAC_CONNECT_MODE*/
         } else {
             /*输出一个mic的数据到DAC一个通道*/
             putchar('c');
-            audio_dac_write(&dac_hdl, data, len);
+            mic_demo_task_data_write(data, len);
         }
     }
 
@@ -183,7 +219,7 @@ static void adc_linein_demo_output(void *priv, s16 *data, int len)
                 temp[2 * i] = data[linein_demo->linein_ch_num * i];
                 temp[2 * i + 1] = data[linein_demo->linein_ch_num * i + 1];
             }
-            audio_dac_write(&dac_hdl, temp, len * 2);
+            mic_demo_task_data_write(temp, len * 2);
 #else
             /*输出其中一个linein的数据到DAC一个通道*/
             putchar('b');
@@ -206,12 +242,12 @@ static void adc_linein_demo_output(void *priv, s16 *data, int len)
                     break;
                 }
             }
-            audio_dac_write(&dac_hdl, mono_data, len);
+            mic_demo_task_data_write(mono_data, len);
 #endif/*TCFG_AUDIO_DAC_CONNECT_MODE*/
         } else {
             /*输出一个linein的数据到DAC一个通道*/
             putchar('c');
-            audio_dac_write(&dac_hdl, data, len);
+            mic_demo_task_data_write(data, len);
         }
     }
 
@@ -258,52 +294,63 @@ static void adc_linein_demo_output(void *priv, s16 *data, int len)
 *				audio_adc_mic_demo_open(AUDIO_ADC_MIC_1|AUDIO_ADC_MIC_0,10,16000,1);
 *********************************************************************
 */
-void audio_adc_mic_demo_open(u8 mic_idx, u8 gain, u16 sr, u8 mic_2_dac)
+void audio_adc_mic_demo_open(u8 mic_idx, u8 gain, int sr, u8 mic_2_dac)
 {
     ADC_DEMO_LOG("audio_adc_mic_demo open:%d,gain:%d,sr:%d,mic_2_dac:%d\n", mic_idx, gain, sr, mic_2_dac);
     mic_demo = zalloc(sizeof(struct adc_demo));
-    if (mic_demo) {
-        //step0:打开mic通道，并设置增益
+    ASSERT(mic_demo);
+    mic_demo->adc_buf = zalloc(ADC_DEMO_BUFS_SIZE << 2);
+    ASSERT(mic_demo->adc_buf);
 
+    /*监听配置（可选）*/
+    mic_demo->adc_2_dac = mic_2_dac;
+    mic_demo->mic_idx = mic_idx;
+    if (mic_2_dac) {
+        ADC_DEMO_LOG("max_sys_vol:%d\n", app_audio_volume_max_query(AppVol_BT_MUSIC));
+        app_audio_state_switch(APP_AUDIO_STATE_MUSIC, app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
+        ADC_DEMO_LOG("cur_vol:%d\n", app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        audio_dac_set_sample_rate(&dac_hdl, sr);
+        audio_dac_channel_start(NULL);
+    }
+
+    os_sem_create(&mic_demo->sem, 0);
+    cbuf_init(&mic_demo->cbuf, mic_demo->c_buf, sizeof(mic_demo->c_buf));
+    task_create(adc_demo_task, mic_demo, ADC_DEMO_TASK_NAME);
+
+    //step0:打开mic通道，并设置增益
 #if 1   // use config file
-        extern void audio_adc_file_init(void);
-        extern int adc_file_mic_open(struct adc_mic_ch * mic, int ch);
-        audio_adc_file_init();
-        adc_file_mic_open(&mic_demo->mic_ch, AUDIO_ADC_MIC_1);
-#else
-        struct mic_open_param mic_param = {0};
-        mic_param.mic_mode      = AUDIO_MIC_CAP_MODE;
-        mic_param.mic_ain_sel   = AUDIO_MIC0_CH0;
-        mic_param.mic_bias_sel  = AUDIO_MIC_BIAS_CH0;
-        mic_param.mic_bias_rsel = 4;
-        mic_param.mic_dcc       = 8;
-        audio_adc_mic_open(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, &adc_hdl, &mic_param);
-        audio_adc_mic_set_gain(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, gain);
-        audio_adc_mic_gain_boost(AUDIO_ADC_MIC_0, 1);
-#endif
+    extern void audio_adc_file_init(void);
+    extern int adc_file_mic_open(struct adc_mic_ch * mic, int ch);
+    audio_adc_file_init();
 
-        //step1:设置mic通道采样率
-        audio_adc_mic_set_sample_rate(&mic_demo->mic_ch, sr);
-        //step2:设置mic采样buf
-        audio_adc_mic_set_buffs(&mic_demo->mic_ch, mic_demo->adc_buf, ADC_DEMO_IRQ_POINTS * 2, ADC_DEMO_BUF_NUM);
-        //step3:设置mic采样输出回调函数
-        mic_demo->adc_output.handler = adc_mic_demo_output;
-        audio_adc_add_output_handler(&adc_hdl, &mic_demo->adc_output);
-        //step4:启动mic通道采样
-        audio_adc_mic_start(&mic_demo->mic_ch);
-
-        /*监听配置（可选）*/
-        mic_demo->adc_2_dac = mic_2_dac;
-        mic_demo->mic_idx = mic_idx;
-        if (mic_2_dac) {
-            ADC_DEMO_LOG("max_sys_vol:%d\n", app_audio_volume_max_query(AppVol_BT_MUSIC));
-            app_audio_state_switch(APP_AUDIO_STATE_MUSIC, app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
-            ADC_DEMO_LOG("cur_vol:%d\n", app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
-            audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
-            audio_dac_set_sample_rate(&dac_hdl, sr);
-            audio_dac_start(&dac_hdl);
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+        if (mic_idx & AUDIO_ADC_MIC(i)) {
+            adc_file_mic_open(&mic_demo->mic_ch, AUDIO_ADC_MIC(i));
         }
     }
+#else
+    struct mic_open_param mic_param = {0};
+    mic_param.mic_mode      = AUDIO_MIC_CAP_MODE;
+    mic_param.mic_ain_sel   = AUDIO_MIC0_CH0;
+    mic_param.mic_bias_sel  = AUDIO_MIC_BIAS_CH0;
+    mic_param.mic_bias_rsel = 4;
+    mic_param.mic_dcc       = 8;
+    audio_adc_mic_open(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, &adc_hdl, &mic_param);
+    audio_adc_mic_set_gain(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, gain);
+    audio_adc_mic_gain_boost(AUDIO_ADC_MIC_0, 1);
+#endif
+
+    //step1:设置mic通道采样率
+    audio_adc_mic_set_sample_rate(&mic_demo->mic_ch, sr);
+    //step2:设置mic采样buf
+    audio_adc_mic_set_buffs(&mic_demo->mic_ch, mic_demo->adc_buf, ADC_DEMO_IRQ_POINTS * 2, ADC_DEMO_BUF_NUM);
+    //step3:设置mic采样输出回调函数
+    mic_demo->adc_output.handler = adc_mic_demo_output;
+    audio_adc_add_output_handler(&adc_hdl, &mic_demo->adc_output);
+    //step4:启动mic通道采样
+    audio_adc_mic_start(&mic_demo->mic_ch);
+
     ADC_DEMO_LOG("audio_adc_mic_demo start succ\n");
 
     //	循环一直往dac写数据
@@ -334,6 +381,12 @@ void audio_adc_mic_demo_close(void)
     if (mic_demo) {
         audio_adc_del_output_handler(&adc_hdl, &mic_demo->adc_output);
         audio_adc_mic_close(&mic_demo->mic_ch);
+        /*audio_adc_mic_close()里面自动释放adcbuf，不需要外面释放*/
+        /* free(mic_demo->adc_buf); */
+        if (mic_demo->adc_2_dac) {
+            audio_dac_channel_close(NULL);
+        }
+        task_kill(ADC_DEMO_TASK_NAME);
         free(mic_demo);
         mic_demo = NULL;
     }
@@ -358,70 +411,75 @@ void audio_adc_mic_demo_close(void)
 *				audio_adc_linein_demo_open(AUDIO_ADC_LINE3|AUDIO_ADC_LINE2|AUDIO_ADC_LINE1|AUDIO_ADC_LINE0,10,16000,1);
 *********************************************************************
 */
-void audio_adc_linein_demo_open(u8 linein_idx, u8 gain, u16 sr, u8 linein_2_dac)
+void audio_adc_linein_demo_open(u8 linein_idx, u8 gain, int sr, u8 linein_2_dac)
 {
     ADC_DEMO_LOG("audio_adc_linein_demo open:%d,gain:%d,sr:%d,linein_2_dac:%d\n", linein_idx, gain, sr, linein_2_dac);
     linein_demo = zalloc(sizeof(struct adc_demo));
-    if (linein_demo) {
-        //step0:打开linein通道，并设置增益
+    ASSERT(linein_demo);
+    linein_demo->adc_buf = zalloc(ADC_DEMO_BUFS_SIZE << 2);
+    ASSERT(linein_demo->adc_buf);
 
+    /*监听配置（可选）*/
+    linein_demo->adc_2_dac = linein_2_dac;
+    linein_demo->linein_idx = linein_idx;
+    if (linein_2_dac) {
+        ADC_DEMO_LOG("max_sys_vol:%d\n", app_audio_volume_max_query(AppVol_BT_MUSIC));
+        app_audio_state_switch(APP_AUDIO_STATE_MUSIC, app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
+        ADC_DEMO_LOG("cur_vol:%d\n", app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
+        audio_dac_set_sample_rate(&dac_hdl, sr);
+        audio_dac_channel_start(NULL);
+    }
+
+    os_sem_create(&linein_demo->sem, 0);
+    cbuf_init(&linein_demo->cbuf, linein_demo->c_buf, sizeof(linein_demo->c_buf));
+    task_create(adc_demo_task, linein_demo, ADC_DEMO_TASK_NAME);
+
+    //step0:打开linein通道，并设置增益
 #if 1   // use config file
+    extern void audio_adc_linein_file_init(void);
+    extern int adc_file_linein_open(struct adc_linein_ch * linein, int ch);
+    audio_adc_linein_file_init();
 
-        extern void audio_adc_linein_file_init(void);
-        extern int adc_file_linein_open(struct adc_linein_ch * linein, int ch);
-        audio_adc_linein_file_init();
-
-        if (linein_idx & AUDIO_ADC_LINE0) {
-            adc_file_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE0);
-            linein_demo->linein_ch_num += 1;
-        }
-        if (linein_idx & AUDIO_ADC_LINE1) {
-            adc_file_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE1);
-            linein_demo->linein_ch_num += 1;
-        }
+    if (linein_idx & AUDIO_ADC_LINE0) {
+        adc_file_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE0);
+        linein_demo->linein_ch_num += 1;
+    }
+    if (linein_idx & AUDIO_ADC_LINE1) {
+        adc_file_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE1);
+        linein_demo->linein_ch_num += 1;
+    }
 #else
-        struct linein_open_param linein_param = {0};
+    struct linein_open_param linein_param = {0};
 
-        if (linein_idx & AUDIO_ADC_LINE0) {
-            linein_param.linein_ain_sel   = AUDIO_LINEIN0_CH2;
-            linein_param.linein_dcc       = 14;
-            audio_adc_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE0, &adc_hdl, &linein_param);
-            audio_adc_linein_set_gain(&linein_demo->linein_ch, AUDIO_ADC_LINE0, gain);
-            audio_adc_linein_gain_boost(AUDIO_ADC_LINE0, 1);
-            linein_demo->linein_ch_num += 1;
-        }
-        if (linein_idx & AUDIO_ADC_LINE1) {
-            linein_param.linein_ain_sel   = AUDIO_LINEIN1_CH2;
-            linein_param.linein_dcc       = 14;
-            audio_adc_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE1, &adc_hdl, &linein_param);
-            audio_adc_linein_set_gain(&linein_demo->linein_ch, AUDIO_ADC_LINE1, gain);
-            audio_adc_linein_gain_boost(AUDIO_ADC_LINE1, 1);
-            linein_demo->linein_ch_num += 1;
-        }
+    if (linein_idx & AUDIO_ADC_LINE0) {
+        linein_param.linein_ain_sel   = AUDIO_LINEIN0_CH2;
+        linein_param.linein_dcc       = 14;
+        audio_adc_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE0, &adc_hdl, &linein_param);
+        audio_adc_linein_set_gain(&linein_demo->linein_ch, AUDIO_ADC_LINE0, gain);
+        audio_adc_linein_gain_boost(AUDIO_ADC_LINE0, 1);
+        linein_demo->linein_ch_num += 1;
+    }
+    if (linein_idx & AUDIO_ADC_LINE1) {
+        linein_param.linein_ain_sel   = AUDIO_LINEIN1_CH2;
+        linein_param.linein_dcc       = 14;
+        audio_adc_linein_open(&linein_demo->linein_ch, AUDIO_ADC_LINE1, &adc_hdl, &linein_param);
+        audio_adc_linein_set_gain(&linein_demo->linein_ch, AUDIO_ADC_LINE1, gain);
+        audio_adc_linein_gain_boost(AUDIO_ADC_LINE1, 1);
+        linein_demo->linein_ch_num += 1;
+    }
 #endif
 
-        //step1:设置linein通道采样率
-        audio_adc_linein_set_sample_rate(&linein_demo->linein_ch, sr);
-        //step2:设置linein采样buf
-        audio_adc_linein_set_buffs(&linein_demo->linein_ch, linein_demo->adc_buf, ADC_DEMO_IRQ_POINTS * 2, ADC_DEMO_BUF_NUM);
-        //step3:设置linein采样输出回调函数
-        linein_demo->adc_output.handler = adc_linein_demo_output;
-        audio_adc_add_output_handler(&adc_hdl, &linein_demo->adc_output);
-        //step4:启动linein通道采样
-        audio_adc_linein_start(&linein_demo->linein_ch);
+    //step1:设置linein通道采样率
+    audio_adc_linein_set_sample_rate(&linein_demo->linein_ch, sr);
+    //step2:设置linein采样buf
+    audio_adc_linein_set_buffs(&linein_demo->linein_ch, linein_demo->adc_buf, ADC_DEMO_IRQ_POINTS * 2, ADC_DEMO_BUF_NUM);
+    //step3:设置linein采样输出回调函数
+    linein_demo->adc_output.handler = adc_linein_demo_output;
+    audio_adc_add_output_handler(&adc_hdl, &linein_demo->adc_output);
+    //step4:启动linein通道采样
+    audio_adc_linein_start(&linein_demo->linein_ch);
 
-        /*监听配置（可选）*/
-        linein_demo->adc_2_dac = linein_2_dac;
-        linein_demo->linein_idx = linein_idx;
-        if (linein_2_dac) {
-            ADC_DEMO_LOG("max_sys_vol:%d\n", app_audio_volume_max_query(AppVol_BT_MUSIC));
-            app_audio_state_switch(APP_AUDIO_STATE_MUSIC, app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
-            ADC_DEMO_LOG("cur_vol:%d\n", app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
-            audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
-            audio_dac_set_sample_rate(&dac_hdl, sr);
-            audio_dac_start(&dac_hdl);
-        }
-    }
     ADC_DEMO_LOG("audio_adc_linein_demo start succ\n");
 
     //	循环一直往dac写数据
@@ -448,6 +506,12 @@ void audio_adc_linein_demo_close(void)
     if (linein_demo) {
         audio_adc_del_output_handler(&adc_hdl, &linein_demo->adc_output);
         audio_adc_linein_close(&linein_demo->linein_ch);
+        /*audio_adc_linein_close()里面自动释放adcbuf，不需要外面释放*/
+        /* free(linein_demo->adc_buf); */
+        if (linein_demo->adc_2_dac) {
+            audio_dac_channel_close(NULL);
+        }
+        task_kill(ADC_DEMO_TASK_NAME);
         free(linein_demo);
         linein_demo = NULL;
     }
@@ -463,7 +527,7 @@ void audio_adc_mic_dut_open(void)
 #if AUDIO_DEMO_LP_REG_ENABLE
 static u8 adc_demo_idle_query()
 {
-    return mic_demo ? 0 : 1;
+    return (mic_demo || linein_demo) ? 0 : 1;
 }
 
 REGISTER_LP_TARGET(adc_demo_lp_target) = {

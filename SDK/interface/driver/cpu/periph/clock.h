@@ -43,6 +43,8 @@ enum pll_ref_source : u8 {
 #define     SYS_128M    (128 * MHz)
 #define     SYS_160M    (160 * MHz)
 
+#define     SPI0_MAX_CLK        (12 * MHz)
+
 void clock_dump(void);
 void clock_core_voltage_dump();
 
@@ -123,6 +125,8 @@ extern struct clock_critical_handler clock_critical_handler_end[];
 #define list_for_each_loop_clock_critical(h) \
 	for (h=clock_critical_handler_begin; h<clock_critical_handler_end; h++)
 
+
+#ifdef CLK_TREE_MODE
 extern struct clock_critical_handler hsb_critical_handler_begin[];
 extern struct clock_critical_handler hsb_critical_handler_end[];
 
@@ -145,6 +149,17 @@ extern struct clock_critical_handler lsb_critical_handler_end[];
 
 #define list_for_each_loop_lsb_critical(h) \
 	for (h=lsb_critical_handler_begin; h<lsb_critical_handler_end; h++)
+
+
+#else
+
+#define     HSB_CRITICAL_HANDLE_REG             CLOCK_CRITICAL_HANDLE_REG
+#define     list_for_each_loop_hsb_critical     list_for_each_loop_clock_critical
+
+#define     LSB_CRITICAL_HANDLE_REG             CLOCK_CRITICAL_HANDLE_REG
+#define     list_for_each_loop_lsb_critical     list_for_each_loop_clock_critical
+
+#endif
 
 
 

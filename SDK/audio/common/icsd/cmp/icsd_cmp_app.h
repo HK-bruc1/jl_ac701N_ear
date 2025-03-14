@@ -4,12 +4,26 @@
 #include "icsd_cmp_config.h"
 #include "icsd_common_v2_app.h"
 
-#define ANC_ADAPTIVE_CMP_ORDER			6			/*ANC自适应CMP滤波器阶数，原厂指定*/
+#define ANC_ADAPTIVE_CMP_ORDER					10			/*ANC自适应CMP滤波器阶数，原厂指定*/
+
+#define ANC_ADAPTIVE_CMP_ONLY_IN_MUSIC_UPDATE	1			/*(实时CMP)仅在播歌/通话的时候更新*/
 
 enum ANC_EAR_ADAPTIVE_CMP_CH {
     ANC_EAR_ADAPTIVE_CMP_CH_L = 0,
     ANC_EAR_ADAPTIVE_CMP_CH_R,
 };
+
+enum ANC_EAR_ADAPTIVE_CMP_DATA_FORM {
+    CMP_FROM_ANC_EAR_ADAPTIVE = 0,
+    CMP_FROM_RTANC,
+};
+
+//ICSD CMP 状态
+enum ANC_EAR_ADAPTIVE_CMP_STATE {
+    ANC_EAR_ADAPTIVE_CMP_STATE_CLOSE = 0,
+    ANC_EAR_ADAPTIVE_CMP_STATE_OPEN,
+};
+
 
 struct anc_cmp_param_output {
 
@@ -20,9 +34,9 @@ struct anc_cmp_param_output {
     double *r_coeff;
 };
 
-int audio_anc_ear_adaptive_cmp_open(void);
+int audio_anc_ear_adaptive_cmp_open(u8 data_from);
 
-void audio_anc_ear_adaptive_cmp_run(__afq_output *p);
+int audio_anc_ear_adaptive_cmp_run(void *p);
 
 int audio_anc_ear_adaptive_cmp_close(void);
 
@@ -31,6 +45,9 @@ float *audio_anc_ear_adaptive_cmp_output_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch);
 
 //获取IIR_COEFF
 int audio_rtanc_adaptive_cmp_output_get(struct anc_cmp_param_output *output);
+
+//获取滤波器类型
+u8 *audio_anc_ear_adaptive_cmp_type_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch);
 
 u8 audio_anc_ear_adaptive_cmp_result_get(void);
 

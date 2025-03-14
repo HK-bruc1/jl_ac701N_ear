@@ -261,6 +261,17 @@ s16 app_audio_volume_max_query(audio_vol_index_t index);
 */
 void audio_app_mute_en(u8 mute_en);
 
+/*
+*********************************************************************
+*          			Audio Volume Offset
+* Description: 音量偏移
+* Arguments  : offset 音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_app_set_vol_offset_dB(float offset_dB);
+
 void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_platform_cfg *platform_cfg);
 
 void audio_linein_param_fill(struct linein_open_param *linein_param, const struct adc_platform_cfg *platform_cfg);

@@ -684,6 +684,51 @@ int stereo_spatial_wider_update_parm(u8 mode_index, char *node_name, u8 cfg_inde
     return jlstream_set_node_param(NODE_UUID_STEREO_SPATIAL_WIDER, node_name, &cfg, sizeof(cfg));
 }
 
+
+int frequency_compressor_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct frequency_compressor_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_FREQUENCY_COMPRESSOR, node_name, &cfg, sizeof(cfg));
+}
+
+int autoduck_trigger_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    autoduck_trigger_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_AUTODUCK_TRIGGER, node_name, &cfg, sizeof(cfg));
+}
+
+int autoduck_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    autoduck_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_AUTODUCK, node_name, &cfg, sizeof(cfg));
+}
+
+int spatial_adv_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct spatial_adv_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_SPATIAL_ADV, node_name, &cfg, sizeof(cfg));
+}
+
 /*
  *通用音效模块更新
  * */

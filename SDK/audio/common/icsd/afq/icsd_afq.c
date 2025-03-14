@@ -28,7 +28,6 @@
 #define afq_log(...)
 #endif
 
-struct afq_function	*AFQ_FUNC = NULL;
 
 u8 icsd_afq_set_pnc(u8 ff_yorder, float bypass_vol, s8 bypass_sign)
 {
@@ -52,28 +51,26 @@ void icsd_afq_cmd(u8 cmd)
     os_taskq_post_msg("anc", 2, ANC_MSG_AFQ_CMD, cmd);
 }
 
-void afq_function_init()
-{
-    afq_log("afq_function_init\n");
-    if (AFQ_FUNC == NULL) {
-        AFQ_FUNC = zalloc(sizeof(struct afq_function));
-    }
-    AFQ_FUNC->anc_dma_done_ppflag = anc_dma_done_ppflag;
-    AFQ_FUNC->local_irq_disable = local_irq_disable;
-    AFQ_FUNC->local_irq_enable = local_irq_enable;
-    AFQ_FUNC->os_time_dly = os_time_dly;
-    AFQ_FUNC->jiffies_usec = jiffies_usec;
-    AFQ_FUNC->jiffies_usec2offset = jiffies_usec2offset;
-    AFQ_FUNC->icsd_afq_cmd = icsd_afq_cmd;
-    AFQ_FUNC->icsd_afq_timeout_add = icsd_afq_timeout_add;
-    AFQ_FUNC->icsd_afq_timeout_del = icsd_afq_timeout_del;
-    AFQ_FUNC->icsd_afq_dma_2ch_on = anc_dma_on_double;
+const struct afq_function AFQ_FUNC_t = {
+    .anc_dma_done_ppflag = anc_dma_done_ppflag,
+    .local_irq_disable = local_irq_disable,
+    .local_irq_enable = local_irq_enable,
+    .os_time_dly = os_time_dly,
+    .jiffies_usec = jiffies_usec,
+    .jiffies_usec2offset = jiffies_usec2offset,
+    .icsd_afq_cmd = icsd_afq_cmd,
+    .icsd_afq_timeout_add = icsd_afq_timeout_add,
+    .icsd_afq_timeout_del = icsd_afq_timeout_del,
+    .icsd_afq_dma_2ch_on = anc_dma_on_double,
 #if ANC_CHIP_VERSION != ANC_VERSION_BR28
-    AFQ_FUNC->icsd_afq_dma_4ch_on = anc_dma_on_double_4ch;
+    .icsd_afq_dma_4ch_on = anc_dma_on_double_4ch,
+#else
+    .icsd_afq_dma_4ch_on = 0,
 #endif
-    AFQ_FUNC->icsd_afq_dma_stop = anc_dma_off;
-    AFQ_FUNC->icsd_afq_set_pnc = icsd_afq_set_pnc;
-}
+    .icsd_afq_dma_stop = anc_dma_off,
+    .icsd_afq_set_pnc = icsd_afq_set_pnc,
+};
+struct afq_function *AFQ_FUNC = (struct afq_function *)(&AFQ_FUNC_t);
 
 static void icsd_afq_out_debug(__afq_data *_AFQ_DATA)
 {
@@ -103,10 +100,6 @@ void icsd_afq_output(__afq_output *_AFQ_OUT)
         }
     }
     audio_icsd_afq_output(_AFQ_OUT);
-    if (AFQ_FUNC) {
-        free(AFQ_FUNC);
-        AFQ_FUNC = NULL;
-    }
 }
 
 #if ICSD_AFQ_DSF8_DATA_DEBUG

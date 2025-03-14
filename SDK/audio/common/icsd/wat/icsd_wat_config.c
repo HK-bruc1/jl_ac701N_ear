@@ -13,7 +13,6 @@
 
 const u8 wat_data_en = 1;
 
-struct wat_function *WAT_FUNC;
 int (*wat_printf)(const char *format, ...) = _wat_printf;
 
 void wat_config_init(__wat_config *_wat_config)
@@ -25,10 +24,11 @@ void wat_config_init(__wat_config *_wat_config)
 
 
 void tws_tx_unsniff_req();
-void wat_function_init()
-{
-    WAT_FUNC->wat_config_init = wat_config_init;
-    WAT_FUNC->tws_tx_unsniff_req = tws_tx_unsniff_req;
-}
+
+const struct wat_function WAT_FUNC_t = {
+    .wat_config_init = wat_config_init,
+    .tws_tx_unsniff_req = tws_tx_unsniff_req,
+};
+struct wat_function *WAT_FUNC = (struct wat_function *)(&WAT_FUNC_t);
 
 #endif/*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/

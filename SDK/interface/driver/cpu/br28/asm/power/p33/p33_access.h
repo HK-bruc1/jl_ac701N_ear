@@ -22,8 +22,8 @@ u8 p33_buf(u8 buf);
 // u8 p33_rx_1byte(u16 addr);
 #define p33_rx_1byte(addr)              addr
 
-#define P33_CON_SET(sfr, start, len, data)  (sfr = (sfr & ~((~(0xff << (len))) << (start))) | \
-	 (((data) & (~(0xff << (len)))) << (start)))
+#define P33_CON_SET(sfr, start, len, data)  (sfr = (sfr & ~((~(0xffu << (len))) << (start))) | \
+	 (((data) & (~(0xffu << (len)))) << (start)))
 
 #define P33_CON_GET(sfr)    sfr
 

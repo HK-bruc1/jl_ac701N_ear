@@ -903,6 +903,10 @@ void anc_init(void)
     audio_anc_music_dynamic_gain_init();
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
 
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+    audio_anc_mic_gain_cmp_init(&anc_hdl->param.mic_cmp);
+#endif
+
     anc_hdl->param.post_msg_drc = audio_anc_post_msg_drc;
     anc_hdl->param.post_msg_debug = audio_anc_post_msg_debug;
 #if TCFG_ANC_MODE_ANC_EN
@@ -1368,8 +1372,8 @@ void audio_anc_fade_gain_set(int gain)
 {
     anc_hdl->param.anc_fade_gain = gain;
     if (anc_hdl->param.mode != ANC_OFF) {
-        //用户层操作 ANC_FADE_MODE_SWITCH 的模式
-        audio_anc_fade_ctr_set(ANC_FADE_MODE_SWITCH, AUDIO_ANC_FDAE_CH_ALL, gain);
+        //用户层操作 ANC_FADE_MODE_USER 的模式
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_USER, AUDIO_ANC_FDAE_CH_ALL, gain);
     }
 }
 /*ANC淡入淡出增益接口*/
@@ -2441,30 +2445,48 @@ void audio_anc_mic_mana_set_gain(audio_anc_t *param, u8 num, u8 type)
     }
 }
 
-u8 audio_anc_mic_mana_fb_mult_get(void)
+/*获取对应的mic是否为anc 复用mic, mic_ch ff:0 ; fb:1*/
+u8 audio_anc_mic_mult_flag_get(u32 mic_ch)
 {
-    u8 mult_flag = 0;
     if (anc_hdl) {
         audio_anc_t *param = &anc_hdl->param;
-        for (int i = 0; i < 4; i++) {
-            if ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || (param->mic_param[i].type == ANC_MIC_TYPE_RFB)) {
-                mult_flag |= param->mic_param[i].mult_flag;
+        for (int i = 0; i <  AUDIO_ADC_MAX_NUM; i++) {
+            if ((mic_ch == 0) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFF) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFF))) {
+                return param->mic_param[i].mult_flag;
+            }
+            if ((mic_ch == 1) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFB))) {
+                return param->mic_param[i].mult_flag;
             }
         }
     }
-    return mult_flag;
+    return 0;
 }
 
-/*设置fb  mic为复用mic*/
-void audio_anc_mic_mana_fb_mult_set(u8 mult_flag)
+/*设置对应的mic为anc 复用mic, mic_ch ff:0 ; fb:1*/
+void audio_anc_mic_mult_flag_set(u32 mic_ch, u8 mult_flag)
 {
+    int i;
     if (anc_hdl) {
         audio_anc_t *param = &anc_hdl->param;
-        for (int i = 0; i < 4; i++) {
-            if ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || (param->mic_param[i].type == ANC_MIC_TYPE_RFB)) {
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+            if ((mic_ch == 0) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFF) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFF))) {
                 param->mic_param[i].mult_flag = mult_flag;
+                break;
+            }
+            if ((mic_ch == 1) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFB))) {
+                param->mic_param[i].mult_flag = mult_flag;
+                break;
             }
         }
+        r_printf("mic_ch %d, mic %d, mult_flag %d", mic_ch, i, param->mic_param[i].mult_flag);
     }
 }
 
@@ -2587,6 +2609,9 @@ void audio_ear_adaptive_en_set(u8 en)
 void audio_ear_adaptive_train_app_suspend(void)
 {
     anc_mode_change_tool(ANC_FF_EN);					//设置仅FF通路
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_suspend();
+#endif
 #if ANC_ADAPTIVE_EN
     //关闭场景自适应功能
     audio_anc_power_adaptive_suspend();
@@ -2599,6 +2624,9 @@ void audio_ear_adaptive_train_app_suspend(void)
 void audio_ear_adaptive_train_app_resume(void)
 {
     anc_mode_change_tool(TCFG_AUDIO_ANC_TRAIN_MODE);
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_resume();
+#endif
 #if ANC_ADAPTIVE_EN
     //恢复场景自适应功能
     audio_anc_power_adaptive_resume();
@@ -2634,7 +2662,9 @@ int audio_anc_mult_scene_set(u16 scene_id)
 int audio_anc_mult_scene_update(u16 scene_id)
 {
     int ret = audio_anc_mult_scene_set(scene_id);
-    audio_anc_param_reset(1);
+    if (!ret) {
+        audio_anc_param_reset(1);
+    }
     return ret;
 }
 

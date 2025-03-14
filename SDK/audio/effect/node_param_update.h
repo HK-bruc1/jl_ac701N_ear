@@ -35,6 +35,8 @@
 #include "effects/audio_noisegate_pro.h"
 #include "effects/audio_effects.h"
 #include "effects/dynamic_eq_pro.h"
+#include "effects/audio_autoduck.h"
+#include "effects/audio_spatial_adv.h"
 
 /* 左右声道按照不同比例混合参数更新 */
 int stero_mix_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
@@ -132,6 +134,14 @@ int chorus_advance_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 int pingpong_echo_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /*stereo spatial wider参数更新*/
 int stereo_spatial_wider_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/*frequency compressor 参数更新*/
+int frequency_compressor_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/*autoduck_trigger 参数更新*/
+int autoduck_trigger_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/*autoduck 参数更新*/
+int autoduck_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/*spatial_adv 参数更新*/
+int spatial_adv_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 
 /*通用音效模块更新*/
 int node_param_update_parm(u16 uuid, u8 mode_index, char *node_name, u8 cfg_index);

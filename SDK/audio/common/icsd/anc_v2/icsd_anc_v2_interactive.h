@@ -92,5 +92,7 @@ int audio_anc_ear_adaptive_a2dp_suspend_cb(void);
 
 int anc_ear_adaptive_close(void);
 
+int audio_anc_ear_adaptive_tool_data_get(u8 **buf, u32 *len);
+
 #endif/*_ICSD_ANC_INTERACTIVE_H_*/
 

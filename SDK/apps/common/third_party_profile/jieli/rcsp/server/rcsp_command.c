@@ -180,7 +180,7 @@ static void earphone_mute(u8 channel, u8 mute)
         return;
     }
     printf("rcsp_find %s, channel:%d, mute:%d\n", __FUNCTION__, channel, mute);
-    audio_dac_ch_mute(NULL, channel, mute);
+    audio_dac_ch_mute(&dac_hdl, channel, mute);
 #if CONFIG_CPU_BR36
     extern void audio_dac_set_unmute_disable_ch(u8 ch, u8 disable_en);
     audio_dac_set_unmute_disable_ch(channel, mute);

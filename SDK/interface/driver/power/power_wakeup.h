@@ -144,7 +144,7 @@ void p33_io_wakeup_set_callback(u32 gpio, void (*callback)(P33_IO_WKUP_EDGE edge
 //
 //
 //******************************************************************
-void gpio_longpress_pin0_reset_config(u32 pin, u32 level, u32 time, u32 release, enum gpio_mode pullup_down_mode);
+void gpio_longpress_pin0_reset_config(u32 pin, u32 level, u32 time, u32 release, enum gpio_mode pullup_down_mode, u32 latch_en);
 void gpio_longpress_pin1_reset_config(u32 pin, u32 level, u32 time, u32 release);
 
 

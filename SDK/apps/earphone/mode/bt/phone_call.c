@@ -70,7 +70,6 @@
 #define ESCO_DUMP_PACKET_CALL		60 /*0~0xFF*/
 #define SYNC_TONE_PHONE_RING_TIME   300
 
-static u8 g_play_addr[6];
 static u8 esco_dump_packet = ESCO_DUMP_PACKET_CALL;
 
 static void phone_income_num_check(void *priv);

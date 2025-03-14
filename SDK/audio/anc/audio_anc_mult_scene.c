@@ -382,6 +382,20 @@ static int anc_mult_scene_set_base(u16 scene_id)
         param->rtrans_yorder = trans_bulk->rtrans.yorder;
     }
 
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+    if (param->mic_cmp.en) {
+        param->gains.l_ffgain *= param->mic_cmp.lff_gain;
+        param->gains.l_transgain *= param->mic_cmp.lff_gain;
+        param->gains.l_fbgain *= param->mic_cmp.lfb_gain;
+        param->gains.l_cmpgain *= param->mic_cmp.lfb_gain;
+
+        param->gains.r_ffgain *= param->mic_cmp.rff_gain;
+        param->gains.r_transgain *= param->mic_cmp.rff_gain;
+        param->gains.r_fbgain *= param->mic_cmp.rfb_gain;
+        param->gains.r_cmpgain *= param->mic_cmp.rfb_gain;
+    }
+#endif
+
     param->gains.gain_sign = gain_sign;
     audio_anc_max_yorder_verify(param);
 #if ANC_EAR_ADAPTIVE_EN

@@ -1152,7 +1152,7 @@ static int le_audio_app_msg_handler(int *msg)
 #endif
         le_audio_surport_config(msg[1]);
         break;
-#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN))
     case APP_MSG_LE_AUDIO_CALL_OPEN:
         connected_perip_connect_recoder(1, msg[1]);
         break;

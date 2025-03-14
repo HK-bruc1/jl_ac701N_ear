@@ -115,10 +115,10 @@ void audio_plc_run_base(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
     if (plc->wideband) {
         /*
          *msbc plc deal
-         *如果上一帧是错误，则当前帧也要修复
+         *如果上一帧是错误，则当前正常的帧也要修复 并且给特殊标记 2
          */
-        if (plc->repair) {
-            repair_flag = 1;
+        if (plc->repair && (repair == 0)) {
+            repair_flag = 2;
         }
         plc->repair = repair;
     }
@@ -129,6 +129,9 @@ void audio_plc_run_base(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
         PLC_run(p_in, p_out, repair_point, repair_flag);
         p_in  = (s16 *)((int)p_in + (repair_point << point_offset));
         p_out = (s16 *)((int)p_out + (repair_point << point_offset));
+        if (repair_flag == 2) {
+            repair_flag = 0;
+        }
     }
     os_mutex_post(&plc->mutex);
 }

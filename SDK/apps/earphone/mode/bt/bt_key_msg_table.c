@@ -17,6 +17,9 @@
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "app_le_auracast.h"
+#endif
 
 
 #define LOG_TAG             "[EARPHONE]"
@@ -167,7 +170,9 @@ int bt_key_power_msg_remap(int *msg)
         /* 非通话相关场景下按键流程 */
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         int tws_cig_state = is_cig_phone_conn();
-        if (tws_state & TWS_STA_PHONE_CONNECTED || tws_cig_state) { //已连接手机经典蓝牙或者cig
+        if ((tws_state & TWS_STA_PHONE_CONNECTED) || tws_cig_state) { //已连接手机经典蓝牙或者cig
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if ((tws_state & TWS_STA_PHONE_CONNECTED) && (le_auracast_status_get() != BROADCAST_STATUS_START)) { //已连接手机经典蓝牙&&耳机没有auracast播歌
 #else
         if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
 #endif
@@ -200,10 +205,30 @@ int bt_key_power_msg_remap(int *msg)
                 // 三击右耳进入SIRI
                 app_msg = APP_MSG_OPEN_SIRI;
                 break;
+            case KEY_ACTION_FOURTH_CLICK:
+                app_msg = APP_MSG_VOL_UP;
+                break;
+            case KEY_ACTION_FIRTH_CLICK:
+                app_msg = APP_MSG_VOL_DOWN;
+                break;
             default:
                 break;
             }
         }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_auracast_status_get() == BROADCAST_STATUS_START) {
+            switch (key_action) {
+            case KEY_ACTION_DOUBLE_CLICK:
+                app_msg = APP_MSG_VOL_UP;
+                break;
+            case KEY_ACTION_TRIPLE_CLICK:
+                app_msg = APP_MSG_VOL_DOWN;
+                break;
+            default:
+                break;
+            }
+        }
+#endif
     }
     /* 所有场景下按键流程 */
     switch (key_action) {

@@ -47,9 +47,6 @@ void soff_gpio_protect(u32 gpio)
  */
 void board_set_soft_poweroff_common(void *priv)
 {
-    extern u32 pdebug_uart_lowpower;
-    extern u32 pdebug_uart_port;
-
     if (pdebug_uart_lowpower) {
         soff_gpio_protect(pdebug_uart_port);
     }

@@ -26,6 +26,12 @@ void anc_howling_detect_cfg_update(audio_anc_t *param);
 /*啸叫检测参数复位*/
 void anc_howling_detect_reset(void);
 
+//用于功能互斥需要挂起啸叫检测
+void anc_howling_detect_app_suspend(void);
+
+//用于功能互斥结束后恢复啸叫检测
+void anc_howling_detect_app_resume(void);
+
 
 #endif/*_ANC_HOWLING_DETCET_H_*/
 

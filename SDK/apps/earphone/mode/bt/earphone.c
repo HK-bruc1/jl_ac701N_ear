@@ -1086,7 +1086,11 @@ int bt_app_msg_handler(int *msg)
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
         log_info("APP_MSG_VOL_UP\n");
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        app_audio_volume_up(1);
+#else
         bt_volume_up(1);
+#endif
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         data[0] = CIG_EVENT_OPID_VOLUME_UP;
@@ -1095,7 +1099,11 @@ int bt_app_msg_handler(int *msg)
         return 0;
     case APP_MSG_VOL_DOWN:
         log_info("APP_MSG_VOL_DOWN\n");
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        app_audio_volume_down(1);
+#else
         bt_volume_down(1);
+#endif
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         data[0] = CIG_EVENT_OPID_VOLUME_DOWN;
