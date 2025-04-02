@@ -97,7 +97,12 @@ void a2dp_energy_detect_handler(int *arg)
             memset(a2dp_energy_detect_addr, 0xff, 6);
         }
     }
-
+#if !TCFG_A2DP_PREEMPTED_ENABLE
+    if (bt_a2dp_slience_detect_num() < 1) {
+        // 无后台待播放设备
+        return;
+    }
+#endif
     if (g_a2dp_slience_detect == 0 && g_a2dp_play_time >= 10000) {
         /* 播放1s后开启静音检测 */
         g_a2dp_slience_detect = 1;
@@ -340,6 +345,7 @@ void try_play_preempted_a2dp(void *p)
         return;
     }
     if (!a2dp_player_is_playing(a2dp_preempted_addr)) {
+        memset(a2dp_preempted_addr, 0xff, 6);
         btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
     }
 }
@@ -517,7 +523,7 @@ static int a2dp_bt_status_event_handler(int *event)
         break;
     case BT_STATUS_PHONE_HANGUP:
     case BT_STATUS_SCO_DISCON:
-        printf("BT_STATUS_SCO_DISCON:%d\n", bt->event);
+        printf("A2DP BT_STATUS_SCO_DISCON:%d\n", bt->event);
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
@@ -693,6 +699,7 @@ static int a2dp_tws_msg_handler(int *msg)
     case TWS_EVENT_ROLE_SWITCH:
         while (bt_slience_get_detect_addr(addr)) {
             bt_stop_a2dp_slience_detect(addr);
+            a2dp_media_unmute(addr);
             a2dp_media_close(addr);
         }
         break;

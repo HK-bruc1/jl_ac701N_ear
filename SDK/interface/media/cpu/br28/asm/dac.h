@@ -84,6 +84,7 @@ struct dac_platform_data {
     u8 r_ana_gain;              // 右声道模拟增益
     u8 power_boost;             // 输出功率增强
     u8 clk_sel;                 // 时钟源选择：单端数字时钟/差分晶振时钟
+    u8 pa_en_slow;              // PA上电速度控制 0：快上电 1：缓上电 (power_on_mode == 1时有效)
 };
 
 

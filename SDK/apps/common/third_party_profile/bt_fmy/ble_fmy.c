@@ -25,19 +25,14 @@
 #include "bt_common.h"
 #include "3th_profile_api.h"
 #include "le_common.h"
-/* #include "rcsp_bluetooth.h" */
 #include "JL_rcsp_api.h"
 #include "custom_cfg.h"
 #include "btstack/btstack_event.h"
 #include "gatt_common/le_gatt_common.h"
-/* #include "gSensor/fmy/gsensor_api.h" */
 #include "ble_fmy.h"
 #include "ble_fmy_profile.h"
 #include "system/malloc.h"
-/* #include "fm_crypto.h" */
 #include "ble_fmy_cfg.h"
-#include "ble_fmy_ota.h"
-/* #include "ble_fmy_sensor_uart.h" */
 #include "app_ble_spp_api.h"
 #include "clock_manager/clock_manager.h"
 
@@ -67,22 +62,20 @@
 
 // 广播周期 (unit:0.625ms)
 #define ADV_INTERVAL_MIN          (160 * 5)//
+
+// FMY最大连接数，不可修改
+#define  FMY_MAX_CONNECTIONS          2
+#define  FMY_UPDATE_PARAM_PERIOD      30000  // FMY连接参数更新周期
+
 //******************************************************************************************
 //---------------
 //连接参数更新请求设置
 //是否使能参数请求更新,0--disable, 1--enable
-static uint8_t fmy_connection_update_enable = 0; ///0--disable, 1--enable
+static uint8_t fmy_connection_update_enable = 1; ///0--disable, 1--enable
 
-/*
-//请求的参数数组表,排队方式请求;哪组对方接受就用那组
-static const struct conn_update_param_t fmy_connection_param_table[] = {
-    {0x3c, 0x50,  0, 600},
-    {16, 24, 0, 500},//11
-};
+//用户可以选择在空闲的时候 主动请求手机更新连接参数 快速降低功耗
+static const struct conn_update_param_t fmy_connection_param_table = {792, 792, 0, 800};
 
-//共可用的参数组数
-#define CONN_PARAM_TABLE_CNT      (sizeof(fmy_connection_param_table)/sizeof(struct conn_update_param_t))
-*/
 
 static u16 fmy_cur_con_handle;//记录最新的连接handle
 static u8  fmy_cur_remote_address_info[7];//remote's address
@@ -95,6 +88,7 @@ fmy_glb_t  fmy_global_data;
 fmy_vm_t fmy_vm_info;
 adv_cfg_t fmy_server_adv_config;
 uint8_t fmy_battery_level = BAT_STATE_FULL;
+static fmy_conn_info_t fmy_conn_info[FMY_MAX_CONNECTIONS];
 
 static const char *FMY_cur_name = NULL;
 static const char the_original_Name[] = "Find My Accessory";//"Accessory- Find My.";
@@ -110,11 +104,7 @@ static const uint8_t fmy_battery_type = FMNA_BAT_NON_RECHARGEABLE;
 static const uint8_t FMY_AccessoryCapabilities[4] = {
     (FMY_CAPABILITY_SUPPORTS_PLAY_SOUND
 
-#if FMY_OTA_SUPPORT_CONFIG
-    | FMY_CAPABILITY_SUPPORTS_FW_UPDATE_SERVICE
-#endif
-
-#if TCFG_GSENSOR_ENABLE
+#if TCFG_GSENSOR_ENABLE && TCFG_P11GSENSOR_EN
     | FMY_CAPABILITY_SUPPORTS_MOTION_DETECTOR_UT
 #endif
 
@@ -123,20 +113,6 @@ static const uint8_t FMY_AccessoryCapabilities[4] = {
 };
 
 #define FMY_CHECK_CAPABILITIES(bit)   ((FMY_AccessoryCapabilities[0] & bit) != 0)
-
-const char *fmy_sm_state_strings[] = {
-    "FMY_SM_BOOT",
-    "FMY_SM_PAIR",
-    "FMY_SM_SEPARATED",
-    "FMY_SM_NEARBY",
-    "FMY_SM_CONNECTING",
-    "FMY_SM_FMNA_PAIR",
-    "FMY_SM_FMNA_PAIR_COMPLETE",
-    "FMY_SM_CONNECTED",
-    "FMY_SM_DISCONNECTING",
-    "FMY_SM_NOCHANGE",
-    "FMY_SM_UNPAIR",
-};
 
 //-------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------
@@ -149,7 +125,6 @@ static int fmy_get_static_mac(uint8_t *mac);
 static int fmy_set_static_mac(uint8_t *mac);
 static int fmy_get_battery_level(void);
 static int fmy_disconnect(uint16_t conn_handle, uint8_t reason);
-static uint16_t fmy_state_callback(FMNA_SM_State_t fmy_state);
 //-------------------------------------------------------------------------------------
 static const fmna_att_handle_t fmna_att_handle_table = {
     .pairing_control_point_handle = ATT_CHARACTERISTIC_4F860001_943B_49EF_BED4_2F730304427A_01_VALUE_HANDLE,
@@ -179,36 +154,6 @@ static const sm_cfg_t fmy_sm_init_config = {
     .max_key_size = 16,
     .sm_cb_packet_handler = NULL,
 };
-
-/* const gatt_server_cfg_t fmy_server_init_cfg = { */
-/* .att_read_cb = &fmy_att_read_callback, */
-/* .att_write_cb = &fmy_att_write_callback, */
-/* .event_packet_handler = &fmy_event_packet_handler, */
-/* }; */
-
-/* static gatt_ctrl_t fmy_gatt_control_block = { */
-/* //public */
-/* .mtu_size = ATT_LOCAL_MTU_SIZE, */
-/* .cbuffer_size = ATT_SEND_CBUF_SIZE, */
-/* .multi_dev_flag	= 0, */
-
-/* //config */
-/* #if CONFIG_BT_GATT_SERVER_NUM */
-/* .server_config = &fmy_server_init_cfg, */
-/* #else */
-/* .server_config = NULL, */
-/* #endif */
-
-/* .client_config = NULL, */
-
-/* #if CONFIG_BT_SM_SUPPORT_ENABLE */
-/* .sm_config = &fmy_sm_init_config, */
-/* #else */
-/* .sm_config = NULL, */
-/* #endif */
-/* //cbk,event handle */
-/* .hci_cb_packet_handler = NULL, */
-/* }; */
 
 //============================================================================================
 bool fmy_check_capabilities_is_enalbe(u8 cap)
@@ -283,7 +228,7 @@ static void fmy_set_profile_switch(void *ble_hdl, u8 mode)
         log_info("profile unpair");
         app_ble_att_handle_clear(ble_hdl);
         app_ble_att_handle_enable(ble_hdl, UNPAIR_CONTROL_START_HANDLE, UNPAIR_CONTROL_END_HANDLE, true);
-        app_ble_att_handle_enable(ble_hdl, CFG_CONTROL_START_HANDLE, CFG_CONTROL_END_HANDLE, false);
+        app_ble_att_handle_enable(ble_hdl, CFG_CONTROL_START_HANDLE, CFG_CONTROL_END_HANDLE, true);
         app_ble_att_handle_enable(ble_hdl, NON_OWNER_CONTROL_START_HANDLE, NON_OWNER_CONTROL_END_HANDLE, false);
         app_ble_att_handle_enable(ble_hdl, PAIRED_OWNER_INFO_START_HANDLE, PAIRED_OWNER_INFO_END_HANDLE, false);
         app_ble_att_handle_enable(ble_hdl, DEBUG_CONTROL_START_HANDLE, DEBUG_CONTROL_END_HANDLE, FMY_DEBUG_SERVICE_ENABLE);
@@ -377,27 +322,107 @@ static void fmy_check_connect_remote(void *ble_hdl, u8 addr_type, u8 *addr)
     }
 }
 
-/*************************************************************************************************/
-/*!
- *  \brief      发送请求连接参数表
- *
- *  \param      [in]
- *
- *  \return
- *
- *  \note
- */
-/*************************************************************************************************/
-static void fmy_send_connetion_updata_deal(u16 conn_handle)
-{
-    //不需要调整参数，都是由ios手机来决定
 
-//    if (fmy_connection_update_enable) {
-//        if (0 == ble_gatt_server_connetion_update_request(conn_handle, fmy_connection_param_table, CONN_PARAM_TABLE_CNT)) {
-//            fmy_connection_update_enable = 0;
-//        }
-//    }
+// *************************fmy connect table curd *********************************//
+void fmy_print_conn_info(const fmy_conn_info_t *conn_info_array, int array_size)
+{
+    log_info(">>>>>>>>print fmy curretn connect info");
+    for (int i = 0; i < array_size; i++) {
+        log_info("Index: %d, conn_hdl: %u, timer_id: %u, interval: %d, update_flag: %u",
+                 i, conn_info_array[i].conn_hdl, conn_info_array[i].timer_id,
+                 conn_info_array[i].interval, conn_info_array[i].update_flag);
+    }
 }
+
+int fmy_get_index_by_conn_handle(u16 conn_handle)
+{
+    for (int i = 0; i < FMY_MAX_CONNECTIONS; i++) {
+        if (fmy_conn_info[i].conn_hdl == conn_handle) {
+            return i;  // 返回匹配的索引
+        }
+    }
+    // 未找到匹配的 conn_handle
+    return -1;
+}
+
+static void fmy_send_request_connect_parameter(void *connection_handle)
+{
+    log_info("fmy_send_request_connect_parameter");
+    struct conn_update_param_t param = fmy_connection_param_table; //static ram
+    int index = fmy_get_index_by_conn_handle((u16) connection_handle);
+    if (index != -1) {
+        if (fmy_conn_info[index].update_flag && fmy_conn_info[index].interval < param.interval_min) {
+            fmy_conn_info[index].update_flag = 0;
+            log_info("fmy update connect parameter request success:-%d-%d-%d-%d-\n", param.interval_min, param.interval_max, param.latency, param.timeout);
+            ble_op_conn_param_request(fmy_conn_info[index].conn_hdl, &fmy_connection_param_table);
+            return;
+        } else {
+            fmy_conn_info[index].update_flag = 1;
+        }
+    }
+}
+
+static void fmy_send_connect_update_task_deal(u16 conn_handle)
+{
+    u32 t_conn_handle = conn_handle;
+    int i = fmy_get_index_by_conn_handle(conn_handle);
+    if (i != -1) {
+        u16 _timer_id = fmy_conn_info[i].timer_id;
+        if (!_timer_id) {
+            fmy_conn_info[i].timer_id = sys_timer_add((void *)t_conn_handle, fmy_send_request_connect_parameter, FMY_UPDATE_PARAM_PERIOD);
+        } else {
+            sys_timer_del(_timer_id);
+            fmy_conn_info[i].timer_id = 0;
+        }
+    }
+}
+
+static void fmy_connect_info_update(u16 conn_handle, u16 interval)
+{
+    log_info("fmy connect_info_update");
+    int empty_slot = -1;  // 用于记录空闲的槽位索引
+
+    // 遍历 fmy_conn_info 数组，查找空闲槽位或已存在的 conn_handle
+    for (int i = 0; i < FMY_MAX_CONNECTIONS; i++) {
+        if (fmy_conn_info[i].conn_hdl == conn_handle) {
+            // 已存在的 conn_handle，更新 interval 值
+            fmy_conn_info[i].interval = interval;
+            fmy_print_conn_info(fmy_conn_info, FMY_MAX_CONNECTIONS);
+            return;
+        } else if (fmy_conn_info[i].conn_hdl == 0 && empty_slot == -1) {
+            // 空闲槽位，记录空闲槽位索引
+            empty_slot = i;
+        }
+    }
+
+    if (empty_slot != -1) {
+        // 存入元素到空闲槽位
+        fmy_conn_info[empty_slot].conn_hdl = conn_handle;
+        fmy_conn_info[empty_slot].interval = interval;
+        fmy_print_conn_info(fmy_conn_info, FMY_MAX_CONNECTIONS);
+    } else {
+        // 没有空闲槽位，无法存入新元素
+        log_info("fmy_conn_info is full");
+    }
+}
+
+static void fmy_connect_info_delete(u16 conn_handle)
+{
+    log_info("fmy connect_info_delete");
+    int i = fmy_get_index_by_conn_handle(conn_handle);
+    if (i != -1) {
+        // 找到匹配的 conn_handle，执行删除操作
+        fmy_conn_info[i].conn_hdl = 0;
+        fmy_conn_info[i].interval = 0;
+        fmy_conn_info[i].timer_id = 0;
+        fmy_conn_info[i].update_flag = 0;
+        fmy_print_conn_info(fmy_conn_info, FMY_MAX_CONNECTIONS);
+        return;
+    }
+    // 未找到匹配的 conn_handle
+    log_info("No matching conn_handle found in fmy_conn_info");
+}
+// *************************fmy connect table curd *********************************//
 
 
 static void fmy_sm_event_cbk_handler(void *ble_hdl, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
@@ -451,6 +476,9 @@ static void fmy_event_cbk_packet_handler(void *ble_hdl, uint8_t packet_type, uin
         case ATT_EVENT_CAN_SEND_NOW:
             break;
         case ATT_EVENT_HANDLE_VALUE_INDICATION_COMPLETE:
+            if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 3)) {
+                break;
+            }
             log_info("ATT_EVENT_HANDLE_VALUE_INDICATION_COMPLETE\n");
             log_info("INDICATION_COMPLETE:con_handle= %04x,att_handle= %04x", \
                      little_endian_read_16(packet, 3), little_endian_read_16(packet, 5));
@@ -459,6 +487,9 @@ static void fmy_event_cbk_packet_handler(void *ble_hdl, uint8_t packet_type, uin
         case HCI_EVENT_LE_META:
             switch (hci_event_le_meta_get_subevent_code(packet)) {
             case HCI_SUBEVENT_LE_CONNECTION_COMPLETE: {
+                if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 4)) {
+                    break;
+                }
                 if (!hci_subevent_le_enhanced_connection_complete_get_role(packet)) {
                     break;
                 }
@@ -496,6 +527,10 @@ static void fmy_event_cbk_packet_handler(void *ble_hdl, uint8_t packet_type, uin
                 memcpy(fmy_cur_remote_address_info, &packet[7], 7);
                 fmy_check_connect_remote(ble_hdl, packet[7], &packet[8]);
                 fmna_connection_connected_handler(fmy_cur_con_handle, tmp16);
+                if (fmy_connection_update_enable) {
+                    fmy_connect_info_update(fmy_cur_con_handle, tmp16);
+                    fmy_send_connect_update_task_deal(fmy_cur_con_handle);
+                }
 #if ATT_MTU_REQUEST_ENALBE
                 att_server_set_exchange_mtu(fmy_cur_con_handle);/*主动请求MTU长度交换*/
 #endif
@@ -503,29 +538,51 @@ static void fmy_event_cbk_packet_handler(void *ble_hdl, uint8_t packet_type, uin
                 fmy_update_battery_level();
 #endif
                 fmy_ble_state = BLE_ST_CONNECT;
+                break;
             }
-            break;
 
-            case HCI_SUBEVENT_LE_CONNECTION_UPDATE_COMPLETE:
+            case HCI_SUBEVENT_LE_CONNECTION_UPDATE_COMPLETE: {
+
+                // 过滤除了fmy链路的其他链路更新操作
+                if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 4)) {
+                    break;
+                }
+
+                log_info_hexdump(packet, size);
                 log_info("conn_param update_complete:%04x", little_endian_read_16(packet, 4));
                 log_info("update_interval = %d", little_endian_read_16(packet, 6 + 0));
                 log_info("update_latency = %d", little_endian_read_16(packet, 6 + 2));
                 log_info("update_timeout = %d", little_endian_read_16(packet, 6 + 4));
                 fmna_connection_conn_param_update_handler(little_endian_read_16(packet, 4), little_endian_read_16(packet, 6 + 0));
 
+                if (fmy_connection_update_enable) {
+                    fmy_connect_info_update(little_endian_read_16(packet, 4), little_endian_read_16(packet, 6 + 0));
+                }
                 break;
+            }
             }
             break;
 
         case HCI_EVENT_DISCONNECTION_COMPLETE:
+            if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 3)) {
+                break;
+            }
             log_info("disconnect_handle:%04x,reason= %02x", little_endian_read_16(packet, 3), little_endian_read_16(packet, 5));
             if (fmy_cur_con_handle == little_endian_read_16(packet, 3)) {
                 fmy_cur_con_handle = 0;
+            }
+
+            if (fmy_connection_update_enable) {
+                fmy_send_connect_update_task_deal(little_endian_read_16(packet, 3));
+                fmy_connect_info_delete(little_endian_read_16(packet, 3));
             }
             fmna_connection_disconnected_handler(little_endian_read_16(packet, 3), little_endian_read_16(packet, 5));
             fmy_ble_state = BLE_ST_DISCONN;
             break;
         case HCI_EVENT_ENCRYPTION_CHANGE:
+            if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 3)) {
+                break;
+            }
             con_handle = little_endian_read_16(packet, 3);
             log_info("ENCRYPTION_CHANGE:handle=%04x,state=%d,process =%d", con_handle, packet[2], packet[3]);
             if (packet[2] == 0) {
@@ -544,20 +601,11 @@ static void fmy_event_cbk_packet_handler(void *ble_hdl, uint8_t packet_type, uin
                 fmy_set_profile_switch(ble_hdl, PROFILE_MODE_NON_OWNER);
             }
             break;
-        case HCI_SUBEVENT_LE_CONNECTION_UPDATE_COMPLETE:
-            tmp16 = little_endian_read_16(packet, 4); // con_handle
-            log_info("conn_update_handle   = %04x\n", tmp16);
-            log_info("conn_update_interval = %d\n", hci_subevent_le_connection_update_complete_get_conn_interval(packet));
-            log_info("conn_update_latency  = %d\n", hci_subevent_le_connection_update_complete_get_conn_latency(packet));
-            log_info("conn_update_timeout  = %d\n", hci_subevent_le_connection_update_complete_get_supervision_timeout(packet));
 
-            fmna_connection_conn_param_update_handler(tmp16, little_endian_read_16(packet, 6 + 0));
-            if (tmp16) {
-                ble_op_set_ext_phy(tmp16, 0, CONN_SET_CODED_PHY, CONN_SET_CODED_PHY, CONN_SET_PHY_OPTIONS_S2);    // 向对端发起phy通道更改
-            }
-
-            break;
         case ATT_EVENT_MTU_EXCHANGE_COMPLETE:
+            if (app_ble_get_hdl_con_handle(ble_hdl) != little_endian_read_16(packet, 2)) {
+                break;
+            }
             mtu = att_event_mtu_exchange_complete_get_MTU(packet) - 3;
             log_info("con_handle= %02x, ATT MTU = %u", little_endian_read_16(packet, 2), mtu);
             if (mtu > ATT_LOCAL_MTU_SIZE) {
@@ -733,6 +781,10 @@ static uint16_t fmy_att_read_callback(void *ble_hdl, hci_con_handle_t connection
 
 static int fmy_att_write_callback(void *ble_hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t fmyaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
 {
+    if (fmy_connection_update_enable) {
+        int index = fmy_get_index_by_conn_handle(connection_handle);
+        fmy_conn_info[index].update_flag = 0;
+    }
     int result = 0;
     u16 tmp16;
 
@@ -804,99 +856,6 @@ static int fmy_att_write_callback(void *ble_hdl, hci_con_handle_t connection_han
     return 0;
 }
 
-
-
-
-
-/*************************************fmy watch 功能接口************************************************/
-
-static void fmy_set_adv_enable_timeout(void *priv)
-{
-    fmy_set_adv_enable((u8)priv);
-}
-
-
-// 开关fmy功能，暂时用开关广播来做
-extern void fmy_test_disconnect(void);
-int fmy_enable(bool en)
-{
-    if (en) {
-        log_info(">>>>>fmy open");
-    } else {
-        log_info(">>>>>fmy close");
-    }
-    // 写开关标志位
-    __fy_vm->is_open = en;
-    fmy_vm_deal(__fy_vm, 1);
-
-    // 如果处于未配对状态需要打开fmy
-    if (en && (__fydata->adv_fmna_state == FMNA_SM_PAIR)) {
-        return 0;
-    }
-
-    // 如果处于连接状态并且需要关掉fmy则需要先断开连接再关广播
-    if (!en && __fydata->fmna_state == FMNA_SM_CONNECTED) {
-        fmy_test_disconnect();
-        sys_timeout_add((void *)0, fmy_set_adv_enable_timeout, 500);
-        return 0;
-    }
-
-    return fmy_set_adv_enable(en);
-}
-
-// 开关配对广播
-extern void fmy_pairing_reset_address(void);
-extern void fmy_pairing_restart_adv(void);
-void fmy_open_close_pairing_mode(bool en)
-{
-    if (en) {
-        log_info(">>>fmy start pairing adv");
-        fmy_pairing_reset_address();
-        fmy_pairing_restart_adv();
-    } else {
-        if (__fydata->adv_fmna_state == FMNA_SM_PAIR) {
-            log_info(">>>fmy close pairing adv");
-            __fydata->pairing_mode_enable = 0;
-            fmy_set_adv_enable(0);
-            fmy_pairing_timeout_stop();
-        }
-    }
-}
-
-// 是否配对, 1:已配对 0:未配对
-bool fmy_get_pair_state(void)
-{
-    return fmna_connection_is_fmna_paired();
-}
-
-// 手动强制解除配对
-extern void fmna_factory_reset(void *priv);
-void fmy_factory_reset(void)
-{
-    log_info(">>>findmy factory reset!");
-    fmna_factory_reset(NULL);
-}
-
-// findmy状态回调，状态类别参考FMNA_SM_State_t枚举体
-static uint16_t fmy_state_callback(FMNA_SM_State_t fmy_state)
-{
-    log_info("fmy state change->fmy_state:%s", fmy_sm_state_strings[fmy_state]);
-    __fydata->fmna_state = fmy_state;
-    switch (fmy_state) {
-    case FMNA_SM_FMNA_PAIR_COMPLETE:
-        log_info("findmy pair success!!");
-        break;
-    case FMNA_SM_UNPAIR:
-        // 锁住pairing mode 广播,待重新开启
-        __fydata->pairing_mode_enable = 0;
-        log_info("findmy unpair success!!");
-        break;
-    default:
-        break;
-    }
-    return 0;
-}
-
 /*************************************************************************************************/
 /*!
  *  \brief      fmna模块初始化
@@ -963,8 +922,6 @@ void fmy_bt_ble_init(void)
         fmy_vm_deal(__fy_vm, 1);
         log_info("reset config to pair adv ");
     }
-
-    //ble_comm_set_config_name(the_suffix_Name, 0);
     FMY_cur_name = the_suffix_Name;
     fmy_cur_con_handle = 0;
     fmy_server_adv_config.adv_auto_do = 0;
@@ -972,27 +929,29 @@ void fmy_bt_ble_init(void)
 
     extern const int config_btctler_le_master_multilink;
     log_info("config_btctler_le_master_multilink: %d", config_btctler_le_master_multilink);
-
-    log_info("capability= %02x, ota= %d", FMY_AccessoryCapabilities[0], FMY_OTA_SUPPORT_CONFIG);
-
-
+    log_info("capability= %02x", FMY_AccessoryCapabilities[0]);
     fmna_set_accessory_category(FMY_AccessoryCategory);
     fmy_fmna_init();
-
-    fmy_enable(1);
+    // set findmy connect link
+    if (config_le_hci_connection_num < FMY_MAX_CONNECTIONS) {
+        log_info("config_le_hci_connection_num has:%d, fmy_max_connections need:%d", config_le_hci_connection_num, FMY_MAX_CONNECTIONS);
+        ASSERT(0, "no enough ble conect links for findmy!!");
+    }
+    fmna_connection_set_sys_max_connections(FMY_MAX_CONNECTIONS);
+    // fmy_enable(1);
 }
 
-/* #<{(|***********************************************************************************************|)}># */
-/* #<{(|! */
-/*  *  \brief      模块退出 */
-/*  * */
-/*  *  \param      [in] */
-/*  * */
-/*  *  \return */
-/*  * */
-/*  *  \note */
-/*  |)}># */
-/* #<{(|***********************************************************************************************|)}># */
+/*************************************************************************************************/
+/*!
+ *  \brief      模块退出
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
 void fmy_bt_ble_exit(void)
 {
     log_info("%s\n", __FUNCTION__);
@@ -1000,22 +959,6 @@ void fmy_bt_ble_exit(void)
     /* ble_module_enable(0); */
     /* ble_comm_exit(); */
 }
-
-/* #<{(|***********************************************************************************************|)}># */
-/* #<{(|! */
-/*  *  \brief      模块开发使能 */
-/*  * */
-/*  *  \param      [in] */
-/*  * */
-/*  *  \return */
-/*  * */
-/*  *  \note */
-/*  |)}># */
-/* #<{(|***********************************************************************************************|)}># */
-/* void ble_module_enable(u8 en) */
-/* { */
-//ble_comm_module_enable(en);
-/* } */
 
 /*************************************************************************************************/
 /*!
@@ -1040,24 +983,9 @@ void ble_server_send_test_key_num(u8 key_num)
     }
 }
 
-
-void fmy_key_process(u8 key_event)
+u16 ble_fmy_get_con_handle(void)
 {
-    if (key_event == 64) {  // short
-        printf("fmy key short");
-        /* fmy_pairing_reset_address(); */
-        /* fmy_pairing_restart_adv(); */
-        fmy_open_close_pairing_mode(1);
-    } else if (key_event == 66) {   // long
-        /* fmy_enable(0);       */
-        fmy_factory_reset();
-        /* printf("fmy key long"); */
-        /* __fy_vm->reset_config = 1; */
-        /* fmy_vm_deal(__fy_vm, 1); */
-        /* fmna_plaform_reset_config(); */
-        /* fmy_systerm_reset(30); */
-
-    }
+    return fmy_cur_con_handle;
 }
 
 #endif

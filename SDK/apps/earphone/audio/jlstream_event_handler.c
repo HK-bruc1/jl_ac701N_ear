@@ -18,6 +18,7 @@
 #include "classic/tws_api.h"
 #include "esco_recoder.h"
 #include "clock.h"
+#include "dual_a2dp_play.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -77,9 +78,6 @@ static const struct stream_coexist_policy coexist_policy_table_rewrite[] = {
 #endif
     { 0, 0, 0, 0 }
 };
-
-extern void a2dp_energy_detect_handler(int *arg);
-
 
 int get_system_stream_bit_width(void *par)
 {
@@ -376,9 +374,11 @@ int jlstream_event_notify(enum stream_event event, int arg)
     case STREAM_EVENT_GET_EFF_ONLINE_PARM:
         ret = get_eff_online_parm(arg);
         break;
+#if TCFG_BT_DUAL_CONN_ENABLE
     case STREAM_EVENT_A2DP_ENERGY:
         a2dp_energy_detect_handler((int *)arg);
         break;
+#endif
 #if TCFG_SWITCH_NODE_ENABLE
     case STREAM_EVENT_GET_SWITCH_CALLBACK:
         ret = get_switch_node_callback((const char *)arg);

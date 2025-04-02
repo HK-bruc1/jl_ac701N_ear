@@ -357,6 +357,17 @@ void bt_reset_a2dp_slience_detect()
     }
 }
 
+u8 bt_a2dp_slience_detect_num()
+{
+    u8 detect_num = 0;
+    for (int i = 0; i < 2; i++) {
+        if (g_detect_hdl[i]) {
+            detect_num++;
+        }
+    }
+    return detect_num;
+}
+
 int bt_slience_detect_get_result(u8 *bt_addr)
 {
     struct detect_handler *detect = get_detect_handler(bt_addr);

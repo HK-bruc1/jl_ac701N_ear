@@ -276,6 +276,7 @@ REGISTER_TWS_FUNC_STUB(tws_tone_player_stub) = {
 static void tws_tone_reference_clock_setup(struct tws_tone_message *msg)
 {
     if (TWS_TONE_PLAYER_REFERENCE_CLOCK == 1) {
+        msg->reference_clk = 0;
         return;
     }
     msg->reference_clk = audio_reference_clock_select(NULL, 1);

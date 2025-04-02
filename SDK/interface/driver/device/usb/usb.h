@@ -135,6 +135,10 @@ void usb_write_rxfuncaddr(const usb_dev id, const u32 ep, const u32 devnum);
 void usb_h_force_reset(const usb_dev usb_id);
 void usb_lowpower_enter_sleep(void);
 void usb_lowpower_exit_sleep(void);
+void usb_dp_pull_up(const usb_dev id, u8 enable);
+void usb_dp_pull_down(const usb_dev id, u8 enable);
+void usb_dm_pull_up(const usb_dev id, u8 enable);
+void usb_dm_pull_down(const usb_dev id, u8 enable);
 
 
 #endif

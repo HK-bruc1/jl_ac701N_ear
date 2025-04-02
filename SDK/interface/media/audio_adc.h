@@ -7,6 +7,7 @@
 #include "audio_def.h"
 #include "cpu/includes.h"
 #include "asm/adc.h"
+#include "media_config.h"
 
 /*
 *********************************************************************

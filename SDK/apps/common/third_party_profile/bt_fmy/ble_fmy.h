@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "app_config.h"
+#include "ble_user.h"
 #include "gatt_common/le_gatt_common.h"
 #include "btstack/third_party/fmna/fmna_api.h"
 
@@ -42,6 +43,14 @@ typedef struct {
     u8  reset_config;//flag
     u8  is_open;
 } fmy_vm_t;
+
+typedef struct {
+    u16   conn_hdl;
+    u16   timer_id;
+    u16   interval;
+    u8    update_flag;
+} fmy_conn_info_t;
+
 
 extern fmy_vm_t fmy_vm_info;
 #define __fy_vm  (&fmy_vm_info)

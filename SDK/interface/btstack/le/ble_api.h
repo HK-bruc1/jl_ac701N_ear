@@ -1398,7 +1398,7 @@ int att_server_change_profile(u8 const *profile_data);
 void ble_vendor_set_tx_power(u8 level);
 
 
-
+void update_list_local_addr(u8 *old_local_addr, u8 *new_local_addr);
 
 
 

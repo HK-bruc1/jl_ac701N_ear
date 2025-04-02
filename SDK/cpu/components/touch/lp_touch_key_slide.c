@@ -133,6 +133,28 @@ static struct touch_key_slide slide_key;
 #define SLIDE_CLICK_TIMEOUT_TIME    500         //识别为滑动之后，该时间内，如果有case7.也要识别为滑动
 #define FAST_SLIDE_CNT_MAX          4           //一来就连续那么多次的case7.，就会识别为一次滑动。
 
+static void lp_touch_key_slide_algo_reset(void)
+{
+    if (slide_key.slide_click_timeout_add) {
+        sys_hi_timeout_del(slide_key.slide_click_timeout_add);
+    }
+    if (slide_key.falling_timeout_add) {
+        sys_hi_timeout_del(slide_key.falling_timeout_add);
+    }
+    if (slide_key.raising_timeout_add) {
+        sys_hi_timeout_del(slide_key.raising_timeout_add);
+    }
+    if (slide_key.click_idle_timeout_add) {
+        sys_hi_timeout_del(slide_key.click_idle_timeout_add);
+    }
+    if (slide_key.first_short_click_timeout_add) {
+        sys_hi_timeout_del(slide_key.first_short_click_timeout_add);
+    }
+    if (slide_key.send_keytone_timeout_add) {
+        sys_hi_timeout_del(slide_key.send_keytone_timeout_add);
+    }
+    memset(&slide_key, 0, sizeof(struct touch_key_slide));
+}
 
 static void lp_touch_key_falling_timeout_handle(void *priv)
 {
@@ -278,23 +300,17 @@ static u32 lp_touch_key_check_channel_raising_info_and_key_type(u32 ch)
     return key_type;
 }
 
-static u32 lp_touch_key_get_slide_event_ch(void)
-{
-    return __this->pdata->key_cfg[0].key_ch;
-}
-
-static u32 lp_touch_key_check_slide_key_type(u32 event, u32 ch)
+static u32 lp_touch_key_check_slide_key_type(u32 event, u32 ch_idx)
 {
     u32 key_type = 0;
-    u32 event_ch = lp_touch_key_get_slide_event_ch();
-    if (event == (CTMU_P2M_CH0_FALLING_EVENT + ch * 8)) {
-        if (ch == event_ch) {
+    if (event == TOUCH_KEY_FALLING_EVENT) {
+        if (ch_idx == 0) {
             lp_touch_key_check_channel_falling_info(0);
         } else {
             lp_touch_key_check_channel_falling_info(1);
         }
-    } else if (event == (CTMU_P2M_CH0_RAISING_EVENT + ch * 8)) {
-        if (ch == event_ch) {
+    } else if (event == TOUCH_KEY_RAISING_EVENT) {
+        if (ch_idx == 0) {
             if ((slide_key.last_key_type == LONG_CLICK) || (slide_key.last_key_type == LONG_HOLD_CLICK)) {
                 key_type = LONG_UP_CLICK;       //一定是长按抬起
             } else {
@@ -303,9 +319,9 @@ static u32 lp_touch_key_check_slide_key_type(u32 event, u32 ch)
         } else {
             key_type = lp_touch_key_check_channel_raising_info_and_key_type(1);
         }
-    } else if (event == (CTMU_P2M_CH0_LONG_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
+    } else if ((ch_idx == 0) && (event == TOUCH_KEY_LONG_EVENT)) {//长按只判断通道号小的那个按键
         key_type = LONG_CLICK;
-    } else if (event == (CTMU_P2M_CH0_HOLD_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
+    } else if ((ch_idx == 0) && (event == TOUCH_KEY_HOLD_EVENT)) {//长按只判断通道号小的那个按键
         key_type = LONG_HOLD_CLICK;
     }
 
@@ -421,4 +437,5 @@ static void lp_touch_key_send_slide_key_type_event(u32 key_type)
         break;
     }
 }
+
 

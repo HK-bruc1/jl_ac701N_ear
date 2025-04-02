@@ -35,6 +35,9 @@
 #include "volume_node.h"
 #include "tone_player.h"
 #include "ring_player.h"
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "le_audio_player.h"
 #endif
@@ -1327,6 +1330,9 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
     __this->digital_volume = dvol_max;
 
     int cur_vol = app_audio_get_volume(state) * scale / 100 ;
+    if (!cur_vol && app_audio_get_volume(state)) {
+        cur_vol = 1; //处理某些音量等级多，音量低的场景切换到音量等级少的场景，会出现音量设置为0的情况
+    }
     cur_vol = (cur_vol > __this->max_volume[state]) ? __this->max_volume[state] : cur_vol;
     app_audio_init_dig_vol(state, cur_vol, 1, dvol_hdl);
 }
@@ -1549,6 +1555,11 @@ void app_audio_set_volume(u8 state, s16 volume, u8 fade)
 #if AUDIO_VBASS_LINK_VOLUME
     if (state == APP_AUDIO_STATE_MUSIC) {
         vbass_link_volume();
+    }
+#endif
+#if AUDIO_EQ_LINK_VOLUME
+    if (state == APP_AUDIO_STATE_MUSIC) {
+        eq_link_volume();
     }
 #endif
 }

@@ -216,11 +216,6 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         lpctmu_port_init(__this->ch_list[ch_idx]);
     }
 
-    M2P_CTMU_CH_ENABLE = __this->ch_en;
-    M2P_CTMU_CH_WAKEUP_EN = __this->ch_wkp_en;
-    M2P_CTMU_SCAN_TIME = __this->pdata->sample_scan_time;
-    M2P_CTMU_LOWPOER_SCAN_TIME = __this->pdata->lowpower_sample_scan_time;
-
     if (!is_wakeup_source(PWR_WK_REASON_P11)) {
 
         lpctmu_lptimer_disable();

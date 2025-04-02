@@ -143,6 +143,18 @@ SDP_RECORD_HANDLER_REGISTER(map_sdp_record_item) = {
     .service_record_handle = 0x00010009,
 };
 #endif
+
+#if (defined TCFG_BT_SUPPORT_PAN && (TCFG_BT_SUPPORT_PAN==1))
+extern const u8 sdp_pan_service_data[200];
+u8 pan_profile_support = 1;
+const int IPV4_ADDR_CONFLICT_DETECT = 0;
+const int  ntp_get_time_init = 0;
+SDP_RECORD_HANDLER_REGISTER(pan_sdp_record_item) = {
+    .service_record = (u8 *)sdp_pan_service_data,
+    .service_record_handle =  0x0001000E,
+};
+#endif
+
 /*注意hid_conn_depend_on_dev_company置1之后，安卓手机会默认断开HID连接 */
 /*注意hid_conn_depend_on_dev_company置2之后，默认不断开HID连接 */
 const u8 hid_conn_depend_on_dev_company = 1;
@@ -161,7 +173,7 @@ const u8 pbg_support_enable = 1;
 const u8 adt_profile_support = 1;
 #else
 const u8 pbg_support_enable = 0;
-#if ATT_OVER_EDR_DEMO_EN
+#if (ATT_OVER_EDR_DEMO_EN || (THIRD_PARTY_PROTOCOLS_SEL & THIRD_PARTY_PROTOCOLS_SEL))
 const u8 adt_profile_support = 1;//gatt over edr
 #else
 const u8 adt_profile_support = 0;

@@ -35,6 +35,28 @@ typedef struct {
     uint16_t Connection_Handle[2];
 } auracast_sink_source_info_t;
 
+typedef enum {
+    SINK_SCAN_STATE_IDLE = 0x00,
+    SINK_SCAN_STATE_EXT_SCANNING,
+    SINK_SCAN_STATE_EXT_REPORTED,
+    SINK_SCAN_STATE_PADV_SCANNING,
+    SINK_SCAN_STATE_PADV_REPORTED,
+} auracast_sink_scan_state_t;
+
+typedef enum {
+    SINK_BIG_STATE_IDLE = 0x00,
+    SINK_BIG_STATE_EXT_SCANNING,
+    SINK_BIG_STATE_EXT_REPORTED,
+    SINK_BIG_STATE_PADV_TRY_SYNC,
+    SINK_BIG_STATE_PADV_SYNC,
+    SINK_BIG_STATE_BIG_TRY_SYNC,
+    SINK_BIG_STATE_BIG_SYNC,
+} auracast_sink_big_state_t;
+
+extern auracast_sink_scan_state_t auracast_sink_scan_state_get(void);
+extern auracast_sink_big_state_t auracast_sink_big_state_get(void);
+extern auracast_sink_source_info_t *auracast_sink_listening_source_info_get(void);
+
 enum {
     AURACAST_SINK_SOURCE_INFO_REPORT_EVENT,
     AURACAST_SINK_BLE_CONNECT_EVENT,
@@ -52,8 +74,8 @@ typedef void (*auracast_sink_event_callback_t)(uint16_t event, uint8_t *packet, 
 
 extern int auracast_sink_init(void);
 extern int auracast_sink_uninit(void);
-extern void auracast_sink_scan_start(void);
-extern void auracast_sink_stop_scan(void);
+extern int auracast_sink_scan_start(void);
+extern int auracast_sink_scan_stop(void);
 extern int auracast_sink_big_sync_create(auracast_sink_source_info_t *param);
 extern void auracast_sink_big_create(void);
 extern void auracast_sink_rescan(void);

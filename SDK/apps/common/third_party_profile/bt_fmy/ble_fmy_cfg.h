@@ -11,7 +11,7 @@
 //set token =====================================================
 #define  TOKEN_ID_PRODUCTION_MODE                     0 //0--debug, 1--production
 #define  UUID_TOKEN_IS_BASE64_MODE                    0 //0--hex,   1--base64
-
+#define  FMY_FMCA_TEST_MODE                           1
 #if(TOKEN_ID_PRODUCTION_MODE)
 #define  FMY_DEBUG_SERVICE_ENABLE                     0
 #else

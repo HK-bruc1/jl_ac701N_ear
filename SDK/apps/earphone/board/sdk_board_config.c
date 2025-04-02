@@ -224,9 +224,6 @@ LPCTMU_PLATFORM_DATA_END();
 LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
     .slide_mode_en              = TCFG_LP_KEY_SLIDE_ENABLE,
     .slide_mode_key_value       = TCFG_LP_KEY_SLIDE_VALUE,
-    .eartch_en                  = TCFG_LP_EARTCH_KEY_ENABLE,
-    .eartch_ch                  = TCFG_LP_EARTCH_DETECT_CH,
-    .eartch_ref_ch              = TCFG_LP_EARTCH_REF_CH,
     .charge_mode_keep_touch     = TCFG_LP_KEY_ENABLE_IN_CHARGE,
 #if TCFG_LP_KEY_LONG_PRESS_RESET
     .long_press_reset_time      = TCFG_LP_KEY_LONG_PRESS_RESET_TIME,

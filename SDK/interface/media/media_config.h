@@ -45,6 +45,7 @@ extern const int config_audio_dac_mute_timeout;
  */
 extern const u8 const_mic_capless_open_delay_debug;
 extern const u8 const_mic_capless_trim_delay_debug;
+extern const u8 const_adc_async_en;						//是否支持多个ADC异步打开
 
 /*
  *******************************************************************

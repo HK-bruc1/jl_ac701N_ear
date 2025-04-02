@@ -270,6 +270,8 @@ REGISTER_STREAM_NODE_ADAPTER(cvp_node_adapter) = {
     .ioctl      = cvp_adapter_ioctl,
     .release    = cvp_adapter_release,
     .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_out = 0x80 | 1,
+    .ability_channel_convert = 1,
 };
 
 #endif/*TCFG_CVP_DEVELOP_ENABLE*/

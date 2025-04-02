@@ -239,6 +239,7 @@ void fmna_connection_conn_param_update_handler(uint16_t conn_handle, uint16_t co
 void fmna_connection_disconnected_handler(uint16_t conn_handle, uint8_t disconnect_reason);
 void fmna_connection_encryption_change_complete(uint16_t conn_handle, bool is_sucess);
 int fmna_connection_pair_request_check(uint16_t conn_handle);
+void fmna_connection_set_sys_max_connections(uint8_t max_connections);
 void fmna_config_user_vm_rang(uint16_t vm_start_id, uint16_t vm_end_id);
 void fmna_connection_disconnect_all(void);
 void fmna_gatt_platform_recieve_indication_response(uint16_t conn_handle, uint16_t att_handle);

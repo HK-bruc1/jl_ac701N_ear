@@ -405,11 +405,11 @@ static int dual_conn_btstack_event_handler(int *_event)
             }
             g_dual_conn.device_num_recorded++;
         }
-#if TCFG_BT_DUAL_CONN_ENABLE
-        write_scan_conn_enable(0, 1);
-#else
-        write_scan_conn_enable(0, 0);
-#endif
+        if (get_bt_dual_config() == DUAL_CONN_CLOSE) {
+            write_scan_conn_enable(0, 0);
+        } else {
+            write_scan_conn_enable(0, 1);
+        }
         break;
 #if TCFG_BT_DUAL_CONN_ENABLE
     case BT_STATUS_SECOND_CONNECTED:

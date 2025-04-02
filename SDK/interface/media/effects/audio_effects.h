@@ -26,6 +26,7 @@ struct effects_param {
     u8 aud_module_tmpbuf_type;
     u8 set_tmpbuf_before_init;//EFFECTS_SET_TMPBUF_BEF_INIT:根据算法特性在init前,设置tmpbuf EFFECTS_SET_TMPBUF_BEF_RUN:run前设置tmpbuf
     u8 cross_fade_en;//CONFIG_CROSS_FADE_POSITION_IN_BYPASS:bypass时，做cross fade处理, CONFIG_CROSS_FADE_POSITION_IN_RUN: run时，做cross fade处理
+    u8 hardware_ctrl;//算法调用到固件层的接口，通过update接口,做释放处理, BIT(0):EFFECTS_HARDWARE_NEED_CLOSE,BIT(1):EFFECTS_HARDWARE_TO_CLOSE,
     int (*private_update)(void *ptr, void *param); //参数改变需要重新初始化算法,需实现该接口
     int (*tmpbuf_size_update)(void *ptr, void *param, int len); //需要使用run的长度更新tmpbuf_size
     void *param;//算法参数结构
@@ -77,6 +78,9 @@ int audio_effects_iport_handle_frame(struct audio_effects *hdl, struct stream_ip
 #define CONFIG_CROSS_FADE_POSITION_IN_RUN                BIT(1)
 #define CONFIG_CROSS_FADE_POSITION_IN_BYPASS_AND_RUN     (BIT(1) | BIT(0))
 
+//hardware ctrl
+#define EFFECTS_HARDWARE_NEED_CLOSE   BIT(0)
+#define EFFECTS_HARDWARE_TO_CLOSE     BIT(1)
 
 #endif
 

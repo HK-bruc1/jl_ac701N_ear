@@ -133,7 +133,7 @@ int bt_key_power_msg_remap(int *msg)
     /* 通话相关场景下按键流程 */
     if (active_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
+        case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CALL_HANGUP;
             break;
         default:
@@ -152,7 +152,7 @@ int bt_key_power_msg_remap(int *msg)
         }
     } else if (outgoing_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
+        case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CALL_HANGUP;
             break;
         default:
@@ -160,7 +160,7 @@ int bt_key_power_msg_remap(int *msg)
         }
     } else if (siri_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
+        case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CLOSE_SIRI;
             break;
         default:

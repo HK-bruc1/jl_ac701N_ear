@@ -130,6 +130,7 @@ void audio_dac_initcall(void)
         dac_data.ldo_volt = 0;
     }
     dac_data.max_sample_rate    = AUDIO_DAC_MAX_SAMPLE_RATE;
+    dac_data.pa_en_slow = 1;
     audio_dac_init(&dac_hdl, &dac_data);
     //dac_hdl.ng.threshold = 4;			//DAC底噪优化阈值
     //dac_hdl.ng.detect_interval = 200;	//DAC底噪优化检测间隔ms

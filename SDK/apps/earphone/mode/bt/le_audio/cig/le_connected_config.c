@@ -37,7 +37,7 @@ static cig_parameter_t cig_perip_param = {
     .vdr = {
         .tx_delay   = 1500,
         .aclMaxPduCToP = 36,
-        .aclMaxPduPToC = 27,
+        .aclMaxPduPToC = 9,
     },
 };
 

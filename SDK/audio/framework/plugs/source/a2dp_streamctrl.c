@@ -98,6 +98,11 @@ void a2dp_stream_mark_next_timestamp(void *_ctrl, u32 next_timestamp)
     }
 }
 
+u32 __attribute__((weak)) get_a2dp_max_buf_size(u8 codec_type)
+{
+    return CONFIG_A2DP_MAX_BUF_SIZE;
+}
+
 void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_frames, int sample_rate)
 {
     struct a2dp_stream_control *ctrl = (struct a2dp_stream_control *)_ctrl;
@@ -108,7 +113,8 @@ void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_fr
     }
 
     if (frame_len) {
-        max_latency = (CONFIG_A2DP_MAX_BUF_SIZE * pcm_frames / frame_len) * 1000 / sample_rate * 9 / 10;
+        max_latency = get_a2dp_max_buf_size(ctrl->codec_type);
+        max_latency = (max_latency * pcm_frames / frame_len) * 1000 / sample_rate * 9 / 10;
     }
 
     if (!max_latency) {
@@ -416,9 +422,9 @@ static int a2dp_stream_error_filter(struct a2dp_stream_control *ctrl, struct a2d
             }
         } else if (!ctrl->stream_error && (u16)(seqn - ctrl->seqn) > 1) {
             err = -EAGAIN;
-            if ((u16)(seqn - ctrl->seqn) > 32768) {
+            /*if ((u16)(seqn - ctrl->seqn) > 32768) {
                 return err;
-            }
+            }*/
             ctrl->stream_error = A2DP_STREAM_MISSED;
             ctrl->missed_num = 2;//(u16)(seqn - ctrl->seqn);
             /*printf("case 2 : %d, %d, %d\n", seqn, ctrl->seqn, ctrl->missed_num);*/

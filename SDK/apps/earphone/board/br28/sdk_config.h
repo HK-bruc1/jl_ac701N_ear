@@ -157,8 +157,7 @@
 #define TCFG_LP_KEY_SLIDE_ENABLE 0 // 两个按键滑动
 #define TCFG_LP_KEY_SLIDE_VALUE KEY_SLIDER // 键值
 #define TCFG_LP_EARTCH_KEY_ENABLE 0 // 入耳检测
-#define TCFG_LP_EARTCH_DETECT_CH LPCTMU_CH2_PB2 // 检测通道
-#define TCFG_LP_EARTCH_REF_CH LPCTMU_CH1_PB1 // 参考通道
+#define TCFG_LP_EARTCH_DETECT_RELY_AUDIO 0 // 检测方式
 #endif // TCFG_LP_TOUCH_KEY_ENABLE
 // ------------按键配置.json------------
 
@@ -197,6 +196,7 @@
 #define TCFG_BT_SUPPORT_A2DP 1 // A2DP
 #define TCFG_BT_SUPPORT_HID 1 // HID
 #define TCFG_BT_SUPPORT_SPP 1 // SPP
+#define TCFG_BT_SUPPORT_PAN 0
 #define TCFG_BT_BACKGROUND_ENABLE 0 // 蓝牙后台
 #define TCFG_BT_BACKGROUND_GOBACK 1 // 蓝牙后台连接断开返回
 #define TCFG_BT_BACKGROUND_DETECT_TIME 750 // 音乐检测时间

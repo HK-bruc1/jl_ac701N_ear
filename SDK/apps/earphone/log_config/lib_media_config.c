@@ -363,6 +363,17 @@ const int const_audio_wma_dec16_fifo_precision = 16;  //  24 或者 16
 //***********************
 const int OPUS_SRINDEX = 0; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
 
+#ifndef TCFG_DEC_OGG_OPUS_ENABLE
+#define TCFG_DEC_OGG_OPUS_ENABLE  0
+#endif
+//支持ogg_opus 类解码
+const int CONFIG_OGG_OPUS_DEC_SUPPORT = TCFG_DEC_OGG_OPUS_ENABLE; //这里使能才能进行下面两种解码方式的配置
+//设置OPUS 为raw 数据. 带8字节packet头(4字节大端包长+4字节range校验值)
+const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 0;
+//设置OPUS 为raw 数据 + CBR_OPUS 包长,配配置每次解码读入的包长置每次解码读入的包长可能有多帧共用TOC. 返回0设置成功;
+//使用CBR_OPUS设置包长，需要将上面的 CONFIG_OGG_OPUS_DEC_SET_RAW_MODE 置零
+const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = 0;
+
 //***********************
 //*		SPEEX Codec      *
 //***********************
@@ -589,6 +600,18 @@ const int LPC_JUST_FADE = TCFG_MUSIC_PLC_TYPE;
 //影响plc申请的buf大小跟速度，这个值越大，申请的buf越多，速度也越快。
 //增加的buf大小是  APLC_MOV_STAKLEN *类型(16bit是 sizeof(short), 32bit 是sizeof(int))
 const int APLC_MOV_STAKLEN = 1024;
+//是否使能24bit数据丢包时按照16bit修复，影响ram的使用
+const int lfaudio_plc_mode24bit_16bit_en = 1;
+/*
+   不同配置的ram使用情况
+-----------------------------------------------------------------------
+  APLC_MOV_STAKLEN                |        0        |       1024      |
+-----------------------------------------------------------------------
+  lfaudio_plc_mode24bit_16bit_en  |   0    |   1    |    0    |   1   |
+-----------------------------------------------------------------------
+	ram(byte)                     |  7580  |  5632  |  11676  |  7680 |
+-----------------------------------------------------------------------
+ */
 
 const  int  ESCO_PLC_SUPPORT_24BIT_EN = MEDIA_24BIT_ENABLE;  //24bit开关
 

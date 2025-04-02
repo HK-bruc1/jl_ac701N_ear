@@ -43,6 +43,7 @@ enum {
     MSG_FROM_IOT,
     MSG_FROM_BIG,
     MSG_FROM_CIG,
+    MSG_FROM_NET_BT,
 };
 
 

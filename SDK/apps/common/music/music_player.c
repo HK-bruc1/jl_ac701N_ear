@@ -706,6 +706,10 @@ int music_player_play_prev(struct music_player *player_hd)
 {
     int err;
 #if (MUSIC_PLAYER_CYCLE_ALL_DEV_EN)
+    if (player_hd->fsn == NULL) {
+        r_printf("player_hd->fsn == NULL!\n");
+        return MUSIC_PLAYER_ERR_FSCAN;
+    }
     u32 cur_file = player_hd->fsn->file_counter;
     if ((music_player_get_record_play_status(player_hd) == false)
         && (app_var.cycle_mode == FCYCLE_ALL)
@@ -758,6 +762,10 @@ int music_player_play_next(struct music_player *player_hd)
 {
     int err;
 #if (MUSIC_PLAYER_CYCLE_ALL_DEV_EN)
+    if (player_hd->fsn == NULL) {
+        r_printf("player_hd->fsn == NULL!\n");
+        return MUSIC_PLAYER_ERR_FSCAN;
+    }
     u32 cur_file = player_hd->fsn->file_counter;
     if ((music_player_get_record_play_status(player_hd) == false)
         && (app_var.cycle_mode == FCYCLE_ALL)

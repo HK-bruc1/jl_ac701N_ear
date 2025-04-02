@@ -43,6 +43,10 @@
 #include "rt_anc_app.h"
 #endif
 
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
+
 extern struct audio_dac_hdl dac_hdl;
 struct a2dp_player {
     u8 bt_addr[6];
@@ -133,6 +137,9 @@ static void a2dp_player_callback(void *private_data, int event)
     case STREAM_EVENT_START:
 #if AUDIO_VBASS_LINK_VOLUME
         vbass_link_volume();
+#endif
+#if AUDIO_EQ_LINK_VOLUME
+        eq_link_volume();
 #endif
 #if TCFG_TWS_DUAL_CHANNEL
         a2dp_player_update_steromix_param(player, player->channel);

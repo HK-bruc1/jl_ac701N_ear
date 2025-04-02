@@ -33,6 +33,7 @@
 <Add option="-DCONFIG_CPU_BR28" />
 <Add option="-DCONFIG_USB_SUPPORT_MRX_TX" />
 <Add option="-DCONFIG_PRINT_IN_MASK" />
+<Add option="-DLWIP_USE_BT" />
 <Add option="-DCONFIG_NEW_BREDR_ENABLE" />
 <Add option="-DCONFIG_NEW_MODEM_ENABLE" />
 <Add option="-DCONFIG_NEW_TWS_FORWARD_ENABLE" />
@@ -164,6 +165,7 @@
 <Add directory="apps/common/third_party_profile/gfps_protocol" />
 <Add directory="apps/common/third_party_profile/custom_protocol_demo" />
 <Add directory="apps/common/third_party_profile/ximalaya_protocol" />
+<Add directory="apps/common/third_party_profile/auracast_app" />
 <Add directory="apps/common/cJSON" />
 <Add directory="interface/media/cpu/br28" />
 <Add directory="interface/utils/ui/ui/cpu/br28" />
@@ -183,6 +185,7 @@
 <Add directory="apps/common/third_party_profile/tuya_protocol/sdk/include" />
 <Add directory="apps/common/third_party_profile/tuya_protocol/sdk/lib" />
 <Add directory="apps/common/third_party_profile/bt_fmy" />
+<Add directory="interface/btstack" />
 <Add directory="apps/common/device/usb" />
 <Add directory="apps/common/device/usb/device" />
 <Add directory="apps/common/device/usb/host" />
@@ -620,10 +623,23 @@
 <Unit filename="apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.h" />
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_ble.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_ble.h" />
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_gatt_over_edr.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_gatt_over_edr.h" />
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_protocol.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_protocol.h" />
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_sink_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_sink_api.h" />
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_source_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_source_api.h" />
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.h" />
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_cfg.h" />
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_modet.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_modet.h" />
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.h" />
 <Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_profile.h" />
@@ -1005,6 +1021,7 @@
 <Unit filename="apps/earphone/include/default_event_handler.h" />
 <Unit filename="apps/earphone/include/dev_multiplex_api.h" />
 <Unit filename="apps/earphone/include/dev_status.h" />
+<Unit filename="apps/earphone/include/dual_a2dp_play.h" />
 <Unit filename="apps/earphone/include/dual_conn.h" />
 <Unit filename="apps/earphone/include/earphone.h" />
 <Unit filename="apps/earphone/include/idle.h" />
@@ -1054,6 +1071,7 @@
 <Unit filename="apps/earphone/mode/bt/bt_event_func.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_key_func.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_key_msg_table.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/mode/bt/bt_net_event.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_slience_detect.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/bt_tws.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/mode/bt/dual_a2dp_play.c"><Option compilerVer="CC"/></Unit>
@@ -1377,7 +1395,6 @@
 <Unit filename="audio/framework/plugs/source/source_dev2_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/source_dev3_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/source_dev4_file.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/framework/plugs/source/spdif_file.h" />
 <Unit filename="audio/interface/include/a2dp_player.h" />
 <Unit filename="audio/interface/include/adda_loop_player.h" />
 <Unit filename="audio/interface/include/ai_voice_recoder.h" />
@@ -1457,8 +1474,6 @@
 <Unit filename="cpu/br28/periph/mcpwm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/rdec.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/touch/lp_touch_key_range_algo.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/br28/periph/touch/lp_touch_key_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lpctmu_hw.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/plcnt.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/power/key_wakeup.c"><Option compilerVer="CC"/></Unit>
@@ -1475,6 +1490,8 @@
 <Unit filename="cpu/components/ir_encoder.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/led_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/rdec_soft.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/touch/lp_touch_key_range_algo.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/touch/lp_touch_key_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/two_io_led.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/config/gpio_file_parse.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/config/lib_power_config.c"><Option compilerVer="CC"/></Unit>
@@ -1510,7 +1527,6 @@
 <Unit filename="interface/btstack/btstack_task.h" />
 <Unit filename="interface/btstack/btstack_typedef.h" />
 <Unit filename="interface/btstack/le/att.h" />
-<Unit filename="interface/btstack/le/auracast_delegator_api.h" />
 <Unit filename="interface/btstack/le/auracast_sink_api.h" />
 <Unit filename="interface/btstack/le/ble_api.h" />
 <Unit filename="interface/btstack/le/ble_data_types.h" />
@@ -1550,7 +1566,6 @@
 <Unit filename="interface/driver/cpu/br28/asm/io_omap.h" />
 <Unit filename="interface/driver/cpu/br28/asm/irq.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_api.h" />
-<Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_range_algo.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lp_touch_key_tool.h" />
 <Unit filename="interface/driver/cpu/br28/asm/lpctmu_hw.h" />
 <Unit filename="interface/driver/cpu/br28/asm/mcpwm.h" />
@@ -1596,6 +1611,8 @@
 <Unit filename="interface/driver/cpu/periph/ir_decoder.h" />
 <Unit filename="interface/driver/cpu/periph/ir_encoder.h" />
 <Unit filename="interface/driver/cpu/periph/led_api.h" />
+<Unit filename="interface/driver/cpu/periph/lp_touch_key_common.h" />
+<Unit filename="interface/driver/cpu/periph/lp_touch_key_range_algo.h" />
 <Unit filename="interface/driver/cpu/periph/pwm_led.h" />
 <Unit filename="interface/driver/cpu/periph/pwm_led_debug.h" />
 <Unit filename="interface/driver/cpu/periph/rdec_soft.h" />

@@ -308,7 +308,9 @@ void charge_ldo5v_off_deal(void)
     case LDO5V_OFF_TYPE_NORMAL_ON:
         app_var.play_poweron_tone = 0;
         app_var.goto_poweroff_flag = 0;
-        app_send_message(APP_MSG_GOTO_MODE, APP_MODE_BT);
+        if (app_in_mode(APP_MODE_IDLE)) { //开机充电的时候,不在IDLE模式,充电拔出的时候不需要退出当前模式到蓝牙模式
+            app_send_message(APP_MSG_GOTO_MODE, APP_MODE_BT);
+        }
         break;
     }
 }

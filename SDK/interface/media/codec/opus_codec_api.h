@@ -41,13 +41,20 @@ typedef struct  _BR_CONTEXT_ {
 } BR_CONTEXT;
 
 
-#define  SET_DEC_SR            0x91
+// opus (silkm模式)解码设置
+#define SET_DEC_SR           0x91
+
+// ogg_opus 解码设置
+#define	SET_OPUS_RAWDTF      0x90 //设置OPUS 为raw 数据. 带8字节packet头(4字节大端包长+4字节range校验值)
+#define	SET_OPUS_CBR_PKTLEN  0x91 //设置OPUS 为raw 数据 + CBR_OPUS 包长,可能有多帧共用TOC. 返回0设置成功.
+
+typedef struct _AUDIO_OPUS_PKTLEN {
+    u32 opus_pkt_len;    //SET_OPUS_CBR_PKTLEN
+} AUDIO_OPUS_PKTLEN;
 
 
 extern opuslib_dec_ops *getopuslibdec_ops();
 
-
-#define OPUS_INDATA_SUPPORT_FILE		1	// 支持文件类型数据
 
 
 #define OPUS_SR_8000_OUT_POINTS			(160)

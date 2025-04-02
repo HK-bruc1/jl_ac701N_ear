@@ -365,7 +365,7 @@ void audio_anc_mode_ear_adaptive_sync_cb(void *_data, u16 len, bool rx)
        ) {	//当前处于音乐播放状态, 注册解码任务打断，进入自适应
         jlstream_global_pause();
     } else {
-        audio_anc_ear_adaptive_open();
+        audio_anc_ear_adaptive_a2dp_suspend_cb();
     }
 }
 

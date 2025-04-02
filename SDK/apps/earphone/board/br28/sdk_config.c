@@ -120,6 +120,7 @@ const struct touch_key_cfg lp_touch_key_table [] =  {
         .key_ch = LPCTMU_CH1_PB1,
         .key_value = KEY_POWER,
         .wakeup_enable = 1,
+        .eartch_en = 0,
         .index = 0,
         .algo_cfg = {
             {

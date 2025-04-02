@@ -42,11 +42,6 @@ void tws_a2dp_player_close(u8 *bt_addr)
     a2dp_media_close(bt_addr);
 }
 
-void a2dp_energy_detect_handler(int *arg)
-{
-
-}
-
 static void tws_a2dp_play_in_task(u8 *data)
 {
     u8 btaddr[6];

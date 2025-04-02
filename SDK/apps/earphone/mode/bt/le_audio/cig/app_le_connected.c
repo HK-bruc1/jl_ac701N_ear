@@ -410,7 +410,6 @@ static int app_connected_conn_status_event_handler(int *msg)
     case CIG_EVENT_JL_DONGLE_DISCONNECT:
     case CIG_EVENT_PHONE_DISCONNECT:
         log_info("CIG_EVENT_PHONE_DISCONNECT");
-        /* if (bt_get_total_connect_dev() == 0) */
         g_le_audio_hdl.cig_phone_conn_status = 0;
         memset(g_le_audio_hdl.peer_address, 0xff, 6);
 #if TCFG_USER_TWS_ENABLE
@@ -425,6 +424,9 @@ static int app_connected_conn_status_event_handler(int *msg)
 #else
         play_tone_file(get_tone_files()->bt_disconnect);
 #endif
+        if (!g_le_audio_hdl.le_audio_profile_ok) {
+            app_connected_close_in_other_mode();
+        }
         break;
 
     default:
@@ -1073,6 +1075,17 @@ void le_audio_profile_init()
 
 }
 /*
+ * le audio功能总退出函数
+ * */
+void le_audio_profile_exit()
+{
+    g_le_audio_hdl.le_audio_profile_ok = 0;
+    if (!is_cig_phone_conn()) {
+        app_connected_close_in_other_mode();
+    }
+}
+
+/*
  * 一些公共消息按需处理
  * */
 static int le_audio_app_msg_handler(int *msg)
@@ -1084,7 +1097,7 @@ static int le_audio_app_msg_handler(int *msg)
         log_info("APP_MSG_STATUS_INIT_OK");
 #if (TCFG_USER_TWS_ENABLE==0)
         le_audio_profile_init();
-        le_audio_adv_api_enable(1);
+        le_audio_adv_open_discover_mode(1);
 #endif
         break;
     case APP_MSG_ENTER_MODE://1

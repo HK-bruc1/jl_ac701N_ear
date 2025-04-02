@@ -14,8 +14,8 @@ typedef enum spi_index {
     HW_SPI0, //SPI0系统已使用
     HW_SPI1,
     HW_SPI2,
-    HW_SPI_MAX_NUM,
 } hw_spi_dev;
+#define    HW_SPI_MAX_NUM  3
 
 enum spi_bit_mode {
     SPI_FIRST_BIT_MSB,  //7,6,5,4,3,2,1,0

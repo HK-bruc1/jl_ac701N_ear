@@ -117,6 +117,7 @@ struct aec_s_attr {
 
     int NLP_Process_MaxFrequency;    //设定回声抑制的最大频率，设定范围（3000~8000），默认值为8000
     int NLP_Process_MinFrequency;    //设定回声抑制的最小频率，设定范围（0~1000），默认值为0
+    float TDE_EngThr;
 };
 
 /*

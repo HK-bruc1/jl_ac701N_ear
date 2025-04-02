@@ -10,6 +10,9 @@
 #include "effects/audio_pitchspeed.h"
 #include "audio_config_def.h"
 #include "effects/audio_vbass.h"
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
 struct linein_player {
     struct jlstream *stream;
     s8 linein_pitch_mode;
@@ -27,6 +30,9 @@ static void linein_player_callback(void *private_data, int event)
     case STREAM_EVENT_START:
 #if AUDIO_VBASS_LINK_VOLUME
         vbass_link_volume();
+#endif
+#if AUDIO_EQ_LINK_VOLUME
+        eq_link_volume();
 #endif
         break;
     }

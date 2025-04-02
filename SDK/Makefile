@@ -101,6 +101,7 @@ DEFINES := \
 	-DCONFIG_CPU_BR28 \
 	-DCONFIG_USB_SUPPORT_MRX_TX \
 	-DCONFIG_PRINT_IN_MASK \
+	-DLWIP_USE_BT \
 	-DCONFIG_NEW_BREDR_ENABLE \
 	-DCONFIG_NEW_MODEM_ENABLE \
 	-DCONFIG_NEW_TWS_FORWARD_ENABLE \
@@ -238,6 +239,7 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/gfps_protocol \
 	-Iapps/common/third_party_profile/custom_protocol_demo \
 	-Iapps/common/third_party_profile/ximalaya_protocol \
+	-Iapps/common/third_party_profile/auracast_app \
 	-Iapps/common/cJSON \
 	-Iinterface/media/cpu/br28 \
 	-Iinterface/utils/ui/ui/cpu/br28 \
@@ -257,6 +259,7 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
 	-Iapps/common/third_party_profile/bt_fmy \
+	-Iinterface/btstack \
 	-Iapps/common/device/usb \
 	-Iapps/common/device/usb/device \
 	-Iapps/common/device/usb/host \
@@ -414,8 +417,14 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_md5.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c \
 	apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c \
+	apps/common/third_party_profile/auracast_app/auracast_app_ble.c \
+	apps/common/third_party_profile/auracast_app/auracast_app_gatt_over_edr.c \
+	apps/common/third_party_profile/auracast_app/auracast_app_protocol.c \
+	apps/common/third_party_profile/auracast_app/auracast_app_sink_api.c \
+	apps/common/third_party_profile/auracast_app/auracast_app_source_api.c \
 	apps/common/third_party_profile/bt_fmy/ble_fmy.c \
 	apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy_modet.c \
 	apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c \
 	apps/common/third_party_profile/common/3th_profile_api.c \
 	apps/common/third_party_profile/common/custom_cfg.c \
@@ -632,6 +641,7 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/bt_event_func.c \
 	apps/earphone/mode/bt/bt_key_func.c \
 	apps/earphone/mode/bt/bt_key_msg_table.c \
+	apps/earphone/mode/bt/bt_net_event.c \
 	apps/earphone/mode/bt/bt_slience_detect.c \
 	apps/earphone/mode/bt/bt_tws.c \
 	apps/earphone/mode/bt/dual_a2dp_play.c \
@@ -930,8 +940,6 @@ c_SRC_FILES := \
 	cpu/br28/periph/mcpwm.c \
 	cpu/br28/periph/rdec.c \
 	cpu/br28/periph/touch/lp_touch_key.c \
-	cpu/br28/periph/touch/lp_touch_key_range_algo.c \
-	cpu/br28/periph/touch/lp_touch_key_tool.c \
 	cpu/br28/periph/touch/lpctmu_hw.c \
 	cpu/br28/periph/touch/plcnt.c \
 	cpu/br28/power/key_wakeup.c \
@@ -947,6 +955,8 @@ c_SRC_FILES := \
 	cpu/components/ir_encoder.c \
 	cpu/components/led_api.c \
 	cpu/components/rdec_soft.c \
+	cpu/components/touch/lp_touch_key_range_algo.c \
+	cpu/components/touch/lp_touch_key_tool.c \
 	cpu/components/two_io_led.c \
 	cpu/config/gpio_file_parse.c \
 	cpu/config/lib_power_config.c \

@@ -582,15 +582,19 @@ struct app_mode *app_mode_switch_handler(int *msg)
 static void test_printf(void *_arg)
 {
     //extern void mem_unfree_dump(void);
-    //mem_unfree_dump();
+    //mem_unfree_dump();    //打印各模块内存
+
     extern void mem_stats(void);   //打印当前内存
     mem_stats();
 
     int role = tws_api_get_role();
-    printf(">>>>>tws role:%d\n", role);   //打印tws主从
+    printf(">tws role:%d\n", role);   //打印tws主从
 
-    char channel = tws_api_get_local_channel();
-    printf(">>>>>tws channel:%c\n", channel);    //打印tws通道
+    //char channel = tws_api_get_local_channel();
+    //printf(">tws channel:%c\n", channel);    //打印tws通道
+
+    int curr_clk = clk_get("sys");
+    printf(">curr_clk:%d\n", curr_clk);  //打印当前时钟
 }
 #endif
 
@@ -607,6 +611,7 @@ static void app_task_loop(void *p)
     } else {
         log_debug("sdfile mount failed!!!");
     }
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     int update = 0;
     u32 realme_breakpoint = 0;
     if (CONFIG_UPDATE_ENABLE) {
@@ -614,7 +619,9 @@ static void app_task_loop(void *p)
         extern int realme_check_upgrade_area(int update);
         realme_check_upgrade_area(update);
     }
+#endif
 #endif /* #if (VFS_ENABLE == 1) */
+
 #else
     extern const int support_dual_bank_update_no_erase;
     if (support_dual_bank_update_no_erase) {

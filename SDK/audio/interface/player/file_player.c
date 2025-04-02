@@ -19,6 +19,9 @@
 #include "audio_config_def.h"
 #include "effects/audio_vbass.h"
 #include "framework/include/decoder_node.h"
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
 
 #if TCFG_MUSIC_PLAYER_ENABLE
 
@@ -70,6 +73,9 @@ static void music_player_callback(void *_player_id, int event)
     case STREAM_EVENT_START:
 #if AUDIO_VBASS_LINK_VOLUME
         vbass_link_volume();
+#endif
+#if AUDIO_EQ_LINK_VOLUME
+        eq_link_volume();
 #endif
         if (list_empty(&(g_file_player.head))) {          //先判断是否为空防止触发异常
             break;

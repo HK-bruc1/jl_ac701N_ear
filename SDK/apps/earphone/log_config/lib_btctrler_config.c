@@ -148,21 +148,44 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
 
 #if (TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LDAC) //LHDC/LDAC使用较高码率时需要增大蓝牙buf
-#if CONFIG_CPU_BR36
-	// RAM较紧凑的芯片需要使用这个配置
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 30 * 1024;
-#else
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 50 * 1024;
-#endif
 	const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 40;
 #else
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 25 * 1024;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
 	#endif
 #endif
+
+const int CONFIG_A2DP_MAX_BUF_SIZE      = 25 * 1024;    //不再使用
+const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 15 * 1024;
+const int CONFIG_A2DP_SBC_MAX_BUF_SIZE  = 25 * 1024;
+const int CONFIG_A2DP_LHDC_MAX_BUF_SIZE = 50 * 1024;
+const int CONFIG_A2DP_LDAC_MAX_BUF_SIZE = 50 * 1024;
+
+u32 get_a2dp_max_buf_size(u8 codec_type)
+{
+    //#define A2DP_CODEC_SBC        0x00
+    //#define A2DP_CODEC_MPEG12     0x01
+    //#define A2DP_CODEC_MPEG24     0x02
+    //#define A2DP_CODEC_ATRAC      0x03
+    //#define A2DP_CODEC_LDAC       0x0B
+    //#define A2DP_CODEC_LHDC_V5    0x0C
+    //#define A2DP_CODEC_APTX       0x0D
+    //#define A2DP_CODEC_LHDC       0x0E
+    //#define A2DP_CODEC_NON_A2DP   0xFF
+    u32 a2dp_max_buf_size = CONFIG_A2DP_MAX_BUF_SIZE;
+    if (codec_type == 0x0) {
+        a2dp_max_buf_size = CONFIG_A2DP_SBC_MAX_BUF_SIZE;
+    } else if (codec_type == 0x1 || codec_type == 0x2) {
+        a2dp_max_buf_size = CONFIG_A2DP_AAC_MAX_BUF_SIZE;
+    } else if (codec_type == 0xB) {
+        a2dp_max_buf_size = CONFIG_A2DP_LDAC_MAX_BUF_SIZE;
+    } else if (codec_type == 0xE || codec_type == 0xC) {
+        a2dp_max_buf_size = CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
+    }
+    return a2dp_max_buf_size;
+}
 
 #if 0
 // 可重写函数实时调试qos硬件开关状态，判断当前qos是开还是关
