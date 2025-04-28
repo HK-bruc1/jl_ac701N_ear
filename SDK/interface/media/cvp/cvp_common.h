@@ -2,6 +2,11 @@
 #define _CVP_COMMON_H_
 #include "audio_cvp_def.h"
 
+extern const int const_audio_cvp_debug_online_enable;
+
+/*支持外部参考数据的流程，才需要判断output_way类型，否则(aec->attr->output_way == 0)为真*/
+extern const int config_audio_cvp_ref_source;
+
 /*DMS输出选择*/
 typedef enum {
     DMS_OUTPUT_SEL_DEFAULT = 0,	/*默认输出：dms处理后的数据*/

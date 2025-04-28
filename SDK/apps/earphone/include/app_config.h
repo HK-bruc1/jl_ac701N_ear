@@ -52,12 +52,6 @@
 //*********************************************************************************//
 //                                  AI配置                                         //
 //*********************************************************************************//
-#ifdef TCFG_BT_RCSP_DUAL_CONN_ENABLE
-#define TCFG_RCSP_DUAL_CONN_ENABLE							TCFG_BT_RCSP_DUAL_CONN_ENABLE// RCSP一拖二功能开关
-#else
-#define TCFG_RCSP_DUAL_CONN_ENABLE                          0
-#endif
-
 #define    RCSP_MODE_EN             (1 << 0)
 #define    TRANS_DATA_EN            (1 << 1)
 #define    LL_SYNC_EN               (1 << 2)
@@ -85,8 +79,15 @@
 #endif
 
 #if THIRD_PARTY_PROTOCOLS_SEL && (TCFG_USER_BLE_ENABLE == 0)
-#error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
+#error "开启 第三方协议功能 需要使能 TCFG_USER_BLE_ENABLE"
 #endif
+
+#ifndef TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+// 三方协议简化版本，目前仅适用于RCSP
+#define TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED				0
+#endif
+//代码放RAM压缩宏，在RAM资源足够的情况下将代码放RAM进行压缩
+#define TCFG_CODE_TO_RAM_COMPRESS_ENABLE					0
 
 //*********************************************************************************//
 //                                  le_audio 配置                                       //
@@ -112,8 +113,16 @@
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
+
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x0
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED && TCFG_RCSP_DUAL_CONN_ENABLE
+#error "三方协议简化版本不支持RCSP一拖二功能"
+#endif
+#endif
+
+#ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
+#define TCFG_JL_UNICAST_BOUND_PAIR_EN 0				// 可通过JL小板实现耳机和Dongle的绑定配对
 #endif
 
 // #undef TCFG_LOWPOWER_LOWPOWER_SEL
@@ -979,11 +988,17 @@
 #undef  TCFG_BT_SUPPORT_PBAP
 #define  TCFG_BT_SUPPORT_PBAP 0x1
 #endif
-#define  TCFG_BT_SUPPORT_MAP 0x0
+#define  TCFG_BT_SUPPORT_MAP 0x1
 #define  TCFG_BLE_BRIDGE_EDR_ENALBE 0x0   //ios 一键连接，ctkd
 #if TCFG_BLE_BRIDGE_EDR_ENALBE   //一键连接必须同地址
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x1
+#endif
+
+#define TCFG_IFLYTEK_ENABLE			0
+#if TCFG_IFLYTEK_ENABLE//目前耳机没有rtc，先用蓝牙时间转UTC再转GMT(earphone.c)
+#undef  TCFG_BT_SUPPORT_MAP
+#define  TCFG_BT_SUPPORT_MAP 0x1
 #endif
 
 //*********************************************************************************//
@@ -994,6 +1009,18 @@
 #define TCFG_CHARGE_CUR_MAX         0//烧写器电流筛选最高值 -- 配置0不使能筛选,根据方案自行配置筛选范围
 #endif
 
+//*********************************************************************************//
+//                   NTC配置                                      //
+//*********************************************************************************//
+#if NTC_DET_EN && NTC_DET_PULLUP_TYPE   //ntc如果选择内部上拉的，检测IO要选择对应的内部上拉引脚，具体看各芯片方案的原理图
+#if defined(CONFIG_CPU_BR56) && (NTC_DETECT_IO != IO_PORTC_01)
+#error "710 NTC_DETECT_IO must be IO_PORTC_01"
+#elif defined(CONFIG_CPU_BR52) && (NTC_DETECT_IO != IO_PORTC_03)
+#error "709 NTC_DETECT_IO must be IO_PORTC_03"
+#elif defined(CONFIG_CPU_BR50) && (NTC_DETECT_IO != IO_PORTC_05)
+#error "708 NTC_DETECT_IO must be IO_PORTC_05"
+#endif
+#endif
 
 //*********************************************************************************//
 //                    异常记录/离线log配置                                      //

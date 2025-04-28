@@ -185,3 +185,8 @@ const char log_tag_const_d_APP_CFG_TOOL  = FALSE;
 const char log_tag_const_w_APP_CFG_TOOL  = TRUE;
 const char log_tag_const_e_APP_CFG_TOOL  = TRUE;
 
+const char log_tag_const_v_NET_IFLY AT(.LOG_TAG_CONST) = FALSE;
+const char log_tag_const_i_NET_IFLY AT(.LOG_TAG_CONST) = TRUE;
+const char log_tag_const_d_NET_IFLY AT(.LOG_TAG_CONST) = FALSE;
+const char log_tag_const_w_NET_IFLY AT(.LOG_TAG_CONST) = TRUE;
+const char log_tag_const_e_NET_IFLY AT(.LOG_TAG_CONST) = TRUE;

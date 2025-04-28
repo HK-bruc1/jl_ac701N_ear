@@ -202,7 +202,7 @@ void testbox_update_msg_handle(int msg)
     switch (msg) {
     case MSG_BT_UPDATE_LOADER_DOWNLOAD_START:
         if (CONFIG_UPDATE_ENABLE && CONFIG_UPDATE_BT_LMP_EN) {
-#if (RCSP_MODE == RCSP_MODE_WATCH)
+#if (RCSP && (RCSP_MODE != RCSP_MODE_EARPHONE))
             app_rcsp_task_prepare(0, RCSP_TASK_ACTION_WATCH_TRANSFER, 0);
 #endif
             update_mode_info_t info = {

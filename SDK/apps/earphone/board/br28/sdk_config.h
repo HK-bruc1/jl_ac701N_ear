@@ -18,7 +18,6 @@
 #define TCFG_LOWPOWER_VDDIOM_LEVEL VDDIOM_VOL_28V // 强VDDIO
 #define TCFG_LOWPOWER_VDDIOW_LEVEL VDDIOW_VOL_26V // 弱VDDIO
 #define TCFG_LOWPOWER_VDDIO_KEEP 1 // 关机保持VDDIO
-#define TCFG_MAX_LIMIT_SYS_CLOCK 128000000 // 上限时钟设置
 #define TCFG_LOWPOWER_LOWPOWER_SEL 1 // 低功耗模式
 #define TCFG_AUTO_POWERON_ENABLE 1 // 上电自动开机
 
@@ -156,7 +155,7 @@
 #define TCFG_LP_KEY_LONG_PRESS_RESET_TIME 8000 // 长按复位时间
 #define TCFG_LP_KEY_SLIDE_ENABLE 0 // 两个按键滑动
 #define TCFG_LP_KEY_SLIDE_VALUE KEY_SLIDER // 键值
-#define TCFG_LP_EARTCH_KEY_ENABLE 0 // 入耳检测
+#define TCFG_LP_EARTCH_KEY_ENABLE 0 // 入耳检测总开关
 #define TCFG_LP_EARTCH_DETECT_RELY_AUDIO 0 // 检测方式
 #endif // TCFG_LP_TOUCH_KEY_ENABLE
 // ------------按键配置.json------------
@@ -180,6 +179,7 @@
 #define TCFG_A2DP_DELAY_TIME_LHDC 300 // A2DP延时LHDC(msec)
 #define TCFG_A2DP_DELAY_TIME_LHDC_LO 300 // A2DP低延时LHDC(msec)
 #define TCFG_BT_DUAL_CONN_ENABLE 1 // 一拖二
+#define TCFG_BT_SUPPORT_PAN 0
 #define TCFG_A2DP_PREEMPTED_ENABLE 1 // A2DP抢播
 #define TCFG_BT_VOL_SYNC_ENABLE 1 // 音量同步
 #define TCFG_BT_DISPLAY_BAT_ENABLE 1 // 电量显示
@@ -196,7 +196,6 @@
 #define TCFG_BT_SUPPORT_A2DP 1 // A2DP
 #define TCFG_BT_SUPPORT_HID 1 // HID
 #define TCFG_BT_SUPPORT_SPP 1 // SPP
-#define TCFG_BT_SUPPORT_PAN 0
 #define TCFG_BT_BACKGROUND_ENABLE 0 // 蓝牙后台
 #define TCFG_BT_BACKGROUND_GOBACK 1 // 蓝牙后台连接断开返回
 #define TCFG_BT_BACKGROUND_DETECT_TIME 750 // 音乐检测时间
@@ -236,16 +235,18 @@
 #define TCFG_BT_BLE_TX_POWER 9 // 最大发射功率
 #define TCFG_BT_BLE_BREDR_SAME_ADDR 1 // 和2.1同地址
 #define TCFG_BT_BLE_ADV_ENABLE 0 // 广播
+#define TCFG_BLE_HIGH_PRIORITY_ENABLE 0 // 高优先级
 #endif // TCFG_USER_BLE_ENABLE
 
 #define TCFG_THIRD_PARTY_PROTOCOLS_ENABLE 0 // 第三方协议配置
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
-#define TCFG_BT_RCSP_DUAL_CONN_ENABLE 0 // 支持连接两路rcsp
+#define TCFG_RCSP_DUAL_CONN_ENABLE 0 // 支持连接两路RCSP
 #define TCFG_THIRD_PARTY_PROTOCOLS_SEL 0 // 第三方协议选择
 #endif // TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 
-#define TCFG_LE_AUDIO_APP_CONFIG 0 // le_audio 应用选择
-#define TCFG_LE_AUDIO_PLAY_LATENCY 30000 // le_audio延时（us）
+#define TCFG_LE_AUDIO_APP_CONFIG 0 // LE_AUDIO 应用选择（选择后自动开启LC3编解码）
+#define TCFG_LE_AUDIO_PLAY_LATENCY 30000 // LE_AUDIO延时（us）
+#define TCFG_JL_UNICAST_BOUND_PAIR_EN 0 // JL_UNICAST绑定配对
 #define TCFG_BT_DONGLE_ENABLE 0 // 支持dongle连接
 #define TCFG_JL_DONGLE_PLAYBACK_LATENCY 40 // dongle下行播放延时(msec)
 #define TCFG_BT_DONGLE_A2DP_PHONE_A2DP_MIX_ENABLE 0 // dongle游戏声音和手机蓝牙播歌声音叠加
@@ -254,11 +255,10 @@
 
 // ------------功能配置.json------------
 #define TCFG_APP_BT_EN 1 // 蓝牙模式
+#define TCFG_APP_MUSIC_EN 0 // 音乐模式
 #define TCFG_APP_LINEIN_EN 0 // LINEIN模式
 #define TCFG_APP_PC_EN 0 // PC模式
 #define TCFG_MIC_EFFECT_ENABLE 0 // 混响使能
-#define TWFG_APP_POWERON_IGNORE_DEV 5000 // 设备忽略时间（单位：ms）
-#define TCFG_APP_MUSIC_EN 0 // 音乐模式
 #define TCFG_DEC_ID3_V2_ENABLE 0 // ID3_V2
 #define TCFG_DEC_ID3_V1_ENABLE 0 // ID3_V1
 #define FILE_DEC_REPEAT_EN 0 // 无缝循环播放
@@ -269,6 +269,7 @@
 #define MUSIC_PLAYER_CYCLE_ALL_DEV_EN 1 // 循环播放模式是否循环所有设备
 #define MUSIC_PLAYER_PLAY_FOLDER_PREV_FIRST_FILE_EN 0 // 切换文件夹播放时从第一首歌开始
 #define TCFG_MUSIC_DEVICE_TONE_EN 0 // 设备提示音
+#define TWFG_APP_POWERON_IGNORE_DEV 5000 // 设备忽略时间（单位：ms）
 // ------------功能配置.json------------
 
 // ------------升级配置.json------------
@@ -290,7 +291,7 @@
 #define TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE 0X0 // 轻量关闭
 #define TCFG_AUDIO_DAC_POWER_ON_MODE 0X0 // DAC开启模式
 #define TCFG_AUDIO_VCM_CAP_EN 0x1 // VCM电容
-#define TCFG_AUDIO_DAC_BUFFER_TIME_MS 80 // 缓冲长度（ms）
+#define TCFG_AUDIO_DAC_BUFFER_TIME_MS 50 // 缓冲长度（ms）
 #define TCFG_AUDIO_DAC_PA_ISEL 4 // 电流档位
 #define TCFG_AUDIO_DAC_POWER_BOOST 0 // 音量增强模式
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x03 // L Channel
@@ -351,8 +352,6 @@
 #define TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE 0 // 风噪检测
 #define TCFG_AUDIO_WIDE_AREA_TAP_ENABLE 0 // 广域点击
 #define TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE 0 // 音量自适应
-#define TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE 0 // ANC环境自适应
-#define TCFG_AUDIO_ANC_HOWLING_DET_ENABLE 0 // ANC啸叫检测
 #define TCFG_AUDIO_FIT_DET_ENABLE 0 // 贴合度检测
 #define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 0 // ANC耳道自适应
 #define TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN 0 // ANC自适应CMP
@@ -387,19 +386,19 @@
 #define TCFG_SPATIAL_EFFECT_ONLINE_ENABLE 0 // 空间音效在线调试
 #define TCFG_SPATIAL_EFFECT_VERSION 1 // 音效算法版本选择
 #define TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL 0x0 // 传感器选择
-#define TCFG_DEC_OPUS_ENABLE 0 // OPUS
-#define TCFG_ENC_OPUS_ENABLE 0 // OPUS
 #define TCFG_DEC_WAV_ENABLE 0 // WAV
 #define TCFG_DEC_MP3_ENABLE 0 // MP3
 #define TCFG_DEC_FLAC_ENABLE 0 // FLAC
 #define TCFG_DEC_WMA_ENABLE 0 // WMA
 #define TCFG_DEC_APE_ENABLE 0 // APE
 #define TCFG_DEC_AAC_ENABLE 0 // AAC
+#define TCFG_DEC_OPUS_ENABLE 0 // OPUS
 #define TCFG_DEC_F2A_ENABLE 0 // F2A
 #define TCFG_DEC_WTG_ENABLE 0 // WTG
 #define TCFG_DEC_MTY_ENABLE 0 // MTY
 #define TCFG_DEC_WTS_ENABLE 0 // WTS
 #define TCFG_DEC_JLA_ENABLE 0 // JLA
+#define TCFG_ENC_OPUS_ENABLE 0 // OPUS
 
 #define TCFG_AUDIO_HEARING_AID_ENABLE 0 // 辅听配置
 #if TCFG_AUDIO_HEARING_AID_ENABLE
@@ -419,4 +418,8 @@
 #define TCFG_DATA_EXPORT_UART_BAUDRATE 2000000 // 串口波特率
 #define TCFG_AUDIO_SOMATOSENSORY_ENABLE 0 // 头部姿态检测
 // ------------音频配置.json------------
+
+
+
 #endif
+

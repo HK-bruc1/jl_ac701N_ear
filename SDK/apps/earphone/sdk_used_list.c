@@ -27,9 +27,15 @@ bt_audio_sync_node_adapter
 adc_file_plug
 #endif
 
+#if TCFG_TONE_NODE_ENABLE
 tone_file_plug
+#endif
+#if TCFG_RING_TONE_NODE_ENABLE
 ring_file_plug
+#endif
+#if TCFG_KEY_TONE_NODE_ENABLE
 key_tone_file_plug
+#endif
 msbc_decoder_plug
 
 #if 0
@@ -194,6 +200,12 @@ opus_dec_plug
 #endif
 #if TCFG_ENC_OPUS_ENABLE
 opus_encoder_plug
+#endif
+#if TCFG_STENC_OPUS_ENABLE
+opus_stenc_plug
+#endif
+#if TCFG_DEC_STENC_OPUS_ENABLE
+opus_stenc_dec_plug
 #endif
 
 #if TCFG_DEC_WTS_ENABLE || TCFG_TONE_WTS_ENABLE
@@ -524,4 +536,8 @@ frequency_compressor_node_adapter
 #endif
 #if TCFG_SPATIAL_ADV_NODE_ENABLE
 spatial_adv_node_adapter
+#endif
+
+#if TCFG_ENC_AAC_ENABLE
+aac_enc_plug
 #endif

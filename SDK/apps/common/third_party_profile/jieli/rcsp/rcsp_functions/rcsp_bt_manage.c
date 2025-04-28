@@ -125,6 +125,7 @@ int rcsp_bt_state_tws_connected(int first_pair, u8 *comm_addr)
 #endif
 
     if (first_pair) {
+
         u8 tmp_ble_addr[6] = {0};
 #if DOUBLE_BT_SAME_MAC || TCFG_BT_BLE_BREDR_SAME_ADDR
         memcpy(tmp_ble_addr, comm_addr, 6);
@@ -133,6 +134,7 @@ int rcsp_bt_state_tws_connected(int first_pair, u8 *comm_addr)
 #endif
         /* printf("first_pait tmp_ble_addr:\n"); */
         /* put_buf(tmp_ble_addr, 6); */
+
         rcsp_app_ble_set_mac_addr(tmp_ble_addr);//将ble广播地址改成公共地址
 
         /*新的连接，公共地址改变了，要重新将新的地址广播出去*/
@@ -284,25 +286,6 @@ static void rcsp_app_opt_tws_event_handler(struct bt_event *bt)
 }
 #endif
 
-/* extern u8 check_le_pakcet_sent_finish_flag(void); */
-/* extern bool rcsp_send_list_is_empty(void); */
-/* static u8 g_tws_disconn_try_cnt = 0; */
-/* static void tws_disconn_ble(void *priv) */
-/* { */
-/* 	if (!rcsp_handle_get()) { */
-/* 		printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-/* 		return; */
-/* 	} */
-/* 	printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-/* 	if ((rcsp_send_list_is_empty() && check_le_pakcet_sent_finish_flag()) || (g_tws_disconn_try_cnt >= 10)) { */
-/* 		g_tws_disconn_try_cnt = 0; */
-/* 		ble_module_enable(0); */
-/* 		ble_module_enable(1); */
-/* 	} else {	 */
-/* 		g_tws_disconn_try_cnt++; */
-/* 		sys_timeout_add(NULL, tws_disconn_ble, 50); */
-/* 	} */
-/* } */
 
 static void rcsp_bt_tws_event_handler(int *msg)
 {
@@ -314,6 +297,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
     switch (evt->event) {
     case TWS_EVENT_CONNECTED:
         printf("rcsp_bt_tws_event_handler rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
         if ((role == TWS_ROLE_MASTER) && (bt_rcsp_device_conn_num() > 0)) {
             // 新耳机出仓的时候，原耳机如果已经与手机建立连接，则tws连接后，
             // 需要同步rcsp相关信息给刚出仓的新耳机
@@ -328,6 +312,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
             rcsp_1t2_setting_tws_sync();
 #endif
         }
+#endif
         if (role == TWS_ROLE_MASTER) {
             //master enable
             log_info("master do icon_open\n");
@@ -389,10 +374,6 @@ static void rcsp_bt_tws_event_handler(int *msg)
         /*
          * TWS连接断开
          */
-        // 通知手机ble回连
-        /* printf("adv_cmd03 %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-        /* u8 adv_cmd = 0x03; */
-        /* adv_info_device_request(&adv_cmd, sizeof(adv_cmd)); */
         if (app_var.goto_poweroff_flag) {
             break;
         }
@@ -401,13 +382,11 @@ static void rcsp_bt_tws_event_handler(int *msg)
             deal_adv_setting_gain_time_stamp();
         }
 #endif
-        /* ble_module_enable(0); */
-        /* ble_module_enable(1); */
-        /* bt_rcsp_reset_ble_info_for_tws_sw(); */
-        /* rcsp_ble_adv_enable_with_con_dev(); */
-        /* if (bt_rcsp_device_conn_num() > 0) { */
-        /*     bt_ble_adv_ioctl(BT_ADV_SET_NOTIFY_EN, 1, 1); */
-        /* } */
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+        if (bt_rcsp_device_conn_num() < 1) {
+            ble_module_enable(1);
+        }
+#endif
         break;
     case TWS_EVENT_ROLE_SWITCH:
         if (role == TWS_ROLE_MASTER) {	// 切换后触发
@@ -416,9 +395,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
             update_led_setting_state();
 #endif
         }
-        {
-            adv_role_switch_handle(role);
-        }
+        adv_role_switch_handle(role);
         break;
     }
 
@@ -435,7 +412,6 @@ static void rcsp_bt_tws_event_handler(int *msg)
 	 ((u8)('S' + 'P' + 'P') << (1 * 8)) | \
 	 ((u8)('S' + 'T' + 'E') << (0 * 8)))
 
-int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr);
 static void rcsp_spp_state_in_task(u8 *data, int len)
 {
     u8 spp_state = *data;
@@ -496,8 +472,19 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
 #endif
     switch (packet_type) {
     case SPP_USER_ST_CONNECT:
+        printf("rcsp_user_spp_state_specific SPP_USER_ST_CONNECT\n");
         // spp 连接后会走这里
         clock_refurbish();
+
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+        if (spp_remote_addr) {
+            rcsp_simplified_set_spp_conn_addr(spp_remote_addr);
+            rcsp_protocol_bound(0, spp_remote_addr);
+            if (rcsp_get_auth_support()) {
+                JL_rcsp_reset_bthdl_auth(0, spp_remote_addr);
+            }
+        }
+#endif
 
 #if TCFG_USER_TWS_ENABLE
         if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
@@ -520,6 +507,17 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
 
         break;
     case SPP_USER_ST_DISCONN:
+        printf("rcsp_user_spp_state_specific SPP_USER_ST_DISCONN\n");
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+        if (spp_remote_addr) {
+            rcsp_protocol_reset_bound(0, spp_remote_addr);
+            if (rcsp_get_auth_support()) {
+                JL_rcsp_reset_bthdl_auth(0, spp_remote_addr);
+            }
+        }
+        rcsp_simplified_reset_spp_info();
+#endif
+
         rcsp_clean_update_hdl_for_end_update(0, spp_remote_addr);
 #if RCSP_ADV_EN
         set_connect_flag(SECNE_UNCONNECTED);
@@ -620,7 +618,6 @@ static int rcsp_app_msg_handler(int *msg)
         break;
     case APP_MSG_BT_GET_CONNECT_ADDR://1
         log_info("APP_MSG_BT_GET_CONNECT_ADDR");
-        /* bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_CONNECTING, 1); */
         break;
     case APP_MSG_BT_OPEN_PAGE_SCAN://1
         log_info("APP_MSG_BT_OPEN_PAGE_SCAN");
@@ -751,6 +748,8 @@ void JL_rcsp_auth_flag_tws_sync(void)
     /* } */
 }
 #endif // (0 == BT_CONNECTION_VERIFY)
+
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
 #define TWS_FUNC_ID_RCSP_BOUND \
 	(((u8)('R' + 'C' + 'S' + 'P') << (3 * 8)) | \
@@ -886,6 +885,8 @@ void rcsp_clear_ble_hdl_and_tws_sync(void)
     rcsp_interface_bt_handle_tws_sync();
 }
 
-#endif
+#endif // !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+
+#endif // TCFG_USER_TWS_ENABLE
 
 #endif

@@ -99,7 +99,6 @@ DEFINES := \
 	-DCONFIG_RELEASE_ENABLE \
 	-DCONFIG_EARPHONE_CASE \
 	-DCONFIG_CPU_BR28 \
-	-DCONFIG_USB_SUPPORT_MRX_TX \
 	-DCONFIG_PRINT_IN_MASK \
 	-DLWIP_USE_BT \
 	-DCONFIG_NEW_BREDR_ENABLE \
@@ -175,15 +174,19 @@ INCLUDES := \
 	-Iinterface/btstack/third_party/common \
 	-Iinterface/btstack/third_party \
 	-Iinterface/utils \
+	-Iinterface/utils/generic \
 	-Iinterface/utils/device \
 	-Iinterface/utils/fs \
-	-Iinterface/utils/generic \
 	-Iinterface/utils/math/cpu/br28 \
+	-Iinterface/net/mbedtls_3_4_0 \
 	-Iinterface/btstack/third_party/rcsp \
 	-Iinterface/media/media_new \
 	-Iinterface/media/media_new/media \
 	-Iinterface/media/media_new/media/cpu/br28 \
 	-Iinterface/media/media_new/media/cpu/br28/asm \
+	-Iinterface/net/lwip_2_2_0/lwip/src/include \
+	-Iinterface/net/lwip_2_2_0/lwip/port \
+	-Iinterface/net/lwip_2_2_0/lwip/app \
 	-Iapps/earphone \
 	-Iapps/earphone/include \
 	-Iapps/earphone/include/wireless_mic \
@@ -214,6 +217,7 @@ INCLUDES := \
 	-Iaudio/common \
 	-Iaudio/effect \
 	-Iapps/common/device/sensor/imu_sensor \
+	-Iinterface/net/lwip_2_2_0/lwip/src \
 	-Iapps/common/third_party_profile/jieli/rcsp \
 	-Iapps/common/third_party_profile/jieli/rcsp/adv \
 	-Iapps/common/third_party_profile/jieli/rcsp/rcsp_functions \
@@ -460,6 +464,7 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_manage.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_interface.c \
+	apps/common/third_party_profile/jieli/rcsp/rcsp_simplified/rcsp_interface_simplified.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/browser/rcsp_browser.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_bt_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_fm_func.c \
@@ -613,6 +618,7 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br28/board_config.c \
+	apps/earphone/board/instruction_forbidden.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/att_over_edr_demo.c \
 	apps/earphone/demo/debug_record_demo.c \
@@ -625,6 +631,7 @@ c_SRC_FILES := \
 	apps/earphone/log_config/lib_btstack_config.c \
 	apps/earphone/log_config/lib_driver_config.c \
 	apps/earphone/log_config/lib_media_config.c \
+	apps/earphone/log_config/lib_net_config.c \
 	apps/earphone/log_config/lib_system_config.c \
 	apps/earphone/log_config/lib_update_config.c \
 	apps/earphone/message/adapter/app_msg.c \
@@ -691,6 +698,7 @@ c_SRC_FILES := \
 	apps/earphone/ui/led/led_config.c \
 	apps/earphone/ui/led/led_ui_msg_handler.c \
 	apps/earphone/user_cfg.c \
+	audio/CVP/audio_aec.c \
 	audio/CVP/audio_cvp.c \
 	audio/CVP/audio_cvp_3mic.c \
 	audio/CVP/audio_cvp_ais_3mic.c \
@@ -955,7 +963,6 @@ c_SRC_FILES := \
 	cpu/components/ir_encoder.c \
 	cpu/components/led_api.c \
 	cpu/components/rdec_soft.c \
-	cpu/components/touch/lp_touch_key_range_algo.c \
 	cpu/components/touch/lp_touch_key_tool.c \
 	cpu/components/two_io_led.c \
 	cpu/config/gpio_file_parse.c \
@@ -1062,6 +1069,9 @@ LFLAGS := \
 	cpu/br28/liba/lib_sbc_msbc.a \
 	cpu/br28/liba/lib_mp3_dec.a \
 	cpu/br28/liba/lib_f2a_dec.a \
+	cpu/br28/liba/lib_ogg_opus_dec.a \
+	cpu/br28/liba/opus_enc_lib.a \
+	cpu/br28/liba/aac_enc_lib.a \
 	cpu/br28/liba/libLHDCv4DecodeLib.a \
 	cpu/br28/liba/libLHDCv5DecodeLib.a \
 	cpu/br28/liba/lib_ldac_dec.a \
@@ -1141,6 +1151,7 @@ LFLAGS := \
 	cpu/br28/liba/libdistortion.a \
 	cpu/br28/liba/lib_frequency_compressor.a \
 	cpu/br28/liba/lib_gain_mix.a \
+	cpu/br28/liba/earphone/release/lwip_2_2_0.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \

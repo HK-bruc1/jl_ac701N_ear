@@ -31,4 +31,6 @@ void a2dp_stream_mark_next_timestamp(void *_ctrl, u32 next_timestamp);
 void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_frames, int sample_rate);
 
 void a2dp_stream_control_set_underrun_callback(void *_ctrl, void *priv, void (*callback)(void *priv));
+
+int a2dp_stream_max_buf_size(u32 codec_type);
 #endif

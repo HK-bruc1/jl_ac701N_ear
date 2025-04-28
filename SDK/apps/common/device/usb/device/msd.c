@@ -84,6 +84,12 @@ static const u8 sMassDescriptor[] = {  //<Interface & Endpoint Descriptor
 #define     CPU_NAME    'B','R','2','7'
 #elif defined(CONFIG_CPU_BR29)
 #define     CPU_NAME    'B','R','2','9'
+#elif defined(CONFIG_CPU_BR50)
+#define     CPU_NAME    'B','R','5','0'
+#elif defined(CONFIG_CPU_BR52)
+#define     CPU_NAME    'B','R','5','2'
+#elif defined(CONFIG_CPU_BR56)
+#define     CPU_NAME    'B','R','5','6'
 #else
 #define     CPU_NAME    'U','K','N','W'
 /* #error "not define cpu name" */

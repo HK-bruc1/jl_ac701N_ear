@@ -230,7 +230,9 @@ int JL_rcsp_event_handler(struct rcsp_event *rcsp)
 
 static void rcsp_ble_disconnect(void)
 {
+#if (RCSP_MODE != RCSP_MODE_EARPHONE)
     app_rcsp_task_switch_stop();
+#endif
 #if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     rcsp_file_transfer_close();
     rcsp_file_bluk_trans_close(1);
@@ -241,7 +243,9 @@ static void rcsp_ble_disconnect(void)
 #if RCSP_UPDATE_EN && !RCSP_BLE_MASTER
     rcsp_update_resume();
 #endif
+#if JL_RCSP_SENSORS_DATA_OPT
     sport_data_func_release();
+#endif
     rcsp_timer_contrl(0);
 
     // 防止上一次接收长度太长且未接收完成就中断，影响到下一次连接后的交互
@@ -253,7 +257,9 @@ static void rcsp_ble_connect(void)
 #if JL_RCSP_EXTRA_FLASH_OPT
     rcsp_extra_flash_disconnect_tips(0);
 #endif
+#if JL_RCSP_SENSORS_DATA_OPT
     sport_data_func_init();
+#endif
     rcsp_timer_contrl(1);
     set_ble_adv_notify(1);
 }

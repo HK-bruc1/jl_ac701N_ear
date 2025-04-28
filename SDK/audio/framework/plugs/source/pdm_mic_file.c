@@ -42,6 +42,7 @@ struct pdm_file_cfg {
 struct pdm_mic_file_hdl {
     char name[16];
     void *source_node;
+    struct stream_node *node;
     enum stream_scene scene;
     u8 start;
     u8 dump_cnt;
@@ -81,6 +82,7 @@ static void *pdm_mic_init(void *source_node, struct stream_node *node)
     struct pdm_mic_file_hdl *hdl = zalloc(sizeof(*hdl));
     pdm_mic_file_log("%s\n", __func__);
     hdl->source_node = source_node;
+    hdl->node = node;
     node->type |= NODE_TYPE_IRQ;
     return hdl;
 }
@@ -121,7 +123,8 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     /*
      *获取配置文件内的参数,及名字
      * */
-    int len = jlstream_read_node_data_new(NODE_UUID_PDM_MIC, 0XFF, (void *)&pdm_cfg, name);
+    struct pdm_mic_file_hdl *hdl = (struct pdm_mic_file_hdl *)pdm_mic->private_data;
+    int len = jlstream_read_node_data_new(NODE_UUID_PDM_MIC, hdl->node->subid, (void *)&pdm_cfg, name);
     if (!len) {
         printf("%s, read node data err\n", __FUNCTION__);
     }

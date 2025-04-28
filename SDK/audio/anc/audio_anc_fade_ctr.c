@@ -43,7 +43,7 @@ struct anc_fade_context {
 
 static LIST_HEAD(anc_fade_head);
 
-static OS_MUTEX fade_mutex;
+static spinlock_t anc_fade_lock;
 
 static void anc_fade_ctr_list_del(enum anc_fade_mode_t mode)
 {
@@ -92,12 +92,11 @@ static int anc_fade_ctr_update(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 
 void audio_anc_fade_ctr_init(void)
 {
-    os_mutex_create(&fade_mutex);
+    spin_lock_init(&anc_fade_lock);
 }
 
 void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 {
-    os_mutex_pend(&fade_mutex, 0);
     u16 lff_gain, lfb_gain, rff_gain, rfb_gain;
     struct anc_fade_context *ctx;
     u8 fade_en = anc_api_get_fade_en();
@@ -108,6 +107,7 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
     rff_gain = AUDIO_ANC_FADE_GAIN_DEFAULT;
     rfb_gain = AUDIO_ANC_FADE_GAIN_DEFAULT;
 
+    spin_lock(&anc_fade_lock);
     if (gain == AUDIO_ANC_FADE_GAIN_DEFAULT) {
         anc_fade_ctr_list_del(mode);					//删除
     } else {
@@ -134,6 +134,7 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
             }
         }
     }
+    spin_unlock(&anc_fade_lock);
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     struct rt_anc_fade_gain_ctr rt_anc_fade;
@@ -154,8 +155,6 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     audio_rtanc_fade_gain_resume();
 #endif
-
-    os_mutex_post(&fade_mutex);
 }
 
 void audio_anc_fade_ctr_del(enum anc_fade_mode_t mode)

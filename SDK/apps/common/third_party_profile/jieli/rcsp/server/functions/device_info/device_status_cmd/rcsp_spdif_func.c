@@ -95,9 +95,6 @@ void rcsp_spdif_msg_deal(int msg)
 
 void rcsp_spdif_func_stop(void)
 {
-
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-#endif
 }
 
 #endif

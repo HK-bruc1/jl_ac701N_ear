@@ -168,7 +168,7 @@ extern const int config_btctler_le_afh_en;
  *  brief : 运行时优化（LTO）下，代码空间优化；
  */
 // extern const int config_btctler_le_param_check;
-#define LE_PARAM_IS_CHECK()                TRUE//(config_btctler_le_param_check)
+#define LE_PARAM_IS_CHECK()                0//TRUE//(config_btctler_le_param_check)
 /*
  *-------------------LE RAM CONTROL
  *
@@ -188,6 +188,8 @@ extern const int config_btctler_le_iso_rx;
  */
 extern const int config_btctler_le_slave_multilink;
 extern const int config_btctler_le_master_multilink;
+
+#define LE_MULTI_IS_SUPPORT()           (config_btctler_le_slave_multilink | config_btctler_le_master_multilink)
 /*-----------------------------------------------------------*/
 
 /*

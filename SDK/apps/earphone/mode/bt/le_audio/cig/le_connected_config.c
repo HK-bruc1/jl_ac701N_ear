@@ -30,6 +30,20 @@
 /**************************************************************************************************
   Global Variables
 **************************************************************************************************/
+
+
+#if ((TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN))
+static cig_parameter_t cig_perip_param = {
+    .cb        = &cig_perip_cb,
+    .pair_en        = 0,
+
+    .vdr = {
+        .tx_delay   = 1500,
+        .aclMaxPduCToP = 0,
+        .aclMaxPduPToC = 0,
+    },
+};
+#else
 static cig_parameter_t cig_perip_param = {
     .cb        = &cig_perip_cb,
     .pair_en        = 0,
@@ -40,6 +54,7 @@ static cig_parameter_t cig_perip_param = {
         .aclMaxPduPToC = 9,
     },
 };
+#endif
 
 
 static cig_parameter_t *perip_params = NULL;

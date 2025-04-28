@@ -193,6 +193,10 @@ int esco_recoder_reset(void)
     esco_recoder_open(COMMON_SCO, bt_addr);
     return 0;
 }
+bool esco_recoder_runing()
+{
+    return g_esco_recoder != NULL;
+}
 
 #if TCFG_AUDIO_SIDETONE_ENABLE
 static u8 sidetone_state = 1;

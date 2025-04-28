@@ -49,4 +49,10 @@ typedef enum {
  * @brief 清除rcsp蓝牙ble连接信息并同步到tws对端
  */
 void rcsp_clear_ble_hdl_and_tws_sync(void);
+
+/**
+ * @brief rcsp spp状态通知
+ */
+int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr);
+
 #endif

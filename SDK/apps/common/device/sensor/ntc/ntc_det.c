@@ -199,7 +199,7 @@ void ntc_det_start(void)
         if (NTC_DET_PULLUP_TYPE && PULLUPRES_IS_TRIM) {
             /* 内部上拉 */
             printf("PULLUP_RES: %d", ntc_get_inside_pull_up_res_trim_value());
-            gpio_set_mode(IO_PORT_SPILT(IO_PORTC_05), PORT_INPUT_PULLUP_100K);
+            gpio_set_mode(IO_PORT_SPILT(NTC_DETECT_IO), PORT_INPUT_PULLUP_100K);
         } else {
             /* 外部上拉 */
             gpio_set_mode(IO_PORT_SPILT(NTC_POWER_IO), PORT_OUTPUT_HIGH);

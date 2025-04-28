@@ -17,11 +17,7 @@
 #include "rcsp_bt_manage.h"
 #include "soundbox.h"
 #include "ui/ui_api.h"
-#if RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_DEFAULT
-#include "music/music.h"
-#else
 #include "app_music.h"
-#endif
 #endif
 
 #define RCSP_USE_BLE      0

@@ -54,9 +54,77 @@ enum audio_module {
     //Codec Modules
     AUD_MODULE_AAC,
     AUD_MODULE_AAC_ENERGY,
+    AUD_MODULE_LC3_DEC,
+    AUD_MODULE_LC3_ENC,
+    AUD_MODULE_JLA_DEC,
+    AUD_MODULE_JLA_ENC,
+    AUD_MODULE_JLA_V2_DEC,
+    AUD_MODULE_JLA_V2_ENC,
 };
+
+static const char *mm_module[] = {
+    "Default",
+    "Echo",
+    "Reverb",
+    "Reverb_v2",
+    "Autotune",
+    "Autowah",
+    "Chorus",
+    "FreqShift",
+    "HarmonicExciter",
+    "LLNS",
+    "NoiseGate",
+    "HowlingGate",
+    "HowlingNotch",
+    "PcmDelay",
+    "PingPong",
+    "Pitch",
+    "PitchSpeed",
+    "MTapsEcho",
+    "StereoWide",
+    "3D",
+    "Surround",
+    "Vbass",
+    "VoiceChange",
+    "DRC",
+    "DRCAdv",
+    "DynEQ",
+    "Distortion",
+    "NoiseGatePro",
+    "Limiter",
+    "ReverbLite",
+    "VSurroundPro",
+    "VSurroundProTmp",
+    "SoftEQ",
+    "SoftEqCoeff",
+    "SoftEqSeg",
+    "VbassClassic",
+    "Phaser",
+    "Flanger",
+    "ChorusAdv",
+    "PingPong_Echo",
+    "StereoSpatialWide",
+    "StereoSpatialWideTmp",
+    "DistortionClip",
+    "FreqCompress",
+    "SpatialAdv",
+    "SpatialAdvTmp",
+    "AAC_Dec",
+    "AACEnergy",
+    "LC3_Dec",
+    "LC3_Enc",
+    "JLA_Dec",
+    "JLA_Enc",
+    "JLAV2_Dec",
+    "JLAV2_Enc",
+    "InValid0", //非法模块名，存在模块名和模块序号对不上的情况
+    "InValid1", //非法模块名，存在模块名和模块序号对不上的情况
+    "InValid2", //非法模块名，存在模块名和模块序号对不上的情况
+};
+
 
 void *media_malloc(enum audio_module module, size_t size);
 void media_free(void *pv);
+void media_mem_unfree_dump();
 
 #endif

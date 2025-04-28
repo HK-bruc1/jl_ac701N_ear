@@ -180,9 +180,22 @@ struct touch_key_arg {
     struct touch_key_range_algo_data algo_data;
 };
 
+struct eartch_inear_info {
+    u8 valid;
+    u8 p2m_each_ch_state;
+    u8 p2m_ch_l_up_th;
+    u8 p2m_ch_h_up_th;
+    u8 ctmu_ch_l_isel_level;
+    u8 ctmu_ch_h_isel_level;
+};
+
 struct touch_key_eartch {
+    u8  ch_num;
+    u8  ch_list[2];
+    u8  ear_state;
+    u8  algo_state;
+    u8  user_ear_state;
     u8  touch_invalid;
-    u8  det_last_state;
     u8  audio_det_valid;
     u16 touch_invalid_timeout;
     u16 check_touch_valid_timer;

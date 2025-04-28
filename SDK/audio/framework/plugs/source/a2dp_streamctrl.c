@@ -32,6 +32,10 @@ extern const int CONFIG_A2DP_DELAY_TIME_SBC_LO;
 extern const int CONFIG_JL_DONGLE_PLAYBACK_LATENCY;
 extern const int CONFIG_DONGLE_SPEAK_ENABLE;
 extern const int CONFIG_A2DP_MAX_BUF_SIZE;
+extern const int CONFIG_A2DP_AAC_MAX_BUF_SIZE;
+extern const int CONFIG_A2DP_SBC_MAX_BUF_SIZE;
+extern const int CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
+extern const int CONFIG_A2DP_LDAC_MAX_BUF_SIZE;
 #if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
 _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LDAC = 300;
 _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LDAC_LO = 300;
@@ -40,6 +44,7 @@ _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LDAC_LO = 300;
 _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LHDC = 300;
 _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LHDC_LO = 300;
 #endif
+extern u32 bt_audio_reference_clock_time(u8 network);
 
 #define A2DP_FLUENT_DETECT_INTERVAL         90000//ms 流畅播放延时检测时长
 #define JL_DONGLE_FLUENT_DETECT_INTERVAL    30000//ms
@@ -98,9 +103,34 @@ void a2dp_stream_mark_next_timestamp(void *_ctrl, u32 next_timestamp)
     }
 }
 
-u32 __attribute__((weak)) get_a2dp_max_buf_size(u8 codec_type)
+int a2dp_stream_max_buf_size(u32 codec_type)
 {
-    return CONFIG_A2DP_MAX_BUF_SIZE;
+    int max_buf_size = CONFIG_A2DP_MAX_BUF_SIZE;
+    switch (codec_type) {
+    case A2DP_CODEC_SBC:
+        max_buf_size = CONFIG_A2DP_SBC_MAX_BUF_SIZE;
+        break;
+    case A2DP_CODEC_MPEG24:
+        max_buf_size = CONFIG_A2DP_AAC_MAX_BUF_SIZE;
+        break;
+#if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
+    case A2DP_CODEC_LDAC:
+        max_buf_size = CONFIG_A2DP_LDAC_MAX_BUF_SIZE;
+        break;
+#endif
+#if (defined(TCFG_BT_SUPPORT_LHDC) && TCFG_BT_SUPPORT_LHDC)
+    case A2DP_CODEC_LHDC:
+        max_buf_size = CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
+        break;
+#endif
+#if (defined(TCFG_BT_SUPPORT_LHDC_V5) && TCFG_BT_SUPPORT_LHDC_V5)
+    case A2DP_CODEC_LHDC_V5:
+        max_buf_size = CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
+        break;
+#endif
+    }
+
+    return max_buf_size;
 }
 
 void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_frames, int sample_rate)
@@ -113,8 +143,8 @@ void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_fr
     }
 
     if (frame_len) {
-        max_latency = get_a2dp_max_buf_size(ctrl->codec_type);
-        max_latency = (max_latency * pcm_frames / frame_len) * 1000 / sample_rate * 9 / 10;
+        int max_buf_size = a2dp_stream_max_buf_size(ctrl->codec_type);
+        max_latency = (max_buf_size * pcm_frames / frame_len) * 1000 / sample_rate * 9 / 10;
     }
 
     if (!max_latency) {

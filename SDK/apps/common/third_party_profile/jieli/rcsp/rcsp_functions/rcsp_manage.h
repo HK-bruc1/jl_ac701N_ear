@@ -10,4 +10,9 @@ void JL_rcsp_event_to_user(u32 type, u8 event, u8 *msg, u8 size);
 u8 get_rcsp_connect_status(void);
 void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag);
 
+/**
+ * @brief rcsp spp状态通知
+ */
+void rcsp_user_event_spp_handler(u8 spp_status, u8 flag);
+
 #endif

@@ -15,6 +15,7 @@
 #include "app_le_auracast.h"
 #include "auracast_app_protocol.h"
 #include "a2dp_media_codec.h"
+#include "le/le_user.h"
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
 #endif
@@ -37,7 +38,7 @@ struct auracast_audio {
 struct auracast_audio g_rx_audio;
 static u16 auracast_sink_sync_timeout_hdl = 0;
 u8 a2dp_auracast_preempted_addr[6];
-static auracast_sink_source_info_t *cur_listening_source_info;						// 当前正在监听广播设备播歌的信息
+static auracast_sink_source_info_t *cur_listening_source_info = NULL;						// 当前正在监听广播设备播歌的信息
 #if TCFG_USER_TWS_ENABLE
 static u8 g_cur_auracast_is_scanning = 0;											// 当前设备是否正在扫描广播设备，0:否，非零:是
 #endif
@@ -186,6 +187,9 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
     case AURACAST_SINK_BIG_SYNC_CREATE_EVENT:
         printf("AURACAST_SINK_BIG_SYNC_CREATE_EVENT\n");
 
+        ASSERT(cur_listening_source_info);
+        memcpy(cur_listening_source_info, auracast_sink_listening_source_info_get(), sizeof(auracast_sink_source_info_t));
+
         if (auracast_sink_sync_timeout_hdl != 0) {
             sys_timeout_del(auracast_sink_sync_timeout_hdl);
             auracast_sink_sync_timeout_hdl = 0;
@@ -226,11 +230,48 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
     }
 }
 
+int app_auracast_bass_server_event_callback(uint8_t event, uint8_t *packet, uint16_t size)
+{
+    struct le_audio_bass_add_source_info_t *bass_source_info = (struct le_audio_bass_add_source_info_t *)packet;
+    auracast_sink_source_info_t add_source_param = {0};
+    switch (event) {
+    case BASS_SERVER_EVENT_SCAN_STOPPED:
+        break;
+    case BASS_SERVER_EVENT_SCAN_STARTED:
+        break;
+    case BASS_SERVER_EVENT_SOURCE_ADDED:
+        printf("BASS_SERVER_EVENT_SOURCE_ADDED\n");
+        if ((bass_source_info->pa_sync == BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_AVAILABLE) \
+            || (bass_source_info->pa_sync == BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_NOT_AVAILABLE)) {
+            memcpy(add_source_param.source_mac_addr, bass_source_info->address, 6);
+            bass_source_info->bis_sync_state = 0x03;
+            app_auracast_sink_big_sync_create(&add_source_param);
+        }
+        break;
+    case BASS_SERVER_EVENT_SOURCE_MODIFIED:
+        printf("BASS_SERVER_EVENT_SOURCE_MODIFIED\n");
+        if ((bass_source_info->pa_sync == BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_AVAILABLE) \
+            || (bass_source_info->pa_sync == BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_NOT_AVAILABLE)) {
+            app_auracast_sink_big_sync_terminate();
+            memcpy(add_source_param.source_mac_addr, bass_source_info->address, 6);
+            app_auracast_sink_big_sync_create(&add_source_param);
+        } else {
+            app_auracast_sink_big_sync_terminate();
+        }
+        break;
+    case BASS_SERVER_EVENT_SOURCE_DELETED:
+        break;
+    }
+    return 0;
+}
+
 void app_auracast_sink_init(void)
 {
     printf("app_auracast_sink_init\n");
     auracast_sink_init();
     auracast_sink_event_callback_register(auracast_sink_event_callback);
+
+    le_audio_bass_event_callback_register(app_auracast_bass_server_event_callback);
 }
 
 static int __app_auracast_sink_big_sync_terminate(void)
@@ -327,6 +368,7 @@ static int __app_auracast_sink_big_sync_create(auracast_sink_source_info_t *para
         cur_listening_source_info = malloc(sizeof(auracast_sink_source_info_t));
     } else {
         printf("cur_listening_source_info already malloc!\n");
+        ASSERT(0);
         return -1;
     }
     memcpy(cur_listening_source_info, param, sizeof(auracast_sink_source_info_t));
@@ -403,9 +445,16 @@ static int le_auracast_app_msg_handler(int *msg)
     switch (msg[0]) {
     case APP_MSG_STATUS_INIT_OK:
         printf("APP_MSG_STATUS_INIT_OK");
+
+#if !(TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
+        le_audio_init(3);
+        bt_le_audio_adv_enable(1);
+#endif
+
         app_auracast_sink_init();
         break;
     case APP_MSG_POWER_OFF://1
+        //le_audio_uninit(3);
         printf("APP_MSG_POWER_OFF");
         break;
     default:
@@ -465,6 +514,7 @@ APP_MSG_HANDLER(le_auracast_tws_msg_entry) = {
     .from       = MSG_FROM_TWS,
     .handler    = le_auracast_tws_msg_handler,
 };
+
 
 static void app_auracast_sink_big_sync_start_tws_in_irq(void *_data, u16 len, bool rx)
 {
@@ -544,5 +594,41 @@ REGISTER_TWS_FUNC_STUB(le_auracast_scan_state_sync) = {
 };
 
 #endif // TCFG_USER_TWS_ENABLE
+
+#if !(TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
+/*
+ * 一些蓝牙线程消息按需处理
+ * */
+static int le_auracast_app_btstack_event_handler(int *_event)
+{
+    struct bt_event *event = (struct bt_event *)_event;
+    printf("le_auracast_app_btstack_event_handler:%d\n", event->event);
+    switch (event->event) {
+    case BT_STATUS_FIRST_CONNECTED:
+        bt_le_audio_adv_enable(0);
+        break;
+    case BT_STATUS_FIRST_DISCONNECT:
+        bt_le_audio_adv_enable(1);
+        break;
+    case HCI_EVENT_CONNECTION_COMPLETE:
+        break;
+    case HCI_EVENT_DISCONNECTION_COMPLETE :
+        printf("app le auracast HCI_EVENT_DISCONNECTION_COMPLETE: %0x\n", event->value);
+        if (event->value ==  ERROR_CODE_CONNECTION_TIMEOUT) {
+            //超时断开设置上请求回连标记
+            bt_le_audio_adv_enable(0);
+            bt_le_audio_adv_enable(1);
+        }
+        break;
+    }
+    return 0;
+}
+
+APP_MSG_HANDLER(conn_stack_msg_entry) = {
+    .owner      = 0xff,
+    .from       = MSG_FROM_BT_STACK,
+    .handler    = le_auracast_app_btstack_event_handler,
+};
+#endif  // #if !(TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
 
 #endif

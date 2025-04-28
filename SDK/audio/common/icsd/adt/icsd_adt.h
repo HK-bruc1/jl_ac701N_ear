@@ -264,6 +264,11 @@ void icsd_HOWL_output_demo(u8 result);
 void icsd_adt_tone_play_handler(u8 idx);
 u8 	 icsd_adt_get_wind_lvl();
 u8 icsd_adt_get_adjdcc_result();
+/*初始化dac read的资源*/
+int audio_dac_read_anc_init(void);
+/*释放dac read的资源*/
+int audio_dac_read_anc_exit(void);
+/*重置当前dac read读取的参数*/
 int audio_dac_read_anc_reset(void);
 
 extern const u8 rt_anc_dac_en;

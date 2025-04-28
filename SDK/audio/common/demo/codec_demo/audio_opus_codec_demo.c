@@ -92,14 +92,14 @@ struct audio_opus_encoder {
     //编码器的结构 ,不同的编码器不一样;
     OPUS_ENC_OPS *ops;
     OPUS_EN_FILE_IO IO;
+    OPUS_ENC_PARA param;
     u8 *run_buf;
     u16 sample_rate;
-    u8 quality;
 };
 
 
 //读入待编码的pcm数据
-static u16 audio_opus_enc_input_data(void *priv, s16 *buf, u16 len) //此处的len 表示点数
+static u16 audio_opus_enc_input_data(void *priv, s16 *buf, u8 channel, u16 len)//此处的len 表示点数
 {
     struct audio_opus_encoder *opus_enc = (struct audio_opus_encoder *)priv;
 
@@ -110,7 +110,7 @@ static u16 audio_opus_enc_input_data(void *priv, s16 *buf, u16 len) //此处的l
     return rlen >> 1;
 }
 //编码数据输出
-static void audio_opus_enc_output_data(void *priv, u8 *buf, u16 len)
+static u32 audio_opus_enc_output_data(void *priv, u8 *buf, u16 len)
 {
     struct audio_opus_encoder *opus_enc = (struct audio_opus_encoder *)priv;
 
@@ -120,6 +120,7 @@ static void audio_opus_enc_output_data(void *priv, u8 *buf, u16 len)
     if (opus_enc->priv) {
         audio_demo_dec_resume(opus_enc->priv);
     }
+    return wlen;
 
 }
 
@@ -151,15 +152,22 @@ static int audio_opus_encoder_start(void *priv)
         return 0;
     }
     opus_enc->ops = get_opus_enc_ops();
-    u32 need_buf_size = opus_enc->ops->need_buf(opus_enc->sample_rate);
+    opus_enc->param.complexity = (opus_enc->param.complexity > 4) ? 4 : opus_enc->param.complexity;
+    opus_enc->param.frame_ms = (opus_enc->param.frame_ms == 20 \
+                                || opus_enc->param.frame_ms == 40 \
+                                || opus_enc->param.frame_ms == 60 \
+                                || opus_enc->param.frame_ms == 80 \
+                                || opus_enc->param.frame_ms == 100) ? opus_enc->param.frame_ms : 20 ; //帧长只能是20,40,60,80,100
+    opus_enc->param.format_mode = (opus_enc->param.format_mode >  3) ? 1 : opus_enc->param.format_mode ;
+    printf("opus_open_param:%d,%d,%d,%d,%d,%d\n", opus_enc->param.sr, opus_enc->param.br, opus_enc->param.format_mode, opus_enc->param.complexity, opus_enc->param.frame_ms, opus_enc->param.nch);
+    u32 need_buf_size = opus_enc->ops->need_buf(&opus_enc->param);
     printf("opus enc buf size %d\n", need_buf_size);
     opus_enc->run_buf = zalloc(need_buf_size);
     if (opus_enc->run_buf) {
         opus_enc->IO.input_data  = audio_opus_enc_input_data;
         opus_enc->IO.output_data = audio_opus_enc_output_data;
         opus_enc->IO.priv = opus_enc;
-        u8 quality = (opus_enc->quality & 0x3) > 2 ? 2 : opus_enc->quality;
-        opus_enc->ops->open(opus_enc->run_buf, &opus_enc->IO, quality, opus_enc->sample_rate);
+        opus_enc->ops->open(opus_enc->run_buf, &opus_enc->IO, &(opus_enc->param));
         opus_enc->start = 1;
         return 0;
     } else {
@@ -168,13 +176,17 @@ static int audio_opus_encoder_start(void *priv)
     }
 }
 
-static int audio_opus_encoder_set_fmt(void *priv,  u16 sample_rate, u8 quality)
+static int audio_opus_encoder_set_fmt(void *priv,  struct audio_fmt *fmt)
 {
     struct audio_opus_encoder *opus_enc = (struct audio_opus_encoder *)priv;
     if (opus_enc) {
-        opus_enc->sample_rate = sample_rate;
-        opus_enc->quality = quality;
-        printf("opus_enc sr：%d, quality: %d\n", opus_enc->sample_rate, opus_enc->quality);
+        opus_enc->param.sr = fmt->sample_rate;
+        opus_enc->param.br = fmt->bit_rate;
+        opus_enc->param.complexity = fmt->complexity;
+        opus_enc->param.frame_ms = fmt->frame_len;
+        opus_enc->param.format_mode = *((u16 *)fmt->priv);
+        opus_enc->param.nch = fmt->channel;
+        printf("\n opus enc complex:%d sr:%d,%d,%d\n", opus_enc->param.complexity, opus_enc->sample_rate, opus_enc->param.br, opus_enc->param.sr);
     }
     return 0;
 }
@@ -705,8 +717,12 @@ int audio_opus_enc_dec_test_open(void)
     struct audio_fmt fmt = {0};
     fmt.coding_type =  AUDIO_CODING_OPUS;
     fmt.sample_rate = 16000; //仅支持8K 16K采样率
-    fmt.quality = 0; // opus的码率,范围0到9,值越大,质量越好,编解码越慢
+    fmt.complexity = 0 ;//范围0到3,3质量最好
+    fmt.frame_len =  20; //20,40,60,80,100,如果选60以上,需要把编码输入buffer 和 编码输出buffer都改大一点，避免输出不了,注意此处单位为ms，例如20表示帧长为20ms
+    u8 enc_priv = 0; //opus 编码format: //0:百度_无头.                   1:酷狗_eng+range. 2:ogg封装,pc软件可播放.  3:size+rangeFinal. 源码可兼容版本.
+    fmt.priv = &enc_priv;
     fmt.channel = 1;
+    fmt.bit_rate = 16000; //16000,320000,640000 这三个码率分别对应非ogg解码库的 OPUS_SRINDEX 值为0,1,2
 
     printf("fmt: 0x%x,%d,%d,%d\n", fmt.coding_type, fmt.sample_rate, fmt.frame_len, fmt.channel);
 
@@ -715,7 +731,7 @@ int audio_opus_enc_dec_test_open(void)
     if (!hdl->enc) {
         printf("audio_demo_enc_open failed\n");
     }
-    audio_opus_encoder_set_fmt(hdl->enc, fmt.sample_rate, fmt.quality);
+    audio_opus_encoder_set_fmt(hdl->enc, &fmt);
     audio_opus_encoder_start(hdl->enc);
 
 

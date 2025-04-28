@@ -78,8 +78,10 @@
 #define log_info_hexdump(...)
 #endif
 
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 extern void *rcsp_server_ble_hdl;
 extern void *rcsp_server_ble_hdl1;
+#endif
 
 static u8 adv_data_len;
 static u8 adv_data[ADV_RSP_PACKET_MAX];//max is 31
@@ -213,9 +215,12 @@ int rcsp_make_set_adv_data(void)
 
     __this->modify_flag = 0;
     adv_data_len = 31;
-    /* ble_op_set_adv_data(31, buf); */
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     app_ble_adv_data_set(rcsp_server_ble_hdl, buf, 31);
     app_ble_adv_data_set(rcsp_server_ble_hdl1, buf, 31);
+#else
+    ble_op_set_adv_data(31, buf);
+#endif
 
     log_info("ADV data():");
     log_info_hexdump(buf, 31);
@@ -243,9 +248,12 @@ int rcsp_make_set_rsp_data(void)
     scan_rsp_data_len = offset;
     log_info("rsp_data(%d):", offset);
     log_info_hexdump(buf, offset);
-    /* ble_op_set_rsp_data(offset, buf); */
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     app_ble_rsp_data_set(rcsp_server_ble_hdl, buf, 31);
     app_ble_rsp_data_set(rcsp_server_ble_hdl1, buf, 31);
+#else
+    ble_op_set_rsp_data(offset, buf);
+#endif
     return 0;
 }
 
@@ -923,10 +931,34 @@ check_changes:
     return 0;
 }
 
+#if TCFG_USER_TWS_ENABLE && TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+
+extern u8 check_le_pakcet_sent_finish_flag(void);
+extern bool rcsp_send_list_is_empty(void);
+static u8 g_tws_disconn_try_cnt = 0;
+static void tws_disconn_ble(void *priv)
+{
+    if (!rcsp_handle_get()) {
+        return;
+    }
+    /* printf("%s, %s, %d, %d, %d, %d\n", __FILE__, __FUNCTION__, __LINE__, rcsp_send_list_is_empty(), check_le_pakcet_sent_finish_flag(), g_tws_disconn_try_cnt); */
+    if ((rcsp_send_list_is_empty() && check_le_pakcet_sent_finish_flag()) || (g_tws_disconn_try_cnt >= 10)) {
+        g_tws_disconn_try_cnt = 0;
+        ble_module_enable(0);
+    } else {
+        g_tws_disconn_try_cnt++;
+        sys_timeout_add(NULL, tws_disconn_ble, 50);
+    }
+}
+
+
+#endif
+
 // 切换后触发
 void adv_role_switch_handle(u8 role)
 {
 #if TCFG_USER_TWS_ENABLE
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     // 当充电入仓的时候，入仓的主机设备role是1但tws_api_get_role()是0；
     printf("adv_role_switch_handle rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
     if (tws_api_get_tws_state()) {
@@ -947,7 +979,26 @@ void adv_role_switch_handle(u8 role)
         }
     }
 
-#endif
+#else // !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+
+    if (tws_api_get_tws_state()) {
+        if (rcsp_ble_con_handle_get()) {
+            if (tws_api_get_role() == TWS_ROLE_MASTER) {
+                ble_module_enable(1);
+            } else {
+                u8 adv_cmd = 0x3;
+                adv_info_device_request(&adv_cmd, sizeof(adv_cmd));
+                tws_disconn_ble(NULL);
+            }
+        } else if (!rcsp_ble_con_handle_get() && bt_rcsp_device_conn_num()) {
+            u8 adv_cmd = 0x4;
+            adv_info_device_request(&adv_cmd, sizeof(adv_cmd));             //让手机来请求固件信息
+        }
+    }
+
+#endif // !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+
+#endif // TCFG_USER_TWS_ENABLE
 }
 
 void send_version_to_sibling(void)

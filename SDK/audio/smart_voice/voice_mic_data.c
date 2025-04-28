@@ -28,7 +28,7 @@
 #endif /*CONFIG_VAD_PLATFORM_SUPPORT_EN*/
 
 #if TCFG_SMART_VOICE_USE_AEC
-#include "audio_cvp.h"
+#include "audio_aec.h"
 #include "overlay_code.h"
 #endif
 
@@ -131,7 +131,7 @@ static int audio_smart_voice_aec_run(void *priv, s16 *data, int len)
                 pcm_dual_to_single(voice_aec_hdl->ref_tmpbuf, voice_aec_hdl->ref_tmpbuf, dac_read_len);
                 dac_read_len >>= 1;
             }
-            audio_aec_refbuf((s16 *)voice_aec_hdl->ref_tmpbuf, NULL, dac_read_len);
+            acoustic_echo_cancel_refbuf((s16 *)voice_aec_hdl->ref_tmpbuf, NULL, dac_read_len);
         } else {
             dac_read_len = len * 2 * voice_aec_hdl->ref_channel * voice_aec_hdl->multiple_cnt;
             audio_dac_read(0, voice_aec_hdl->ref_tmpbuf, dac_read_len / voice_aec_hdl->ref_channel, voice_aec_hdl->ref_channel);
@@ -141,13 +141,13 @@ static int audio_smart_voice_aec_run(void *priv, s16 *data, int len)
                 pcm_dual_to_single(voice_aec_hdl->ref_tmpbuf, voice_aec_hdl->ref_tmpbuf, dac_read_len);
                 dac_read_len >>= 1;
             }
-            audio_aec_refbuf((s16 *)voice_aec_hdl->ref_tmpbuf, NULL, dac_read_len);
+            acoustic_echo_cancel_refbuf((s16 *)voice_aec_hdl->ref_tmpbuf, NULL, dac_read_len);
         }
 
         static u8 burk = 0;
         if (cbuf_get_data_len(&voice_aec_hdl->aec_cbuf) >= 512) {
             wlen = cbuf_read(&voice_aec_hdl->aec_cbuf, &(voice_aec_hdl->in_tmpbuf[burk][0]), 512);
-            audio_aec_inbuf((s16 *) & (voice_aec_hdl->in_tmpbuf[burk][0]), wlen);
+            acoustic_echo_cancel_inbuf((s16 *) & (voice_aec_hdl->in_tmpbuf[burk][0]), wlen);
             burk++;
             if (burk > 2) {
                 burk = 0;
@@ -212,7 +212,7 @@ int audio_smart_voice_aec_open(void)
         .sample_rate = VOICE_ADC_SAMPLE_RATE,
         .ref_sr = TCFG_AUDIO_GLOBAL_SAMPLE_RATE,
     };
-    audio_aec_open(&init_param, AEC_EN, cvp_output_hdl);
+    acoustic_echo_cancel_init(&init_param, AEC_EN, cvp_output_hdl);
     audio_dac_read_reset();
     voice_aec_hdl = hdl;
     return 0;
@@ -221,7 +221,7 @@ int audio_smart_voice_aec_open(void)
 void audio_smart_voice_aec_close(void)
 {
     if (voice_aec_hdl) {
-        audio_aec_close();
+        acoustic_echo_cancel_close();
         free(voice_aec_hdl->ref_tmpbuf);
         free(voice_aec_hdl);
         voice_aec_hdl = NULL;

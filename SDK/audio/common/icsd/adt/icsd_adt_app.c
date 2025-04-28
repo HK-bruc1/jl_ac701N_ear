@@ -827,6 +827,8 @@ int audio_acoustic_detector_open()
     //启动需要初始化DAC READ相关变量， 避免使用上次遗留参数
     audio_dac_read_anc_reset();
     audio_dac_set_sample_rate_callback(&dac_hdl, audio_icsd_adt_set_sample);
+    /*初始化dac read的资源*/
+    audio_dac_read_anc_init();
 
 #if ICSD_ADT_SHARE_ADC_ENABLE
     int debug_adc_sr = 16000;
@@ -1090,8 +1092,8 @@ int audio_acoustic_detector_close()
             hdl->infmt.rtanc_tool = NULL;
         }
 #endif
-
-
+        /*释放dac read的资源*/
+        audio_dac_read_anc_exit();
     }
     return 0;
 }

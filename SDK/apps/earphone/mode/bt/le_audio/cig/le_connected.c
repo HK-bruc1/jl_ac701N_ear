@@ -473,29 +473,30 @@ int connected_perip_disconnect_deal(void *priv)
     connected_mutex_pend(&connected_mutex, __LINE__);
     spin_lock(&connected_lock);
     list_for_each_entry(p, &connected_list_head, entry) {
-        if (p->cig_hdl == hdl->cig_hdl) {
-
-            for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
-                if (p->cis_hdl_info[i].cis_hdl == hdl->cis_hdl) {
-                    p->cis_hdl_info[i].cis_hdl = 0xff;
-                    if (p->cis_hdl_info[i].recorder) {
-                        recorder = p->cis_hdl_info[i].recorder;
-                        p->cis_hdl_info[i].recorder = NULL;
-                    }
-
-                    if (p->cis_hdl_info[i].rx_player.le_audio) {
-                        player.le_audio = p->cis_hdl_info[i].rx_player.le_audio;
-                        p->cis_hdl_info[i].rx_player.le_audio = NULL;
-                    }
-
-                    if (p->cis_hdl_info[i].rx_player.rx_stream) {
-                        player.rx_stream = p->cis_hdl_info[i].rx_player.rx_stream;
-                        p->cis_hdl_info[i].rx_player.rx_stream = NULL;
-                    }
-                    index = i;
-                } else if (p->cis_hdl_info[i].cis_hdl) {
-                    cis_connected_num++;
+        /* log_info("%s, cig_hdl:%x  %x", __FUNCTION__, hdl->cig_hdl, p->cig_hdl); */
+        if (p && (p->cig_hdl == hdl->cig_hdl)) {
+            for (i = 0; i < 1; i++) {
+                /* log_info("%s, cis_hdl:%x  %x", __FUNCTION__, p->cis_hdl_info[i].cis_hdl,  hdl->cis_hdl); */
+                //if (p->cis_hdl_info[i].cis_hdl == hdl->cis_hdl) {
+                p->cis_hdl_info[i].cis_hdl = 0xff;
+                if (p->cis_hdl_info[i].recorder) {
+                    recorder = p->cis_hdl_info[i].recorder;
+                    p->cis_hdl_info[i].recorder = NULL;
                 }
+
+                if (p->cis_hdl_info[i].rx_player.le_audio) {
+                    player.le_audio = p->cis_hdl_info[i].rx_player.le_audio;
+                    p->cis_hdl_info[i].rx_player.le_audio = NULL;
+                }
+
+                if (p->cis_hdl_info[i].rx_player.rx_stream) {
+                    player.rx_stream = p->cis_hdl_info[i].rx_player.rx_stream;
+                    p->cis_hdl_info[i].rx_player.rx_stream = NULL;
+                }
+                index = i;
+                //} else if (p->cis_hdl_info[i].cis_hdl) {
+                //    cis_connected_num++;
+                // }
             }
 
             spin_unlock(&connected_lock);
@@ -518,7 +519,7 @@ int connected_perip_disconnect_deal(void *priv)
             memset(&p->cis_hdl_info[index], 0, sizeof(cis_hdl_info_t));
 
             connected_hdl = p;
-            break;
+            //break;
         }
     }
     spin_unlock(&connected_lock);

@@ -4,9 +4,6 @@
 #include "generic/typedef.h"
 #include "cvp_common.h"
 
-/*降噪版本定义*/
-#define ANS_V100	0xA1
-#define ANS_V200	0xA2
 
 //aec_cfg:
 typedef struct __AEC_CONFIG {

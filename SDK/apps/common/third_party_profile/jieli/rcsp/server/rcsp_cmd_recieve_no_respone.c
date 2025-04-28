@@ -35,9 +35,12 @@ void rcsp_cmd_recieve_no_respone(void *priv, u8 OpCode, u8 *data, u16 len, u16 b
             break;
         }
 #endif
+#if JL_RCSP_SENSORS_DATA_OPT
         if (0 == JL_rcsp_sensors_log_notify(priv, OpCode, data, len)) {
             break;
         }
+#endif
+        break;
     }
 }
 #endif//RCSP_MODE

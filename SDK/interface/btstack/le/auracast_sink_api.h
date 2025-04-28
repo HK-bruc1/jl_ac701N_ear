@@ -86,4 +86,57 @@ extern void auracast_sink_set_source_filter(u8 state, u8 *mac);
 extern void auracast_sink_set_scan_filter(u8 state, u8 filter_num, u8 *mac);
 extern void auracast_sink_event_callback_register(auracast_sink_event_callback_t callback);
 
+
+////////////////////////////// bass
+
+// event
+typedef enum {
+    BASS_SERVER_EVENT_SCAN_STOPPED = 0x00,
+    BASS_SERVER_EVENT_SCAN_STARTED,
+    BASS_SERVER_EVENT_SOURCE_ADDED,
+    BASS_SERVER_EVENT_SOURCE_MODIFIED,
+    BASS_SERVER_EVENT_SOURCE_DELETED,
+} bass_server_event_t;
+
+// pa_sync_state
+typedef enum {
+    BASS_PA_SYNC_DO_NOT_SYNCHRONIZE_TO_PA = 0x00,
+    BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_AVAILABLE,
+    BASS_PA_SYNC_SYNCHRONIZE_TO_PA_PAST_NOT_AVAILABLE,
+    BASS_PA_SYNC_RFU
+} bass_pa_sync_cmd_t;
+
+struct le_audio_bass_add_source_info_t {
+    u32 broadcast_id;
+    u8  address[6];
+    u8  source_id;
+    u8  sid;
+
+    // 4-octet bitfield. Shall not exist if num_subgroups = 0
+    // Bit 0-30 = BIS_index[1-31]
+    // 0x00000000: 0 = Not synchronized to BIS_index[x]
+    // 0xxxxxxxxx: 1 = Synchronized to BIS_index[x]
+    // 0xFFFFFFFF: Failed to sync to BIG
+    // state send to client by server
+    u32  bis_sync_state;
+
+    u8  pa_sync;
+
+};
+
+typedef int (*le_audio_bass_server_event_callback_t)(uint8_t event, uint8_t *packet, uint16_t size);
+extern void le_audio_bass_event_callback_register(le_audio_bass_server_event_callback_t callback);
+
+typedef enum {
+    BASS_PA_SYNC_STATE_NOT_SYNCHRONIZED_TO_PA = 0x00,
+    BASS_PA_SYNC_STATE_SYNCINFO_REQUEST,
+    BASS_PA_SYNC_STATE_SYNCHRONIZED_TO_PA,
+    BASS_PA_SYNC_STATE_FAILED_TO_SYNCHRONIZE_TO_PA,
+    BASS_PA_SYNC_STATE_NO_PAST,
+    BASS_PA_SYNC_STATE_RFU
+} bass_pa_sync_state_t;
+
+extern void le_audio_bass_notify_pa_sync_state(u8 id, u8 pa_sync_state);
+
+
 #endif /* __AURACAST_SINK_API_H__ */

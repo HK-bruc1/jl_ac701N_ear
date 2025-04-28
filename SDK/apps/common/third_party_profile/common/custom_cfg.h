@@ -8,11 +8,7 @@
 
 #define BT_CONNECTION_VERIFY        0   // 0是校验,1是不校验
 
-#if (RCSP_UPDATE_EN)
 #define VER_INFO_EXT_COUNT          2   //2
-#else
-#define VER_INFO_EXT_COUNT          0   //2
-#endif
 #define VER_INFO_EXT_MAX_LEN        24
 
 enum {
@@ -109,10 +105,6 @@ u16 get_vid_pid_ver_from_cfg_file(u8 type);
 u32 get_authkey_procode_from_cfg_file(u8 *data[], u8 *len, u8 type);
 #endif
 u32 get_serial_num_cfg_file(u8 *data[], u8 *len, u8 type);
-
-#if RCSP_UPDATE_EN
-extern int rcsp_update_msg[10];
-#endif
 
 #endif
 

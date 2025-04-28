@@ -11,7 +11,9 @@
 #include "resfile.h"
 #include "sdfile.h"
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) || \
+		((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))) && \
+		!TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
 #if 0
 #define log_info(x, ...)       printf("[MULTI_PROTOCOL]" x " ", ## __VA_ARGS__)
@@ -89,9 +91,9 @@ static void multi_protocol_tws_sync_in_irq(void *_data, u16 len, bool rx)
     int i;
     int argv[4];
     u8 *rx_data = NULL;
-    log_info("multi_protocol_tws_sync_in_irq %d\n", len);
+    log_info("multi_protocol_tws_sync_in_irq %d tws_state:%d\n", len, tws_api_get_tws_state());
     log_info_hexdump(_data, len);
-    if (get_bt_tws_connect_status()) {
+    if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
         if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
             rx_data = malloc(len);
             if (rx_data == NULL) {

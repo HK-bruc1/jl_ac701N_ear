@@ -289,12 +289,9 @@ void rcsp_fm_msg_deal(int msg)
 
 void rcsp_fm_func_stop(void)
 {
-
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-    if (!fm_get_fm_dev_mute()) {
-        app_send_message(APP_MSG_MUSIC_PP, 0);
-    }
-#endif
+    /* if (!fm_get_fm_dev_mute()) { */
+    /*     app_send_message(APP_MSG_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

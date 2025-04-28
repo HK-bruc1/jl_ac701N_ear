@@ -101,7 +101,8 @@ void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_add
         __this->ble_con_handle = 0;
         __this->spp_remote_addr = NULL;
     }
-    if (spp_remote_addr && __this->spp_remote_addr && !memcmp(spp_remote_addr, __this->spp_remote_addr, 6)) {
+    u8 _addr_temp[6] = {0};
+    if (spp_remote_addr && __this->spp_remote_addr && (!memcmp(spp_remote_addr, __this->spp_remote_addr, 6) || !memcmp(spp_remote_addr, _addr_temp, 6))) {
         __this->ble_con_handle = 0;
         __this->spp_remote_addr = NULL;
     }

@@ -13,29 +13,25 @@
 #include "app_ble_spp_api.h"
 #include "btstack_rcsp_user.h"
 #include "asm/cpu.h"
+#include "bt_common.h"
+#include "ble_rcsp_server.h"
+#include "rcsp_manage.h"
+#include "rcsp_bt_manage.h"
+#include "rcsp_config.h"
 
-#if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
 #define BD_ADDR_TYPE_EDR_ATT    0xfb
 
-static char *gap_device_name = "jl_rcsp_ble_test";
-static u8 gap_device_name_len = 0;
 static int g_rcsp_ble_conn_num = 0;
 static int g_rcsp_adt_conn_num = 0;
 static int g_rcsp_spp_conn_num = 0;
 
-#define ATT_CHARACTERISTIC_2a00_01_VALUE_HANDLE 0x0003
-#define ATT_CHARACTERISTIC_ae01_01_VALUE_HANDLE 0x0006
-#define ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE 0x0008
-#define ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE 0x0009
-#define ATT_CHARACTERISTIC_2a05_01_VALUE_HANDLE 0x0056
-#define ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE 0x0057
-
 #if 0
-#define rcsp_lib_puts(x)				puts(x)         //app_puts(RCSP_INTERFACE_LOG, x)
-#define rcsp_lib_putchar(x)				putchar(x)      //app_putchar(RCSP_INTERFACE_LOG, x)
-#define rcsp_lib_printf					printf          //app_log(RCSP_INTERFACE_LOG)
-#define rcsp_lib_printf_buf(x, y)		put_buf(x, y)   //app_log_dump(RCSP_INTERFACE_LOG, x, y)
+#define rcsp_lib_puts(x)				puts(x)
+#define rcsp_lib_putchar(x)				putchar(x)
+#define rcsp_lib_printf					printf
+#define rcsp_lib_printf_buf(x, y)		put_buf(x, y)
 #else
 #define rcsp_lib_puts(...)
 #define rcsp_lib_putchar(...)
@@ -45,7 +41,6 @@ static int g_rcsp_spp_conn_num = 0;
 
 extern const u8 adt_profile_support;
 extern u8 rcsp_dual_support; // 是否支持一拖二
-extern u8 rcsp_auth_support; // 是否开启认证
 
 __attribute__((weak)) u8 rcsp_adt_support = 0; //edr att是否接入rcsp
 void *bt_rcsp_spp_hdl = NULL;
@@ -61,7 +56,6 @@ void *rcsp_server_edr_att_hdl1 = NULL;
 /*****************************************
                  RCSP PROTOCOL
  *****************************************/
-const u8 rcsp_link_key_data[16] = {0x06, 0x77, 0x5f, 0x87, 0x91, 0x8d, 0xd4, 0x23, 0x00, 0x5d, 0xf1, 0xd8, 0xcf, 0x0c, 0x14, 0x2b};
 
 /**
  * @brief 获取当前ble连接设备的mac地址
@@ -166,13 +160,15 @@ void rcsp_interface_set_bt_hdl_with_tws_data(u8 *recieve_buf, u16 recieve_len)
         app_ble_hdl_core_data_set(rcsp_server_ble_hdl1, recieve_buf + buf_index);
         buf_index += ble_hdl_size;
         app_spp_hdl_core_data_set(bt_rcsp_spp_hdl1, recieve_buf + buf_index);
-        u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-        if (ble_con_handle1) {
-            g_rcsp_ble_conn_num++;
-        }
-        u8 *spp_remote_addr1 = app_spp_get_hdl_remote_addr(bt_rcsp_spp_hdl1);
-        if (spp_remote_addr1) {
-            g_rcsp_spp_conn_num++;
+        if (rcsp_dual_support) {
+            u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
+            if (ble_con_handle1) {
+                g_rcsp_ble_conn_num++;
+            }
+            u8 *spp_remote_addr1 = app_spp_get_hdl_remote_addr(bt_rcsp_spp_hdl1);
+            if (spp_remote_addr1) {
+                g_rcsp_spp_conn_num++;
+            }
         }
     }
     if (adt_profile_support && rcsp_adt_support) {
@@ -312,7 +308,7 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
                 rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
                 /* app_ble_set_filter_con_handle(rcsp_server_ble_hdl1, con_handle); */
                 g_rcsp_adt_conn_num++;
-            } else if (adt_profile_support && rcsp_adt_support && adt_con_handle1 && (con_handle == adt_con_handle1)) {
+            } else if (rcsp_dual_support && adt_profile_support && rcsp_adt_support && adt_con_handle1 && (con_handle == adt_con_handle1)) {
                 rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
                 /* app_ble_set_filter_con_handle(rcsp_server_ble_hdl1, con_handle); */
                 g_rcsp_adt_conn_num++;
@@ -335,14 +331,14 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
                 rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
                 app_ble_set_filter_con_handle(rcsp_server_edr_att_hdl, 0);
                 g_rcsp_adt_conn_num--;
-            } else if (rcsp_dual_support && adt_profile_support && rcsp_adt_support && adt_con_handle1 && (con_handle == adt_con_handle1)) {
+            } else if (rcsp_dual_support && rcsp_dual_support && adt_profile_support && rcsp_adt_support && adt_con_handle1 && (con_handle == adt_con_handle1)) {
                 rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
                 app_ble_set_filter_con_handle(rcsp_server_edr_att_hdl1, 0);
                 g_rcsp_adt_conn_num--;
             }
             rcsp_protocol_reset_bound(con_handle, NULL);
         }
-        if (rcsp_auth_support) {
+        if (rcsp_get_auth_support()) {
             JL_rcsp_reset_bthdl_auth(con_handle, NULL);
         }
         if (rcsp_dual_support && (g_rcsp_ble_conn_num > 2)) {
@@ -413,7 +409,7 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
                 g_rcsp_spp_conn_num++;
             }
         }
-        if (rcsp_auth_support) {
+        if (rcsp_get_auth_support()) {
             JL_rcsp_reset_bthdl_auth(0, remote_addr);
         }
         if (rcsp_dual_support && (g_rcsp_spp_conn_num > 2)) {
@@ -430,49 +426,6 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
 
     rcsp_interface_bt_handle_tws_sync();
 
-}
-
-/**
- *	@brief 用于外部接收ble/spp自定义数据使用
- *
- *	@param ble_con_hdl ble发送句柄
- *	@param remote_addr spp发送地址
- *	@param buf 接收数据
- *	@param len 接收数据的长度
- *	@param att_handle ble_con_hdl有值时，ble的特征值，一般是用户自定义的特征
- */
-_WEAK_ void bt_rcsp_custom_recieve_callback(u16 ble_con_hdl, void *remote_addr, u8 *buf, u16 len, uint16_t att_handle)
-{
-}
-
-/**
- *	@brief 用于外部自定义att_read_callback的使用
- *
- *	@param hdl ble的结构体句柄
- *	@param connection_handle ble的连接句柄
- *	@param att_handle ble特征值
- *	@param offset
- *	@param buffer 读特征的数据
- *	@param buffer_size 读特征的数据长度
- */
-_WEAK_ uint16_t bt_rcsp_custom_att_read_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
-{
-    return 0;
-}
-
-/**
- *	@brief 用于外部自定义att_write_callback的使用
- *
- *	@param hdl ble的结构体句柄
- *	@param connection_handle ble的连接句柄
- *	@param att_handle ble特征值
- *	@param transaction_mode
- *	@param offset
- *	@param buffer 写特征的数据
- *	@param buffer_size 写特征的数据长度
- */
-_WEAK_ void bt_rcsp_custom_att_write_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
-{
 }
 
 /**
@@ -525,7 +478,7 @@ void bt_rcsp_recieve_callback(void *hdl, void *remote_addr, u8 *buf, u16 len)
             rcsp_lib_printf("%d===rcsp_rx(%d):", __LINE__, len);
             rcsp_lib_printf_buf(buf, len);
             JL_protocol_data_recieve(NULL, buf, len, ble_con_handle, NULL);
-        } else if (ble_con_handle1 && (hdl == rcsp_server_ble_hdl1)) {
+        } else if (rcsp_dual_support && ble_con_handle1 && (hdl == rcsp_server_ble_hdl1)) {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
             if (!JL_rcsp_get_auth_flag_with_bthdl(ble_con_handle1, NULL)) {
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
@@ -557,7 +510,7 @@ void bt_rcsp_recieve_callback(void *hdl, void *remote_addr, u8 *buf, u16 len)
             rcsp_lib_printf("%d===rcsp_rx(%d):", __LINE__, len);
             rcsp_lib_printf_buf(buf, len);
             JL_protocol_data_recieve(NULL, buf, len, adt_con_handle, NULL);
-        } else if (adt_profile_support && adt_con_handle1 && (hdl == rcsp_server_edr_att_hdl1)) {
+        } else if (rcsp_dual_support && adt_profile_support && adt_con_handle1 && (hdl == rcsp_server_edr_att_hdl1)) {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
             if (!JL_rcsp_get_auth_flag_with_bthdl(adt_con_handle1, NULL)) {
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
@@ -608,33 +561,9 @@ void bt_rcsp_recieve_callback(void *hdl, void *remote_addr, u8 *buf, u16 len)
             rcsp_lib_printf("%d===rcsp_rx(%d):", __LINE__, len);
             rcsp_lib_printf_buf(buf, len);
             JL_protocol_data_recieve(NULL, buf, len, 0, remote_addr);
-            bt_rcsp_custom_recieve_callback(0, remote_addr, buf, len, 0);
         }
     }
     /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-}
-
-static uint16_t default_rcsp_send_att_handle = ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE;
-static att_op_type_e default_rcsp_send_att_op_type = ATT_OP_AUTO_READ_CCC;
-
-/**
- *	@brief 设置rcsp的ble的默认发送特征
- *
- *	@param att_handle ble_con_hdl有值时，可填用户自定义的特征, 为0是rcsp的特征值
- *	@param att_op_type 参考att_op_type_e枚举的排序，为0是rcsp的特征值
- */
-void bt_rcsp_set_default_send_att_msg(uint16_t att_handle, att_op_type_e att_op_type)
-{
-    if (att_handle) {
-        default_rcsp_send_att_handle = att_handle;
-    } else {
-        default_rcsp_send_att_handle = ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE;
-    }
-    if (att_op_type) {
-        default_rcsp_send_att_op_type = att_op_type;
-    } else {
-        default_rcsp_send_att_op_type = ATT_OP_AUTO_READ_CCC;
-    }
 }
 
 /**
@@ -656,10 +585,8 @@ _WEAK_ u8 bt_rcsp_spp_can_send(void)
  *	@param remote_addr spp发送地址	注：当ble_con_hdl与remote_addr都不填时，给所有的设备都发数据
  *	@param buf 发送的数据
  *	@param len 发送的数据长度
- *	@param att_handle ble_con_hdl有值时，可填用户自定义的特征, 为0是rcsp的特征值，或者是bt_rcsp_set_default_send_att_msg设置的
- *	@param att_op_type 参考att_op_type_e枚举的排序，为0是rcsp默认配置，或者是bt_rcsp_set_default_send_att_msg设置的
  */
-int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16_t att_handle, u8 att_op_type)
+int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
 {
     if (ble_con_hdl) {
         rcsp_lib_printf("ble_con_hdl:%d\n", ble_con_hdl);
@@ -675,18 +602,6 @@ int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16
     }
     rcsp_lib_printf("===rcsp_tx(%d):", len);
     rcsp_lib_printf_buf(buf, len);
-    uint16_t send_att_handle = default_rcsp_send_att_handle;
-    att_op_type_e send_att_op_type = default_rcsp_send_att_op_type;
-    if (att_handle) {
-        send_att_handle = att_handle;
-        rcsp_lib_printf("att_handle:%d\n", att_handle);
-    }
-    if (att_op_type) {
-        send_att_op_type = (att_op_type_e)att_op_type;
-        rcsp_lib_printf("att_op_type:%d\n", att_op_type);
-    }
-    rcsp_lib_printf("send_att_handle:%d\n", send_att_handle);
-    rcsp_lib_printf("send_att_op_type:%d\n", send_att_op_type);
     u16 ble_con_handle = 0, ble_con_handle1 = 0, adt_con_handle = 0;
     u8 *spp_remote_addr = NULL;
     u8 *spp_remote_addr1 = NULL;
@@ -704,7 +619,7 @@ int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16
         }
         if (ble_con_hdl == ble_con_handle) {
             ble_con_handle1 = 0;
-        } else if (ble_con_hdl == ble_con_handle1) {
+        } else if (rcsp_dual_support && ble_con_hdl == ble_con_handle1) {
             ble_con_handle = 0;
         } else {
             ble_con_handle = 0;
@@ -751,11 +666,11 @@ int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16
             if (!rcsp_protocol_head_check(buf, len)) {
                 // 如果还没有验证，则只发送验证信息
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-                app_ble_att_send_data(rcsp_server_ble_hdl, send_att_handle, buf, len, send_att_op_type);
+                app_ble_att_send_data(rcsp_server_ble_hdl, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
             }
         } else {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-            app_ble_att_send_data(rcsp_server_ble_hdl, send_att_handle, buf, len, send_att_op_type);
+            app_ble_att_send_data(rcsp_server_ble_hdl, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
         }
     }
     if (rcsp_dual_support && spp_remote_addr1 && bt_rcsp_spp_can_send()) {
@@ -775,11 +690,11 @@ int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16
             if (!rcsp_protocol_head_check(buf, len)) {
                 // 如果还没有验证，则只发送验证信息
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-                app_ble_att_send_data(rcsp_server_ble_hdl1, send_att_handle, buf, len, send_att_op_type);
+                app_ble_att_send_data(rcsp_server_ble_hdl1, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
             }
         } else {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-            app_ble_att_send_data(rcsp_server_ble_hdl1, send_att_handle, buf, len, send_att_op_type);
+            app_ble_att_send_data(rcsp_server_ble_hdl1, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
         }
     }
     if (adt_profile_support && rcsp_adt_support && adt_con_handle) {
@@ -787,82 +702,26 @@ int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16
             if (!rcsp_protocol_head_check(buf, len)) {
                 // 如果还没有验证，则只发送验证信息
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-                app_ble_att_send_data(rcsp_server_edr_att_hdl, send_att_handle, buf, len, send_att_op_type);
+                app_ble_att_send_data(rcsp_server_edr_att_hdl, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
             }
         } else {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-            app_ble_att_send_data(rcsp_server_edr_att_hdl, send_att_handle, buf, len, send_att_op_type);
+            app_ble_att_send_data(rcsp_server_edr_att_hdl, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
         }
     }
-    if (adt_profile_support && rcsp_adt_support && adt_con_handle1) {
+    if (rcsp_dual_support && adt_profile_support && rcsp_adt_support && adt_con_handle1) {
         if (!JL_rcsp_get_auth_flag_with_bthdl(adt_con_handle1, NULL)) {
             if (!rcsp_protocol_head_check(buf, len)) {
                 // 如果还没有验证，则只发送验证信息
                 /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-                app_ble_att_send_data(rcsp_server_edr_att_hdl1, send_att_handle, buf, len, send_att_op_type);
+                app_ble_att_send_data(rcsp_server_edr_att_hdl1, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
             }
         } else {
             /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-            app_ble_att_send_data(rcsp_server_edr_att_hdl1, send_att_handle, buf, len, send_att_op_type);
+            app_ble_att_send_data(rcsp_server_edr_att_hdl1, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, buf, len, ATT_OP_AUTO_READ_CCC);
         }
     }
     return 0;
-}
-
-/**
- *	@brief 用于发送ble/spp自定义数据使用
- *
- *	@param ble_con_hdl ble发送句柄
- *	@param remote_addr spp发送地址	注：当ble_con_hdl与remote_addr都不填时，给所有的设备都发数据
- *	@param buf 发送的数据
- *	@param len 发送的数据长度
- *	@param att_handle ble_con_hdl有值时，可填用户自定义的特征, 为0是rcsp的特征值
- *	@param att_op_type 参考att_op_type_e枚举的排序
- */
-void bt_rcsp_custom_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len, uint16_t att_handle, att_op_type_e att_op_type)
-{
-    u8 _addr_temp[6] = {0};
-    u8 flag = 0;
-    if (remote_addr) {
-        flag = memcmp(remote_addr, _addr_temp, 6);
-    }
-    if ((ble_con_hdl != 0) || flag) {
-        bt_rcsp_data_send(ble_con_hdl, remote_addr, buf, len, att_handle, att_op_type);
-    } else if (/*(ble_con_hdl==0)&& */ !remote_addr) {
-        // 全发送
-        u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
-        u8 *spp_remote_addr = app_spp_get_hdl_remote_addr(bt_rcsp_spp_hdl);
-        u16 adt_con_handle = 0;
-        if (adt_profile_support && rcsp_adt_support) {
-            adt_con_handle = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl);
-        }
-        if (adt_con_handle != 0) {
-            bt_rcsp_data_send(adt_con_handle, NULL, buf, len, att_handle, att_op_type);
-        }
-        if (ble_con_handle != 0) {
-            bt_rcsp_data_send(ble_con_handle, NULL, buf, len, att_handle, att_op_type);
-        }
-        if (spp_remote_addr) {
-            bt_rcsp_data_send(0, spp_remote_addr, buf, len, 0, 0);
-        }
-        if (rcsp_dual_support) {
-            u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-            if (ble_con_handle1) {
-                bt_rcsp_data_send(ble_con_handle1, NULL, buf, len, att_handle, att_op_type);
-            }
-            u8 *spp_remote_addr1 = app_spp_get_hdl_remote_addr(bt_rcsp_spp_hdl1);
-            if (spp_remote_addr1) {
-                bt_rcsp_data_send(0, spp_remote_addr1, buf, len, 0, 0);
-            }
-            u16 adt_con_handle1 = 0;
-            if (adt_profile_support && rcsp_adt_support) {
-                adt_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl1);
-            }
-            if (adt_con_handle1 != 0) {
-                bt_rcsp_data_send(adt_con_handle1, NULL, buf, len, att_handle, att_op_type);
-            }
-        }
-    }
 }
 
 static void cbk_connect_handler(void *hdl, u8 state)
@@ -874,143 +733,21 @@ static void cbk_connect_handler(void *hdl, u8 state)
                     BLE
  *****************************************/
 
-static uint16_t att_read_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
+uint16_t att_read_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
 {
-    uint16_t  att_value_len = 0;
-    uint16_t handle = att_handle;
-    rcsp_lib_printf("read_callback, connection_handle:%0x, handle= 0x%04x, buffer= %08x\n", connection_handle, handle, (u32)buffer);
-
-    switch (handle) {
-    case ATT_CHARACTERISTIC_2a00_01_VALUE_HANDLE:
-        att_value_len = strlen(gap_device_name);
-
-        if ((offset >= att_value_len) || (offset + buffer_size) > att_value_len) {
-            break;
-        }
-
-        if (buffer) {
-            memcpy(buffer, &gap_device_name[offset], buffer_size);
-            att_value_len = buffer_size;
-            rcsp_lib_printf("\n------read gap_name: %s \n", gap_device_name);
-        }
-        break;
-
-    case ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE:
-    case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
-        if (buffer) {
-            buffer[0] = att_get_ccc_config(handle);
-            buffer[1] = 0;
-        }
-        att_value_len = 2;
-        break;
-
-    default:
-        u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
-        u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-        u16 adt_con_handle = 0;
-        u16 adt_con_handle1 = 0;
-        if (adt_profile_support && rcsp_adt_support) {
-            adt_con_handle = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl);
-            adt_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl1);
-        }
-        if (ble_con_handle && (hdl == rcsp_server_ble_hdl)) {
-            bt_rcsp_custom_recieve_callback(ble_con_handle, NULL, buffer, buffer_size, handle);
-        } else if (adt_con_handle && (hdl == rcsp_server_edr_att_hdl)) {
-            bt_rcsp_custom_recieve_callback(adt_con_handle, NULL, buffer, buffer_size, handle);
-        } else if (adt_con_handle1 && (hdl == rcsp_server_edr_att_hdl1)) {
-            bt_rcsp_custom_recieve_callback(adt_con_handle1, NULL, buffer, buffer_size, handle);
-        } else if (ble_con_handle1 && (hdl == rcsp_server_ble_hdl1)) {
-            bt_rcsp_custom_recieve_callback(ble_con_handle1, NULL, buffer, buffer_size, handle);
-        }
-        break;
-    }
-    rcsp_lib_printf("att_value_len= %d\n", att_value_len);
-    uint16_t custom_att_value_len = bt_rcsp_custom_att_read_callback(hdl, connection_handle, att_handle, offset, buffer, buffer_size);
-    if (custom_att_value_len) {
-        att_value_len = custom_att_value_len;
-    }
-    return att_value_len;
+    return rcsp_att_read_callback(connection_handle, att_handle, offset, buffer, buffer_size);
 }
 
-static int att_write_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
+int att_write_callback(void *hdl, hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size)
 {
-    u16 handle = att_handle;
-    /* rcsp_lib_printf("write_callback, connection_handle:%0x, handle= 0x%04x\n", connection_handle, handle); */
-
-    switch (handle) {
-    case ATT_CHARACTERISTIC_2a00_01_VALUE_HANDLE:
-        u16 tmp16 = BT_NAME_LEN_MAX;
-        if ((offset >= tmp16) || (offset + buffer_size) > tmp16) {
-            break;
-        }
-
-        if (offset == 0) {
-            memset(gap_device_name, 0x00, BT_NAME_LEN_MAX);
-        }
-        memcpy(&gap_device_name[offset], buffer, buffer_size);
-        rcsp_lib_printf("\n------write gap_name:");
-        break;
-
-    case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
-        /* rcsp_lib_printf("eeeeeeeeeeeeeeeeee %s, %s, %d, connection_handle:%d\n", __FILE__, __FUNCTION__, __LINE__, connection_handle); */
-        if (rcsp_auth_support) {
-            // 使能notify的时候reset auth保证app能重新连接
-            // 处理APP断开后台还连接的情况
-            JL_rcsp_reset_bthdl_auth(connection_handle, NULL);
-        }
-
-        /* set_ble_work_state(BLE_ST_NOTIFY_IDICATE); */
-        rcsp_lib_printf("\n------write ccc:%04x, %02x\n", handle, buffer[0]);
-        att_set_ccc_config(handle, buffer[0]);
-
-        /* can_send_now_wakeup(); */
-        JL_protocol_resume();
-
-        break;
-
-    case ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE:
-        att_set_ccc_config(handle, buffer[0]);
-        break;
-
-    case ATT_CHARACTERISTIC_ae01_01_VALUE_HANDLE:
-        /* rcsp_lib_printf("ble_rx(%d):\n", buffer_size); */
-        /* rcsp_lib_printf_buf(buffer, buffer_size); */
-        bt_rcsp_recieve_callback(hdl, NULL, buffer, buffer_size);
-
-    // rcsp的特征也允许通过custom recieve接口返回给外面的开发者使用
-    /* break; */
-    default:
-        u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
-        u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-        u16 adt_con_handle = 0;
-        u16 adt_con_handle1 = 0;
-        if (adt_profile_support && rcsp_adt_support) {
-            adt_con_handle = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl);
-            adt_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl1);
-        }
-        if (ble_con_handle && (hdl == rcsp_server_ble_hdl)) {
-            bt_rcsp_custom_recieve_callback(ble_con_handle, NULL, buffer, buffer_size, handle);
-        } else if (ble_con_handle1 && (hdl == rcsp_server_ble_hdl1)) {
-            bt_rcsp_custom_recieve_callback(ble_con_handle1, NULL, buffer, buffer_size, handle);
-        } else if (adt_con_handle && (hdl == rcsp_server_edr_att_hdl)) {
-            bt_rcsp_custom_recieve_callback(adt_con_handle, NULL, buffer, buffer_size, handle);
-        } else if (adt_con_handle1 && (hdl == rcsp_server_edr_att_hdl1)) {
-            bt_rcsp_custom_recieve_callback(adt_con_handle1, NULL, buffer, buffer_size, handle);
-        }
-        break;
-    }
-    bt_rcsp_custom_att_write_callback(hdl, connection_handle, att_handle, transaction_mode, offset, buffer, buffer_size);
-
-    return 0;
+    return rcsp_att_write_callback(connection_handle, att_handle, transaction_mode, offset, buffer, buffer_size);
 }
 
-extern void rcsp_user_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 static void cbk_packet_handler(void *hdl, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
-    rcsp_user_cbk_packet_handler(packet_type, channel, packet, size);
+    rcsp_cbk_packet_handler(packet_type, channel, packet, size);
 }
 
-extern void rcsp_user_cbk_sm_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 static void cbk_sm_packet_handler(void *hdl, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
     rcsp_user_cbk_sm_packet_handler(packet_type, channel, packet, size);
@@ -1022,8 +759,6 @@ static void cbk_sm_packet_handler(void *hdl, uint8_t packet_type, uint16_t chann
                     SPP
  *****************************************/
 
-extern int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr);
-extern void rcsp_user_event_spp_handler(u8 spp_status, u8 flag);
 void bt_rcsp_spp_state_callback(void *hdl, void *remote_addr, u8 state)
 {
     switch (state) {
@@ -1053,21 +788,9 @@ void bt_rcsp_spp_state_callback(void *hdl, void *remote_addr, u8 state)
 
 void app_ble_callback_register(void *rcsp_server_ble_hdl);
 void app_spp_callback_register(void *bt_rcsp_spp_hdl);
-extern const char *bt_get_local_name();
-
-_WEAK_ const char *rcsp_ble_name()
-{
-    return bt_get_local_name();
-}
 
 void bt_rcsp_interface_init(const uint8_t *rcsp_profile_data)
 {
-    gap_device_name = (char *)rcsp_ble_name();
-    gap_device_name_len = strlen(gap_device_name);
-    if (gap_device_name_len > BT_NAME_LEN_MAX) {
-        gap_device_name_len = BT_NAME_LEN_MAX;
-    }
-
     rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
     // spp init
     if (bt_rcsp_spp_hdl == NULL) {

@@ -91,7 +91,7 @@ const uint8_t rcsp_profile_data[] = {
 };
 #endif
 
-#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN))
 extern u8 get_bt_le_audio_config();
 extern void le_audio_sm_setup_init(io_capability_t io_type, u8 auth_req, uint8_t min_key_size, u8 security_en);
 #endif
@@ -202,7 +202,7 @@ extern void custom_demo_all_init(void);
 extern void custom_demo_all_exit(void);
 
 // uuid:00001101-0000-1000-8000-00805F9B34FB
-const u8 sdp_honor_spp_service_data[96] = {
+const u8 sdp_custom_demo_spp_service_data[96] = {
     0x36, 0x00, 0x5B, 0x09, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x40, 0x09, 0x00, 0x01, 0x36, 0x00,
     0x11, 0x1C, 0x00, 0x00, 0x11, 0x01, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B,
     0x34, 0xFB, 0x09, 0x00, 0x04, 0x36, 0x00, 0x0E, 0x36, 0x00, 0x03, 0x19, 0x01, 0x00, 0x36, 0x00,
@@ -211,8 +211,8 @@ const u8 sdp_honor_spp_service_data[96] = {
     0x09, 0x01, 0x00, 0x09, 0x01, 0x00, 0x25, 0x06, 0x4A, 0x4C, 0x5F, 0x53, 0x50, 0x50, 0x00, 0x00,
 };
 
-SDP_RECORD_REGISTER(honor_sdp_record_item) = {
-    .service_record = (u8 *)sdp_honor_spp_service_data,
+SDP_RECORD_REGISTER(custom_demo_sdp_record_item) = {
+    .service_record = (u8 *)sdp_custom_demo_spp_service_data,
     .service_record_handle = 0x00010040,
 };
 #endif
@@ -326,21 +326,24 @@ static void multi_protocol_profile_init(void)
 
     // BLE/SPP 公共的状态回调
 
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 #if TCFG_BT_SUPPORT_SPP
     app_spp_init();
     app_spp_state_update_callback_regitster(multi_protocol_state_update_callback);
+#endif
 #endif
 
 #if TCFG_USER_BLE_ENABLE
     le_device_db_init();
 
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 #if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING, 7, 0);
 #else
 
 #if TCFG_BLE_BRIDGE_EDR_ENALBE
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_BONDING, 7, 0);
-#elif (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+#elif (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN))
     app_ble_sm_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING | SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_MITM_PROTECTION, 7, 0);
     le_audio_sm_setup_init(IO_CAPABILITY_NO_INPUT_NO_OUTPUT, SM_AUTHREQ_BONDING | SM_AUTHREQ_SECURE_CONNECTION | SM_AUTHREQ_MITM_PROTECTION, 7, 0);
 #else
@@ -354,11 +357,16 @@ static void multi_protocol_profile_init(void)
 
     ble_op_multi_att_send_init(att_ram_buffer, ATT_RAM_BUFSIZE, ATT_LOCAL_PAYLOAD_SIZE);
 #endif
+#endif
 
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     bt_rcsp_interface_init(rcsp_profile_data);
-    rcsp_ble_profile_init();
+#else
+    rcsp_simplified_spp_init();
+#endif
+    rcsp_ble_profile_init(rcsp_profile_data);
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     if (get_bt_le_audio_config()) { // RCSP 与 CIS 共用 ACL
@@ -464,7 +472,9 @@ void multi_protocol_bt_exit(void)
     printf("################# multi_protocol exit");
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     rcsp_bt_ble_exit();
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     bt_rcsp_interface_exit();
+#endif
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     gfps_all_exit();
@@ -503,12 +513,19 @@ void multi_protocol_bt_exit(void)
     ximalaya_protocol_exit();
 #endif
 
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+    void le_audio_uninit(u8 mode);
+    le_audio_uninit(1);
+#endif
+
 #if (THIRD_PARTY_PROTOCOLS_SEL & AURACAST_APP_EN)
     auracast_app_all_exit();
 #endif
 
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     app_ble_exit();
     app_spp_exit();
+#endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & (MMA_EN | DMA_EN))
     task_kill("app_proto");

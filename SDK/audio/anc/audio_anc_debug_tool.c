@@ -1,4 +1,10 @@
 
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma   bss_seg(".audio_anc_debug_tool.data.bss")
+#pragma  data_seg(".audio_anc_debug_tool.data")
+#pragma const_seg(".audio_anc_debug_tool.text.const")
+#pragma  code_seg(".audio_anc_debug_tool.text")
+#endif/*SUPPORT_MS_EXTENSIONS*/
 /****************************************************
 				audio_anc_debug_tool.c
 *	ANC debug 工具，用SPP代替有线串口打印关键debug数据
@@ -17,6 +23,8 @@
 #if TCFG_ANC_TOOL_DEBUG_ONLINE && TCFG_AUDIO_ANC_ENABLE
 
 #include "audio_anc.h"
+
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -329,6 +337,8 @@ void audio_anc_debug_test(void)
     }
     free(buf);
 }
+#endif
+
 #endif
 
 #endif/*TCFG_ANC_TOOL_DEBUG_ONLINE*/

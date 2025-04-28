@@ -58,10 +58,38 @@ const int config_audio_cfg_online_enable = 0;
 #endif
 
 const int config_audio_dac_dma_buf_realloc_enable = 1;
+#ifdef TCFG_DAC_POWER_MODE
+const int config_audio_dac_power_mode = TCFG_DAC_POWER_MODE;
+#endif
 
 const int config_audio_gain_enable = TCFG_GAIN_NODE_ENABLE;
 const int config_audio_split_gain_enable = TCFG_SPLIT_GAIN_NODE_ENABLE;
 const int config_audio_stereomix_enable = TCFG_STEROMIX_NODE_ENABLE;
+
+const int config_audio_adc0_enable = TCFG_ADC0_ENABLE;
+const int config_audio_adc1_enable = TCFG_ADC1_ENABLE;
+const int config_audio_adc2_enable = 0;
+const int config_audio_adc3_enable = 0;
+const int config_audio_adc4_enable = 0;
+const int config_audio_adc5_enable = 0;
+const int config_audio_adc6_enable = 0;
+const int config_audio_adc7_enable = 0;
+const int config_audio_adc0_input_mode = TCFG_ADC0_MODE;
+const int config_audio_adc1_input_mode = TCFG_ADC1_MODE;
+const int config_audio_adc2_input_mode = 0;
+const int config_audio_adc3_input_mode = 0;
+const int config_audio_adc4_input_mode = 0;
+const int config_audio_adc5_input_mode = 0;
+const int config_audio_adc6_input_mode = 0;
+const int config_audio_adc7_input_mode = 0;
+
+/*
+ *******************************************************************
+ *						Audio CVP Config
+ *******************************************************************
+ */
+const int config_audio_cvp_ref_source = 1;/*0:DAC Internal 1:External*/
+
 /*
  *******************************************************************
  *						Audio Codec Config

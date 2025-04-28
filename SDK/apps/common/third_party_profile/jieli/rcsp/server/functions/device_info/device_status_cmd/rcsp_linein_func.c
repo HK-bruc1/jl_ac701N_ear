@@ -78,11 +78,9 @@ void rcsp_linein_msg_deal(int msg, u8 ret)
 //停止linein功能
 void rcsp_linein_func_stop(void)
 {
-#if RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL
-    if (linein_get_status()) {
-        app_send_message(APP_MSG_MUSIC_PP, 0);
-    }
-#endif
+    /* if (linein_get_status()) { */
+    /*     app_send_message(APP_MSG_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

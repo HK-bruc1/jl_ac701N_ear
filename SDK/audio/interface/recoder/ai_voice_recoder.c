@@ -53,13 +53,16 @@ int ai_voice_recoder_open(u32 code_type, u8 ai_type)
     }
     switch (code_type) {
     case AUDIO_CODING_OPUS:
-        //1. quality:bitrate     0:16kbps    1:32kbps    2:64kbps
-        //   quality: MSB_2:(bit7_bit6)     format_mode    //0:百度_无头.                   1:酷狗_eng+range.
-        //   quality:LMSB_2:(bit5_bit4)     low_complexity //0:高复杂度,高质量.兼容之前库.  1:低复杂度,低质量.
+        //1. quality:bitrate     16000~80000.
+        //   quality:format_mode    //0:百度_无头.                   1:酷狗_eng+range. 2:ogg封装,pc软件可播放.  3:size+rangeFinal. 源码可兼容版本.
+        //   quality:complexity //0.1.2.3.    3质量最好.速度要求最高.
+        //   quality:frame_ms //20|40|60|80|100ms.
         //2. sample_rate         sample_rate=16k         ignore
-        enc_fmt.quality = 1 | ai_type/*| LOW_COMPLEX*/;
-        fmt.sample_rate = 16000;
-        fmt.coding_type = AUDIO_CODING_OPUS;
+        enc_fmt.bit_rate = 16000;//16000,320000,640000 这三个码率分别对应非ogg解码库的 OPUS_SRINDEX 值为0,1,2
+        enc_fmt.complexity = 0 | ai_type/*| LOW_COMPLEX*/;
+        enc_fmt.sample_rate = 16000;
+        enc_fmt.format =  0; //0:百度_无头.                   1:酷狗_eng+range. 2:ogg封装,pc软件可播放.  3:size+rangeFinal. 源码可兼容版本.
+        /* enc_fmt.frame_len = 20 * 10;//与工具保持一致，要乘以10,表示20ms */
         break;
     case AUDIO_CODING_SPEEX:
         enc_fmt.quality = 5;

@@ -252,6 +252,13 @@ CONFIG_CUSTOM_CFG3_TYPE = CONFIG_CUSTOM_CFG3_VALUE;
 #define CONFIG_VM_ADDR		0
 #endif
 
+#if TCFG_VM_SIZE
+#define __VM_SIZE(size)     size##K
+#define _VM_SIZE(size)      __VM_SIZE(size)
+#define CONFIG_VM_LEAST_SIZE	_VM_SIZE(TCFG_VM_SIZE)
+#endif
+
+
 #ifndef CONFIG_VM_LEAST_SIZE
 #if ALIGN_UNIT_256B
 #define CONFIG_VM_LEAST_SIZE	0x200

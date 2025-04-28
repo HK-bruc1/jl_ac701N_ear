@@ -73,7 +73,7 @@
  *点烟器需要做延时估计
  *其他的暂时不需要做
  */
-const u8 CONST_AEC_DLY_EST = 0;
+//const u8 CONST_AEC_DLY_EST = 0;
 
 /*骨传导配置*/
 const u8 CONST_BONE_CONDUCTION_ENABLE = 0;	/*骨传导使能*/
@@ -106,9 +106,9 @@ const u8 CONST_DMS_VERSION = DMS_V200;
 
 /********DNS配置********/
 /* SNR估计,可以实现场景适配 */
-const u8 CONST_DNS_SNR_EST = 0;//注意：双麦没有该功能
+//const u8 CONST_DNS_SNR_EST = 0;//注意：双麦没有该功能
 /* DNS后处理 */
-const u8 CONST_DNS_POST_ENHANCE = 0;
+//const u8 CONST_DNS_POST_ENHANCE = 0;
 /*
  *风噪自适应GainFloor使能控制
  *0:关闭, 1:开启
@@ -154,7 +154,7 @@ const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V100;
  * JLSP_NLP_MODE2: 模式2下回声信号会先经过AEC线性压制，然后进行NLP非线性压制
  *                 此模式NLP不能单独打开需要同时打开AEC,使用AEC模块压制不够时，建议开启该模式
  */
-const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
+//const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
 
 /*
  * 风噪降噪模式选择
@@ -174,45 +174,7 @@ __attribute__((weak))u32 usb_mic_is_running()
     return 0;
 }
 
-/*复用lmp rx buf(一般通话的时候复用)
- *rx_buf概率产生碎片，导致alloc失败，因此默认配0
- */
-#define MALLOC_MULTIPLEX_EN		0
-extern void *lmp_malloc(int);
-extern void lmp_free(void *);
-void *zalloc_mux(int size)
-{
-#if MALLOC_MULTIPLEX_EN
-    void *p = NULL;
-    do {
-        p = lmp_malloc(size);
-        if (p) {
-            break;
-        }
-        printf("aec_malloc wait...\n");
-        os_time_dly(2);
-    } while (1);
-    if (p) {
-        memset(p, 0, size);
-    }
-    printf("[malloc_mux]p = 0x%x,size = %d\n", p, size);
-    return p;
-#else
-    return zalloc(size);
-#endif
-}
-
-void free_mux(void *p)
-{
-#if MALLOC_MULTIPLEX_EN
-    printf("[free_mux]p = 0x%x\n", p);
-    lmp_free(p);
-#else
-    free(p);
-#endif
-}
-
-struct audio_aec_hdl {
+struct cvp_dms_hdl {
     u8 start;				//aec模块状态
     u8 inbuf_clear_cnt;		//aec输入数据丢掉
     u8 output_fade_in;		//aec输出淡入使能
@@ -228,16 +190,16 @@ struct audio_aec_hdl {
     void *transfer_func;
 };
 #if AEC_USER_MALLOC_ENABLE
-struct audio_aec_hdl *aec_hdl = NULL;
+struct cvp_dms_hdl *cvp_dms = NULL;
 #else
-struct audio_aec_hdl aec_handle;
-struct audio_aec_hdl *aec_hdl = &aec_handle;
+struct cvp_dms_hdl cvp_dms_handle;
+struct cvp_dms_hdl *cvp_dms = &cvp_dms_handle;
 #endif/*AEC_USER_MALLOC_ENABLE*/
 
 int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg)
 {
-    if (aec_hdl) {
-        aec_hdl->pre = *cfg;
+    if (cvp_dms) {
+        cvp_dms->pre = *cfg;
     }
     return 0;
 }
@@ -272,13 +234,13 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
     }
 #endif
 
-    if (aec_hdl->pre.pre_gain_en) {
-        GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
-        GainProcess_16Bit(talk_ref_mic, talk_ref_mic, aec_hdl->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
+    if (cvp_dms->pre.pre_gain_en) {
+        GainProcess_16Bit(talk_mic, talk_mic, cvp_dms->pre.talk_mic_gain, 1, 1, 1, len >> 1);
+        GainProcess_16Bit(talk_ref_mic, talk_ref_mic, cvp_dms->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
     }
 #if TCFG_SUPPORT_MIC_CAPLESS
-    if (aec_hdl->dcc_hdl) {
-        audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
+    if (cvp_dms->dcc_hdl) {
+        audio_dc_offset_remove_run(cvp_dms->dcc_hdl, (void *)talk_mic, len);
     }
 #endif
     return 0;
@@ -339,20 +301,20 @@ static int audio_aec_output(s16 *data, u16 len)
     sys_memory_trace();
 #endif/*CVP_MEM_TRACE_ENABLE*/
 
-    if (aec_hdl->dump_packet) {
-        aec_hdl->dump_packet--;
+    if (cvp_dms->dump_packet) {
+        cvp_dms->dump_packet--;
         memset(data, 0, len);
     } else  {
-        if (aec_hdl->output_fade_in) {
+        if (cvp_dms->output_fade_in) {
             s32 tmp_data;
-            //printf("fade:%d\n",aec_hdl->output_fade_in_gain);
+            //printf("fade:%d\n",cvp_dms->output_fade_in_gain);
             for (int i = 0; i < len / 2; i++) {
                 tmp_data = data[i];
-                data[i] = tmp_data * aec_hdl->output_fade_in_gain >> 7;
+                data[i] = tmp_data * cvp_dms->output_fade_in_gain >> 7;
             }
-            aec_hdl->output_fade_in_gain += 12;
-            if (aec_hdl->output_fade_in_gain >= 128) {
-                aec_hdl->output_fade_in = 0;
+            cvp_dms->output_fade_in_gain += 12;
+            if (cvp_dms->output_fade_in_gain >= 128) {
+                cvp_dms->output_fade_in = 0;
             }
         }
     }
@@ -631,7 +593,7 @@ static void audio_dms_flexible_param_init(struct dms_attr *p)
 #define AUDIO_DMS_HYBRID_COEFF_FILE 	(FLASH_RES_PATH"dms_hybrid.bin")
 void *read_dms_hybrid_mic_coeff()
 {
-    if (aec_hdl == NULL) {
+    if (cvp_dms == NULL) {
         return NULL;
     }
     RESFILE *fp = NULL;
@@ -649,19 +611,21 @@ void *read_dms_hybrid_mic_coeff()
     printf("param_len %d", param_len);
 
     if (param_len) {
-        aec_hdl->transfer_func = zalloc(param_len);
+        cvp_dms->transfer_func = zalloc(param_len);
     }
-    if (aec_hdl->transfer_func == NULL) {
+    if (cvp_dms->transfer_func == NULL) {
+        resfile_close(fp);
         return NULL;
     }
     /* resfile_seek(fp, ptr, RESFILE_SEEK_SET); */
-    int rlen = resfile_read(fp, aec_hdl->transfer_func, param_len);
+    int rlen = resfile_read(fp, cvp_dms->transfer_func, param_len);
     if (rlen != param_len) {
         printf("[error] read dms_hybrid.bin err !!! %d =! %d", rlen, param_len);
+        resfile_close(fp);
         return NULL;
     }
     resfile_close(fp);
-    return aec_hdl->transfer_func;
+    return cvp_dms->transfer_func;
 }
 
 static void audio_dms_hybrid_param_init(struct dms_attr *p)
@@ -978,9 +942,9 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     printf("audio_dms_open\n");
     mem_stats();
 #if AEC_USER_MALLOC_ENABLE
-    aec_hdl = zalloc(sizeof(struct audio_aec_hdl));
-    if (aec_hdl == NULL) {
-        log_error("aec_hdl malloc failed");
+    cvp_dms = zalloc(sizeof(struct cvp_dms_hdl));
+    if (cvp_dms == NULL) {
+        log_error("cvp_dms malloc failed");
         return -ENOMEM;
     }
 #endif/*AEC_USER_MALLOC_ENABLE*/
@@ -992,11 +956,14 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
 
-    aec_hdl->dump_packet = AEC_OUT_DUMP_PACKET;
-    aec_hdl->inbuf_clear_cnt = AEC_IN_DUMP_PACKET;
-    aec_hdl->output_fade_in = 1;
-    aec_hdl->output_fade_in_gain = 0;
-    aec_param = &aec_hdl->attr;
+    /*初始化dac read的资源*/
+    audio_dac_read_init();
+
+    cvp_dms->dump_packet = AEC_OUT_DUMP_PACKET;
+    cvp_dms->inbuf_clear_cnt = AEC_IN_DUMP_PACKET;
+    cvp_dms->output_fade_in = 1;
+    cvp_dms->output_fade_in_gain = 0;
+    aec_param = &cvp_dms->attr;
     aec_param->cvp_advanced_options = audio_cvp_advanced_options;
     aec_param->aec_probe = audio_aec_probe;
     aec_param->aec_post = audio_aec_post;
@@ -1066,12 +1033,12 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
 #if TCFG_SUPPORT_MIC_CAPLESS
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
-        aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
+        cvp_dms->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
 #endif
 
     //aec_param_dump(aec_param);
-    aec_hdl->EnableBit = aec_param->EnableBit;
+    cvp_dms->EnableBit = aec_param->EnableBit;
     aec_param->aptfilt_only = 0;
 #if (((defined TCFG_KWS_VOICE_RECOGNITION_ENABLE) && TCFG_KWS_VOICE_RECOGNITION_ENABLE) || \
      ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE))
@@ -1098,7 +1065,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     int ret = aec_open(aec_param);
     ASSERT(ret == 0, "aec_open err %d!!", ret);
 #endif
-    aec_hdl->start = 1;
+    cvp_dms->start = 1;
     mem_stats();
     printf("audio_dms_open succ\n");
     return 0;
@@ -1130,17 +1097,17 @@ int audio_aec_init(struct audio_aec_init_param_t *init_param)
 */
 void audio_aec_reboot(u8 reduce)
 {
-    if (aec_hdl) {
-        printf("audio_aec_dms_reboot:%x,%x,start:%d", aec_hdl->EnableBit, aec_hdl->attr.EnableBit, aec_hdl->start);
-        if (aec_hdl->start) {
+    if (cvp_dms) {
+        printf("audio_aec_dms_reboot:%x,%x,start:%d", cvp_dms->EnableBit, cvp_dms->attr.EnableBit, cvp_dms->start);
+        if (cvp_dms->start) {
             if (reduce) {
-                aec_hdl->attr.EnableBit = AEC_EN;
-                aec_hdl->attr.aptfilt_only = 1;
-                aec_dms_reboot(aec_hdl->attr.EnableBit);
+                cvp_dms->attr.EnableBit = AEC_EN;
+                cvp_dms->attr.aptfilt_only = 1;
+                aec_dms_reboot(cvp_dms->attr.EnableBit);
             } else {
-                if (aec_hdl->EnableBit != aec_hdl->attr.EnableBit) {
-                    aec_hdl->attr.aptfilt_only = 0;
-                    aec_dms_reboot(aec_hdl->EnableBit);
+                if (cvp_dms->EnableBit != cvp_dms->attr.EnableBit) {
+                    cvp_dms->attr.aptfilt_only = 0;
+                    aec_dms_reboot(cvp_dms->EnableBit);
                 }
             }
         }
@@ -1163,14 +1130,14 @@ void audio_aec_reboot(u8 reduce)
 */
 void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 {
-    if (aec_hdl)	{
+    if (cvp_dms)	{
         printf("dms_output_sel:%d\n", sel);
         if (agc) {
-            aec_hdl->attr.EnableBit |= AGC_EN;
+            cvp_dms->attr.EnableBit |= AGC_EN;
         } else {
-            aec_hdl->attr.EnableBit &= ~AGC_EN;
+            cvp_dms->attr.EnableBit &= ~AGC_EN;
         }
-        aec_hdl->attr.output_sel = sel;
+        cvp_dms->attr.output_sel = sel;
     }
 }
 
@@ -1185,9 +1152,9 @@ void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 */
 void audio_aec_close(void)
 {
-    printf("audio_aec_close:%x", (u32)aec_hdl);
-    if (aec_hdl) {
-        aec_hdl->start = 0;
+    printf("audio_aec_close:%x", (u32)cvp_dms);
+    if (cvp_dms) {
+        cvp_dms->start = 0;
 
 #if CVP_TOGGLE
         if (CONST_DMS_MALFUNCTION_DETECT && CONST_DMS_SET_MFDT_STATE) {
@@ -1207,23 +1174,26 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
+        /*释放dac read的资源*/
+        audio_dac_read_exit();
+
 #if TCFG_SUPPORT_MIC_CAPLESS
-        if (aec_hdl->dcc_hdl) {
-            audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
-            aec_hdl->dcc_hdl = NULL;
+        if (cvp_dms->dcc_hdl) {
+            audio_dc_offset_remove_close(cvp_dms->dcc_hdl);
+            cvp_dms->dcc_hdl = NULL;
         }
 #endif
 
-        if (aec_hdl->transfer_func) {
-            free(aec_hdl->transfer_func);
-            aec_hdl->transfer_func = NULL;
+        if (cvp_dms->transfer_func) {
+            free(cvp_dms->transfer_func);
+            cvp_dms->transfer_func = NULL;
         }
 
         local_irq_disable();
 #if AEC_USER_MALLOC_ENABLE
-        free(aec_hdl);
+        free(cvp_dms);
 #endif/*AEC_USER_MALLOC_ENABLE*/
-        aec_hdl = NULL;
+        cvp_dms = NULL;
         local_irq_enable();
 
         aec_code_movable_unload();
@@ -1241,8 +1211,8 @@ void audio_aec_close(void)
 */
 u8 audio_aec_status(void)
 {
-    if (aec_hdl) {
-        return aec_hdl->start;
+    if (cvp_dms) {
+        return cvp_dms->start;
     }
     return 0;
 }
@@ -1259,13 +1229,13 @@ u8 audio_aec_status(void)
 */
 void audio_aec_inbuf(s16 *buf, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
-        if (aec_hdl->input_clear) {
+    if (cvp_dms && cvp_dms->start) {
+        if (cvp_dms->input_clear) {
             memset(buf, 0, len);
         }
 #if CVP_TOGGLE
-        if (aec_hdl->inbuf_clear_cnt) {
-            aec_hdl->inbuf_clear_cnt--;
+        if (cvp_dms->inbuf_clear_cnt) {
+            cvp_dms->inbuf_clear_cnt--;
             memset(buf, 0, len);
         }
         int ret = aec_in_data(buf, len);
@@ -1274,7 +1244,7 @@ void audio_aec_inbuf(s16 *buf, u16 len)
             log_error("aec inbuf full\n");
         }
 #else
-        aec_hdl->attr.output_handle(buf, len);
+        cvp_dms->attr.output_handle(buf, len);
 #endif/*CVP_TOGGLE*/
     }
 }
@@ -1291,7 +1261,7 @@ void audio_aec_inbuf(s16 *buf, u16 len)
 */
 void audio_aec_inbuf_ref(s16 *buf, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
+    if (cvp_dms && cvp_dms->start) {
         aec_in_data_ref(buf, len);
     }
 }
@@ -1308,7 +1278,7 @@ void audio_aec_inbuf_ref(s16 *buf, u16 len)
 */
 void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
+    if (cvp_dms && cvp_dms->start) {
 #if CVP_TOGGLE
         aec_ref_data(data0, data1, len);
 #endif/*CVP_TOGGLE*/
@@ -1330,7 +1300,7 @@ void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
 */
 int audio_cvp_ioctl(int cmd, int value, void *priv)
 {
-    if (!aec_hdl) {
+    if (!cvp_dms) {
         return -1;
     }
     return aec_dms_ioctl(cmd, value, priv);
@@ -1347,7 +1317,7 @@ int audio_cvp_ioctl(int cmd, int value, void *priv)
 */
 int audio_cvp_toggle_set(u8 toggle)
 {
-    if (aec_hdl) {
+    if (cvp_dms) {
         aec_dms_toggle(toggle);
         return 0;
     }
@@ -1358,7 +1328,7 @@ int audio_cvp_toggle_set(u8 toggle)
 int audio_cvp_dms_wnc_state(void)
 {
     int state = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         state = cvp_dms_get_wind_detect_state();
         printf("wnc state : %d", state);
     } else {
@@ -1375,7 +1345,7 @@ int audio_cvp_dms_wnc_state(void)
 int audio_cvp_dms_malfunc_state()
 {
     int state = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         state = cvp_dms_get_malfunc_state();
         printf("malfunc state : %d", state);
     } else {
@@ -1394,7 +1364,7 @@ int audio_cvp_dms_malfunc_state()
 float audio_cvp_dms_mic_energy(u8 mic)
 {
     float mic_db = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         mic_db = cvp_dms_get_mic_energy(mic);
         printf("malfunc mic[%d] energy : %d", mic, (int)mic_db);
     } else {
@@ -1410,8 +1380,8 @@ float audio_cvp_dms_mic_energy(u8 mic)
 //pbg profile use it,don't delete
 void aec_input_clear_enable(u8 enable)
 {
-    if (aec_hdl) {
-        aec_hdl->input_clear = enable;
+    if (cvp_dms) {
+        cvp_dms->input_clear = enable;
         log_info("aec_input_clear_enable= %d\n", enable);
     }
 }

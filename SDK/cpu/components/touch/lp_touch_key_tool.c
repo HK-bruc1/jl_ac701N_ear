@@ -1,4 +1,3 @@
-#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
 
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma bss_seg(".lp_touch_key_tool.data.bss")
@@ -6,12 +5,16 @@
 #pragma const_seg(".lp_touch_key_tool.text.const")
 #pragma code_seg(".lp_touch_key_tool.text")
 #endif
+
+#include "app_config.h"
+
+#if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
+
 #include "system/includes.h"
 #include "asm/lp_touch_key_tool.h"
 #include "asm/lp_touch_key_api.h"
 #include "btstack/avctp_user.h"
 #include "classic/tws_api.h"
-#include "app_config.h"
 #include "key_driver.h"
 #include "online_db_deal.h"
 #ifdef TOUCH_KEY_IDENTIFY_ALGO_IN_MSYS

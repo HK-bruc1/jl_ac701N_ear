@@ -327,6 +327,33 @@ void auracast_app_ble_exit(void)
 
 #if TCFG_USER_TWS_ENABLE
 
+static void auracast_app_conn_info_tws_sync(u8 app_conn_num)
+{
+    g_auracast_app_conn_num = app_conn_num;
+    printf("tws_sync g_auracast_app_conn_num:%d\n", g_auracast_app_conn_num);
+}
+
+static void auracasat_app_conn_info_tws_sync_in_irq(void *_data, u16 len, bool rx)
+{
+    /* printf("%s, %s, %d, rx:%d\n", __FILE__, __FUNCTION__, __LINE__, rx); */
+    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+        u8 *u8_data = (u8 *)_data;
+        int argv[3];
+        argv[0] = (int)auracast_app_conn_info_tws_sync;
+        argv[1] = 1;
+        argv[2] = (int) * u8_data;
+        int ret = os_taskq_post_type("app_core", Q_CALLBACK, 3, argv);
+        if (ret) {
+            g_auracast_app_conn_num = (u8) * u8_data;
+        }
+    }
+}
+
+REGISTER_TWS_FUNC_STUB(tws_auracast_conn_info_sync) = {
+    .func_id = 0x23456C5A,
+    .func = auracasat_app_conn_info_tws_sync_in_irq,
+};
+
 static int app_le_auracast_tws_msg_handler(int *msg)
 {
     struct tws_event *evt = (struct tws_event *)msg;
@@ -336,12 +363,9 @@ static int app_le_auracast_tws_msg_handler(int *msg)
     switch (evt->event) {
     case TWS_EVENT_CONNECTED:
         printf("app_le_auracast_tws_event_handler le_auracast role:%d, %d, %d\n", role, tws_api_get_role(), g_auracast_app_conn_num);
-        if (role == TWS_ROLE_SLAVE) {
-            printf("\nConnect Slave connect close!!!\n\n");
-            /*从机ble关掉*/
-            /* auracast_app_ble_disconnect(); */
-        }
         if ((role != TWS_ROLE_SLAVE) && (!g_auracast_app_conn_num)) {
+            // 已连接主机同步连接数量信息给从机
+            tws_api_send_data_to_sibling((void *)&g_auracast_app_conn_num, sizeof(uint8_t), 0x23456C5A);
             auracast_app_ble_adv_enable(1);
         } else {
             auracast_app_ble_adv_enable(0);

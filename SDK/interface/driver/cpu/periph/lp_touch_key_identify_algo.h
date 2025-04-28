@@ -15,6 +15,8 @@ void lp_touch_key_identify_algorithm_init(u32 ch_idx, u32 temp_th, u32 edge_down
 
 u32 lp_touch_key_identify_algorithm_analyze(u32 ch_idx, u32 res);
 
+void lp_touch_key_identify_algorithm_reinit(u32 ch_idx, u32 res);
+
 void lp_touch_key_identify_algo_set_temp_th(u32 ch_idx, u32 new_temp_th);
 
 void lp_touch_key_identify_algo_set_edge_down_th(u32 ch_idx, u32 new_edge_down_th);

@@ -9,22 +9,12 @@
 /*                                | UPDATE_STORAGE_DEV_EN | UPDATE_BLE_TEST_EN | UPDATE_APP_EN | UPDATE_UART_EN; */
 /* #endif */
 
-#if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE == 0
 //是否采用双备份升级方案:0-单备份;1-双备份
 #if CONFIG_DOUBLE_BANK_ENABLE
 const int support_dual_bank_update_en = 1;
 #else
 const int support_dual_bank_update_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
-#else
-
-//是否采用双备份升级方案:0-单备份;1-双备份
-#if CONFIG_DOUBLE_BANK_ENABLE
-const int support_dual_bank_update_en = 1;
-#else
-const int support_dual_bank_update_en = 0;
-#endif  //CONFIG_DOUBLE_BANK_ENABLE
-#endif
 
 // 是否支持双备份升级前和升级失败对升级区域全擦，升级过程只写的功能
 const int support_dual_bank_update_no_erase = 0;

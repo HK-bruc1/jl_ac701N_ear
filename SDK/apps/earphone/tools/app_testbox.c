@@ -51,6 +51,9 @@
 #define CMD_BOX_ENTER_STORAGE_MODE  0x0a //进入仓储模式
 #define CMD_BOX_GLOBLE_CFG			0x0b //测试盒配置命令(测试盒收到CMD_BOX_TWS_CHANNEL_SEL命令后发送,需使能测试盒某些配置)
 #define CMD_BOX_GET_TWS_PAIR_INFO   0x0c //测试盒获取配对信息
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+#define CMD_BOX_GET_SET_MAC_ADDR	0x0d //获取mac地址并设置comm地址
+#endif
 #define CMD_BOX_GET_AUDIO_CHANNEL	0x0e //左右声道信息
 #define CMD_BOX_CUSTOM_CODE			0xf0 //客户自定义命令处理
 
@@ -271,6 +274,12 @@ static void app_testbox_sub_event_handle(u8 *data, u16 size)
             bt_fast_test_api();
         }
         break;
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+    case CMD_BOX_GET_SET_MAC_ADDR:
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 11\n");
+        bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
+        break;
+#endif
     }
 }
 
@@ -495,6 +504,61 @@ static void app_testbox_sub_cmd_handle(u8 *send_buf, u8 buf_len, u8 *buf, u8 len
         chargestore_get_tws_paired_info(send_buf + 2, &send_len);
         chargestore_api_write(send_buf, send_len + 2);
         break;
+
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+    case CMD_BOX_GET_SET_MAC_ADDR:		// tool pair
+        struct tws_pairtool_info_t pair_info = {0};
+        u8 mac_tmp[6] = {0};
+        if (!__this->bt_init_ok) {
+            break;
+        }
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 22");
+        put_buf(buf, len);
+        __this->testbox_status = 1;
+        memcpy((u8 *)&pair_info, &buf[2], sizeof(struct tws_pairtool_info_t));
+
+        send_len = 10;//cmd2+st+tws+mac6
+        send_buf[2] = 0;
+#if TCFG_USER_TWS_ENABLE&&(!TCFG_TWS_CONN_DISABLE)
+        send_buf[3] = 1;
+#else
+        send_buf[3] = 0;
+#endif
+#if TCFG_USER_TWS_ENABLE
+        syscfg_read(CFG_TWS_LOCAL_ADDR, send_buf + 4, 6);
+#else
+        y_printf("bt_get_mac_addr()");
+        put_buf(bt_get_mac_addr(), 6);
+        memcpy(send_buf + 4, bt_get_mac_addr(), 6);
+#endif
+
+        if (pair_info.dev_num >= 2) {
+            testbox_event_to_user(&buf[1], buf[0], len - 1);
+            log_info("dev_num =%d,set comm addr=", pair_info.dev_num);
+            put_buf(pair_info.common_addr, 6);
+
+            int err_temp = syscfg_write(CFG_USER_COMMON_ADDR, pair_info.common_addr, 6);    //存在VM
+            printf("err_temp:%d,write_custom_common_addr\n", err_temp);
+            put_buf(pair_info.common_addr, 6);
+
+            printf("write_custom_common_addr\n\n");
+            send_buf[2] |= BIT(0);//写入common mac成功状态
+#if TCFG_USER_TWS_ENABLE
+            syscfg_read(CFG_TWS_REMOTE_ADDR, mac_tmp, 6);
+            if (memcmp(pair_info.tws_addr, mac_tmp, 6) == 0) {
+                send_buf[2] |= BIT(1);//写入tws mac成功状态
+                log_info("write tws ok");
+            }
+#endif
+        } else {
+            log_info("dev offline");
+        }
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 33");
+        put_buf(send_buf, send_len);
+        chargestore_api_write(send_buf, send_len);
+        break;
+#endif
+
 
     case CMD_BOX_GET_AUDIO_CHANNEL:
         log_info("CMD_BOX_GET_AUDIO_CHANNEL");

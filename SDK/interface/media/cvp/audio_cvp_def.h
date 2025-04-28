@@ -76,4 +76,8 @@
 #define CVP_NB_EN       0x01    //Narrow-Band
 #define CVP_WB_EN       0x02    //Wide-Band
 
+/*降噪版本定义*/
+#define ANS_V100	0xA1
+#define ANS_V200	0xA2
+
 #endif/*_AUDIO_CVP_DEF_H_*/

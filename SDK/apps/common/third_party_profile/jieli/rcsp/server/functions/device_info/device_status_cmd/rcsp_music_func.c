@@ -190,11 +190,9 @@ bool rcsp_music_func_set(void *priv, u8 *data, u16 len)
 //停止音乐功能
 void rcsp_music_func_stop(void)
 {
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-    if (music_player_get_play_status() == FILE_DEC_STATUS_PLAY) {
-        app_task_put_key_msg(KEY_MUSIC_PP, 0);
-    }
-#endif
+    /* if (music_player_get_play_status() == FILE_DEC_STATUS_PLAY) { */
+    /*     app_task_put_key_msg(KEY_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

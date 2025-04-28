@@ -559,9 +559,11 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
     case JL_OPCODE_CUSTOMER_USER:
         rcsp_user_cmd_recieve(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
+#if (RCSP_MODE != RCSP_MODE_EARPHONE)
     case JL_OPCODE_ACTION_PREPARE:
         app_rcsp_task_prepare(1, data[0], OpCode_SN);
         break;
+#endif
 #if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     case JL_OPCODE_FILE_TRANSFER_START:
         rcsp_file_transfer_download_start(priv, OpCode_SN, data, len);

@@ -142,6 +142,7 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
         __this->lpctmu_cfg.ch_num = __this->pdata->key_num;
         __this->lpctmu_cfg.ch_list[ch_idx] = ch;
         __this->lpctmu_cfg.ch_en |= BIT(ch);
+        __this->lpctmu_cfg.ch_fixed_isel[ch] = 0;
         if (key_cfg->wakeup_enable) {
             __this->lpctmu_cfg.ch_wkp_en |= BIT(ch);
         }
@@ -200,6 +201,8 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
 #if TCFG_LP_EARTCH_KEY_ENABLE
         if (key_cfg->eartch_en) {
             M2P_CTMU_EARTCH_CH |= BIT(ch);
+            __this->eartch.ch_list[__this->eartch.ch_num] = ch;
+            __this->eartch.ch_num ++;
         } else
 #endif
         {
@@ -219,12 +222,12 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
         (__this->pdata->ldo_wkp_algo_reset && is_ldo5v_wakeup()) || \
         (__this->pdata->charge_online_algo_reset && get_charge_online_flag())) {
 
-#if TCFG_LP_EARTCH_KEY_ENABLE
-        lp_touch_key_eartch_state_reset();
-#endif
-
         lp_touch_key_identify_algorithm_init();
     }
+
+#if TCFG_LP_EARTCH_KEY_ENABLE
+    lp_touch_key_eartch_state_reset();
+#endif
 
     lpctmu_init(&__this->lpctmu_cfg);
 
@@ -319,7 +322,7 @@ void lp_touch_key_event_irq_handler()
     case CTMU_P2M_CH4_LONG_KEY_EVENT:
         ctmu_event = TOUCH_KEY_LONG_EVENT;
         log_debug("CH%d: LONG click", ch);
-        is_lpkey_active = 0;
+        is_lpkey_active &= ~BIT(ch_idx);
 
         if (__this->pdata->slide_mode_en) {
         } else {
@@ -338,7 +341,7 @@ void lp_touch_key_event_irq_handler()
     case CTMU_P2M_CH4_HOLD_KEY_EVENT:
         ctmu_event = TOUCH_KEY_HOLD_EVENT;
         log_debug("CH%d: HOLD click", ch);
-        is_lpkey_active = 0;
+        is_lpkey_active &= ~BIT(ch_idx);
 
         if (__this->pdata->slide_mode_en) {
         } else {
@@ -357,7 +360,7 @@ void lp_touch_key_event_irq_handler()
     case CTMU_P2M_CH4_FALLING_EVENT:
         ctmu_event = TOUCH_KEY_FALLING_EVENT;
         log_debug("CH%d: FALLING", ch);
-        is_lpkey_active = 1;
+        is_lpkey_active |=  BIT(ch_idx);
 
 #if TCFG_LP_EARTCH_KEY_ENABLE
         if (M2P_CTMU_EARTCH_CH & BIT(ch)) {
@@ -383,7 +386,7 @@ void lp_touch_key_event_irq_handler()
     case CTMU_P2M_CH4_RAISING_EVENT:
         ctmu_event = TOUCH_KEY_RAISING_EVENT;
         log_debug("CH%d: RAISING", ch);
-        is_lpkey_active = 0;
+        is_lpkey_active &= ~BIT(ch_idx);
 
 #if TCFG_LP_EARTCH_KEY_ENABLE
         if (M2P_CTMU_EARTCH_CH & BIT(ch)) {

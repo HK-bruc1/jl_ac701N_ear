@@ -7,9 +7,6 @@
 #define RCSP_MODE_WATCH		            				(3)			// 适用于手表SDK
 #define RCSP_MODE_EARPHONE              				(4)			// 适用于耳机SDK
 
-#define RCSP_MSG_DISTRIBUTION_VER_DEFAULT				(0)			// 默认消息分发管理
-#define RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL		(1)			// 可视化配置工具的消息分发管理
-
 #define		RCSP_SDK_TYPE_AC690X						0x0
 #define		RCSP_SDK_TYPE_AC692X						0x1
 #define 	RCSP_SDK_TYPE_AC693X						0x2

@@ -9,6 +9,8 @@
 #include "system/init.h"
 #include "app_config.h"
 
+#if TCFG_KEY_TONE_NODE_ENABLE
+
 static struct tone_player *g_player = NULL;
 static OS_MUTEX g_mutex;
 static u8 g_play_cnt = 0;
@@ -108,4 +110,11 @@ u8 key_tone_player_running(void)
 {
     return g_player ? 1 : 0;
 }
+#else
 
+
+u8 key_tone_player_running(void)
+{
+    return 0;
+}
+#endif

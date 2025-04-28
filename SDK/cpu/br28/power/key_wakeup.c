@@ -27,8 +27,6 @@ static struct _p33_io_wakeup_config port0 = {
 
 void key_wakeup_init()
 {
-#if (!TCFG_LP_TOUCH_KEY_ENABLE)
-
 #if TCFG_ADKEY_ENABLE
     const struct adkey_platform_data *data = get_adkey_platform_data();
     port0.gpio = data->adkey_pin;
@@ -50,5 +48,4 @@ void key_wakeup_init()
 #endif
     p33_io_wakeup_port_init(&port0);
     p33_io_wakeup_enable(port0.gpio, 1);
-#endif
 }

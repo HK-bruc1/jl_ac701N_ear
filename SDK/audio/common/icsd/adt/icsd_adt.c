@@ -342,6 +342,17 @@ int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel)
     return rlen;
 }
 
+/*初始化dac read的资源*/
+int audio_dac_read_anc_init(void)
+{
+    return audio_dac_read_base_init(&icsd_dac_read_hdl);
+}
+/*释放dac read的资源*/
+int audio_dac_read_anc_exit(void)
+{
+    return audio_dac_read_base_exit(&icsd_dac_read_hdl);
+}
+/*重置当前dac read读取的参数*/
 int audio_dac_read_anc_reset(void)
 {
     audio_dac_read_base_reset(&icsd_dac_read_hdl);

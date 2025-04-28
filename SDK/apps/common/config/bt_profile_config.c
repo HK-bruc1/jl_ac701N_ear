@@ -169,11 +169,11 @@ const u8 more_hfp_cmd_support = 0;
 #else
 
 #if ((THIRD_PARTY_PROTOCOLS_SEL==0)&&(TCFG_LE_AUDIO_APP_CONFIG==0)&&TCFG_USER_BLE_ENABLE)
-const u8 pbg_support_enable = 1;
-const u8 adt_profile_support = 1;
+const u8 pbg_support_enable = 0;
+const u8 adt_profile_support = 0;
 #else
 const u8 pbg_support_enable = 0;
-#if (ATT_OVER_EDR_DEMO_EN || (THIRD_PARTY_PROTOCOLS_SEL & THIRD_PARTY_PROTOCOLS_SEL))
+#if (ATT_OVER_EDR_DEMO_EN || (THIRD_PARTY_PROTOCOLS_SEL & AURACAST_APP_EN))
 const u8 adt_profile_support = 1;//gatt over edr
 #else
 const u8 adt_profile_support = 0;

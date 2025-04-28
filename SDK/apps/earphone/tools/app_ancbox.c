@@ -8,7 +8,7 @@
 #include "btstack/avctp_user.h"
 #include "poweroff.h"
 #include "clock_manager/clock_manager.h"
-
+#include "audio_anc.h"
 #if TCFG_ANC_BOX_ENABLE && TCFG_AUDIO_ANC_ENABLE
 
 #ifdef SUPPORT_MS_EXTENSIONS
@@ -18,7 +18,6 @@
 #pragma  code_seg(".anc_box.text")
 #endif/*SUPPORT_MS_EXTENSIONS*/
 
-#include "audio_anc.h"
 #include "user_cfg.h"
 #include "device/vm.h"
 #include "app_action.h"

@@ -20,6 +20,7 @@ extern const int CONFIG_LOG_OUTPUT_ENABLE;
 extern const int config_audio_cfg_online_enable;
 extern const int config_audio_dac_dma_buf_realloc_enable;
 extern const int config_audio_dac_delay_off_ms;
+extern const int CONFIG_MEDIA_MEM_DEBUG;
 
 
 /*
@@ -37,12 +38,30 @@ extern const int config_audio_dac_mix_enable;
 extern const int config_audio_dac_noisefloor_optimize_enable;
 extern const char config_audio_dac_trim_enable;
 extern const int config_audio_dac_mute_timeout;
+extern const int config_audio_dac_pa_mode;
+extern const int config_audio_dac_power_mode;
 
 /*
  *******************************************************************
  *						ADC Configs
  *******************************************************************
  */
+extern const int config_audio_adc0_enable;
+extern const int config_audio_adc1_enable;
+extern const int config_audio_adc2_enable;
+extern const int config_audio_adc3_enable;
+extern const int config_audio_adc4_enable;
+extern const int config_audio_adc5_enable;
+extern const int config_audio_adc6_enable;
+extern const int config_audio_adc7_enable;
+extern const int config_audio_adc0_input_mode;
+extern const int config_audio_adc1_input_mode;
+extern const int config_audio_adc2_input_mode;
+extern const int config_audio_adc3_input_mode;
+extern const int config_audio_adc4_input_mode;
+extern const int config_audio_adc5_input_mode;
+extern const int config_audio_adc6_input_mode;
+extern const int config_audio_adc7_input_mode;
 extern const u8 const_mic_capless_open_delay_debug;
 extern const u8 const_mic_capless_trim_delay_debug;
 extern const u8 const_adc_async_en;						//是否支持多个ADC异步打开

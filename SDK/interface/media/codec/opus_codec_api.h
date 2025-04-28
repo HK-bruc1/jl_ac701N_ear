@@ -9,18 +9,23 @@
 
 typedef struct _OPUS_EN_FILE_IO_ {
     void *priv;
-    u16(*input_data)(void *priv, s16 *buf, u16 len);  //short
-    void (*output_data)(void *priv, u8 *buf, u16 len); //bytes
+    u16(*input_data)(void *priv, s16 *buf, u8 channel, u16 points);   //short   2字节一个点.
+    u32(*output_data)(void *priv, u8 *buf, u16 len);  //bytes
 } OPUS_EN_FILE_IO;
 
 
+typedef struct _OPUS_ENC_PARA_ {
+    int sr;   //samplerate: fixed_16000.
+    int br;   //bitrate:    old:16000/32000/64000. --->new:16000~80000.16~80kbps.
+    u16 nch;  //channels    fixed_1.  仅支持单声道编码.
+    u16 format_mode;   //封装格式:   0:百度无头.      1:酷狗_eng+range.    2:ogg封装,pc软件可播放.  3:size+rangeFinal. 源码可兼容版本.
+    u16 complexity;    //0.1.2.3.    3质量最好.速度要求最高.
+    u16 frame_ms;      //20|40|60|80|100ms.
+} OPUS_ENC_PARA;
+
 typedef struct __OPUS_ENC_OPS {
-    u32(*need_buf)(u16 samplerate);       //samplerate=16k   ignore
-    u32(*open)(u8 *ptr, OPUS_EN_FILE_IO *audioIO, u8 quality, u16 sample_rate);
-    //1. quality:bitrate     0:16kbps    1:32kbps    2:64kbps
-    //   quality: MSB_2:(bit7_bit6)     format_mode    //0:百度_无头.                   1:酷狗_eng+range.
-    //   quality:LMSB_2:(bit5_bit4)     low_complexity //0:高复杂度,高质量.兼容之前库.  1:低复杂度,低质量.
-    //2. sample_rate         sample_rate=16k         ignore
+    u32(*need_buf)(OPUS_ENC_PARA *para);
+    u32(*open)(u8 *ptr, OPUS_EN_FILE_IO *audioIO, OPUS_ENC_PARA *para);
     u32(*run)(u8 *ptr);
 } OPUS_ENC_OPS;
 

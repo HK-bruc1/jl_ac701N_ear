@@ -27,7 +27,7 @@
 #include "audio_config.h"
 #include "overlay_code.h"
 
-#define AUDIO_CVP_DEMO
+//#define AUDIO_CVP_DEMO
 #ifdef AUDIO_CVP_DEMO
 
 #define CVP_LOG_ENABLE

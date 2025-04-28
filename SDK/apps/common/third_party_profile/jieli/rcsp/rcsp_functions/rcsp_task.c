@@ -18,7 +18,7 @@
 #include "timer.h"
 #include "app_task.h"
 
-#if (RCSP_MODE)
+#if (RCSP_MODE && (RCSP_MODE != RCSP_MODE_EARPHONE))
 
 /* #define RCSP_DEBUG_EN */
 #ifdef RCSP_DEBUG_EN
@@ -238,7 +238,9 @@ static void app_rcsp_task_stop(void)
         set_rcsp_watch_upgrade_flag(0);
     }
     bt_set_a2dp_en_status(temp_a2dp_en_flag);
+#if JL_RCSP_SENSORS_DATA_OPT
     sport_data_func_get_finish_deal();
+#endif
     rcsp_printf("app_rcsp_task_stop\n");
 #if UI_UPGRADE_RES_ENABLE   //升级界面功能
     UI_WINDOW_PREEMPTION_POP(ID_WINDOW_UPGRADE);
@@ -317,7 +319,7 @@ void app_rcsp_task_prepare(u8 type, u8 action, u8 OpCode_SN)
 
     //切换模式
     if (app_get_curr_task() != APP_RCSP_ACTION_TASK) {
-#if (RCSP_MODE == RCSP_MODE_WATCH)
+#if JL_RCSP_SENSORS_DATA_OPT
         sport_data_func_get_prepare_deal();
 #endif
         int ret = app_task_switch_to(APP_RCSP_ACTION_TASK, NULL_VALUE);

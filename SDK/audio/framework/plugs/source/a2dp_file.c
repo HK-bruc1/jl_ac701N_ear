@@ -63,6 +63,8 @@ struct a2dp_file_hdl {
     u16 jl_dongle_latency;
     u8 edr_to_local_time;
     u8 timestamp_enable;
+    u8 reset_frame_clkn;
+    u32 frame_clkn;
     u32 ts_align_time;//统计时间戳对齐动作的耗时
 };
 
@@ -220,7 +222,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
             }
             hdl->frame_len = 0;
         }
-        a2dp_tws_media_try_handshake_ack(0, hdl->seqn);
+        a2dp_tws_media_try_handshake_ack(0, hdl->seqn, _frame.clkn);
         if (!hdl->wake_up_timer) {//快速唤醒数据流，加速tws时间戳交互的过程
             hdl->ts_align_time = 0;
             hdl->wake_up_timer = sys_hi_timer_add((void *)hdl, a2dp_source_direct_wake_jlstream_run, 4);
@@ -250,7 +252,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
     frame->flags        |= (stream_error);
     a2dp_frame_pack_timestamp(hdl, frame, _frame.packet + 4, pcm_frames);
 
-    a2dp_tws_media_try_handshake_ack(1, hdl->seqn);
+    a2dp_tws_media_try_handshake_ack(1, hdl->seqn, _frame.clkn);
 
     memcpy(frame->data, _frame.packet + head_len, frame_len);
 
@@ -467,6 +469,7 @@ static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
         put_buf(bt_addr, 6);
         return -EINVAL;
     }
+    /*r_printf("a2dp packet : %d\n", a2dp_media_get_packet_num(hdl->file));*/
     memcpy(hdl->bt_addr, bt_addr, 6);
 
     if (CONFIG_DONGLE_SPEAK_ENABLE) {
@@ -641,15 +644,14 @@ static u32 a2dp_stream_update_base_time(struct a2dp_file_hdl *hdl)
     int distance_time = 0;
     int len = a2dp_media_try_get_packet(hdl->file, &frame);
     if (len > 0) {
-        u32 base_clkn = frame.clkn;
-        /* if (CONFIG_BTCTLER_TWS_ENABLE && a2dp_low_latency) { */
-        /* base_clkn = bt_audio_reference_clock_time(0); */
-        /* } */
-        a2dp_media_put_packet(hdl->file, frame.packet);
-        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : hdl->delay_time));
-        if ((int)(base_time - bt_audio_reference_clock_time(0)) < msecs_to_bt_time(150)) {//启动过程耗时很长，此处为避免时间戳超时，加上150ms
-            base_time = bt_audio_reference_clock_time(0) + msecs_to_bt_time(150);
+        u32 base_clkn = hdl->reset_frame_clkn ? hdl->frame_clkn : frame.clkn;
+        /*
+        if (hdl->reset_frame_clkn) {
+            g_printf("reset frame clkn : %d, %d\n", hdl->frame_clkn, frame.clkn);
         }
+        */
+        a2dp_media_put_packet(hdl->file, frame.packet);
+        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : (hdl->delay_time + 30)));
         return base_time;
     }
     distance_time = a2dp_low_latency ? hdl->delay_time : (hdl->delay_time - a2dp_media_get_remain_play_time(hdl->file, 1));
@@ -691,6 +693,7 @@ void a2dp_ts_handle_create(struct a2dp_file_hdl *hdl)
     }
     hdl->sync_step = 0;
     hdl->frame_len = 0;
+    hdl->reset_frame_clkn = 0;
     hdl->dts = 0;
 #endif
 }
@@ -761,11 +764,22 @@ static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, i
         printf("wrong argument 'drop'!\n");
     }
     if (CONFIG_BTCTLER_TWS_ENABLE && hdl->ts_handle) {
-        if (hdl->tws_case != 1 && \
+        if (hdl->tws_case == 0) {
+            hdl->sync_step = 2;
+            return 0;
+        }
+
+        /*TWS 音频握手对齐失败，强制进入时间戳对齐流程*/
+        if (hdl->tws_case != 3 && \
             !a2dp_audio_timestamp_is_available(hdl->ts_handle, hdl->seqn, 0, drop)) {
             if (*drop) {
                 hdl->base_time = a2dp_stream_update_base_time(hdl);
                 a2dp_audio_set_base_time(hdl->ts_handle, hdl->base_time);
+            } else {/*TWS加入和握手超时容错处理*/
+                int max_buf_size = a2dp_stream_max_buf_size(hdl->media_type);
+                if (a2dp_media_get_sbc_data_len(hdl->file) >= (max_buf_size * 8 / 10)) {
+                    *drop = 1;
+                }
             }
             return -EINVAL;
         }

@@ -84,7 +84,9 @@ struct _DEV_info {
 typedef bool (*func_set)(void *priv, u8 *data, u16 len);
 typedef u32(*func_get)(void *priv, u8 *buf, u16 buf_size, u32 mask);
 static const func_set set_tab[FUNCTION_MASK_MAX] = {
+#if (TCFG_APP_BT_EN)
     [BT_FUNCTION_MASK] = rcsp_bt_func_set,
+#endif
 #if (TCFG_APP_MUSIC_EN)
     [MUSIC_FUNCTION_MASK] = rcsp_music_func_set,
 #endif
@@ -107,7 +109,9 @@ static const func_set set_tab[FUNCTION_MASK_MAX] = {
 };
 
 static const func_get get_tab[FUNCTION_MASK_MAX] = {
+#if (TCFG_APP_BT_EN)
     [BT_FUNCTION_MASK] = rcsp_bt_func_get,
+#endif
 #if (TCFG_APP_MUSIC_EN)
     [MUSIC_FUNCTION_MASK] = rcsp_music_func_get,
 #endif
@@ -150,6 +154,7 @@ static void common_function_attr_vol_set(void *priv, u8 attr, u8 *data, u16 len,
         rcsp_msg_post(USER_MSG_RCSP_SET_VOL, 2, (int)priv, mask);
     }
 }
+#if RCSP_ADV_EQ_SET_ENABLE
 static void common_function_attr_eq_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     RCSP_SETTING_OPT *setting_opt_hdl = get_rcsp_setting_opt_hdl(ATTR_TYPE_EQ_SETTING);
@@ -159,14 +164,16 @@ static void common_function_attr_eq_set(void *priv, u8 attr, u8 *data, u16 len, 
         rcsp_msg_post(USER_MSG_RCSP_SET_EQ_PARAM, 2, (int)priv, mask);
     }
 }
+#endif
+#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
 static void common_function_attr_fmtx_freq_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
     ASSERT_SET_LEN_RETURN_NULL(len, 2);
     u16 freq = READ_BIG_U16(data);
     rcsp_msg_post(USER_MSG_RCSP_SET_FMTX_FREQ, 2, (int)priv, (int)freq);
-#endif
 }
+#endif
+#if TCFG_USER_EMITTER_ENABLE
 static void common_function_attr_bt_emitter_sw_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -190,9 +197,7 @@ static void common_function_attr_bt_emitter_connect_state_set(void *priv, u8 att
     /* rcsp_msg_post(USER_MSG_RCSP_SET_BT_EMITTER_CONNECT_STATES, 2, (int)priv, (int)data[0]); */
     printf("USER_MSG_RCSP_SET_BT_EMITTER_CONNECT_STATES, state = %d\n", data[0]);
     if (data[0]) {
-#if TCFG_USER_EMITTER_ENABLE
         emitter_search_stop(0);
-#endif
         put_buf(rcspModel->emitter_con_addr, 6);
         bt_cmd_prepare(USER_CTRL_START_CONNEC_VIA_ADDR, 6, rcspModel->emitter_con_addr);
     } else {
@@ -202,7 +207,9 @@ static void common_function_attr_bt_emitter_connect_state_set(void *priv, u8 att
         }
     }
 }
+#endif
 
+#if (RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
 static void common_function_attr_high_low_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -221,32 +228,33 @@ static void common_function_attr_high_low_set(void *priv, u8 attr, u8 *data, u16
     u32 mask = BIT(attr);
     rcsp_msg_post(USER_MSG_RCSP_SET_HIGH_LOW_VOL_PARAM, 2, (int)priv, mask);
 }
+#endif
 
+#if RCSP_ADV_ANC_VOICE
 static void common_function_attr_anc_voice_info_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_ANC_VOICE
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
     }
     anc_voice_info_set(data, len);
-#endif // RCSP_ADV_ANC_VOICE
 }
+#endif // RCSP_ADV_ANC_VOICE
 
+#if RCSP_ADV_ASSISTED_HEARING
 static void common_function_attr_hearing_aid_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_ASSISTED_HEARING
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
     }
     deal_hearing_aid_setting(_OpCode, _OpCode_SN, data, 0, 1);
-#endif // RCSP_ADV_ASSISTED_HEARING
 }
+#endif // RCSP_ADV_ASSISTED_HEARING
 
+#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
 static void common_function_attr_adaptive_noise_reduction_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -266,12 +274,12 @@ static void common_function_attr_adaptive_noise_reduction_setting_set(void *priv
         // 关闭自适应
         set_adaptive_noise_reduction_off();
     }
-#endif
 }
+#endif
 
+#if RCSP_ADV_AI_NO_PICK
 static void common_function_attr_ai_no_pick_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_AI_NO_PICK
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -287,12 +295,12 @@ static void common_function_attr_ai_no_pick_setting_set(void *priv, u8 attr, u8 
         set_ai_no_pick_auto_close_time((*ai_no_pick_val));
     }
 
-#endif
 }
+#endif
 
+#if RCSP_ADV_SCENE_NOISE_REDUCTION
 static void common_function_attr_scene_noise_reduction_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_SCENE_NOISE_REDUCTION
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -300,12 +308,12 @@ static void common_function_attr_scene_noise_reduction_setting_set(void *priv, u
     printf("SET RCSP_DEVICE_STATUS_ATTR_TYPE_SCENE_NOISE_REDUCTION\n");
     u8 *scene_noise_reduction_type = data + 1;
     set_scene_noise_reduction_type((RCSP_SCENE_NOISE_REDUCTION_TYPE)(*scene_noise_reduction_type));
-#endif
 }
+#endif
 
+#if RCSP_ADV_WIND_NOISE_DETECTION
 static void common_function_attr_wind_noise_detection_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_WIND_NOISE_DETECTION
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -313,12 +321,12 @@ static void common_function_attr_wind_noise_detection_setting_set(void *priv, u8
     printf("SET RCSP_DEVICE_STATUS_ATTR_TYPE_WIND_NOISE_DETECTION\n");
     u8 *wind_noise_detection_switch = data + 1;
     set_wind_noise_detection_switch((*wind_noise_detection_switch) ? true : false);
-#endif
 }
+#endif
 
+#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
 static void common_function_attr_voice_enhancement_mode_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -326,12 +334,12 @@ static void common_function_attr_voice_enhancement_mode_setting_set(void *priv, 
     printf("SET RCSP_DEVICE_STATUS_ATTR_TYPE_VOICE_ENHANCEMENT_MODE\n");
     u8 *voice_enhancement_mode_switch = data + 1;
     set_voice_enhancement_mode_switch((*voice_enhancement_mode_switch) ? true : false);
-#endif
 }
+#endif
 
+#if TCFG_RCSP_DUAL_CONN_ENABLE
 static void common_function_attr_1t2_info_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
-#if TCFG_RCSP_DUAL_CONN_ENABLE
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
     if (rcspModel == NULL) {
         return;
@@ -355,9 +363,10 @@ static void common_function_attr_1t2_info_set(void *priv, u8 attr, u8 *data, u16
     } else {
         rcsp_set_1t2_switch((*switch_1t2) ? true : false, ble_con_handle, spp_remote_addr);
     }
-#endif
 }
+#endif
 
+#if (RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 static void common_function_attr_misc_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -377,7 +386,9 @@ static void common_function_attr_misc_setting_set(void *priv, u8 attr, u8 *data,
         }
     }
 }
+#endif
 
+#if RCSP_ADV_COLOR_LED_SET_ENABLE
 static void common_function_attr_color_led_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -389,7 +400,9 @@ static void common_function_attr_color_led_setting_set(void *priv, u8 attr, u8 *
         set_rcsp_opt_setting(setting_opt_hdl, data);
     }
 }
+#endif
 
+#if (TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
 static void common_function_attr_karaoke_eq_setting_set(void *priv, u8 attr, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -403,35 +416,70 @@ static void common_function_attr_karaoke_eq_setting_set(void *priv, u8 attr, u8 
         rcsp_msg_post(USER_MSG_RCSP_SET_EQ_PARAM, 2, (int)priv, mask);
     }
 }
+#endif
 
 static const attr_set_func common_function_set_tab[RCSP_DEVICE_STATUS_ATTR_TYPE_MAX] = {
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BATTERY 				          ] = NULL,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_VOL 					          ] = common_function_attr_vol_set,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_DEV_INFO 			          ] = NULL,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ERROR_STATS			          ] = NULL,
+#if RCSP_ADV_EQ_SET_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_EQ_INFO				          ] = common_function_attr_eq_set,
+#endif
+#if RCSP_FILE_OPT
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BS_FILE_TYPE			          ] = NULL,
+#endif
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FUNCTION_MODE		          ] = NULL,
+#if RCSP_ADV_COLOR_LED_SET_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_COLOR_LED_SETTING_INFO 		  ] = common_function_attr_color_led_setting_set,
+#endif
+#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FMTX_FREQ			          ] = common_function_attr_fmtx_freq_set,
+#endif
+#if TCFG_USER_EMITTER_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BT_EMITTER_SW		          ] = common_function_attr_bt_emitter_sw_set,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BT_EMITTER_CONNECT_STATES      ] = common_function_attr_bt_emitter_connect_state_set,
+#endif
+#if (RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_HIGH_LOW_SET			          ] = common_function_attr_high_low_set,
+#endif
+#if (TCFG_EQ_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PRE_FETCH_ALL_EQ_INFO 	      ] = NULL,
+#endif
+#if RCSP_ADV_ANC_VOICE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ANC_VOICE	                  ] = common_function_attr_anc_voice_info_set,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FETCH_ALL_ANC_VOICE            ] = NULL,
+#endif
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PHONE_SCO_STATE_INFO 	      ] = NULL,
+#if (RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_MISC_SETTING_INFO 	      	  ] = common_function_attr_misc_setting_set,
+#endif
+#if (TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PRE_FETCH_KARAOKE_EQ_INFO	  ] = NULL,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_KARAOKE_EQ_SETTING_INFO 		  ] = common_function_attr_karaoke_eq_setting_set,
+#endif
     // 缺一个声卡功能19
+#if RCSP_ADV_ASSISTED_HEARING
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ASSISTED_HEARING               ] = common_function_attr_hearing_aid_setting_set,
+#endif
+#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ADAPTIVE_NOISE_REDUCTION       ] = common_function_attr_adaptive_noise_reduction_setting_set,
+#endif
+#if RCSP_ADV_AI_NO_PICK
     [RCSP_DEVICE_STATUS_ATTR_TYPE_AI_NO_PICK                     ] = common_function_attr_ai_no_pick_setting_set,
+#endif
+#if RCSP_ADV_SCENE_NOISE_REDUCTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_SCENE_NOISE_REDUCTION          ] = common_function_attr_scene_noise_reduction_setting_set,
+#endif
+#if RCSP_ADV_WIND_NOISE_DETECTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_WIND_NOISE_DETECTION           ] = common_function_attr_wind_noise_detection_setting_set,
+#endif
+#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_VOICE_ENHANCEMENT_MODE         ] = common_function_attr_voice_enhancement_mode_setting_set,
+#endif
+#if TCFG_RCSP_DUAL_CONN_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_1T2         					 ] = common_function_attr_1t2_info_set,
+#endif
 };
 
 
@@ -506,12 +554,14 @@ static u32 common_function_attr_dev_info_get(void *priv, u8 attr, u8 *buf, u16 b
     rlen = add_one_attr(buf, buf_size, offset, attr, (u8 *)&dev_info, sizeof(dev_info));
     return rlen;
 }
+
 static u32 common_function_attr_error_states_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
     return rlen;
 }
 
+#if (TCFG_EQ_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 static u32 common_function_attr_pre_fetch_all_eq_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -526,28 +576,27 @@ static u32 common_function_attr_pre_fetch_all_eq_info_get(void *priv, u8 attr, u
     }
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_ANC_VOICE
 static u32 common_function_attr_anc_voice_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_ANC_VOICE
     u8 anc_info[9] = {0};
     anc_voice_info_get(anc_info, sizeof(anc_info));
     rlen = add_one_attr(buf, buf_size, offset, attr, anc_info, sizeof(anc_info));
-#endif // RCSP_ADV_ANC_VOICE
     return rlen;
 }
 
 static u32 common_function_attr_anc_voice_info_fetch_all_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_ANC_VOICE
     u8 anc_fetch_all_info[28] = {0};
     anc_voice_info_fetch_all_get(anc_fetch_all_info, sizeof(anc_fetch_all_info));
     rlen = add_one_attr(buf, buf_size, offset, attr, anc_fetch_all_info,  sizeof(anc_fetch_all_info));
-#endif // RCSP_ADV_ANC_VOICE
     return rlen;
 }
+#endif // RCSP_ADV_ANC_VOICE
 
 static u32 common_function_attr_phone_sco_state_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
@@ -560,6 +609,7 @@ static u32 common_function_attr_phone_sco_state_info_get(void *priv, u8 attr, u8
     return rlen;
 }
 
+#if RCSP_ADV_EQ_SET_ENABLE
 static u32 common_function_attr_eq_param_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -574,16 +624,17 @@ static u32 common_function_attr_eq_param_get(void *priv, u8 attr, u8 *buf, u16 b
     }
     return rlen;
 }
+#endif
 
+#if RCSP_FILE_OPT
 static u32 common_function_attr_bs_file_type(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_FILE_OPT
     /* printf("%s\n", rcsp_browser_file_ext()); */
     rlen = add_one_attr(buf, buf_size, offset, attr, (u8 *)rcsp_browser_file_ext(), rcsp_browser_file_ext_size());
-#endif
     return rlen;
 }
+#endif
 static u32 common_function_attr_function_mode_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -591,17 +642,20 @@ static u32 common_function_attr_function_mode_get(void *priv, u8 attr, u8 *buf, 
     rlen = add_one_attr(buf, buf_size, offset, attr, &rcspModel->cur_app_mode, sizeof(rcspModel->cur_app_mode));
     return rlen;
 }
+
+#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
 static u32 common_function_attr_fmtx_freq_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
     u16 freq = fm_emitter_manage_get_fre();
     printf("freq %d\n", freq);
     freq = app_htons(freq);
     rlen = add_one_attr(buf, buf_size, offset, attr, (u8 *)&freq, sizeof(freq));
-#endif
     return rlen;
 }
+#endif
+
+#if TCFG_USER_EMITTER_ENABLE
 static u32 common_function_attr_bt_emitter_sw_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -613,6 +667,7 @@ static u32 common_function_attr_bt_emitter_sw_get(void *priv, u8 attr, u8 *buf, 
     rlen = add_one_attr(buf, buf_size, offset,  attr, &sw, 1);
     return rlen;
 }
+
 static u32 common_function_attr_bt_emitter_connect_state_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
@@ -632,6 +687,9 @@ static u32 common_function_attr_bt_emitter_connect_state_get(void *priv, u8 attr
     rlen = add_one_attr(buf, buf_size, offset,  attr, send_buf, sizeof(send_buf));
     return rlen;
 }
+#endif
+
+#if (RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
 static u32 common_function_attr_high_low_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -646,7 +704,9 @@ static u32 common_function_attr_high_low_get(void *priv, u8 attr, u8 *buf, u16 b
 
     return rlen;
 }
+#endif
 
+#if (RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 static u32 common_function_attr_misc_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -662,11 +722,12 @@ static u32 common_function_attr_misc_setting_info_get(void *priv, u8 attr, u8 *b
     }
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_COLOR_LED_SET_ENABLE
 static u32 common_function_attr_color_led_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if (RCSP_ADV_COLOR_LED_SET_ENABLE)
     u32 data_len = rcsp_get_color_led_setting_data_len();
     u8 color_led_data[data_len];
 
@@ -675,40 +736,25 @@ static u32 common_function_attr_color_led_setting_info_get(void *priv, u8 attr, 
         get_rcsp_opt_setting(setting_opt_hdl, color_led_data);
         rlen = add_one_attr(buf, buf_size, offset, attr, color_led_data, data_len);
     }
+    return rlen;
+}
 #endif
-    return rlen;
-}
 
-static u32 common_function_attr_karaoke_eq_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
-{
-    u32 rlen = 0;
-    u8 karaoke_eq_info[9] = {0};
-    u16 karaoke_eq_size = sizeof(karaoke_eq_info);
-    RCSP_SETTING_OPT *setting_opt_hdl = get_rcsp_setting_opt_hdl(ATTR_TYPE_KARAOKE_EQ_SETTING);
-    if (setting_opt_hdl) {
-        karaoke_eq_size = get_setting_extra_handle(setting_opt_hdl, karaoke_eq_info, &karaoke_eq_size);
-        if (karaoke_eq_size) {
-            rlen = add_one_attr(buf, buf_size, offset, attr, karaoke_eq_info, karaoke_eq_size);
-        }
-    }
-    return rlen;
-}
-
+#if RCSP_ADV_ASSISTED_HEARING
 static u32 common_function_attr_dha_fitting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if (RCSP_ADV_ASSISTED_HEARING)
     u8 dha_fitting_data[3 + 2 + 2 * DHA_FITTING_CHANNEL_MAX] = {0};
     get_dha_fitting_info(dha_fitting_data);
     rlen += add_one_attr(buf, buf_size, offset, attr, dha_fitting_data, sizeof(dha_fitting_data));
-#endif
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
 static u32 common_function_attr_adaptive_noise_reduction_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
     u8 adaptive_noise_reduction_info[3] = {0};
     // 获取自适应降噪开关
     if (get_adaptive_noise_reduction_switch() != 0) {
@@ -726,68 +772,69 @@ static u32 common_function_attr_adaptive_noise_reduction_info_get(void *priv, u8
         adaptive_noise_reduction_info[2] = 0x01;
     }
     rlen += add_one_attr(buf, buf_size, offset, attr, adaptive_noise_reduction_info, sizeof(adaptive_noise_reduction_info));
-#endif
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_AI_NO_PICK
 static u32 common_function_attr_ai_no_pick_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_AI_NO_PICK
     u8 ai_no_pick_info[5] = {0};
     ai_no_pick_info[1] = 0xff;	// 获取智能免摘全部数据
     ai_no_pick_info[2] = get_ai_no_pick_switch() ? 0x01 : 0x00;
     ai_no_pick_info[3] = get_ai_no_pick_sensitivity();
     ai_no_pick_info[4] = get_ai_no_pick_auto_close_time();
     rlen += add_one_attr(buf, buf_size, offset, attr, ai_no_pick_info, sizeof(ai_no_pick_info));
-#endif
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_SCENE_NOISE_REDUCTION
 static u32 common_function_attr_scene_noise_reduction_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_SCENE_NOISE_REDUCTION
     u8 scene_noise_reduction_info[2] = {0};
     scene_noise_reduction_info[1] = get_scene_noise_reduction_type();
     rlen += add_one_attr(buf, buf_size, offset, attr, scene_noise_reduction_info, sizeof(scene_noise_reduction_info));
-#endif
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_WIND_NOISE_DETECTION
 static u32 common_function_attr_wind_noise_detection_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_WIND_NOISE_DETECTION
     u8 wind_noise_detection_info[2] = {0};
     wind_noise_detection_info[1] = get_wind_noise_detection_switch() ? 0x01 : 0x00;
     rlen += add_one_attr(buf, buf_size, offset, attr, wind_noise_detection_info, sizeof(wind_noise_detection_info));
-#endif
     return rlen;
 }
+#endif
 
+#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
 static u32 common_function_attr_voice_enhancement_mode_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
     u8 voice_enhancement_mode_info[2] = {0};
     voice_enhancement_mode_info[1] = get_voice_enhancement_mode_switch() ? 0x01 : 0x00;
     rlen += add_one_attr(buf, buf_size, offset, attr, voice_enhancement_mode_info, sizeof(voice_enhancement_mode_info));
-#endif
     return rlen;
 }
+#endif
 
+#if TCFG_RCSP_DUAL_CONN_ENABLE
 static u32 common_function_attr_1t2_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-#if TCFG_RCSP_DUAL_CONN_ENABLE
     u8 info_1t2[2] = {0};
     info_1t2[1] = rcsp_get_1t2_switch() ? 0x01 : 0x00;
     rlen += add_one_attr(buf, buf_size, offset, attr, info_1t2, sizeof(info_1t2));
-#endif
     return rlen;
 }
+#endif
 
+#if (TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
 static u32 common_function_attr_karaoke_pre_fetch_eq_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
@@ -802,35 +849,84 @@ static u32 common_function_attr_karaoke_pre_fetch_eq_setting_info_get(void *priv
     }
     return rlen;
 }
+static u32 common_function_attr_karaoke_eq_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
+{
+    u32 rlen = 0;
+    u8 karaoke_eq_info[9] = {0};
+    u16 karaoke_eq_size = sizeof(karaoke_eq_info);
+    RCSP_SETTING_OPT *setting_opt_hdl = get_rcsp_setting_opt_hdl(ATTR_TYPE_KARAOKE_EQ_SETTING);
+    if (setting_opt_hdl) {
+        karaoke_eq_size = get_setting_extra_handle(setting_opt_hdl, karaoke_eq_info, &karaoke_eq_size);
+        if (karaoke_eq_size) {
+            rlen = add_one_attr(buf, buf_size, offset, attr, karaoke_eq_info, karaoke_eq_size);
+        }
+    }
+    return rlen;
+}
+#endif
 
 static const attr_get_func target_common_function_get_tab[RCSP_DEVICE_STATUS_ATTR_TYPE_MAX] = {
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BATTERY 				          ] = common_function_attr_battery_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_VOL 					          ] = common_function_attr_vol_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_DEV_INFO 			          ] = common_function_attr_dev_info_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ERROR_STATS			          ] = NULL,
+#if RCSP_ADV_EQ_SET_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_EQ_INFO				          ] = common_function_attr_eq_param_get,
+#endif
+#if RCSP_FILE_OPT
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BS_FILE_TYPE			          ] = common_function_attr_bs_file_type,
+#endif
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FUNCTION_MODE		          ] = common_function_attr_function_mode_get,
+#if RCSP_ADV_COLOR_LED_SET_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_COLOR_LED_SETTING_INFO 		  ] = common_function_attr_color_led_setting_info_get,
+#endif
+#if (TCFG_APP_FM_EMITTER_EN && TCFG_FM_EMITTER_INSIDE_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FMTX_FREQ			          ] = common_function_attr_fmtx_freq_get,
+#endif
+#if TCFG_USER_EMITTER_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BT_EMITTER_SW		          ] = common_function_attr_bt_emitter_sw_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_BT_EMITTER_CONNECT_STATES      ] = common_function_attr_bt_emitter_connect_state_get,
+#endif
+#if (RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_HIGH_LOW_SET			          ] = common_function_attr_high_low_get,
+#endif
+#if (TCFG_EQ_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PRE_FETCH_ALL_EQ_INFO 	      ] = common_function_attr_pre_fetch_all_eq_info_get,
+#endif
+#if RCSP_ADV_ANC_VOICE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ANC_VOICE                      ] = common_function_attr_anc_voice_info_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_FETCH_ALL_ANC_VOICE            ] = common_function_attr_anc_voice_info_fetch_all_get,
+#endif
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PHONE_SCO_STATE_INFO 	      ] = common_function_attr_phone_sco_state_info_get,
+#if (RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_MISC_SETTING_INFO 	      	  ] = common_function_attr_misc_setting_info_get,
+#endif
+#if (TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
     [RCSP_DEVICE_STATUS_ATTR_TYPE_PRE_FETCH_KARAOKE_EQ_INFO	  ] = common_function_attr_karaoke_pre_fetch_eq_setting_info_get,
     [RCSP_DEVICE_STATUS_ATTR_TYPE_KARAOKE_EQ_SETTING_INFO 		  ] = common_function_attr_karaoke_eq_setting_info_get,
+#endif
     // 缺一个声卡功能19
+#if RCSP_ADV_ASSISTED_HEARING
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ASSISTED_HEARING               ] = common_function_attr_dha_fitting_info_get,
+#endif
+#if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_ADAPTIVE_NOISE_REDUCTION       ] = common_function_attr_adaptive_noise_reduction_info_get,
+#endif
+#if RCSP_ADV_AI_NO_PICK
     [RCSP_DEVICE_STATUS_ATTR_TYPE_AI_NO_PICK                     ] = common_function_attr_ai_no_pick_info_get,
+#endif
+#if RCSP_ADV_SCENE_NOISE_REDUCTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_SCENE_NOISE_REDUCTION          ] = common_function_attr_scene_noise_reduction_info_get,
+#endif
+#if RCSP_ADV_WIND_NOISE_DETECTION
     [RCSP_DEVICE_STATUS_ATTR_TYPE_WIND_NOISE_DETECTION           ] = common_function_attr_wind_noise_detection_info_get,
+#endif
+#if RCSP_ADV_VOICE_ENHANCEMENT_MODE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_VOICE_ENHANCEMENT_MODE         ] = common_function_attr_voice_enhancement_mode_info_get,
+#endif
+#if TCFG_RCSP_DUAL_CONN_ENABLE
     [RCSP_DEVICE_STATUS_ATTR_TYPE_1T2         					 ] = common_function_attr_1t2_info_get,
+#endif
 };
 
 

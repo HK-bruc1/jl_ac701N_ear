@@ -779,7 +779,7 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
         if ((10 == wait_cnt) || (rcsp_send_list_is_empty() && check_ble_all_packet_sent())) {
             wait_cnt = 0;
             ble_app_disconnect();
-#if TCFG_USER_TWS_ENABLE
+#if TCFG_USER_TWS_ENABLE && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             rcsp_clear_ble_hdl_and_tws_sync();
 #endif
             if (check_edr_is_disconnct()) {

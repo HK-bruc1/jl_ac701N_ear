@@ -31,7 +31,6 @@
 <Add option="-DCONFIG_RELEASE_ENABLE" />
 <Add option="-DCONFIG_EARPHONE_CASE" />
 <Add option="-DCONFIG_CPU_BR28" />
-<Add option="-DCONFIG_USB_SUPPORT_MRX_TX" />
 <Add option="-DCONFIG_PRINT_IN_MASK" />
 <Add option="-DLWIP_USE_BT" />
 <Add option="-DCONFIG_NEW_BREDR_ENABLE" />
@@ -101,15 +100,19 @@
 <Add directory="interface/btstack/third_party/common" />
 <Add directory="interface/btstack/third_party" />
 <Add directory="interface/utils" />
+<Add directory="interface/utils/generic" />
 <Add directory="interface/utils/device" />
 <Add directory="interface/utils/fs" />
-<Add directory="interface/utils/generic" />
 <Add directory="interface/utils/math/cpu/br28" />
+<Add directory="interface/net/mbedtls_3_4_0" />
 <Add directory="interface/btstack/third_party/rcsp" />
 <Add directory="interface/media/media_new" />
 <Add directory="interface/media/media_new/media" />
 <Add directory="interface/media/media_new/media/cpu/br28" />
 <Add directory="interface/media/media_new/media/cpu/br28/asm" />
+<Add directory="interface/net/lwip_2_2_0/lwip/src/include" />
+<Add directory="interface/net/lwip_2_2_0/lwip/port" />
+<Add directory="interface/net/lwip_2_2_0/lwip/app" />
 <Add directory="apps/earphone" />
 <Add directory="apps/earphone/include" />
 <Add directory="apps/earphone/include/wireless_mic" />
@@ -140,6 +143,7 @@
 <Add directory="audio/common" />
 <Add directory="audio/effect" />
 <Add directory="apps/common/device/sensor/imu_sensor" />
+<Add directory="interface/net/lwip_2_2_0/lwip/src" />
 <Add directory="apps/common/third_party_profile/jieli/rcsp" />
 <Add directory="apps/common/third_party_profile/jieli/rcsp/adv" />
 <Add directory="apps/common/third_party_profile/jieli/rcsp/rcsp_functions" />
@@ -295,6 +299,9 @@
 <Add option="cpu/br28/liba/lib_sbc_msbc.a" />
 <Add option="cpu/br28/liba/lib_mp3_dec.a" />
 <Add option="cpu/br28/liba/lib_f2a_dec.a" />
+<Add option="cpu/br28/liba/lib_ogg_opus_dec.a" />
+<Add option="cpu/br28/liba/opus_enc_lib.a" />
+<Add option="cpu/br28/liba/aac_enc_lib.a" />
 <Add option="cpu/br28/liba/libLHDCv4DecodeLib.a" />
 <Add option="cpu/br28/liba/libLHDCv5DecodeLib.a" />
 <Add option="cpu/br28/liba/lib_ldac_dec.a" />
@@ -374,6 +381,7 @@
 <Add option="cpu/br28/liba/libdistortion.a" />
 <Add option="cpu/br28/liba/lib_frequency_compressor.a" />
 <Add option="cpu/br28/liba/lib_gain_mix.a" />
+<Add option="cpu/br28/liba/earphone/release/lwip_2_2_0.a" />
 <Add option="cpu/br28/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br28/liba/lib_wtg_dec.a" />
 <Add option="cpu/br28/liba/bfilterfun_lib.a" />
@@ -707,6 +715,7 @@
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.h" />
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/rcsp_interface.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/jieli/rcsp/rcsp_simplified/rcsp_interface_simplified.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/rcsp_user_api.h" />
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/browser/rcsp_browser.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/browser/rcsp_browser.h" />
@@ -985,6 +994,7 @@
 <Unit filename="apps/earphone/board/br28/board_config.h" />
 <Unit filename="apps/earphone/board/br28/jlstream_node_cfg.h" />
 <Unit filename="apps/earphone/board/br28/sdk_config.h" />
+<Unit filename="apps/earphone/board/instruction_forbidden.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/sdk_board_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/att_over_edr_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/debug_record_demo.c"><Option compilerVer="CC"/></Unit>
@@ -1055,6 +1065,7 @@
 <Unit filename="apps/earphone/log_config/lib_btstack_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/log_config/lib_driver_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/log_config/lib_media_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/log_config/lib_net_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/log_config/lib_system_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/log_config/lib_update_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/message/adapter/app_msg.c"><Option compilerVer="CC"/></Unit>
@@ -1122,6 +1133,8 @@
 <Unit filename="apps/earphone/ui/led/led_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/ui/led/led_ui_msg_handler.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/user_cfg.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/CVP/audio_aec.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/CVP/audio_aec.h" />
 <Unit filename="audio/CVP/audio_cvp.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp.h" />
 <Unit filename="audio/CVP/audio_cvp_3mic.c"><Option compilerVer="CC"/></Unit>
@@ -1490,7 +1503,6 @@
 <Unit filename="cpu/components/ir_encoder.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/led_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/rdec_soft.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/components/touch/lp_touch_key_range_algo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/touch/lp_touch_key_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/two_io_led.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/config/gpio_file_parse.c"><Option compilerVer="CC"/></Unit>

@@ -9,6 +9,8 @@
 #include "app_tone.h"
 #include "key_driver.h"
 
+#if TCFG_KEY_TONE_NODE_ENABLE
+
 static u8 g_have_key_tone_file = 0;
 
 static bool is_key_tone_enable()
@@ -43,22 +45,27 @@ APP_MSG_HANDLER(key_tone_msg_entry) = {
     .from       = MSG_FROM_APP,
     .handler    = key_tone_msg_handler,
 };
+#endif
 
 
 #if TCFG_IOKEY_ENABLE
 void key_down_event_handler(u8 key_value)
 {
+#if TCFG_KEY_TONE_NODE_ENABLE
     if (g_have_key_tone_file == 1) {
         app_send_message(APP_MSG_KEY_TONE, 0);
     }
+#endif
 }
 #endif
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
 void touch_key_send_key_tone_msg(void)
 {
+#if TCFG_KEY_TONE_NODE_ENABLE
     if (g_have_key_tone_file == 1) {
         app_send_message(APP_MSG_KEY_TONE, 0);
     }
+#endif
 }
 #endif

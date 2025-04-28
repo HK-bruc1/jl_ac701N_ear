@@ -56,6 +56,8 @@ u8 g_avrcp_vol_chance_data[8];
 
 #if TCFG_A2DP_PREEMPTED_ENABLE
 u8 a2dp_avrcp_play_cmd_addr[6] = {0};
+#else
+u8 g_a2dp_phone_call_addr[6] = {0};
 #endif
 
 void tws_a2dp_play_send_cmd(u8 cmd, u8 *data, u8 len, u8 tx_do_action);
@@ -390,8 +392,14 @@ static int a2dp_bt_status_event_handler(int *event)
         }
 #endif
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
+#if TCFG_A2DP_PREEMPTED_ENABLE
             if (device_b &&
-                btstack_get_call_esco_status(device_b) == BT_ESCO_STATUS_OPEN) {
+                (btstack_get_call_esco_status(device_b) == BT_ESCO_STATUS_OPEN)) {
+#else
+            if (device_b &&
+                ((btstack_get_call_esco_status(device_b) == BT_ESCO_STATUS_OPEN) ||
+                 (memcmp(g_a2dp_phone_call_addr, addr_b, 6) == 0))) {
+#endif
                 puts("---mute_a\n");
                 a2dp_media_mute(bt->args);
                 bt_start_a2dp_slience_detect(bt->args, 0);
@@ -521,9 +529,20 @@ static int a2dp_bt_status_event_handler(int *event)
         put_buf(bt->args, 6);
         a2dp_suspend_by_call(addr_b, device_b);
         break;
+    case BT_STATUS_PHONE_INCOME:
+    case BT_STATUS_PHONE_OUT:
+        printf("A2DP BT_STATUS_PHONE:%d\n", bt->event);
+        put_buf(bt->args, 6);
+#if !TCFG_A2DP_PREEMPTED_ENABLE
+        memset(g_a2dp_phone_call_addr, bt->args, 6);
+#endif
+        break;
     case BT_STATUS_PHONE_HANGUP:
     case BT_STATUS_SCO_DISCON:
         printf("A2DP BT_STATUS_SCO_DISCON:%d\n", bt->event);
+#if !TCFG_A2DP_PREEMPTED_ENABLE
+        memset(g_a2dp_phone_call_addr, 0xff, 6);
+#endif
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
