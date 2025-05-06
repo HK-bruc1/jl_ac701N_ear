@@ -996,6 +996,12 @@
 #endif
 
 #define TCFG_IFLYTEK_ENABLE			0
+#ifdef TCFG_BT_SUPPORT_PAN
+#if TCFG_BT_SUPPORT_PAN
+#undef TCFG_IFLYTEK_ENABLE
+#define TCFG_IFLYTEK_ENABLE			1
+#endif
+#endif
 #if TCFG_IFLYTEK_ENABLE//目前耳机没有rtc，先用蓝牙时间转UTC再转GMT(earphone.c)
 #undef  TCFG_BT_SUPPORT_MAP
 #define  TCFG_BT_SUPPORT_MAP 0x1
