@@ -254,16 +254,26 @@ INCLUDES := \
 	-Iinterface/btstack/third_party/le_audio \
 	-Iinterface/btstack/third_party/broadcast \
 	-Iaudio/le_audio \
-	-Iapps/common/third_party_profile/tuya_protocol \
-	-Iapps/common/third_party_profile/tuya_protocol/app/demo \
-	-Iapps/common/third_party_profile/tuya_protocol/app/product_test \
-	-Iapps/common/third_party_profile/tuya_protocol/app/uart_common \
-	-Iapps/common/third_party_profile/tuya_protocol/extern_components/mbedtls \
-	-Iapps/common/third_party_profile/tuya_protocol/port \
-	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
-	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
 	-Iapps/common/third_party_profile/bt_fmy \
 	-Iinterface/btstack \
+	-Iinterface/net \
+	-Iinterface/net/lwip_2_2_0/lwip/src/include/netif \
+	-Iinterface/net/lwip_2_2_0/lwip/port/arch \
+	-Iinterface/net/lwip_2_2_0/lwip/app/ctp \
+	-Iinterface/net/lwip_2_2_0/lwip/app/cdp \
+	-Iinterface/net/lwip_2_2_0/lwip/app/dhcp_srv \
+	-Iinterface/net/lwip_2_2_0/lwip/app/dtp \
+	-Iinterface/net/lwip_2_2_0/lwip/app/sock_api \
+	-Iinterface/net/lwip_2_2_0/lwip/app/udtp \
+	-Iinterface/net/lwip_2_2_0/lwip/src/include/lwip \
+	-Iinterface/net/lwip_2_2_0/lwip/app/mssdp \
+	-Iinterface/net/lwip_2_2_0/lwip/app/ddns \
+	-Iinterface/net/lte_module \
+	-Iapps/common/netapps/iflytek \
+	-Ilib/net/lwip_2_2_0/apps/ntp \
+	-Iapps/common/net_apps \
+	-Ilib/net/web_socket \
+	-Iinterface/net/web_socket \
 	-Iapps/common/device/usb \
 	-Iapps/common/device/usb/device \
 	-Iapps/common/device/usb/host \
@@ -398,6 +408,17 @@ c_SRC_FILES := \
 	apps/common/music/music_decrypt.c \
 	apps/common/music/music_id3.c \
 	apps/common/music/music_player.c \
+	apps/common/net/lwip_2_2_0/port/LwIP.c \
+	apps/common/net/lwip_2_2_0/port/bt_ethernetif.c \
+	apps/common/net/lwip_2_2_0/port/fixme.c \
+	apps/common/net/lwip_2_2_0/port/sys_arch.c \
+	apps/common/netapps/iflytek/ifly_api.c \
+	apps/common/netapps/iflytek/ifly_auth.c \
+	apps/common/netapps/iflytek/ifly_socket.c \
+	apps/common/netapps/iflytek/ifly_sparkdesk.c \
+	apps/common/netapps/iflytek/ifly_tts.c \
+	apps/common/netapps/iflytek/ifly_vad.c \
+	apps/common/netapps/iflytek/ifly_vad_demo.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_anc_manager.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_ll_demo/jieli_iot_functions/ble_iot_msg_manager.c \
@@ -562,38 +583,6 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/realme_protocol/realme_platform_api.c \
 	apps/common/third_party_profile/realme_protocol/realme_protocol.c \
 	apps/common/third_party_profile/swift_pair/swift_pair_protocol.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_app_func.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ble_app_demo.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ota.c \
-	apps/common/third_party_profile/tuya_protocol/app/product_test/tuya_ble_app_production_test.c \
-	apps/common/third_party_profile/tuya_protocol/app/uart_common/tuya_ble_app_uart_common_handler.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/aes.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/ccm.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/hmac.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/md5.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha1.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha256.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_JL.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_peripheral.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_api.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_bulk_data.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_data_handler.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler_weak.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_feature_weather.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_gatt_send_queue.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_heap.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_main.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mem.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mutli_tsf_protocol.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_queue.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
-	apps/common/third_party_profile/tuya_protocol/tuya_event.c \
-	apps/common/third_party_profile/tuya_protocol/tuya_protocol.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_ble.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_config.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c \
@@ -956,6 +945,8 @@ c_SRC_FILES := \
 	cpu/br28/power/power_port.c \
 	cpu/br28/private_iis.c \
 	cpu/br28/setup.c \
+	cpu/br28/ui_driver/led7/led7_driver.c \
+	cpu/br28/ui_driver/ui_common.c \
 	cpu/components/gpadc_battery.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
@@ -1151,7 +1142,6 @@ LFLAGS := \
 	cpu/br28/liba/libdistortion.a \
 	cpu/br28/liba/lib_frequency_compressor.a \
 	cpu/br28/liba/lib_gain_mix.a \
-	cpu/br28/liba/earphone/release/lwip_2_2_0.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \
@@ -1159,7 +1149,8 @@ LFLAGS := \
 	cpu/br28/liba/lib_bt_aac_dec.a \
 	cpu/br28/liba/crypto_toolbox_Osize.a \
 	cpu/br28/liba/lib_dns.a \
-	apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a \
+	cpu/br28/liba/earphone/release/libmbedtls_3_4_0.a \
+	cpu/br28/liba/earphone/release/lwip_2_2_0.a \
 	cpu/br28/liba/update.a \
 	cpu/br28/liba/cbuf.a \
 	cpu/br28/liba/lbuf.a \
@@ -1177,6 +1168,9 @@ LFLAGS := \
 	cpu/br28/liba/vm.a  \
 	cpu/br28/liba/fs.a  \
 	cpu/br28/liba/cfg_tool.a  \
+	cpu/br28/liba/lwip_2_2_0.a \
+	cpu/br28/liba/earphone/release/websocket.a \
+	cpu/br28/liba/earphone/release/libmbedtls_3_4_0.a  \
 	--end-group \
 	-Tcpu/br28/sdk.ld \
 	-M=cpu/br28/tools/sdk.map \
