@@ -121,7 +121,7 @@ enum AD_CH {
     AD_CH_IO_PG5,
     AD_CH_IO_PG7,
 
-    AD_CH_IOVDD = 0xffffffff,
+    AD_CH_IOVDD = ADC_CH_TYPE_IO | 0xffff,
 };
 
 #define     ADC_VBG_CENTER        800
@@ -129,11 +129,15 @@ enum AD_CH {
 #define     ADC_VBG_DATA_WIDTH    4
 
 //防编译报错
+extern const u8 gpadc_battery_mode;
+extern const u32 gpadc_ch_power;
+extern const u8 gpadc_ch_power_div;
+extern const u8 gpadc_power_supply_mode;
 #define AD_CH_PMU_VBG   AD_CH_PMU_MBG08
 #define AD_CH_LDOREF    AD_CH_PMU_VBG
 #define AD_CH_PMU_VPWR   AD_CH_PMU_VPWR_4
-#define AD_CH_PMU_VBAT  AD_CH_PMU_VBAT_4
-#define AD_CH_PMU_VBAT_DIV  4
+#define AD_CH_PMU_VBAT  gpadc_ch_power
+#define AD_CH_PMU_VBAT_DIV  gpadc_ch_power_div
 
 
 #define ADC_PMU_VBG_TEST_SEL(x)     SFR(P3_ANA_CON4, 7, 1, x)

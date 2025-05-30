@@ -33,6 +33,12 @@
 #error "Hi-Res Audio：请将全局采样率TCFG_AUDIO_GLOBAL_SAMPLE_RATE设置到至少96000，或Disable！"
 #endif
 #endif
+
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE && (TCFG_AUDIO_GLOBAL_SAMPLE_RATE > AUDIO_DAC_MAX_SAMPLE_RATE))
+#undef AUDIO_DAC_MAX_SAMPLE_RATE
+#define AUDIO_DAC_MAX_SAMPLE_RATE           TCFG_AUDIO_GLOBAL_SAMPLE_RATE
+#endif
+
 //**************************************
 // 		    场景参数更新使能
 //**************************************
@@ -95,6 +101,7 @@
 #else
 #define AUDIO_LC3_CODEC_AT_RAM			    0	//LC3 编解码
 #endif
+#define AUDIO_JLA_V2_CODEC_AT_RAM		0	//JLA_V2 编解码
 
 /*语音识别算法编译链接配置*/
 #define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram

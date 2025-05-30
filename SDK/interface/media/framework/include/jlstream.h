@@ -9,6 +9,7 @@
 #include "media/media_config.h"
 #include "system/task.h"
 #include "system/spinlock.h"
+#include "media_bank.h"
 #include "fs/resfile.h"
 
 #define FADE_GAIN_MAX	16384

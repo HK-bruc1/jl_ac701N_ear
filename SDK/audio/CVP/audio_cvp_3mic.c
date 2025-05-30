@@ -278,7 +278,7 @@ static void sys_memory_trace(void)
 
 int audio_aec_sync_buffer_set(s16 *data, int len)
 {
-    return cvp_node_output_handle(data, len);
+    return cvp_tms_node_output_handle(data, len);
 }
 /*
 *********************************************************************
@@ -326,7 +326,7 @@ static int audio_aec_output(s16 *data, u16 len)
     audio_cvp_sync_run(data, len);
     return len;
 #endif/*TCFG_AUDIO_CVP_SYNC*/
-    return cvp_node_output_handle(data, len);
+    return cvp_tms_node_output_handle(data, len);
 }
 
 #define AUDIO_3MIC_PARAM_FILE 	(FLASH_RES_PATH"3mic_coeff.bin")
@@ -379,12 +379,13 @@ void *read_triple_mic_param()
 *			   认参数配置
 *********************************************************************
 */
-static void audio_aec_param_init(struct tms_attr *p)
+__CVP_BANK_CODE
+static void audio_aec_param_init(struct tms_attr *p, u16 node_uuid)
 {
     int ret = 0;
     AEC_TMS_CONFIG cfg;
     //读取工具配置参数+预处理参数
-    ret = cvp_node_param_cfg_read(&cfg, 0);
+    ret = cvp_tms_node_param_cfg_read(&cfg, 0, node_uuid);
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
     ret = aec_cfg_online_update_fill(&cfg, sizeof(AEC_TMS_CONFIG));
 #endif/*TCFG_AEC_TOOL_ONLINE_ENABLE*/
@@ -587,6 +588,7 @@ int audio_tms_get_malfunc_state(void)
 *			   数据输出回调函数
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len))
 {
     s16 sample_rate = init_param->sample_rate;
@@ -644,7 +646,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
     aec_param->ref_channel = ref_channel;
 
-    audio_aec_param_init(aec_param);
+    audio_aec_param_init(aec_param, init_param->node_uuid);
 
     if (enablebit >= 0) {
         aec_param->EnableBit = enablebit;
@@ -707,10 +709,10 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
 #endif
 
-    y_printf("[aec_user]aec_open\n");
+    y_printf("cvp-3mic_open\n");
 #if CVP_TOGGLE
-    int ret = aec_open(aec_param);
-    ASSERT(ret == 0, "aec_open err %d!!", ret);
+    int ret = aec_tms_init(aec_param);
+    ASSERT(ret == 0, "cvp-3mic open err %d!!", ret);
 #endif
     cvp_tms->start = 1;
     mem_stats();
@@ -727,6 +729,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_init(struct audio_aec_init_param_t *init_param)
 {
     return audio_aec_open(init_param, -1, NULL);
@@ -797,6 +800,7 @@ void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 void audio_aec_close(void)
 {
     printf("audio_aec_close:%x", (u32)cvp_tms);
@@ -812,7 +816,7 @@ void audio_aec_close(void)
             printf("cvp_tms_get_malfunc_state:%d", malfunc_state);
         }
 
-        aec_close();
+        aec_tms_exit();
 
 #if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
         TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
@@ -872,13 +876,18 @@ u8 audio_aec_status(void)
 *                  Audio AEC Input
 * Description: AEC源数据输入
 * Arguments  : buf	输入源数据地址
-*			   len	输入源数据长度
+*			   len	输入源数据长度(Byte)
 * Return	 : None.
 * Note(s)    : 输入一帧数据，唤醒一次运行任务处理数据，默认帧长256点
 *********************************************************************
 */
 void audio_aec_inbuf(s16 *buf, u16 len)
 {
+    if (len != 512) {
+        printf("[error] aec point fault\n"); //aec一帧长度需要256 points,需修改文件(esco_recorder.c/pc_mic_recorder.c)的ADC中断点数
+
+    }
+
     if (cvp_tms && cvp_tms->start) {
         if (cvp_tms->input_clear) {
             memset(buf, 0, len);
@@ -888,7 +897,7 @@ void audio_aec_inbuf(s16 *buf, u16 len)
             cvp_tms->inbuf_clear_cnt--;
             memset(buf, 0, len);
         }
-        int ret = aec_in_data(buf, len);
+        int ret = aec_tms_fill_in_data(buf, len);
         if (ret == -1) {
         } else if (ret == -2) {
             log_error("aec inbuf full\n");
@@ -912,14 +921,14 @@ void audio_aec_inbuf(s16 *buf, u16 len)
 void audio_aec_inbuf_ref(s16 *buf, u16 len)
 {
     if (cvp_tms && cvp_tms->start) {
-        aec_in_data_ref(buf, len);
+        aec_tms_fill_in_ref_data(buf, len);
     }
 }
 
 void audio_aec_inbuf_ref_1(s16 *buf, u16 len)
 {
     if (cvp_tms && cvp_tms->start) {
-        aec_in_data_ref_1(buf, len);
+        aec_tms_fill_in_ref_1_data(buf, len);
     }
 }
 
@@ -937,7 +946,7 @@ void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
 {
     if (cvp_tms && cvp_tms->start) {
 #if CVP_TOGGLE
-        aec_ref_data(data0, data1, len);
+        aec_tms_fill_ref_data(data0, data1, len);
 #endif/*CVP_TOGGLE*/
     }
 }

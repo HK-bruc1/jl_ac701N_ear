@@ -76,7 +76,7 @@ static void le_auracast_audio_open(uint8_t *packet, uint16_t length)
     int err = 0;
     auracast_sink_source_info_t *config = (auracast_sink_source_info_t *)packet;
     ASSERT(config, "config is NULL");
-    printf("audio open\n");
+    printf("le_auracast_audio_open\n");
     //audio open
     if (config->Num_BIS > MAX_NUM_BIS) {
         g_rx_audio.bis_num = MAX_NUM_BIS;
@@ -86,10 +86,11 @@ static void le_auracast_audio_open(uint8_t *packet, uint16_t length)
     for (u8 i = 0; i < g_rx_audio.bis_num; i++) {
         g_rx_audio.audio_hdl[i].bis_hdl = config->Connection_Handle[i];
     }
+    printf("presentation_delay_us:%d\n", config->presentation_delay_us);
     struct le_audio_stream_params params;
     params.fmt.nch = LE_AUDIO_CODEC_CHANNEL;
     params.fmt.coding_type = LE_AUDIO_CODEC_TYPE;
-    params.fmt.frame_dms = LE_AUDIO_CODEC_FRAME_LEN;
+    params.fmt.frame_dms = config->sdu_period * 10 / 1000;
     params.fmt.sdu_period = config->sdu_period;
     params.fmt.isoIntervalUs = config->sdu_period;
     params.fmt.sample_rate = config->sample_rate;
@@ -138,7 +139,7 @@ static void le_auracast_iso_rx_callback(uint8_t *packet, uint16_t size)
 
 static void le_auracast_audio_close(void)
 {
-    printf("audio close\n");
+    printf("le_auracast_audio_close\n");
     for (u8 i = 0; i < g_rx_audio.bis_num; i++) {
         if (g_rx_audio.audio_hdl[i].rx_player.le_audio && g_rx_audio.audio_hdl[i].rx_player.rx_stream) {
             le_audio_player_close(g_rx_audio.audio_hdl[i].rx_player.le_audio);
@@ -156,7 +157,7 @@ static void le_auracast_audio_close(void)
 void auracast_sink_source_info_report_event_deal(uint8_t *packet, uint16_t length)
 {
 #if (THIRD_PARTY_PROTOCOLS_SEL & AURACAST_APP_EN)
-    struct auracst_source_item_t src = {0};
+    struct auracast_source_item_t src = {0};
     auracast_sink_source_info_t *param = (auracast_sink_source_info_t *)packet;
 
     u8 name_len = strlen((const char *)param->broadcast_name);
@@ -170,6 +171,16 @@ void auracast_sink_source_info_report_event_deal(uint8_t *packet, uint16_t lengt
     src.broadcast_id[2] = (param->broadcast_id >> 16) & 0xFF;
     auracast_app_notify_source_list(&src);
 #endif
+}
+
+static void auracast_sink_big_info_report_event_deal(uint8_t *packet, uint16_t length)
+{
+    auracast_sink_source_info_t *param = (auracast_sink_source_info_t *)packet;
+    printf("auracast_sink_big_info_report_event_deal\n");
+    printf("num bis : %d\n", param->Num_BIS);
+    if (param->Num_BIS > MAX_NUM_BIS) {
+        param->Num_BIS = MAX_NUM_BIS;
+    }
 }
 
 static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16_t length)
@@ -186,8 +197,10 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
         break;
     case AURACAST_SINK_BIG_SYNC_CREATE_EVENT:
         printf("AURACAST_SINK_BIG_SYNC_CREATE_EVENT\n");
-
-        ASSERT(cur_listening_source_info);
+        if (cur_listening_source_info == NULL) {
+            printf("cur_listening_source_info == NULL\n");
+            break;
+        }
         memcpy(cur_listening_source_info, auracast_sink_listening_source_info_get(), sizeof(auracast_sink_source_info_t));
 
         if (auracast_sink_sync_timeout_hdl != 0) {
@@ -203,9 +216,20 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
     case AURACAST_SINK_BIG_SYNC_FAIL_EVENT:
     case AURACAST_SINK_BIG_SYNC_LOST_EVENT:
         printf("big lost or fail\n");
-        //auracast_sink_big_sync_terminate();
         le_auracast_audio_close();
-        app_auracast_app_notify_listening_status(0, 2);
+        if (packet[0] == 0x3d) {
+            printf("key error\n");
+            app_auracast_app_notify_listening_status(0, 4);
+            break;
+        }
+        printf("big timeout lost\n");
+        //auracast_sink_big_sync_terminate();
+
+        if (cur_listening_source_info) {
+            free(cur_listening_source_info);
+            cur_listening_source_info = NULL;
+        }
+        app_auracast_app_notify_listening_status(0, 7);
         break;
     case AURACAST_SINK_PERIODIC_ADVERTISING_SYNC_LOST_EVENT:
         if (cur_listening_source_info) {
@@ -217,6 +241,7 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
         break;
     case AURACAST_SINK_BIG_INFO_REPORT_EVENT:
         printf("AURACAST_SINK_BIG_INFO_REPORT_EVENT\n");
+        auracast_sink_big_info_report_event_deal(packet, length);
         break;
     case AURACAST_SINK_ISO_RX_CALLBACK_EVENT:
         //printf("AURACAST_SINK_ISO_RX_CALLBACK_EVENT\n");
@@ -225,6 +250,10 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
     case AURACAST_SINK_EXT_SCAN_COMPLETE_EVENT:
         printf("AURACAST_SINK_EXT_SCAN_COMPLETE_EVENT\n");
         break;
+    case AURACAST_SINK_PADV_REPORT_EVENT:
+        // printf("AURACAST_SINK_PADV_REPORT_EVENT\n");
+        // put_buf(packet, length);
+        break;
     default:
         break;
     }
@@ -232,6 +261,7 @@ static void auracast_sink_event_callback(uint16_t event, uint8_t *packet, uint16
 
 int app_auracast_bass_server_event_callback(uint8_t event, uint8_t *packet, uint16_t size)
 {
+    int ret = 0;
     struct le_audio_bass_add_source_info_t *bass_source_info = (struct le_audio_bass_add_source_info_t *)packet;
     auracast_sink_source_info_t add_source_param = {0};
     switch (event) {
@@ -261,6 +291,16 @@ int app_auracast_bass_server_event_callback(uint8_t event, uint8_t *packet, uint
         break;
     case BASS_SERVER_EVENT_SOURCE_DELETED:
         break;
+    case BASS_SERVER_EVENT_BROADCAST_CODE:
+        printf("BASS_SERVER_EVENT_BROADCAST_CODE id=%d\n", packet[0]);
+        put_buf(packet, size);
+
+        ASSERT(cur_listening_source_info);
+        auracast_sink_set_broadcast_code(&packet[1]);
+        ret = app_auracast_sink_big_sync_create(cur_listening_source_info);
+        if (ret != 0) {
+        }
+        break;
     }
     return 0;
 }
@@ -268,9 +308,8 @@ int app_auracast_bass_server_event_callback(uint8_t event, uint8_t *packet, uint
 void app_auracast_sink_init(void)
 {
     printf("app_auracast_sink_init\n");
-    auracast_sink_init();
+    auracast_sink_init(AURACAST_SINK_API_VERSION);
     auracast_sink_event_callback_register(auracast_sink_event_callback);
-
     le_audio_bass_event_callback_register(app_auracast_bass_server_event_callback);
 }
 
@@ -367,14 +406,16 @@ static int __app_auracast_sink_big_sync_create(auracast_sink_source_info_t *para
     if (cur_listening_source_info == NULL) {
         cur_listening_source_info = malloc(sizeof(auracast_sink_source_info_t));
     } else {
-        printf("cur_listening_source_info already malloc!\n");
-        ASSERT(0);
-        return -1;
+        /* printf("cur_listening_source_info already malloc!\n"); */
+        /* ASSERT(0); */
+        /* return -1; */
     }
     memcpy(cur_listening_source_info, param, sizeof(auracast_sink_source_info_t));
     int ret = auracast_sink_big_sync_create(cur_listening_source_info);
     if (0 == ret) {
-        auracast_sink_sync_timeout_hdl = sys_timeout_add(NULL, auracast_sink_sync_timeout_handler, 15000);
+        if (auracast_sink_sync_timeout_hdl == 0) {
+            auracast_sink_sync_timeout_hdl = sys_timeout_add(NULL, auracast_sink_sync_timeout_handler, 15000);
+        }
     } else {
         printf("__app_auracast_sink_big_sync_create ret:%d\n", ret);
     }
@@ -394,10 +435,10 @@ int app_auracast_sink_big_sync_create(auracast_sink_source_info_t *param)
 {
     printf("app_auracast_sink_big_sync_create\n");
     u8 bt_addr[6];
-    if (auracast_sink_sync_timeout_hdl != 0) {
-        printf("auracast_sink_sync_timeout_hdl is not null\n");
-        return -1;
-    }
+    /* if (auracast_sink_sync_timeout_hdl != 0) { */
+    /* printf("auracast_sink_sync_timeout_hdl is not null\n"); */
+    /* return -1; */
+    /* } */
 
     if (esco_player_runing()) {
         printf("app_auracast_sink_big_sync_create esco_player_runing\n");
@@ -420,10 +461,6 @@ int app_auracast_sink_big_sync_create(auracast_sink_source_info_t *param)
 #endif
     }
 
-    if (cur_listening_source_info) {
-        free(cur_listening_source_info);
-        cur_listening_source_info = NULL;
-    }
 #if TCFG_USER_TWS_ENABLE
     int ret = 0;
     if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
@@ -441,10 +478,9 @@ int app_auracast_sink_big_sync_create(auracast_sink_source_info_t *param)
 
 static int le_auracast_app_msg_handler(int *msg)
 {
-    printf("le_auracast_app_msg_handler:%d\n", msg[0]);
     switch (msg[0]) {
     case APP_MSG_STATUS_INIT_OK:
-        printf("APP_MSG_STATUS_INIT_OK");
+        printf("app_auracast APP_MSG_STATUS_INIT_OK");
 
 #if !(TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
         le_audio_init(3);
@@ -455,7 +491,7 @@ static int le_auracast_app_msg_handler(int *msg)
         break;
     case APP_MSG_POWER_OFF://1
         //le_audio_uninit(3);
-        printf("APP_MSG_POWER_OFF");
+        printf("app_auracast APP_MSG_POWER_OFF");
         break;
     default:
         break;
@@ -467,6 +503,27 @@ APP_MSG_HANDLER(le_auracast_app_msg_entry) = {
     .owner      = 0xff,
     .from       = MSG_FROM_APP,
     .handler    = le_auracast_app_msg_handler,
+};
+
+static int le_auracast_app_hci_event_handler(int *_event)
+{
+    struct bt_event *event = (struct bt_event *)_event;
+    printf("le_auracast_app_hci_event_handler:%d\n", event->event);
+    switch (event->event) {
+    case HCI_EVENT_CONNECTION_COMPLETE:
+        break;
+    case HCI_EVENT_DISCONNECTION_COMPLETE :
+        printf("app le auracast HCI_EVENT_DISCONNECTION_COMPLETE: %0x\n", event->value);
+        le_auracast_stop();
+        break;
+    }
+    return 0;
+}
+
+APP_MSG_HANDLER(auracast_hci_msg_entry) = {
+    .owner      = 0xff,
+    .from       = MSG_FROM_BT_HCI,
+    .handler    = le_auracast_app_hci_event_handler,
 };
 
 #if TCFG_USER_TWS_ENABLE
@@ -624,7 +681,7 @@ static int le_auracast_app_btstack_event_handler(int *_event)
     return 0;
 }
 
-APP_MSG_HANDLER(conn_stack_msg_entry) = {
+APP_MSG_HANDLER(auracast_stack_msg_entry) = {
     .owner      = 0xff,
     .from       = MSG_FROM_BT_STACK,
     .handler    = le_auracast_app_btstack_event_handler,

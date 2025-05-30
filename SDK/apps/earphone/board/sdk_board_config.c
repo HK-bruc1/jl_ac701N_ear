@@ -236,12 +236,12 @@ LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
 LP_TOUCH_KEY_PLATFORM_DATA_END();
 #endif
 
-
+__INITCALL_BANK_CODE
 void board_init()
 {
     board_power_init();
 
-    adc_init();
+    gpadc_init();
 
 #if TCFG_BATTERY_CURVE_ENABLE
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
@@ -257,6 +257,7 @@ void board_init()
 }
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
+__INITCALL_BANK_CODE
 static int touch_key_init(void)
 {
     lp_touch_key_init(&lp_touch_key_pdata);

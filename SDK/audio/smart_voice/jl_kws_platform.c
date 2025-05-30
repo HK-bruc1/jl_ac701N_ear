@@ -33,7 +33,7 @@
 #define SMART_VOICE_TEST_PRINT_PCM        0
 #define SMART_VOICE_TEST_WRITE_FILE       0
 #define SMART_VOICE_DEBUG_KWS_RESULT      0
-#define AUDIO_NN_VAD_ENABLE             0
+#define AUDIO_NN_VAD_ENABLE               0
 
 
 /*

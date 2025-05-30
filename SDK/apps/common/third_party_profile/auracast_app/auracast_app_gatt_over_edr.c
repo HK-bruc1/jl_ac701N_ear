@@ -18,10 +18,10 @@ void *auracast_app_gatt_hdl = NULL;
      ((u8)('E' + 'D' + 'R') << (1 * 8)) | \
      ((u8)('A' + 'T' + 'T') << (0 * 8)))
 
-static void app_ble_att_over_edr_init(void *hdl, u8 addr_type, u32 uuid)
+static void app_ble_att_over_edr_init(void *hdl, u32 uuid)
 {
     app_ble_adv_address_type_set(hdl, 0);
-    app_ble_att_connect_type_set(hdl, addr_type);
+    app_ble_gatt_over_edr_connect_type_set(hdl, 1);
     app_ble_hdl_uuid_set(hdl, uuid);
     app_ble_profile_set(hdl, auracast_app_ble_profile_data);
     app_ble_att_read_callback_register(hdl, auracast_app_att_read_callback);
@@ -39,8 +39,7 @@ void auracast_app_gatt_over_edr_init(void)
         }
     }
 
-    u8 addr_type = 0xFB;
-    app_ble_att_over_edr_init(auracast_app_gatt_hdl, addr_type, AURACAST_EDR_ATT_HDL_UUID);
+    app_ble_att_over_edr_init(auracast_app_gatt_hdl, AURACAST_EDR_ATT_HDL_UUID);
 }
 
 void auracast_app_gatt_over_edr_exit(void)

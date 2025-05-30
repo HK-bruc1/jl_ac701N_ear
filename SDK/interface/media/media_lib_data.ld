@@ -43,6 +43,12 @@
 	*(.lc3_codec_c_data)
 #endif
 
+	*(.jla_v2_dec_data)
+	*(.jla_v2_enc_data)
+	*(.jla_v2_codec_c_data)
+	*(.jla_v2_codec_ari_c_data)
+
+
 	*(.mp3_dec.data)
 	*(.mp3.data)
     *(.mp3tsy_dec.data)
@@ -116,3 +122,6 @@
 	*(.anc_btspp_data)
 	*(.anc_debug_data)
 
+#if (AUDIO_CVP_COMMON_AT_RAM == 0)
+	*(.aec_mem)
+#endif

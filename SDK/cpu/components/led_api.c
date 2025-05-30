@@ -337,6 +337,7 @@ void led_driver_task(void *priv)
     }
 }
 
+__INITCALL_BANK_CODE
 void led_effect_board_init(const led_board_cfg_t *cfg)
 {
     led_board_cfg = cfg;

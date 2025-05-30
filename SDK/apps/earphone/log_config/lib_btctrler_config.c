@@ -35,6 +35,7 @@ const int CONFIG_LMP_CONNECTION_NUM = 1;
 const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 1;
 #endif
 
+const int CONFIG_DISTURB_SCAN_ENABLE = 0;
 
 #define TWS_PURE_MONITOR_MODE    0//1:纯监听模式
 
@@ -44,6 +45,8 @@ const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 1;
 		return 0;
 	}
 #endif
+const int CONFIG_TWS_PURE_MONITOR_MODE = TWS_PURE_MONITOR_MODE; /*自适应延时策略使用*/
+
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
 	const int CONFIG_TWS_AUDIO_SHARE_ENABLE  = 1;
 #else
@@ -158,7 +161,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 #endif
 
 const int CONFIG_A2DP_MAX_BUF_SIZE      = 25 * 1024;    //不再使用
-const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 15 * 1024;
+const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 20 * 1024;
 const int CONFIG_A2DP_SBC_MAX_BUF_SIZE  = 25 * 1024;
 const int CONFIG_A2DP_LHDC_MAX_BUF_SIZE = 50 * 1024;
 const int CONFIG_A2DP_LDAC_MAX_BUF_SIZE = 50 * 1024;
@@ -308,6 +311,11 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 #endif
 
     const int CONFIG_MPR_CLOSE_WHEN_ESCO = 0;
+#ifdef CONFIG_BT_CTRLER_USE_SDK
+		const int CONFIG_BT_CTRLER_USE_SDK_ENABLE = 1;//br56不用maskrom的lmp，外面重写流程过滤掉
+#else
+		const int CONFIG_BT_CTRLER_USE_SDK_ENABLE = 0;
+#endif
 
 #ifdef CONFIG_SUPPORT_WIFI_DETECT
 	#if TCFG_USER_TWS_ENABLE
@@ -435,7 +443,7 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (1)
+    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #else
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #endif

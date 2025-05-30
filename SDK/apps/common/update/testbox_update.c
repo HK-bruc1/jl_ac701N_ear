@@ -10,6 +10,7 @@
 #include "btctrler_task.h"
 #include "app_config.h"
 #include "clock.h"
+#include "system/init.h"
 
 
 #if defined(CONFIG_SPP_AND_LE_CASE_ENABLE) || defined(CONFIG_HID_CASE_ENABLE)
@@ -236,6 +237,7 @@ void testbox_update_msg_handle(int msg)
 
 }
 
+__INITCALL_BANK_CODE
 void testbox_update_init(void)
 {
     if (CONFIG_UPDATE_ENABLE && (CONFIG_UPDATE_BLE_TEST_EN || CONFIG_UPDATE_BT_LMP_EN)) {

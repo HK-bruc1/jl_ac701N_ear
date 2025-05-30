@@ -23,6 +23,7 @@
 struct tws_tone_message {
     enum stream_scene scene;
     enum stream_coexist coexist;
+    u8 preemption;
     u8 file_num;
     u8 network;
     u8 reference_clk;
@@ -181,7 +182,9 @@ static void tws_tone_play_in_task(struct tws_tone_message *msg)
 {
     struct tws_tone_player *player;
     const char *file_name = msg->name[0];
-
+    if (msg->preemption) {
+        tone_player_stop();
+    }
     printf("tws_tone_play: %x, %s\n", msg->timestamp, file_name);
 
     player = zalloc(sizeof(*player));
@@ -291,7 +294,7 @@ static void tws_tone_reference_clock_close(u8 id)
 static int __tws_play_tone_file(const char *const file_list[], u8 file_num,
                                 int delay_msec, enum stream_scene scene,
                                 enum stream_coexist coexist,
-                                u32 func_uuid)
+                                u32 func_uuid, u8 preemption)
 {
     struct tws_tone_message msg;
 
@@ -323,6 +326,7 @@ static int __tws_play_tone_file(const char *const file_list[], u8 file_num,
     msg.coexist         = coexist;
     msg.func_uuid       = func_uuid;
     msg.file_num        = file_num;
+    msg.preemption      = preemption;
 
     for (int i = 0; i < file_num;  i++) {
         strcpy(msg.name[i], file_list[i]);
@@ -349,6 +353,10 @@ static int __tws_play_tone_file(const char *const file_list[], u8 file_num,
                 err = play_tone_files_callback(file_list, file_num, (void *)func_uuid,
                                                tws_files_callback);
             } else {
+                if (msg.preemption) {//tws提示音,发送失败，检查抢占标志，关闭提示音
+                    tone_player_stop();
+                }
+
                 if (file_num == 1) {
                     err = play_tone_file_alone_callback(file_list[0], (void *)func_uuid,
                                                         tws_files_callback);
@@ -369,7 +377,7 @@ static void tws_play_tone_try_timeout(void *arg)
     if (file) {
         const char *fname = file->name;
         __tws_play_tone_file(&fname, 1, file->delay_time,
-                             file->scene, file->coexist, file->func_uuid);
+                             file->scene, file->coexist, file->func_uuid, 0);
         free(file);
     }
 }
@@ -377,70 +385,71 @@ static void tws_play_tone_try_timeout(void *arg)
 int tws_play_tone_file(const char *file_name, int delay_msec)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_AUTO, 0);
+                                STREAM_COEXIST_AUTO, 0, 0);
 }
 
 int tws_play_tone_file_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_AUTO, func_uuid);
+                                STREAM_COEXIST_AUTO, func_uuid, 0);
 }
 
 int tws_play_ring_file(const char *file_name, int delay_msec)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_RING,
-                                STREAM_COEXIST_AUTO, 0);
+                                STREAM_COEXIST_AUTO, 0, 0);
 }
 
 int tws_play_ring_file_alone(const char *file_name, int delay_msec)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_RING,
-                                STREAM_COEXIST_DISABLE, 0);
+                                STREAM_COEXIST_DISABLE, 0, 0);
 }
 
 int tws_play_ring_file_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_RING,
-                                STREAM_COEXIST_AUTO, func_uuid);
+                                STREAM_COEXIST_AUTO, func_uuid, 0);
 }
 
 int tws_play_ring_file_alone_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_RING,
-                                STREAM_COEXIST_DISABLE, func_uuid);
+                                STREAM_COEXIST_DISABLE, func_uuid, 0);
 }
 
 int tws_play_tone_files_callback(const char *const file_name[], u8 file_num,
                                  int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(file_name, file_num, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_AUTO, func_uuid);
+                                STREAM_COEXIST_AUTO, func_uuid, 0);
 }
 
 int tws_play_tone_files_alone_callback(const char *const file_name[], u8 file_num,
                                        int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(file_name, file_num, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_DISABLE, func_uuid);
+                                STREAM_COEXIST_DISABLE, func_uuid, 0);
 }
 
 int tws_play_tone_file_alone(const char *file_name, int delay_msec)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_DISABLE, 0);
+                                STREAM_COEXIST_DISABLE, 0, 0);
 }
 
 int tws_play_tone_file_alone_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_DISABLE, func_uuid);
+                                STREAM_COEXIST_DISABLE, func_uuid, 0);
 }
-
-
-static int tws_tone_player_init()
+//抢占播放:打断其他播放器,且会先关闭当前提示音，再再播下一个
+int tws_play_tone_file_preemption_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
-    return 0;
+    return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
+                                STREAM_COEXIST_DISABLE, func_uuid, 1);
 }
-__initcall(tws_tone_player_init);
+
+
 
 #endif

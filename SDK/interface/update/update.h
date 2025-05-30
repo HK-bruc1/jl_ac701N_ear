@@ -14,6 +14,8 @@ extern u32 UPDATA_SIZE;
 #define MY_STR(x)  #x
 #define STRCHANGE(x) MY_STR(x)
 
+#define __UPDATE_BANK_CODE __attribute__((section(".update.bank.text")))
+
 typedef enum {
     UPDATA_NON = UPDATA_MAGIC,
     UPDATA_READY,

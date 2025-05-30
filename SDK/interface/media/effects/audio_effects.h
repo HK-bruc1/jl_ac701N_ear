@@ -10,6 +10,7 @@
 #include "effects/audio_frequency_compressor.h"
 #include "effects/convert_data.h"
 #include "effects/audio_spatial_adv.h"
+#include "effects/audio_virtual_bass_pro.h"
 
 
 

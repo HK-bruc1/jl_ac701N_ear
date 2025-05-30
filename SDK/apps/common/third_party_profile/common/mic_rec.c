@@ -225,7 +225,8 @@ u16 ai_mic_get_frame_size()
     return __this->frame_size;
 }
 
-int rec_enc_output(void *priv, void *buf, int len)
+//int rec_enc_output(void *priv, void *buf, int len)
+static int rec_enc_output(u8 *buf, u32 len)
 {
     bt_sniff_ready_clean();
 
@@ -296,6 +297,7 @@ int ai_mic_rec_start(void)
         printf("%s \n", __this->ai_enc_info.info);
         /* audio_mic_enc_open(rec_enc_output, __this->ai_enc_info.enc_type, __this->ai_enc_info.opus_type); */
         ai_voice_recoder_open(__this->ai_enc_info.enc_type, __this->ai_enc_info.opus_type);
+        ai_voice_recoder_set_ai_tx_node_func(rec_enc_output);
         __this->ai_mic_busy_flg = 1;
     }
 

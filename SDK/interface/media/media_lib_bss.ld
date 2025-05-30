@@ -39,6 +39,18 @@
 	*(.lc3_codec_c_bss)
 #endif
 
+	*(.jla_codec_c_bss)
+	*(.jl_codec_c_bss)
+
+	*(.jla_lw_codec_bss)
+	*(.jla_lw.bss)
+	*(.jla_ll.bss)
+
+	*(.jla_v2_dec_bss)
+	*(.jla_v2_enc_bss)
+	*(.jla_v2_codec_c_bss)
+	*(.jla_v2_codec_ari_c_bss)
+
 	*(.mp3_dec.data.bss)
 	*(.mp3.data.bss)
 	*(.mp3tsy.data.bss)

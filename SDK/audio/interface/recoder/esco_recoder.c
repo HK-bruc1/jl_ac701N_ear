@@ -108,6 +108,23 @@ int esco_recoder_open(u8 link_type, void *bt_addr)
         }
     }
 
+#if TCFG_AI_TX_NODE_ENABLE
+#if 0
+    struct stream_fmt ai_tx_fmt = {0};
+    ai_tx_fmt.sample_rate = 16000;
+    ai_tx_fmt.coding_type = AUDIO_CODING_OPUS;
+    jlstream_node_ioctl(recoder->stream, NODE_UUID_AI_TX, NODE_IOC_SET_FMT, (int)&ai_tx_fmt);
+#else
+    struct stream_enc_fmt fmt = {0};
+    fmt.coding_type = AUDIO_CODING_JLA_V2;
+    fmt.sample_rate = 16000;
+    fmt.frame_dms = 200;
+    fmt.bit_rate = 16000;
+    fmt.channel = 1;
+    jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)(&fmt));
+#endif
+#endif
+
     if (link_type == JL_DOGLE_ACL) { //连接方式为ACL  msbc 编码需要用软件; aec 参考采样率为48000;
         enc_fmt.sw_hw_option = 1; //连接方式时ACL msbc 编码需要用软件
         //设置编码参数
@@ -138,6 +155,20 @@ __exit1:
 __exit0:
     free(recoder);
     return err;
+}
+
+int esco_recoder_running()
+{
+    return g_esco_recoder != NULL;
+}
+
+void esco_recoder_set_ai_tx_node_func(int (*func)(u8 *, u32))
+{
+    struct esco_recoder *recoder = g_esco_recoder;
+
+    if (recoder && recoder->stream) {
+        jlstream_node_ioctl(recoder->stream, NODE_UUID_AI_TX, NODE_IOC_SET_PRIV_FMT, (int)func);
+    }
 }
 
 void esco_recoder_close()

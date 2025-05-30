@@ -158,9 +158,37 @@ void app_main()
         asm("idle");
     }
 }
+void port_hd_init(u32 hd_lev)
+{
+    u16 port_hd_mask[6];
 
+    port_hd_mask[PORTA_GROUP] = -1;
+    port_hd_mask[PORTB_GROUP] = -1;
+    port_hd_mask[PORTC_GROUP] = -1;
+    port_hd_mask[PORTD_GROUP] = -1;
+    port_hd_mask[PORTE_GROUP] = -1;
+    port_hd_mask[PORTG_GROUP] = -1;
+
+
+    switch (hd_lev) {
+    case 0:
+        break;
+    case 1:
+        JL_PORTA->HD0 |= port_hd_mask[PORTA_GROUP];
+        JL_PORTB->HD0 |= port_hd_mask[PORTB_GROUP];
+        JL_PORTC->HD0 |= port_hd_mask[PORTC_GROUP];
+        JL_PORTD->HD0 |= port_hd_mask[PORTD_GROUP];
+        JL_PORTE->HD0 |= port_hd_mask[PORTE_GROUP];
+        JL_PORTG->HD0 |= port_hd_mask[PORTG_GROUP];
+        break;
+    }
+}
 void setup_arch()
 {
+    //IO开1档强驱，避免IO短路的时候烧毁IO
+    //开启后需要确认是否对蓝牙，audio，EMI指标造成影响
+    port_hd_init(1);
+
     //关闭所有timer的ie使能
     bit_clr_ie(IRQ_TIME0_IDX);
     bit_clr_ie(IRQ_TIME1_IDX);

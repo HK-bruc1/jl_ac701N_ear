@@ -20,9 +20,9 @@ u32 efuse_get_charge_full_trim(void);
 
 u32 efuse_get_audio_vbg_trim();
 u32 efuse_get_lrc_freq_trim();
-u32 efuse_get_vbat_trim();
 u32 get_btvbg_trx_trim();
 u32 get_btvbg_btadc_trim();
 u32 get_btvbg_btpll_trim();
+u32 get_charger_act();
 
 #endif  /*EFUSE_H*/

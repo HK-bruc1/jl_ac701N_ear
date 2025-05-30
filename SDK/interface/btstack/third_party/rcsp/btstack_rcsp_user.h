@@ -39,6 +39,12 @@ u8 bt_rcsp_ble_conn_num(void);
  * @result 返回连接的spp手机设备数
  */
 u8 bt_rcsp_spp_conn_num(void);
+/**
+ * @brief 获取当前已连接att数目
+ *
+ * @result 返回连接的att手机设备数
+ */
+u8 bt_rcsp_edr_att_conn_num(void);
 
 /**
  * @brief 在连接或断开的时候，设置rcsp蓝牙连接信息

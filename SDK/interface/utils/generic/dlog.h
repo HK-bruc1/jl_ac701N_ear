@@ -3,10 +3,7 @@
 
 #include "typedef.h"
 
-#define DLOG_PRINTF_ENABLE                   0
-#define DLOG_LOG_PRINT_ENABLE                0
-
-#define DLOG_STR_TAB_STRUCT_SIZE      (16)  // 决定了 dlog_str_tab_s 结构体的大小, 如果有修改结构体大小必需修改该宏和sdk_ld.c中的STR_TAB_SIZE值
+#define DLOG_STR_TAB_STRUCT_SIZE             (16)  // 决定了 dlog_str_tab_s 结构体的大小, 如果有修改结构体大小必需修改该宏和sdk_ld.c中的STR_TAB_SIZE值
 
 struct dlog_str_tab_s {
     u32 arg_num : 8;
@@ -39,6 +36,19 @@ struct dlog_output_channel_s {
 
 #define LOG_BASE_UNIT_SIZE                (4 * 1024)  // 固定为 4K
 #define LOG_MAX_ARG_NUM                   (14)        // 不可修改
+
+enum DLOG_OUTPUT_TYPE {
+    DLOG_OUTPUT_2_NONE  = 0,
+    DLOG_OUTPUT_2_FLASH = (1 << 0),
+    DLOG_OUTPUT_2_UART  = (1 << 1),
+};
+
+enum DLOG_LOG_TYPE {
+    DLOG_LOG_2_NONE     = 0,
+    DLOG_LOG_2_PRINT    = (1 << 0),
+    DLOG_LOG_2_PUTCHAR  = (1 << 1),
+    DLOG_LOG_2_PUT_BUF  = (1 << 2),
+};
 
 /*----------------------------------------------------------------------------*/
 /**@brief dlog功能初始化
@@ -94,7 +104,13 @@ u16 dlog_read_from_flash(u8 *buf, u16 len, u32 offset);
 
 /*----------------------------------------------------------------------------*/
 /**@brief 设置dlog等级
-  @param  level  : 等级
+  @param  level  : 等级, 如下宏定义所示
+                        __LOG_VERB      0
+                        __LOG_DEBUG     1
+                        __LOG_INFO      2
+                        __LOG_WARN      3
+                        __LOG_ERROR     4
+                        __LOG_CHAR      5
   @return void
   @note
  */
@@ -104,17 +120,78 @@ void dlog_level_set(int level);
 /*----------------------------------------------------------------------------*/
 /**@brief 获取dlog等级
   @param  void
-  @return level  : 等级
+  @return level  : 等级, 如下宏定义所示
+                        __LOG_VERB      0
+                        __LOG_DEBUG     1
+                        __LOG_INFO      2
+                        __LOG_WARN      3
+                        __LOG_ERROR     4
+                        __LOG_CHAR      5
   @note
  */
 /*----------------------------------------------------------------------------*/
 int dlog_level_get(void);
 
+/*----------------------------------------------------------------------------*/
+/**@brief 设置dlog的输出类型
+  @param  type     :
+                   DLOG_OUTPUT_2_NONE: 既不输出到串口也不输出到flash,仅输出到缓存
+                   DLOG_OUTPUT_2_FLASH: 仅输出到flash
+                   DLOG_OUTPUT_2_UART: 仅输出到串口
+  @return : 如果返回值不为0, 则表示缓存数据没有刷新到flash(非丢数据)
+  @note 需要同时输出到串口和flash可用位或(DLOG_OUTPUT_2_UART | DLOG_OUTPUT_2_FLASH)
+ */
+/*----------------------------------------------------------------------------*/
+int dlog_output_type_set(enum DLOG_OUTPUT_TYPE type);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 获取dlog的输出类型
+  @param  void
+  @return : enum DLOG_OUTPUT_TYPE
+  @note
+ */
+/*----------------------------------------------------------------------------*/
+enum DLOG_OUTPUT_TYPE dlog_output_type_get(void);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 输出dlog的同步信息
+  @param  void
+  @return : 大于等于0表示执行成功
+  @note 由于时间戳和序号采用增量形式,所以通过该接口可以输出一个绝对值进行同步
+ */
+/*----------------------------------------------------------------------------*/
+int dlog_info_sync(void);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 清零dlog的丢失log数量
+  @param  void
+  @return void
+  @note
+ */
+/*----------------------------------------------------------------------------*/
+void dlog_leaks_clear(void);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 获取dlog的hash
+  @param  void
+  @return : hash 值
+  @note 可以通过程序的hash值来匹配dlog.bin
+ */
+/*----------------------------------------------------------------------------*/
+u16 dlog_get_head_hash(void);
+
+int dlog_log_type_set(enum DLOG_LOG_TYPE type);
+
+enum DLOG_LOG_TYPE dlog_log_type_get(void);
 
 // 仅声明, 非外部调用接口
-int __attribute__((weak)) dlog_print(int level, const struct dlog_str_tab_s *str_tab, u32 arg_bit_map_and_num, ...);
+int dlog_print(const struct dlog_str_tab_s *str_tab, u32 arg_bit_map_and_num, const char *format, ...);
+int dlog_putchar(char c);
+int dlog_put_buf(const u8 *buf, int len);
 
 extern const int config_dlog_enable;
+extern const int config_ulog_enable;
+extern const int dlog_seg_begin;
 
 // 超过 20 个参数就会计算出错
 #define VA_ARGS_NUM_PRIV(P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18 ,P19, P20, Pn, ...) Pn
@@ -174,24 +251,28 @@ extern const int config_dlog_enable;
 
 #define VA_ARGS_TYPE_CHECK(...)  VA_ARGS_TYPE_CHECK_PRIV(-1, ##__VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
+#define DLOG_LEVEL_TO_STR(level) #level
+
 #define dlog_printf(level, format, ...) \
     if(config_dlog_enable){ \
         VA_ARGS_NUM_CHECK(VA_ARGS_NUM(__VA_ARGS__)); \
         VA_ARGS_TYPE_CHECK(__VA_ARGS__); \
         DLOG_STR_TAB_SIZE_CHECK(); \
-        __attribute__((used,section(".dlog.rodata.string")))  static const char dlog_printf_str[] = format; \
-        __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
+        __attribute__((used,section(".dlog.rodata.string."DLOG_LEVEL_TO_STR(level))))  static const char dlog_printf_str[] = format; \
+        __attribute__((used,section(".dlog.rodata.str_tab."DLOG_LEVEL_TO_STR(level)))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
         { \
             .arg_num = (u32)VA_ARGS_NUM(__VA_ARGS__), \
             .dlog_level = (u8)level,\
             .dlog_str_addr = (u32)dlog_printf_str, \
             .arg_type_bit_map = (u32)VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) \
         }; \
-        dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
-                ((u32)VA_ARGS_NUM(__VA_ARGS__) << 28) | (VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) & 0x0FFFFFFF), \
+        dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+                ((u32)VA_ARGS_NUM(__VA_ARGS__) & 0x0F) | ((VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) & 0x0FFFFFFF) << 4), \
+                format, \
                 ##__VA_ARGS__); \
     };
 
+#if 0
 #define dlog_print_args_check(...)  \
             VA_ARGS_NUM_CHECK(VA_ARGS_NUM(__VA_ARGS__)); \
             VA_ARGS_TYPE_CHECK(__VA_ARGS__); \
@@ -207,8 +288,9 @@ extern const int config_dlog_enable;
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
-            dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+            dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
                     ((u32)args_num << 28) | (args_bit_map & 0x0FFFFFFF), \
+                    format, \
                     ##__VA_ARGS__); \
         }
 
@@ -222,8 +304,9 @@ extern const int config_dlog_enable;
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
-            dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+            dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
                     ((u32)args_num << 28) | (args_bit_map & 0x0FFFFFFF), \
+                    format, \
                     ##__VA_ARGS__); \
         }
 
@@ -233,12 +316,13 @@ extern const int config_dlog_enable;
             __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
             { \
                 .arg_num = (u32)1, \
-                .dlog_level = (u8)(-2 & ~BIT(31)),\
+                .dlog_level = (u8)0xFE,\
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)2 \
             }; \
-            dlog_print(level, &dlog_printf_str_tab, \
-                    ((u32)dlog_printf_str_tab.arg_num << 28) | (dlog_printf_str_tab.arg_type_bit_map & 0x0FFFFFFF), format); \
+            dlog_print(&dlog_printf_str_tab, \
+                    ((u32)dlog_printf_str_tab.arg_num << 28) | (dlog_printf_str_tab.arg_type_bit_map & 0x0FFFFFFF), "%s", format); \
         }
+#endif
 
 #endif

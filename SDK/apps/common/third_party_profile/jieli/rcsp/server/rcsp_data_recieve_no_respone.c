@@ -8,6 +8,7 @@
 #include "rcsp_config.h"
 #include "rcsp_event.h"
 #include "file_transfer.h"
+#include "file_transfer_sync.h"
 #include "ble_rcsp_server.h"
 
 ///>>>>>>>>>>>设备接收到APP下发不需要回复数据
@@ -28,9 +29,9 @@ void rcsp_data_recieve_no_respone(void *priv, u8 CMD_OpCode, u8 *data, u16 len, 
 {
     rcsp_printf("data_recieve_no_respone %x\n", CMD_OpCode);
     switch (CMD_OpCode) {
-#if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
+#if ((TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT) || RCSP_TONE_FILE_TRANSFER_ENABLE)
     case JL_OPCODE_FILE_TRANSFER:
-        rcsp_file_transfer_download_doing(data, len);
+        file_trans_handle(data, len, ble_con_handle, spp_remote_addr);
         break;
 #endif
     default:

@@ -199,7 +199,11 @@ void ntc_det_start(void)
         if (NTC_DET_PULLUP_TYPE && PULLUPRES_IS_TRIM) {
             /* 内部上拉 */
             printf("PULLUP_RES: %d", ntc_get_inside_pull_up_res_trim_value());
+#ifdef CONFIG_CPU_BR56
+            gpio_set_mode(IO_PORT_SPILT(NTC_DETECT_IO), PORT_INPUT_PULLUP_200K); //BR56内部上拉是200K，具体见原理图
+#else
             gpio_set_mode(IO_PORT_SPILT(NTC_DETECT_IO), PORT_INPUT_PULLUP_100K);
+#endif
         } else {
             /* 外部上拉 */
             gpio_set_mode(IO_PORT_SPILT(NTC_POWER_IO), PORT_OUTPUT_HIGH);
@@ -223,7 +227,12 @@ void ntc_det_stop(void)
         sys_timer_del(ntc_det.timer);
         ntc_det.timer = 0;
         adc_delete_ch(NTC_DET_AD_CH);
-        gpio_set_mode(IO_PORT_SPILT(NTC_POWER_IO), PORT_HIGHZ);
+        if (NTC_DET_PULLUP_TYPE && PULLUPRES_IS_TRIM) {
+            /* 内部上拉 */
+        } else {
+            /* 外部上拉 */
+            gpio_set_mode(IO_PORT_SPILT(NTC_POWER_IO), PORT_HIGHZ);
+        }
     }
 }
 

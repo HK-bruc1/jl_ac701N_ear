@@ -158,6 +158,8 @@ static void (*app_recieve_callback)(void *priv, void *buf, u16 len) = NULL;
 static void (*ble_resume_send_wakeup)(void) = NULL;
 static u32 channel_priv;
 
+extern const u8 adt_profile_support;
+extern u8 rcsp_adt_support; //edr att是否接入rcsp
 
 //------------------------------------------------------
 //ANCS
@@ -416,14 +418,22 @@ void rcsp_ble_adv_enable_with_con_dev()
     printf("%s, %s, %d, max:%d, conn_num:%d\n", __FILE__, __FUNCTION__, __LINE__, max_con_dev, conn_num);
 #if TCFG_USER_TWS_ENABLE
     if (TWS_ROLE_MASTER == tws_api_get_role()) {
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
         if (conn_num >= max_con_dev) {
+#else
+        if ((conn_num >= max_con_dev) && (bt_rcsp_edr_att_conn_num() == 0)) {
+#endif
             rcsp_bt_ble_adv_enable(0);
         } else {
             ble_module_enable(1);
         }
     }
 #else
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     if (conn_num >= max_con_dev) {
+#else
+    if ((conn_num >= max_con_dev) && (bt_rcsp_edr_att_conn_num() == 0)) {
+#endif
         rcsp_bt_ble_adv_enable(0);
     } else {
         ble_module_enable(1);
@@ -726,14 +736,14 @@ int rcsp_att_write_callback(hci_con_handle_t connection_handle, uint16_t att_han
 
         rcsp_set_ble_work_state(BLE_ST_NOTIFY_IDICATE);
         printf("\n------write ccc:%04x, %02x\n", att_handle, buffer[0]);
-        att_set_ccc_config(att_handle, buffer[0]);
+        multi_att_set_ccc_config(connection_handle, att_handle, buffer[0]);
 
         JL_protocol_resume();
 
         break;
 
     case ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE:
-        att_set_ccc_config(att_handle, buffer[0]);
+        multi_att_set_ccc_config(connection_handle, att_handle, buffer[0]);
         break;
 
     case ATT_CHARACTERISTIC_ae01_01_VALUE_HANDLE:
@@ -828,6 +838,9 @@ static void advertisements_setup_init()
     }
 #endif
 
+    if (adt_profile_support && rcsp_adt_support) {
+        adv_type = APP_ADV_SCAN_IND;
+    }
 
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     app_ble_set_adv_param(rcsp_server_ble_hdl, adv_interval, adv_type, adv_channel);
@@ -959,7 +972,7 @@ static int set_adv_enable(void *priv, u32 en)
             if (!is_cig_phone_conn()) {
 #endif
                 // 防止ios只连上ble的情况下，android(spp)回连导致ble断开后重新开广播的情况
-                if (bt_rcsp_device_conn_num() > 0) {
+                if (bt_rcsp_spp_conn_num() > 0 || bt_rcsp_ble_conn_num() > 0) {
                     log_info("spp is connecting\n");
                     printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
                     return APP_BLE_OPERATION_ERROR;

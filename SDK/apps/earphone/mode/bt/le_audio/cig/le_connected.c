@@ -684,13 +684,13 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
         return;
     }
     //为了兼容配置了间隔20ms，连续两包CIS的时候timestamp一样，临时处理使用
-    if (old_timestamp == param->ts) {
-        old_count++;
-        param->ts += get_cig_sdu_period_us() * old_count;
-    } else {
-        old_count = 0;
-    }
-    old_timestamp = param->ts;
+    /* if (old_timestamp == param->ts) { */
+    /* old_count++; */
+    /* param->ts += get_cig_sdu_period_us() * old_count; */
+    /* } else { */
+    /* old_count = 0; */
+    /* } */
+    /* old_timestamp = param->ts; */
     /* log_info("<<- cis Data Out <<- TS:%d,%d", param->ts, length); */
     spin_lock(&connected_lock);
     list_for_each_entry(hdl, &connected_list_head, entry) {

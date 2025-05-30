@@ -5,6 +5,7 @@
 #pragma code_seg(".key_driver.text")
 #endif
 #include "system/timer.h"
+#include "system/init.h"
 #include "asm/power_interface.h"
 #include "key_driver.h"
 #include "generic/jiffies.h"
@@ -151,6 +152,7 @@ void key_active_set(u8 port)
  * @brief 按键初始化函数，初始化所有注册的按键驱动
  */
 /* ----------------------------------------------------------------------------*/
+__INITCALL_BANK_CODE
 void key_driver_init(void)
 {
     const struct key_driver_ops *key;

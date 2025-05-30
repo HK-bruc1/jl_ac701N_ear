@@ -150,7 +150,7 @@ const char *bt_get_pin_code()
 #define USE_CONFIG_VOL_SETTING               1					        //音量表读配置
 
 
-__BANK_INIT_ENTRY
+__INITCALL_BANK_CODE
 void cfg_file_parse(u8 idx)
 {
     u8 tmp[128] = {0};

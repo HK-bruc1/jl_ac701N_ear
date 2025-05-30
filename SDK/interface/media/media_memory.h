@@ -51,6 +51,10 @@ enum audio_module {
     AUD_MODULE_FREQUENCY_COMPRESSOR,
     AUD_MODULE_SPATIAL_ADV,
     AUD_MODULE_SPATIAL_ADV_TMPBUF,
+    AUD_MODULE_VIRTUAL_BASS_PRO,
+    AUD_MODULE_VIRTUAL_BASS_PRO_TMPBUF,
+    AUD_MODULE_MIXER,
+    AUD_MODULE_LHDC_X,
     //Codec Modules
     AUD_MODULE_AAC,
     AUD_MODULE_AAC_ENERGY,
@@ -109,6 +113,11 @@ static const char *mm_module[] = {
     "FreqCompress",
     "SpatialAdv",
     "SpatialAdvTmp",
+    "VbassPro",
+    "VbassProTmp",
+    "Mixer",
+    "LHDC_X",
+    //Codec Modules
     "AAC_Dec",
     "AACEnergy",
     "LC3_Dec",

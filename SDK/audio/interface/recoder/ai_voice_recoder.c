@@ -26,6 +26,14 @@ static void ai_voice_recoder_callback(void *private_data, int event)
     }
 }
 
+void ai_voice_recoder_set_ai_tx_node_func(int (*func)(u8 *, u32))
+{
+    struct ai_voice_recoder *recoder = g_ai_voice_recoder;
+    if (recoder && recoder->stream) {
+        jlstream_node_ioctl(recoder->stream, NODE_UUID_AI_TX, NODE_IOC_SET_PRIV_FMT, (int)func);
+    }
+}
+
 int ai_voice_recoder_open(u32 code_type, u8 ai_type)
 {
     int err;

@@ -447,6 +447,7 @@ int clk_set_unused(const char *name, int clk)
  * @brief init
  */
 /* ----------------------------------------------------------------------------*/
+__INITCALL_BANK_CODE
 static int clock_manager_init(void)
 {
     CLOCK_MANAGER_INIT_CRITICAL();

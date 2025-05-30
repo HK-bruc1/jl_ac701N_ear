@@ -3,7 +3,6 @@
 
 
 #include "generic/printf.h"
-#include "dlog.h"
 
 #define   __LOG_VERB      0
 #define   __LOG_DEBUG     1
@@ -32,7 +31,15 @@ struct logbuf {
 #if __LOG_LEVEL > __LOG_VERB
 #define log_v(...) do {} while (0)
 #elif defined __LOG_ENABLE
-#define log_v(...) log_print(__LOG_VERB, NULL, __VA_ARGS__)
+#define log_v(...)          \
+    { \
+        if(config_ulog_enable){ \
+            log_print(__LOG_VERB, NULL, __VA_ARGS__); \
+        } \
+        if(config_dlog_enable) { \
+            dlog_printf(__LOG_VERB, __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_v(...) printf(__VA_ARGS__)
 #endif
@@ -42,7 +49,15 @@ struct logbuf {
 #if __LOG_LEVEL > __LOG_DEBUG
 #define log_d(...)  do {} while (0)
 #elif defined __LOG_ENABLE
-#define log_d(...)  log_print(__LOG_DEBUG, NULL, __VA_ARGS__);
+#define log_d(...)           \
+    { \
+        if(config_ulog_enable){ \
+            log_print(__LOG_DEBUG, NULL, __VA_ARGS__); \
+        } \
+        if(config_dlog_enable) { \
+            dlog_printf(__LOG_DEBUG, __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_d(...) printf(__VA_ARGS__)
 #endif
@@ -50,7 +65,15 @@ struct logbuf {
 #if __LOG_LEVEL > __LOG_INFO
 #define log_i(...)  do {} while (0)
 #elif defined __LOG_ENABLE
-#define log_i(...) log_print(__LOG_INFO, NULL, __VA_ARGS__);
+#define log_i(...)           \
+    { \
+        if(config_ulog_enable){ \
+            log_print(__LOG_INFO, NULL, __VA_ARGS__); \
+        } \
+        if(config_dlog_enable) { \
+			dlog_printf(__LOG_INFO, __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_i(...) printf(__VA_ARGS__)
 #endif
@@ -58,7 +81,15 @@ struct logbuf {
 #if __LOG_LEVEL > __LOG_WARN
 #define log_w(...)  do {} while (0)
 #elif defined __LOG_ENABLE
-#define log_w(...) log_print(__LOG_WARN, NULL, __VA_ARGS__);
+#define log_w(...)           \
+    { \
+        if(config_ulog_enable){ \
+            log_print(__LOG_WARN, NULL, __VA_ARGS__); \
+        } \
+        if(config_dlog_enable) { \
+            dlog_printf(__LOG_WARN, __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_w(...) printf(__VA_ARGS__)
 #endif
@@ -66,7 +97,15 @@ struct logbuf {
 #if __LOG_LEVEL > __LOG_ERROR
 #define log_e(...)  do {} while (0)
 #elif defined __LOG_ENABLE
-#define log_e(...) log_print(__LOG_ERROR, NULL, __VA_ARGS__);
+#define log_e(...)           \
+    { \
+        if(config_ulog_enable){ \
+            log_print(__LOG_ERROR, NULL, __VA_ARGS__); \
+        } \
+        if(config_dlog_enable) { \
+            dlog_printf(__LOG_ERROR, __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_e(...) printf(__VA_ARGS__)
 #endif

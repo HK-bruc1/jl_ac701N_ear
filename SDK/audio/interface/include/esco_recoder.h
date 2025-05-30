@@ -15,6 +15,9 @@ int esco_recoder_switch(u8 en);
 
 int esco_recoder_reset(void);
 
+int esco_recoder_running();
+
+void esco_recoder_set_ai_tx_node_func(int (*func)(u8 *, u32));
 
 int audio_sidetone_open(void);
 int audio_sidetone_close(void);

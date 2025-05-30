@@ -152,13 +152,13 @@ void rcsp_config(struct RcspModel *rcspModel)
     rcspModel->sound_effects_disable = RCSP_SOUND_EFFECT_FUNC_DISABLE;
 #endif
 
-#if (JL_RCSP_EXTRA_FLASH_OPT)
-    rcspModel->extra_flash_en = JL_RCSP_EXTRA_FLASH_OPT;
+#if (JL_RCSP_EXTRA_FLASH_OPT || RCSP_TONE_FILE_TRANSFER_ENABLE)
+    rcspModel->extra_flash_en = 1;
+    rcspModel->file_transfer_mode = 1;
 #endif
 
 #if (WATCH_FILE_TO_FLASH && TCFG_DEV_MANAGER_ENABLE)
     rcspModel->file_trans_back_mode = 1;
-    rcspModel->file_transfer_mode = 1;
 #if (TCFG_NOR_FAT)
     rcspModel->file_trans_nor_fat = 1;
 #endif

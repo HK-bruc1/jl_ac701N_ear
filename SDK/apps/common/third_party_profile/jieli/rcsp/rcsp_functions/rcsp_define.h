@@ -66,8 +66,11 @@
 #define    JL_OPCODE_DEVICE_PARM_EXTRA								0x27//设备操作，如文件传输、文件删除、设备格式化参数扩展
 
 #define    JL_OPCODE_SIMPLE_FILE_TRANS								0x28
+#define    JL_OPCODE_MASS_DATA                                      0x30
 
 #define    JL_OPCODE_1T2_DEVICE_EDR_INFO_LIST						0x31
+#define    JL_OPCODE_TRANSLATOR                                     0x34//翻译功能
+#define    JL_OPCODE_PUBLIC_SET_CMD                                 0x33
 
 #define    JL_OPCODE_SPORTS_DATA_INFO_GET							0xA0
 #define    JL_OPCODE_SPORTS_DATA_INFO_SET							0xA1
@@ -88,6 +91,7 @@
 #define    JL_OPCODE_GET_MD5										0xD4
 #define    JL_OPCODE_LOW_LATENCY_PARAM								0xD5
 #define    JL_OPCODE_EXTRA_FLASH_INFO								0XD6
+#define    JL_OPCODE_GET_DEVICE_CONFIG_INFO                         0XD9
 
 #define    JL_OPCODE_GET_DEVICE_UPDATE_FILE_INFO_OFFSET				0xE1
 #define    JL_OPCODE_INQUIRE_DEVICE_IF_CAN_UPDATE					0xE2

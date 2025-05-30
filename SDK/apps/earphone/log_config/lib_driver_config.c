@@ -13,6 +13,7 @@
 *********************************************************************************************/
 #include "app_config.h"
 #include "system/includes.h"
+#include "gpadc.h"
 
 #if TCFG_SD0_SD1_USE_THE_SAME_HW
 const int sd0_sd1_use_the_same_hw = 1;
@@ -59,6 +60,13 @@ const int config_otg_slave_detect_method_2 = 0;
 //gpadc驱动开启 “电池电压”和“温度采集功能”
 const u8 adc_vbat_ch_en = 1;
 const u8 adc_vtemp_ch_en = 1;
+const u32 lib_adc_clk_max = 500 * 1000;
+const u8 gpadc_battery_mode = WEIGHTING_MODE; //使用IOVDD供电时,禁止使用 MEAN_FILTERING_MODE 模式
+const u32 gpadc_ch_power = AD_CH_PMU_VBAT_4; //根据供电方式选择通道
+const u8 gpadc_ch_power_div = 4; //分压系数,需和gpadc_ch_power匹配
+const u8 gpadc_power_supply_mode = 2; //映射供电方式
+const u16 gpadc_battery_trim_vddiom_voltage = 2800; //电池trim 使用的vddio电压
+const u16 gpadc_battery_trim_voltage = 3700; //电池trim 使用的vbat电压
 
 /* 是否开启把vm配置项暂存到ram的功能 */
 /* 具体使用方法和功能特性参考《项目帮助文档》的“11.4. 配置项管理 -VM配置项暂存RAM功能描述” */

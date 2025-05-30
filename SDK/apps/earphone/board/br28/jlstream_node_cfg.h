@@ -32,6 +32,7 @@
 #define TCFG_ADC_NODE_ENABLE 1 // ADC
 #define TCFG_AGC_NODE_ENABLE 0 // AGC
 #define TCFG_AI_TX_NODE_ENABLE 0 // AI_TX
+#define TCFG_AI_RX_NODE_ENABLE 0 // AI_RX
 #define TCFG_AUDIO_CVP_3MIC_MODE 0 // 3MIC通话
 #define TCFG_AUDIO_CVP_DEVELOP_ENABLE 0 // 通话第三方算法
 #define TCFG_AUDIO_CVP_DMS_ANS_MODE 0 // 双MIC通话
@@ -133,7 +134,9 @@
 #define TCFG_VOICE_CHANGER_NODE_ENABLE 0 // Voice Changer
 #define TCFG_WDRC_ADVANCE_NODE_ENABLE 0 // DRC Advance
 #define TCFG_WDRC_NODE_ENABLE 0 // DRC
+#define TCFG_LHDC_X_NODE_ENABLE 0
 #define EQ_SECTION_MAX 0xc // EQ_SECTION_MAX
+#define TCFG_AI_RX_NODE_ENABLE 0 // AI_RX
 // ------------流程图宏定义------------
 
 // ------------流程图节点位宽定义------------

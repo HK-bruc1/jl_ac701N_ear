@@ -103,7 +103,6 @@ SECTIONS
 #endif
 #if AUDIO_CVP_COMMON_AT_RAM == 0
 		. = ALIGN(4);
-		*(.aec_mem)
         *(.aec_mux)
 		*(.aec_code)
 		*(.aec_const)

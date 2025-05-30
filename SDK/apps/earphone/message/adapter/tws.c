@@ -19,7 +19,7 @@ static void send_tws_event(int argc, u8 *argv)
 }
 
 
-
+__INITCALL_BANK_CODE
 static int tws_event_callback_init()
 {
     tws_api_set_event_handler(send_tws_event);

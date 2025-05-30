@@ -38,4 +38,6 @@ void a2dp_player_reset(void);
 void a2dp_player_breaker_mode(u8 mode,
                               u16 uuid_a, const char *name_a,
                               u16 uuid_b, const char *name_b);
+
+void a2dp_player_set_ai_tx_node_func(int (*func)(u8 *, u32));
 #endif

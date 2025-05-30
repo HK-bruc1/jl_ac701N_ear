@@ -11,7 +11,7 @@
 #include "app_main.h"
 #include "effects/audio_vocal_remove.h"
 
-#define MEDIA_MODULE_NODE_UPDATE_EN  (TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE || TCFG_3D_PLUS_MODULE_NODE_ENABLE | TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE)// Media模式添加模块子节点更新
+#define MEDIA_MODULE_NODE_UPDATE_EN  (TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE || TCFG_3D_PLUS_MODULE_NODE_ENABLE)// Media模式添加模块子节点更新
 static u8 music_scene = 0; //记录场景序号
 static u8 music_eq_preset_index = 0; //记录 Eq0Media EQ配置序号
 

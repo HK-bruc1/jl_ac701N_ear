@@ -68,6 +68,7 @@ static void audio_cvp_sync_det_set(void *priv)
     }
 }
 
+__CVP_BANK_CODE
 int audio_cvp_sync_open(u16 sr)
 {
     if (!hdl) {
@@ -152,6 +153,7 @@ int audio_cvp_sync_run(s16 *data, int len)
     return len;
 }
 
+__CVP_BANK_CODE
 int audio_cvp_sync_close()
 {
     if (hdl->hw_src) {

@@ -143,7 +143,7 @@ void aec_param_dump(struct tms_attr *param)
 #endif/*CONFIG_DEBUG_ENABLE*/
 }
 #elif TCFG_AUDIO_DUAL_MIC_ENABLE
-void aec_param_dump(struct dms_attr *param)
+void cvp_dms_param_dump(struct dms_attr *param, u8 cvp_algo)
 {
 #if CONFIG_DEBUG_ENABLE
     printf("===========dump dms param==================\n");
@@ -207,9 +207,11 @@ void aec_param_dump(struct dms_attr *param)
     put_float(param->overdrive);
 
     printf("******************* NS ********************");
-#if TCFG_AUDIO_DMS_SEL == DMS_HYBRID
-    printf("dns_process_maxfrequency:%d", param->dns_process_maxfrequency);
-    printf("dns_process_minfrequency:%d", param->dns_process_minfrequency);
+#if TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE
+    if (cvp_algo == DMS_HYBRID) {
+        printf("dns_process_maxfrequency:%d", param->dns_process_maxfrequency);
+        printf("dns_process_minfrequency:%d", param->dns_process_minfrequency);
+    }
 #endif
     puts("NS_AggressFactor:");
     put_float(param->aggressfactor);
@@ -221,48 +223,48 @@ void aec_param_dump(struct dms_attr *param)
     printf("******************* ENC ********************");
     printf("enc_process_maxfreq:%d", param->enc_process_maxfreq);
     printf("enc_process_minfreq:%d", param->enc_process_minfreq);
-#if TCFG_AUDIO_DMS_SEL == DMS_HYBRID
-    puts("snr_db_T0:");
-    put_float(param->snr_db_T0);
-    puts("snr_db_T1:");
-    put_float(param->snr_db_T1);
-    puts("floor_noise_db_T:");
-    put_float(param->floor_noise_db_T);
-    puts("compen_db:");
-    put_float(param->compen_db);
+    if (cvp_algo == DMS_HYBRID) {
+        puts("snr_db_T0:");
+        put_float(param->snr_db_T0);
+        puts("snr_db_T1:");
+        put_float(param->snr_db_T1);
+        puts("floor_noise_db_T:");
+        put_float(param->floor_noise_db_T);
+        puts("compen_db:");
+        put_float(param->compen_db);
 
-    printf("******************* WNC ********************");
-    puts("coh_val_T:");
-    put_float(param->coh_val_T);
-    puts("eng_db_T:");
-    put_float(param->eng_db_T);
-#else
-    printf("sir_maxfreq:%d", param->sir_maxfreq);
-    puts("mic_distance:");
-    put_float(param->mic_distance);
-    puts("target_signal_degradation:");
-    put_float(param->target_signal_degradation);
-    puts("enc_aggressfactor:");
-    put_float(param->enc_aggressfactor);
-    puts("enc_minsuppress:");
-    put_float(param->enc_minsuppress);
-    puts("Disconverge_ERLE_Thr:");
-    put_float(param->Disconverge_ERLE_Thr);
+        printf("******************* WNC ********************");
+        puts("coh_val_T:");
+        put_float(param->coh_val_T);
+        puts("eng_db_T:");
+        put_float(param->eng_db_T);
+    } else {
+        printf("sir_maxfreq:%d", param->sir_maxfreq);
+        puts("mic_distance:");
+        put_float(param->mic_distance);
+        puts("target_signal_degradation:");
+        put_float(param->target_signal_degradation);
+        puts("enc_aggressfactor:");
+        put_float(param->enc_aggressfactor);
+        puts("enc_minsuppress:");
+        put_float(param->enc_minsuppress);
+        puts("Disconverge_ERLE_Thr:");
+        put_float(param->Disconverge_ERLE_Thr);
 
-    puts("GloabalMinSuppress:");
-    put_float(param->global_minsuppress);
+        puts("GloabalMinSuppress:");
+        put_float(param->global_minsuppress);
 
-    printf("******************* MFDT ********************");
-    puts("MFDT detect_time:");
-    put_float(param->detect_time);
-    puts("MFDT detect_eng_diff_thr:");
-    put_float(param->detect_eng_diff_thr);
-    puts("MFDT detect_eng_lowerbound:");
-    put_float(param->detect_eng_lowerbound);
-    printf("MalfuncDet_MaxFrequency:%d", param->MalfuncDet_MaxFrequency);
-    printf("MalfuncDet_MinFrequency:%d", param->MalfuncDet_MinFrequency);
-    printf("MFDT OnlyDetect:%d", param->OnlyDetect);
-#endif
+        printf("******************* MFDT ********************");
+        puts("MFDT detect_time:");
+        put_float(param->detect_time);
+        puts("MFDT detect_eng_diff_thr:");
+        put_float(param->detect_eng_diff_thr);
+        puts("MFDT detect_eng_lowerbound:");
+        put_float(param->detect_eng_lowerbound);
+        printf("MalfuncDet_MaxFrequency:%d", param->MalfuncDet_MaxFrequency);
+        printf("MalfuncDet_MinFrequency:%d", param->MalfuncDet_MinFrequency);
+        printf("MFDT OnlyDetect:%d", param->OnlyDetect);
+    }
     printf("adc_ref_en:%d", param->adc_ref_en);
     printf("output_sel:%d", param->output_sel);
 

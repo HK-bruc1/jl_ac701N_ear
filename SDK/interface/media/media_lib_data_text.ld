@@ -227,6 +227,21 @@
 		*(.jl_codec_const) 
 #endif
 
+#if AUDIO_JLA_V2_CODEC_AT_RAM
+	*(.jla_v2_enc_const)
+	*(.jla_v2_enc_code)
+	*(.jla_v2_dec_const)
+	*(.jla_v2_dec_code)
+	*(.jla_v2_codec_c_const)
+	*(.jla_v2_codec_c_code)
+	*(.jla_v2_codec_ari_c_const)
+	*(.jla_v2_codec_ari_c_code)
+	*(.jla_v2_codec_c_sparse_code)
+	*(.jla_v2_codec_e_code)
+	*(.jla_v2_decoder_const)
+	*(.jla_v2_decoder_code)
+	*(.jla_v2_codec_d_code)
+#endif
 
 #if AFx_VBASS_AT_RAM
     *(.vbss.text.cache.L2.code)	

@@ -40,6 +40,7 @@
 #define NODE_UUID_CVP_DMS_AWN_DNS               0XF0C3
 #define NODE_UUID_CVP_DEVELOP		0X76EF
 #define NODE_UUID_AI_TX		      	0xDFDA
+#define NODE_UUID_AI_RX		      	0xDF98
 #define NODE_UUID_NOISE_SUPPRESSOR 	0x3BC9
 #define NODE_UUID_SURROUND_DEMO		0x3F20
 #define NODE_UUID_AUTOMUTE          0X86B9
@@ -194,5 +195,7 @@
 #define NODE_UUID_DISTORTION_CLIPPING      0x97AA
 #define NODE_UUID_FREQUENCY_COMPRESSOR     0xBFE4
 #define NODE_UUID_SPATIAL_ADV              0xA64E//空间音频封装
+#define NODE_UUID_LHDC_X                   0x65C5//LHDC-X空间音效
+#define NODE_UUID_VIRTUAL_BASS_PRO         0x02E6//虚拟低音pro算法内部集成，封装节点换成普通节点
 
 #endif

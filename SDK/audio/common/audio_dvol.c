@@ -99,6 +99,7 @@ const u16 default_dig_vol_table[DEFAULT_DIGITAL_VOL_MAX + 1] = {
 * Note(s)    : None.
 *********************************************************************
 */
+__AUDIO_INIT_BANK_CODE
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
 {
     memset(&dvol_attr, 0, sizeof(dvol_attr));
@@ -177,6 +178,7 @@ static s16 audio_digital_vol_2_gain(dvol_handle *dvol, u16 volume)
 *				(2)淡出的时候可以快一点，尽快淡出到0
 *********************************************************************
 */
+__VOLUME_BANK_CODE
 dvol_handle *audio_digital_vol_open(struct audio_vol_params *params)
 {
     dvol_handle *dvol;

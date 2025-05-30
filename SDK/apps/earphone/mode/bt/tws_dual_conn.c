@@ -106,8 +106,8 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         conn_enable = 0;
     }
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
-        g_printf("le_audio have connd scan conn disble=%d,%d,%d\n", is_cig_phone_conn(), is_cig_other_phone_conn(), bt_get_total_connect_dev());
+    if (is_cig_phone_conn() || is_cig_other_phone_conn() || is_cig_acl_conn() || is_cig_other_acl_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
+        g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
     }

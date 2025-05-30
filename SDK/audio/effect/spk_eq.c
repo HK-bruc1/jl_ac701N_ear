@@ -194,6 +194,7 @@ int spk_eq_read_from_vm(void *priv)
             printf("spk_eq global gain read from vm err\n");
             return -1;
         }
+        memcpy(spk_eq_global_gain, g_gain->global_gain, sizeof(spk_eq_global_gain));
     }
     return 0;
 }

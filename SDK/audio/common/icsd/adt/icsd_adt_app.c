@@ -113,11 +113,15 @@ struct speak_to_chat_t {
 #endif /*ICSD_ADT_MIC_DATA_EXPORT_EN*/
     u8 adt_switch_trans_state;//判断是否adt里面切的trans
     int talk_mic_seq;
-    int ff_mic_seq;
-    int fb_mic_seq;
+    int lff_mic_seq;
+    int lfb_mic_seq;
+    int rff_mic_seq;
+    int rfb_mic_seq;
     s16 *talk_mic_buf;
-    s16 *ff_mic_buf;
-    s16 *fb_mic_buf;
+    s16 *lff_mic_buf;
+    s16 *lfb_mic_buf;
+    s16 *rff_mic_buf;
+    s16 *rfb_mic_buf;
     u8 tmp_noise_lvl;//音量自适应噪声等级
 };
 struct speak_to_chat_t *speak_to_chat_hdl = NULL;
@@ -325,15 +329,22 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     int err = 0;
     s16 *talk_mic = NULL;
-    s16 *ff_mic = NULL;
-    s16 *fb_mic = NULL;
+    s16 *lff_mic = NULL;
+    s16 *lfb_mic = NULL;
+    s16 *rff_mic = NULL;
+    s16 *rfb_mic = NULL;
     s32 *s32_talk_mic = NULL;
-    s32 *s32_ff_mic = NULL;
-    s32 *s32_fb_mic = NULL;
+    s32 *s32_lff_mic = NULL;
+    s32 *s32_lfb_mic = NULL;
+    s32 *s32_rff_mic = NULL;
+    s32 *s32_rfb_mic = NULL;
     s32 *s32_data = NULL;
     u16 talk_mic_ch = icsd_get_talk_mic_ch();
     u16 ref_mic_l_ch = icsd_get_ref_mic_L_ch();
     u16 fb_mic_l_ch = icsd_get_fb_mic_L_ch();
+    u16 ref_mic_r_ch = icsd_get_ref_mic_R_ch();
+    u16 fb_mic_r_ch = icsd_get_fb_mic_R_ch();
+
     u16 icsd_mic_num = audio_get_mic_num(hdl->libfmt.mic_type);
     u16 open_mic_ch = get_icsd_adt_mic_ch(&hdl->libfmt);
     u8 mic_ch_num;
@@ -341,6 +352,10 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
         mic_ch_num = audio_max_adc_ch_num_get();
     } else {
         mic_ch_num = icsd_adt_current_mic_num();
+    }
+    if ((TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) && (get_icsd_adt_mode() == ADT_WIND_NOISE_DET_MODE)) {
+        //头戴式风噪检测特殊处理
+        mic_ch_num = 2;
     }
     if (hdl && hdl->state) {
 #if (ICSD_ADT_SHARE_ADC_ENABLE == 0)//没有共用adc并且使用24bit时
@@ -360,31 +375,47 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
                 s32_data = (s32 *)data;
                 /*复用adc时，adc的数据需要额外buf存起来*/
                 s32_talk_mic = (s32 *)hdl->talk_mic_buf;
-                s32_ff_mic   = (s32 *)hdl->ff_mic_buf;
-                s32_fb_mic   = (s32 *)hdl->fb_mic_buf;
+                s32_lff_mic   = (s32 *)hdl->lff_mic_buf;
+                s32_lfb_mic   = (s32 *)hdl->lfb_mic_buf;
+                s32_rff_mic   = (s32 *)hdl->rff_mic_buf;
+                s32_rfb_mic   = (s32 *)hdl->rfb_mic_buf;
                 talk_mic = hdl->talk_mic_buf;
-                ff_mic   = hdl->ff_mic_buf;
-                fb_mic   = hdl->fb_mic_buf;
+                lff_mic   = hdl->lff_mic_buf;
+                lfb_mic   = hdl->lfb_mic_buf;
+                rff_mic   = hdl->rff_mic_buf;
+                rfb_mic   = hdl->rfb_mic_buf;
 
                 for (int i = 0; i < len / 4; i++) {
                     if (open_mic_ch & talk_mic_ch) {
                         s32_talk_mic[i] = s32_data[mic_ch_num * i + hdl->talk_mic_seq];
                     }
                     if (open_mic_ch & ref_mic_l_ch) {
-                        s32_ff_mic[i]   = s32_data[mic_ch_num * i + hdl->ff_mic_seq];
+                        s32_lff_mic[i]   = s32_data[mic_ch_num * i + hdl->lff_mic_seq];
                     }
                     if (open_mic_ch & fb_mic_l_ch) {
-                        s32_fb_mic[i]   = s32_data[mic_ch_num * i + hdl->fb_mic_seq];
+                        s32_lfb_mic[i]   = s32_data[mic_ch_num * i + hdl->lfb_mic_seq];
+                    }
+                    if (open_mic_ch & ref_mic_r_ch) {
+                        s32_rff_mic[i]   = s32_data[mic_ch_num * i + hdl->rff_mic_seq];
+                    }
+                    if (open_mic_ch & fb_mic_r_ch) {
+                        s32_rfb_mic[i]   = s32_data[mic_ch_num * i + hdl->rfb_mic_seq];
                     }
                 }
                 if (open_mic_ch & talk_mic_ch) {
                     audio_convert_data_32bit_to_16bit_round((s32 *)s32_talk_mic, (s16 *)talk_mic, len >> 2);
                 }
                 if (open_mic_ch & ref_mic_l_ch) {
-                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_ff_mic, (s16 *)ff_mic, len >> 2);
+                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_lff_mic, (s16 *)lff_mic, len >> 2);
                 }
                 if (open_mic_ch & fb_mic_l_ch) {
-                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_fb_mic, (s16 *)fb_mic, len >> 2);
+                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_lfb_mic, (s16 *)lfb_mic, len >> 2);
+                }
+                if (open_mic_ch & ref_mic_r_ch) {
+                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_rff_mic, (s16 *)rff_mic, len >> 2);
+                }
+                if (open_mic_ch & fb_mic_r_ch) {
+                    audio_convert_data_32bit_to_16bit_round((s32 *)s32_rfb_mic, (s16 *)rfb_mic, len >> 2);
                 }
                 len >>= 1;
             } else
@@ -393,32 +424,43 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
                 //共用adc并且使用16bit时 || 不共用adc使用16bit || 不共用adc使用24bit
                 /*复用adc时，adc的数据需要额外buf存起来*/
                 talk_mic = hdl->talk_mic_buf;
-                ff_mic   = hdl->ff_mic_buf;
-                fb_mic   = hdl->fb_mic_buf;
+                lff_mic   = hdl->lff_mic_buf;
+                lfb_mic   = hdl->lfb_mic_buf;
+                rff_mic   = hdl->rff_mic_buf;
+                rfb_mic   = hdl->rfb_mic_buf;
                 for (int i = 0; i < len / 2; i++) {
                     if (open_mic_ch & talk_mic_ch) {
                         talk_mic[i] = data[mic_ch_num * i + hdl->talk_mic_seq];
                     }
                     if (open_mic_ch & ref_mic_l_ch) {
-                        ff_mic[i]   = data[mic_ch_num * i + hdl->ff_mic_seq];
+                        lff_mic[i]   = data[mic_ch_num * i + hdl->lff_mic_seq];
                     }
                     if (open_mic_ch & fb_mic_l_ch) {
-                        fb_mic[i]   = data[mic_ch_num * i + hdl->fb_mic_seq];
+                        lfb_mic[i]   = data[mic_ch_num * i + hdl->lfb_mic_seq];
+                    }
+                    if (open_mic_ch & ref_mic_r_ch) {
+                        rff_mic[i]   = data[mic_ch_num * i + hdl->rff_mic_seq];
+                    }
+                    if (open_mic_ch & fb_mic_r_ch) {
+                        rfb_mic[i]   = data[mic_ch_num * i + hdl->rfb_mic_seq];
                     }
                 }
             }
-
-            icsd_acoustic_detector_mic_input_hdl_v2(priv, talk_mic, ff_mic, fb_mic, len);
-
+            if ((TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) && (get_icsd_adt_mode() == ADT_WIND_NOISE_DET_MODE)) {
+                //头戴式风噪检测特殊处理
+                icsd_acoustic_detector_mic_input_hdl_v2(priv, rff_mic, lff_mic, NULL, len);
+            } else {
+                icsd_acoustic_detector_mic_input_hdl_v2(priv, talk_mic, lff_mic, lfb_mic, len);
+            }
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
             if (open_mic_ch & talk_mic_ch) {
                 aec_uart_fill(0, talk_mic, len);
             }
             if (open_mic_ch & ref_mic_l_ch) {
-                aec_uart_fill(1, ff_mic,   len);
+                aec_uart_fill(1, lff_mic,   len);
             }
             if (open_mic_ch & fb_mic_l_ch) {
-                aec_uart_fill(2, fb_mic,   len);
+                aec_uart_fill(2, lfb_mic,   len);
             }
             /* aec_uart_write(); */
             /*write里面可能会触发pend的动作，所有放到任务去跑*/
@@ -844,6 +886,10 @@ int audio_acoustic_detector_open()
 
     hdl->libfmt.adc_sr = debug_adc_sr;//Raymond MIC的采样率由外部决定，通过set函数通知ADT
     icsd_acoustic_detector_get_libfmt(&hdl->libfmt, adt_function);
+    if ((TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) && (get_icsd_adt_mode() == ADT_WIND_NOISE_DET_MODE)) {
+        //判断是头戴式风噪检测强行打开 LFF RFF
+        hdl->libfmt.mic_type = ADT_REFMIC_L | ADT_REFMIC_R;
+    }
 
 #if (ICSD_ADT_WIND_INFO_SPP_DEBUG_EN || ICSD_ADT_VOL_NOISE_LVL_SPP_DEBUG_EN)
     /*获取spp发送句柄*/
@@ -862,6 +908,8 @@ int audio_acoustic_detector_open()
     u16 talk_mic_ch = icsd_get_talk_mic_ch();
     u16 ref_mic_l_ch = icsd_get_ref_mic_L_ch();
     u16 fb_mic_l_ch = icsd_get_fb_mic_L_ch();
+    u16 ref_mic_r_ch = icsd_get_ref_mic_R_ch();
+    u16 fb_mic_r_ch = icsd_get_fb_mic_R_ch();
 
     g_printf("mode : %x, mic_type : %x, mic_ch : %x, adc_len : %d, sr : %d, size : %d, rtanc_type %d", \
              adt_function, hdl->libfmt.mic_type, mic_ch, hdl->libfmt.adc_isr_len, hdl->libfmt.adc_sr, \
@@ -895,10 +943,16 @@ int audio_acoustic_detector_open()
             hdl->talk_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
         }
         if (mic_ch & ref_mic_l_ch) {
-            hdl->ff_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
+            hdl->lff_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
         }
         if (mic_ch & fb_mic_l_ch) {
-            hdl->fb_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
+            hdl->lfb_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
+        }
+        if (mic_ch & ref_mic_r_ch) {
+            hdl->rff_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
+        }
+        if (mic_ch & fb_mic_r_ch) {
+            hdl->rfb_mic_buf = zalloc(hdl->libfmt.adc_isr_len * sizeof(short) * bit_width_offset);
         }
     }
 
@@ -1012,12 +1066,18 @@ int audio_acoustic_detector_open()
             hdl->talk_mic_seq = get_adc_seq(&adc_hdl, talk_mic_ch); //查询模拟mic对应的ADC通道,要求通道连续
         }
         if (mic_ch & ref_mic_l_ch) {
-            hdl->ff_mic_seq = get_adc_seq(&adc_hdl, ref_mic_l_ch);
+            hdl->lff_mic_seq = get_adc_seq(&adc_hdl, ref_mic_l_ch);
         }
         if (mic_ch & fb_mic_l_ch) {
-            hdl->fb_mic_seq = get_adc_seq(&adc_hdl, fb_mic_l_ch);
+            hdl->lfb_mic_seq = get_adc_seq(&adc_hdl, fb_mic_l_ch);
         }
-        adt_log("adc seq, talk : %d, ff : %d, fb : %d\n", hdl->talk_mic_seq, hdl->ff_mic_seq, hdl->fb_mic_seq);
+        if (mic_ch & ref_mic_r_ch) {
+            hdl->rff_mic_seq = get_adc_seq(&adc_hdl, ref_mic_r_ch);
+        }
+        if (mic_ch & fb_mic_r_ch) {
+            hdl->rfb_mic_seq = get_adc_seq(&adc_hdl, fb_mic_r_ch);
+        }
+        adt_log("adc seq, talk : %d, lff : %d, lfb : %d, rff : %d, rfb : %d\n", hdl->talk_mic_seq, hdl->lff_mic_seq, hdl->lfb_mic_seq, hdl->rff_mic_seq, hdl->rfb_mic_seq);
     }
     audio_icsd_adt_start();
 
@@ -1077,13 +1137,21 @@ int audio_acoustic_detector_close()
                 free(hdl->talk_mic_buf);
                 hdl->talk_mic_buf = NULL;
             }
-            if (hdl->ff_mic_buf) {
-                free(hdl->ff_mic_buf);
-                hdl->ff_mic_buf = NULL;
+            if (hdl->lff_mic_buf) {
+                free(hdl->lff_mic_buf);
+                hdl->lff_mic_buf = NULL;
             }
-            if (hdl->fb_mic_buf) {
-                free(hdl->fb_mic_buf);
-                hdl->fb_mic_buf = NULL;
+            if (hdl->lfb_mic_buf) {
+                free(hdl->lfb_mic_buf);
+                hdl->lfb_mic_buf = NULL;
+            }
+            if (hdl->rff_mic_buf) {
+                free(hdl->rff_mic_buf);
+                hdl->rff_mic_buf = NULL;
+            }
+            if (hdl->rfb_mic_buf) {
+                free(hdl->rfb_mic_buf);
+                hdl->rfb_mic_buf = NULL;
             }
         }
 #if AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG

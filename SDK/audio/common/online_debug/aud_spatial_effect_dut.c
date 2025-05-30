@@ -159,6 +159,7 @@ int spatial_effect_online_parse(u8 *packet, u8 size, u8 *ext_data, u16 ext_size)
     return 0;
 }
 
+__INITCALL_BANK_CODE
 int aud_spatial_effect_dut_open()
 {
     app_online_db_register_handle(DB_PKT_TYPE_SPATIAL_EFFECT, spatial_effect_online_parse);

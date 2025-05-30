@@ -73,6 +73,13 @@ lc3_dec_plug
 capture_sync_adapter
 #endif
 
+#if TCFG_DEC_JLA_V2_ENABLE
+jla_v2_dec_plug
+#endif
+#if TCFG_ENC_JLA_V2_ENABLE
+jla_v2_enc_plug
+#endif
+
 #if TCFG_BT_SUPPORT_LDAC
 ldac_dec_plug
 #endif
@@ -538,6 +545,14 @@ frequency_compressor_node_adapter
 spatial_adv_node_adapter
 #endif
 
+#if TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE
+virtual_bass_pro_node_adapter
+#endif
+
 #if TCFG_ENC_AAC_ENABLE
 aac_enc_plug
+#endif
+
+#if TCFG_LHDC_X_NODE_ENABLE
+lhdc_x_node_adapter
 #endif

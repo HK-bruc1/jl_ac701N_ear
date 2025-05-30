@@ -173,6 +173,10 @@ static void vol_state_update(void)
 #endif
     } else {
         app_audio_set_volume(app_audio_get_state(), vol, 1);
+#if RCSP_ADV_TRANSLATOR
+        extern int JL_rcsp_translator_set_play_volume(u16 volume);
+        JL_rcsp_translator_set_play_volume(vol);
+#endif
     }
 }
 

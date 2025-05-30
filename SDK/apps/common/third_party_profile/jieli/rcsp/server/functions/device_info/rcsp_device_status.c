@@ -79,6 +79,12 @@ struct _DEV_info {
     u32 flash_handle;
     u32 flash_handle_2;
 };
+
+struct _DEV_EX_INFO {
+    u8 status;
+    u8 index;
+    u32 handle;
+};
 #pragma pack()
 
 typedef bool (*func_set)(void *priv, u8 *data, u16 len);
@@ -509,10 +515,10 @@ static u32 common_function_attr_dev_info_get(void *priv, u8 attr, u8 *buf, u16 b
 {
     u32 rlen = 0;
     struct RcspModel *rcspModel = (struct RcspModel *) priv;
-    struct _DEV_info dev_info = {0};
 
 #if RCSP_MODE != RCSP_MODE_EARPHONE
 
+    struct _DEV_info dev_info = {0};
     if (dev_manager_get_root_path_by_logo("udisk0")) {
         printf("dev [udisk0] online\n");
         dev_info.status |= BIT(RCSPDevMapUDISK);
@@ -548,10 +554,64 @@ static u32 common_function_attr_dev_info_get(void *priv, u8 attr, u8 *buf, u16 b
         dev_info.status |= BIT(RCSPDevMapAUX);
     }
 #endif
-
-#endif
-
     rlen = add_one_attr(buf, buf_size, offset, attr, (u8 *)&dev_info, sizeof(dev_info));
+
+#elif RCSP_TONE_FILE_TRANSFER_ENABLE // RCSP_MODE != RCSP_MODE_EARPHONE
+    struct _DEV_EX_INFO dev_item_info = {0};
+    u8 dev_offset = 4;
+    u8 info_len = RCSPDevMapMax * sizeof(struct _DEV_EX_INFO) + 4;
+    u8 *dev_info = zalloc(info_len);
+    dev_info[0] = 0xff; // byte[0]是全f
+    dev_info[1] = 0; // byte[1]是版本号
+    /* dev_info[2]; // 长度 */
+    dev_info[3] = 1; // 类型: 1 - 存储器状态 / 2 - 复用存储器
+
+    // usb - 离线
+    printf("dev [udisk0] offline\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapUDISK;
+
+    // sd0 - 离线
+    printf("dev [sd0] offline\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapSD0;
+
+    // sd1 - 离线
+    printf("dev [sd1] online\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapSD1;
+
+    // 外挂flash - 离线
+    printf("dev [virfat_flash] online\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapFLASH;
+
+    // 外挂flash2分区 - 离线
+    printf("dev [fat_nor] online\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapFLASH_2;
+
+    // nand_flash - 离线
+    printf("dev [nand_flash] online\n");
+    dev_info[dev_offset++] = 0;
+    dev_info[dev_offset++] = RCSPDevMapNAND;
+
+    // 预留区域 - 在线
+    printf("dev [reserve] online\n");
+    memset(&dev_item_info, 0, sizeof(struct _DEV_EX_INFO));
+    dev_item_info.status = 1;
+    dev_item_info.index = RCSPDevMapRESERVE;
+    dev_item_info.handle |= app_htonl((u32)RCSPDevMapRESERVE);
+    memcpy(dev_info + dev_offset, &dev_item_info, sizeof(struct _DEV_EX_INFO));
+    dev_offset += sizeof(struct _DEV_EX_INFO);
+
+    dev_info[2] = dev_offset - 4 + 1;
+    rlen = add_one_attr(buf, buf_size, offset, attr, dev_info, dev_offset);
+    if (dev_info) {
+        free(dev_info);
+    }
+#endif // RCSP_MODE != RCSP_MODE_EARPHONE
+
     return rlen;
 }
 

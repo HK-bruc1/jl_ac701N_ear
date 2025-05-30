@@ -81,6 +81,8 @@
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 extern void *rcsp_server_ble_hdl;
 extern void *rcsp_server_ble_hdl1;
+extern void *rcsp_server_edr_att_hdl;
+extern void *rcsp_server_edr_att_hdl1;
 #endif
 
 static u8 adv_data_len;
@@ -961,16 +963,25 @@ void adv_role_switch_handle(u8 role)
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     // 当充电入仓的时候，入仓的主机设备role是1但tws_api_get_role()是0；
     printf("adv_role_switch_handle rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
+    printf("tws state %x, spp num %x, ble num %x, att num %x\n", tws_api_get_tws_state(), bt_rcsp_spp_conn_num(), bt_rcsp_ble_conn_num(), bt_rcsp_edr_att_conn_num());
     if (tws_api_get_tws_state()) {
         // 设备连接后，主从切换需要spp手机app来请求固件信息
         if ((role == TWS_ROLE_MASTER) && \
-            ((bt_rcsp_spp_conn_num() > 0) || (bt_rcsp_ble_conn_num() > 0))) {
+            ((bt_rcsp_spp_conn_num() > 0) || (bt_rcsp_ble_conn_num() > 0) || (bt_rcsp_edr_att_conn_num() > 0))) {
             u8 adv_cmd = 0x4;
             adv_info_device_request(&adv_cmd, sizeof(adv_cmd));             //让手机来请求固件信息
         }
 
         // 如果还需要开广播 并且 一拖二的时候ble还没有连接
         if (bt_rcsp_device_conn_num() < rcsp_max_support_con_dev_num()) {
+            if (role == TWS_ROLE_MASTER) {
+                rcsp_bt_ble_adv_enable(1);
+            } else {
+                rcsp_bt_ble_adv_enable(0);
+            }
+        }
+        //有att连接中,从机切为主机，要开ble广播；主机切为从机，要关ble广播
+        if (bt_rcsp_edr_att_conn_num() > 0) {
             if (role == TWS_ROLE_MASTER) {
                 rcsp_bt_ble_adv_enable(1);
             } else {

@@ -35,6 +35,7 @@
 #include "volume_node.h"
 #include "tone_player.h"
 #include "ring_player.h"
+#include "audio_volume_mixer.h"
 #if AUDIO_EQ_LINK_VOLUME
 #include "effects/eq_config.h"
 #endif
@@ -114,6 +115,7 @@ struct app_audio_config {
     float dac_dB; //dac的增益值
 #endif
     u16 target_dig_vol;
+    u16(*hw_dvol_max)(void);
 };
 
 /*声音状态字符串定义*/
@@ -1317,17 +1319,13 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
 #if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
-#ifdef CONFIG_CPU_BR56
-    u16 DAC_0dB = 0;
-    if ((JL_SYSTEM->CHIP_VER >= 0xA2) && (JL_SYSTEM->CHIP_VER < 0xAC)) { //C版以后才做DAC TRIM
-        DAC_0dB = dac_digital_gain_tab_version_c[TCFG_DAC_POWER_MODE];
-    } else {
-        DAC_0dB = 16100;
+
+    u16 dvol_full_max = 16384;
+    if (__this->hw_dvol_max) {
+        dvol_full_max = __this->hw_dvol_max();
     }
-    u16 dvol_max = (u16)(DAC_0dB * dB_Convert_Mag(dB_value));
-#else
-    u16 dvol_max = (u16)(16384 * dB_Convert_Mag(dB_value));
-#endif
+    u16 dvol_max = (u16)(dvol_full_max * dB_Convert_Mag(dB_value));
+    printf("dvol_max:%d\n", dvol_max);
 
     /*记录当前状态对应的最大音量*/
     __this->max_volume[state] = max_volume;
@@ -1617,3 +1615,8 @@ s16 app_audio_volume_max_query(audio_vol_index_t index)
     }
 }
 
+void audio_volume_mixer_init(struct volume_mixer *param)
+{
+    //printf("audio_volume_mixer_init");
+    __this->hw_dvol_max = param->hw_dvol_max;
+}

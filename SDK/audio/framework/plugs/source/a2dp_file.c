@@ -76,6 +76,7 @@ extern const int CONFIG_A2DP_DELAY_TIME_LO;
 extern const int CONFIG_A2DP_SBC_DELAY_TIME_LO;
 extern const int CONFIG_BTCTLER_TWS_ENABLE;
 extern const int CONFIG_DONGLE_SPEAK_ENABLE;
+extern const int CONFIG_A2DP_MAX_BUF_SIZE;
 
 extern int a2dp_get_packet_pcm_frames(struct a2dp_file_hdl *hdl, u8 *data, int len);
 static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop);
@@ -88,6 +89,11 @@ static u8 a2dp_low_latency = 0;
 #define a2dp_seqn_before(a, b)  ((a < b && (u16)(b - a) < 1000) || (a > b && (u16)(a - b) > 1000))
 #define RB16(b)    (u16)(((u8 *)b)[0] << 8 | (((u8 *)b))[1])
 #define RB32(b)    (u32)(((u8 *)b)[0] << 24 | (((u8 *)b))[1] << 16 | (((u8 *)b))[2] << 8 | (((u8 *)b))[3])
+
+#define A2DP_TWS_ALIGN_STATE_OVERRUN        -1
+#define A2DP_TWS_ALIGN_STATE_NOERR          0
+#define A2DP_TWS_ALIGN_STATE_UNDERRUN       1
+#define A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW   2
 
 #include "a2dp_handshake.c"
 /*#include "a2dp_aac_demuxer.c"*/
@@ -112,6 +118,7 @@ static void abandon_a2dp_data(void *p)
     /*a2dp_media_clear_packet_before_seqn(hdl->file, 0);*/
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_start_abandon_data(struct a2dp_file_hdl *hdl)
 {
     int role = TWS_ROLE_MASTER;
@@ -128,6 +135,7 @@ static void a2dp_file_start_abandon_data(struct a2dp_file_hdl *hdl)
     }
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_stop_abandon_data(struct a2dp_file_hdl *hdl)
 {
     if (hdl->timer) {
@@ -162,7 +170,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
 {
     struct a2dp_file_hdl *hdl = (struct a2dp_file_hdl *)_hdl;
     struct a2dp_media_frame _frame;
-    int drop = 0;
+    int drop_state = 0;
     int stream_error = 0;
 
     *pframe = NULL;
@@ -193,6 +201,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
         hdl->start = 1;
     }
 
+pull_frame:
     int len = hdl->frame_len;
     if (len == 0) {
         if (hdl->stream_ctrl) {
@@ -212,26 +221,21 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
     if (stream_error != FRAME_FLAG_FILL_PACKET) {
         hdl->seqn = RB16((u8 *)_frame.packet + 2);
     }
-    int err = a2dp_stream_ts_enable_detect(hdl, _frame.packet, &drop);
+    int err = a2dp_stream_ts_enable_detect(hdl, _frame.packet, &drop_state);
     if (err) {
-        if (drop) {
+        if (drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN || drop_state == A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW) {
             if (hdl->stream_ctrl) {
                 a2dp_stream_control_free_frame(hdl->stream_ctrl, &_frame);
             } else {
                 a2dp_media_free_packet(hdl->file, _frame.packet);
             }
             hdl->frame_len = 0;
+            if (drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN) {
+                goto pull_frame;
+            }
         }
         a2dp_tws_media_try_handshake_ack(0, hdl->seqn, _frame.clkn);
-        if (!hdl->wake_up_timer) {//快速唤醒数据流，加速tws时间戳交互的过程
-            hdl->ts_align_time = 0;
-            hdl->wake_up_timer = sys_hi_timer_add((void *)hdl, a2dp_source_direct_wake_jlstream_run, 4);
-        }
         return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
-    }
-    if (hdl->wake_up_timer) {
-        sys_hi_timer_del(hdl->wake_up_timer);
-        hdl->wake_up_timer = 0;
     }
 
     int head_len = 0;
@@ -261,10 +265,11 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
     } else {
         a2dp_media_free_packet(hdl->file, _frame.packet);
     }
-
+#if A2DP_TIMESTAMP_ENABLE
     if (!(frame->flags & FRAME_FLAG_FILL_PACKET)) {
         a2dp_stream_bandwidth_detect_handler(hdl->stream_ctrl, len, pcm_frames, hdl->sample_rate);
     }
+#endif
     hdl->frame_len = 0;
     hdl->start = 1;
 
@@ -295,6 +300,7 @@ static const u16 sbc_sample_rates[] = {16000, 32000, 44100, 48000};
 
 static const u32 ldac_sample_rates[] = {44100, 48000, 88200, 96000};
 
+__A2DP_DEC_BANK_CODE
 static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
 {
     struct a2dp_media_frame _frame;
@@ -412,7 +418,7 @@ __again:
         fmt->sample_rate = ldac_sample_rates[sr];
         hdl->chconfig_id = chconfig_id;
         //printf(" %x  %x  %x\n",frame[0],frame[1],frame[2]);
-        //printf("sr:%d, sample_rate : %d  chconfig_id : %d\n",sr,fmt->sample_rate,chconfig_id);
+        printf("LDAC param : sr:%d, sample_rate : %d  chconfig_id : %d\n", sr, fmt->sample_rate, chconfig_id);
 #endif
     } else {
         /*
@@ -430,6 +436,7 @@ __again:
     return 0;
 }
 
+__A2DP_DEC_BANK_CODE
 static int a2dp_ioc_get_fmt_ex(struct a2dp_file_hdl *hdl, struct stream_fmt_ex *fmt)
 {
     switch (hdl->media_type) {
@@ -461,6 +468,7 @@ static int a2dp_ioc_get_fmt_ex(struct a2dp_file_hdl *hdl, struct stream_fmt_ex *
 }
 
 
+__A2DP_DEC_BANK_CODE
 static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
 {
     hdl->file = a2dp_open_media_file(bt_addr);
@@ -485,7 +493,8 @@ static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
     return 0;
 }
 
-static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
+__A2DP_DEC_BANK_CODE
+static void __a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
 {
     if (hdl->wake_up_timer) {
         sys_hi_timer_del(hdl->wake_up_timer);
@@ -607,6 +616,7 @@ static int a2dp_get_packet_pcm_frames(struct a2dp_file_hdl *hdl, u8 *data, int l
 }
 
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
 {
     /*
@@ -619,10 +629,10 @@ static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
         return;
     }
     if (hdl->link_jl_dongle) {
-        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, A2DP_STREAM_JL_DONGLE_CONTROL);
+        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, A2DP_STREAM_JL_DONGLE_CONTROL, hdl->bt_addr);
 
     } else {
-        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, 0);
+        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, 0, hdl->bt_addr);
     }
     if (hdl->stream_ctrl) {
         hdl->delay_time = a2dp_stream_control_delay_time(hdl->stream_ctrl);
@@ -630,6 +640,7 @@ static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
     }
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_stream_control_close(struct a2dp_file_hdl *hdl)
 {
     if (hdl->stream_ctrl) {
@@ -651,7 +662,7 @@ static u32 a2dp_stream_update_base_time(struct a2dp_file_hdl *hdl)
         }
         */
         a2dp_media_put_packet(hdl->file, frame.packet);
-        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : (hdl->delay_time + 30)));
+        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : (hdl->delay_time + 50)));
         return base_time;
     }
     distance_time = a2dp_low_latency ? hdl->delay_time : (hdl->delay_time - a2dp_media_get_remain_play_time(hdl->file, 1));
@@ -665,6 +676,7 @@ static u32 a2dp_stream_update_base_time(struct a2dp_file_hdl *hdl)
 }
 
 
+__A2DP_DEC_BANK_CODE
 void a2dp_ts_handle_create(struct a2dp_file_hdl *hdl)
 {
     if (!hdl || (hdl->rtp_ts_en)) {
@@ -694,10 +706,12 @@ void a2dp_ts_handle_create(struct a2dp_file_hdl *hdl)
     hdl->sync_step = 0;
     hdl->frame_len = 0;
     hdl->reset_frame_clkn = 0;
+    hdl->handshake_timeout = jiffies + msecs_to_jiffies(1500); /*TWS时间戳对齐复用该超时计时*/
     hdl->dts = 0;
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 void a2dp_ts_handle_release(struct a2dp_file_hdl *hdl)
 {
     if (!hdl) {
@@ -741,26 +755,28 @@ static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_f
         distance_time = 0;
     }
     a2dp_audio_delay_offset_update(hdl->ts_handle, distance_time);
+
+    int sample_rate = a2dp_audio_sample_rate(hdl->ts_handle);
     frame->flags |= (FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP | FRAME_FLAG_UPDATE_DRIFT_SAMPLE_RATE);
-    a2dp_stream_mark_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, hdl->sample_rate));
+    a2dp_stream_update_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, sample_rate));
     if (hdl->edr_to_local_time) {
         timestamp = bt_edr_conn_master_to_local_time(hdl->bt_addr, timestamp);
     }
     frame->timestamp = timestamp;
-    frame->d_sample_rate = a2dp_audio_sample_rate(hdl->ts_handle) - hdl->sample_rate;
+    frame->d_sample_rate = sample_rate - hdl->sample_rate;
     /*printf("drift : %d\n", frame->d_sample_rate);*/
     /*printf("-%u, %u, %u-\n", timestamp, bt_edr_conn_master_to_local_time(hdl->bt_addr, timestamp), local_time);*/
     hdl->dts += pcm_frames;
     hdl->pcm_frames = pcm_frames;
 }
 
-static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop)
+static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop_state)
 {
     if (hdl->sync_step) {
         return 0;
     }
 
-    if (!drop) {
+    if (!drop_state) {
         printf("wrong argument 'drop'!\n");
     }
     if (CONFIG_BTCTLER_TWS_ENABLE && hdl->ts_handle) {
@@ -771,24 +787,31 @@ static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, i
 
         /*TWS 音频握手对齐失败，强制进入时间戳对齐流程*/
         if (hdl->tws_case != 3 && \
-            !a2dp_audio_timestamp_is_available(hdl->ts_handle, hdl->seqn, 0, drop)) {
-            if (*drop) {
+            !a2dp_audio_timestamp_is_available(hdl->ts_handle, hdl->seqn, 0, drop_state)) {
+            if (*drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN) {
                 hdl->base_time = a2dp_stream_update_base_time(hdl);
                 a2dp_audio_set_base_time(hdl->ts_handle, hdl->base_time);
             } else {/*TWS加入和握手超时容错处理*/
+                if (*drop_state == A2DP_TWS_ALIGN_STATE_OVERRUN && time_after(jiffies, hdl->handshake_timeout)) {
+                    r_printf("tws slave overrun : %d\n", hdl->seqn);
+                    goto release;
+                }
                 int max_buf_size = a2dp_stream_max_buf_size(hdl->media_type);
-                if (a2dp_media_get_sbc_data_len(hdl->file) >= (max_buf_size * 8 / 10)) {
-                    *drop = 1;
+                if (a2dp_media_get_sbc_data_len(hdl->file) >= (max_buf_size * 9 / 10)) {
+                    *drop_state = A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW;
                 }
             }
             return -EINVAL;
         }
     }
+
+release:
     log_d(">>>>ts align time %d ms<<<<\n", hdl->ts_align_time);
     hdl->sync_step = 2;
     return 0;
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_media_reference_time_setup(struct a2dp_file_hdl *hdl)
 {
 #if A2DP_TIMESTAMP_ENABLE
@@ -811,6 +834,7 @@ static void a2dp_media_reference_time_setup(struct a2dp_file_hdl *hdl)
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_media_reference_time_close(struct a2dp_file_hdl *hdl)
 {
 #if A2DP_TIMESTAMP_ENABLE
@@ -820,17 +844,47 @@ static void a2dp_media_reference_time_close(struct a2dp_file_hdl *hdl)
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_timestamp_setup(struct a2dp_file_hdl *hdl)
 {
     a2dp_stream_control_open(hdl);
     a2dp_ts_handle_create(hdl);
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_timestamp_close(struct a2dp_file_hdl *hdl)
 {
     a2dp_tws_media_handshake_exit(hdl);
     a2dp_stream_control_close(hdl);
     a2dp_ts_handle_release(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_start(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_start_play(hdl->file);
+    a2dp_media_set_rx_notify(hdl->file, hdl, a2dp_source_wake_jlstream_run);
+    a2dp_file_stop_abandon_data(hdl);
+    a2dp_media_reference_time_setup(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_suspend(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
+    __a2dp_ioc_stop(hdl);
+    a2dp_file_timestamp_close(hdl);
+    a2dp_media_reference_time_close(hdl);
+    a2dp_file_start_abandon_data(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
+    __a2dp_ioc_stop(hdl);
+    a2dp_file_timestamp_close(hdl);
+    a2dp_media_reference_time_close(hdl);
 }
 
 static int a2dp_ioctl(void *_hdl, int cmd, int arg)
@@ -851,33 +905,21 @@ static int a2dp_ioctl(void *_hdl, int cmd, int arg)
     case NODE_IOC_GET_FMT_EX:
         err = a2dp_ioc_get_fmt_ex(hdl, (struct stream_fmt_ex *)arg);
         break;
-    case NODE_IOC_SET_PRIV_FMT:
-        break;
     case NODE_IOC_START:
-        a2dp_media_start_play(hdl->file);
-        a2dp_media_set_rx_notify(hdl->file, hdl, a2dp_source_wake_jlstream_run);
-        a2dp_file_stop_abandon_data(hdl);
-        a2dp_media_reference_time_setup(hdl);
+        a2dp_ioc_start(hdl);
         break;
     case NODE_IOC_SUSPEND:
-        /*hdl->sample_rate = 0;*/
-        a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
-        a2dp_ioc_stop(hdl);
-        a2dp_file_timestamp_close(hdl);
-        a2dp_media_reference_time_close(hdl);
-        a2dp_file_start_abandon_data(hdl);
+        a2dp_ioc_suspend(hdl);
         break;
     case NODE_IOC_STOP:
-        a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
         a2dp_ioc_stop(hdl);
-        a2dp_file_timestamp_close(hdl);
-        a2dp_media_reference_time_close(hdl);
         break;
     }
 
     return err;
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_release(void *_hdl)
 {
     struct a2dp_file_hdl *hdl = (struct a2dp_file_hdl *)_hdl;

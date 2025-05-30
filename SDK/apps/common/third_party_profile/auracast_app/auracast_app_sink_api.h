@@ -3,7 +3,7 @@
 
 #include "system/includes.h"
 
-struct auracst_source_item_t {
+struct auracast_source_item_t {
     char broadcast_name[32];
     u8   broadcast_id[3];
     u8   broadcast_features;
@@ -12,7 +12,7 @@ struct auracst_source_item_t {
     u8   listening_state_error;
 };
 
-extern int auracast_app_notify_source_list(struct auracst_source_item_t *src);
+extern int auracast_app_notify_source_list(struct auracast_source_item_t *src);
 extern int auracast_app_recv_scan_control_deal(u8 opcode, u8 sn, u8 *payload, u32 payload_len);
 extern int auracast_app_recv_device_status_deal(u8 opcode, u8 sn, u8 *payload, u32 payload_len);
 extern int auracast_app_recv_listening_control_deal(u8 opcode, u8 sn, u8 *payload, u32 payload_len);

@@ -104,7 +104,7 @@ u32 adc_set_voltage_mode(enum AD_CH ch, enum AD_MODE mode);
   * @param[in]  无
   * @return     无
   */
-void adc_init(void);
+void gpadc_init(void);
 
 /**@brief 触发一次adc队列采集,定时调用
   * @param[in]  无
@@ -180,6 +180,7 @@ void adc_internal_signal_to_io(enum AD_CH analog_ch, u16 gpio);
 // void adc_audio_ch_select(u32 ch_sel);
 void adc_adjust_div(void);
 _INLINE_ u8 adc_get_clk_div();
+void adc_ch_power_check();
 
 //gpadc_hw_vxx.c 实现
 void adc_close();

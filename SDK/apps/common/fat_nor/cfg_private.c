@@ -24,6 +24,14 @@ typedef struct {
 CFG_PRIVATE_HDL *cp_hdl = NULL;
 
 
+static int cfg_private_addr_check(u32 addr)
+{
+    if (addr < cp_hdl->cfg_private_part_flash_addr || addr >= (cp_hdl->cfg_private_part_flash_addr + cp_hdl->cfg_private_part_maxsize)) {
+        return CFG_PRIVATE_ADDR_CHECK_ERR;
+    }
+    return CFG_PRIVATE_OK;
+}
+
 static RESFILE *cfg_private_create(const char *path, const char *mode)
 {
     int i = 0;
@@ -79,7 +87,7 @@ __exit:
 
 RESFILE *cfg_private_open(const char *path, const char *mode)
 {
-    int res;
+    /* int res; */
     RESFILE *file = resfile_open(path);
     if (!file) {
         if (mode[0] == 'w' && mode[1] == '+') {
@@ -101,6 +109,9 @@ int cfg_private_read(RESFILE *file, void *buf, u32 len)
 
 void cfg_private_erase(u32 addr, u32 len)
 {
+    if (cfg_private_addr_check(addr)) {
+        return;
+    }
     /* r_printf(">>>[test]:addr = 0x%x, len = %d\n", addr, len); */
     u32 erase_total_size = len;
     u32 erase_addr = addr;
@@ -150,19 +161,24 @@ int cfg_private_write(RESFILE *file, void *buf, u32 len)
         u32 align_addr = (attrs.sclust + fptr) / cp_hdl->cfg_private_align_size * cp_hdl->cfg_private_align_size;
         u32 w_pos = attrs.sclust + fptr - align_addr;
         wlen = cp_hdl->cfg_private_align_size - w_pos;
-        /* y_printf(">>>[test]:wpos = %d, wlen = %d\n", w_pos, wlen); */
         if (wlen > len) {
             wlen = len;
         }
+        //y_printf(">>>[test]:wpos = %d, wlen = %d\n", w_pos, wlen);
         norflash_read(NULL, (void *)buf_temp, cp_hdl->cfg_private_align_size, align_addr);
         if (0 == cfg_private_check(buf_temp, cp_hdl->cfg_private_align_size)) {
             cfg_private_erase(align_addr, cp_hdl->cfg_private_align_size);
         }
         memcpy(buf_temp + w_pos, buf, wlen);
         /* put_buf(buf_temp, cp_hdl->cfg_private_align_size); */
+        if (cfg_private_addr_check(align_addr)) {
+            res = -1;
+            goto __exit;
+        }
         norflash_write(NULL, (void *)buf_temp, cp_hdl->cfg_private_align_size, align_addr);
         fptr += wlen;
         len -= wlen;
+        buf += wlen;
     }
 __exit:
     free(buf_temp);
@@ -338,7 +354,7 @@ void cfg_private_test_demo(void)
 
     ///////////创建文件//////////
     y_printf(">>>[test]:创建第一个文件-------------\n");
-    RESFILE *fp = cfg_private_open_by_maxsize(path1, "w+", 2 * 1024);
+    RESFILE *fp = cfg_private_open_by_maxsize(path1, "w+", 60 * 1024);
     if (!fp) {
         r_printf(">>>[test]:open fail!!!!!\n");
         goto _exit;
@@ -350,13 +366,17 @@ void cfg_private_test_demo(void)
     /* cfg_private_seek(fp, 0, SEEK_SET); */
 
     y_printf(">>>[test]:写第一个文件-------------\n");
-    cfg_private_write(fp, test_buf, N);
+    for (int i = 0; i < 20; i++) {
+        cfg_private_write(fp, test_buf, N);
+    }
 
     cfg_private_close(fp);
     y_printf(">>>[test]:读第一个文件-------------\n");
-    fp = cfg_private_open_by_maxsize(path1, "r", 2 * 1024);
-    cfg_private_read(fp, r_buf, 512);
-    put_buf((const u8 *)r_buf, 512);
+    fp = cfg_private_open_by_maxsize(path1, "r", 60 * 1024);
+    for (int i = 0; i < 20; i++) {
+        cfg_private_read(fp, r_buf, 512);
+        put_buf((const u8 *)r_buf, 512);
+    }
     cfg_private_close(fp);
     //////////////////////
 

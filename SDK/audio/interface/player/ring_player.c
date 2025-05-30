@@ -181,6 +181,7 @@ void ring_player_stop()
     }
 }
 
+__INITCALL_BANK_CODE
 static int __ring_player_init()
 {
     os_mutex_create(&g_ring_mutex);

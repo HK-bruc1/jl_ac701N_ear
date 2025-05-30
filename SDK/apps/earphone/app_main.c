@@ -100,7 +100,7 @@ const struct task_info task_info_table[] = {
     {"update",				1,	   0,   256,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
     {"tws_ota_msg",			2,	   0,   256,   128 },
-    {"dw_update",		 	2,	   0,   256,   128 },
+    {"dw_update",		 	1,	   0,   256,   128 },
 #if TCFG_AUDIO_DATA_EXPORT_DEFINE
     {"aud_capture",         4,     0,   512,   256 },
     {"data_export",         5,     0,   512,   256 },
@@ -114,6 +114,9 @@ const struct task_info task_info_table[] = {
     {"rcsp",		    	1,	   0,   768,   128 },
 #if RCSP_FILE_OPT
     {"rcsp_file_bs",		1,	   0,   768,   128 },
+#endif
+#if (RCSP_TONE_FILE_TRANSFER_ENABLE && TCFG_USER_TWS_ENABLE)
+    {"rcsp_ft_tws",			1,	   0,   256,   128 },
 #endif
 #endif
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
@@ -244,6 +247,7 @@ int *__errno()
     return &err;
 }
 
+_INLINE_
 void app_var_init(void)
 {
     app_var.play_poweron_tone = 1;
@@ -274,6 +278,7 @@ u8 get_power_on_status(void)
 }
 
 
+__INITCALL_BANK_CODE
 void check_power_on_key(void)
 {
     u32 delay_10ms_cnt = 0;
@@ -306,6 +311,7 @@ u8 get_charge_online_flag(void)
 }
 
 /*充电拔出,CPU软件复位, 不检测按键，直接开机*/
+__INITCALL_BANK_CODE
 static void app_poweron_check(int update)
 {
 #if (CONFIG_BT_MODE == BT_NORMAL)
@@ -342,6 +348,7 @@ void board_init()
 
 }
 
+__INITCALL_BANK_CODE
 static void app_version_check()
 {
     extern char __VERSION_BEGIN[];
@@ -356,12 +363,13 @@ static void app_version_check()
     puts("=======================================\n");
 }
 
+__INITCALL_BANK_CODE
 static struct app_mode *app_task_init()
 {
     app_var_init();
     app_version_check();
 
-#ifndef CONFIG_CPU_BR56
+#if !(defined(CONFIG_CPU_BR56) || defined(CONFIG_CPU_BR50))
     sdfile_init();
     syscfg_tools_init();
 #endif
@@ -376,6 +384,10 @@ static struct app_mode *app_task_init()
 #if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
     dlog_init();
     dlog_enable(1);
+    extern void dlog_uart_auto_enable_init(void);
+    extern int dlog_uart_output_set(enum DLOG_OUTPUT_TYPE type);
+    dlog_uart_output_set(DLOG_OUTPUT_2_FLASH | dlog_output_type_get());
+    dlog_uart_auto_enable_init();
 #endif
 
     key_driver_init();

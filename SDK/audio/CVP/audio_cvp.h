@@ -5,6 +5,9 @@
 #include "user_cfg.h"
 #include "app_config.h"
 #include "audio_cvp_def.h"
+#include "cvp_sms.h"
+#include "cvp_dms.h"
+#include "cvp_tms.h"
 
 #define AEC_DEBUG_ONLINE	0
 #define AEC_READ_CONFIG		1
@@ -46,6 +49,7 @@ struct audio_aec_init_param_t {
     u32 ref_sr;
     u8 ref_channel;
     u8 mic_num;
+    u16 node_uuid;
 };
 
 //CVP预处理结构
@@ -56,53 +60,13 @@ struct audio_cvp_pre_param_t {
     float talk_fb_mic_gain;	//fb MIC
 };
 
-/*兼容SMS和DMS*/
-#if TCFG_AUDIO_TRIPLE_MIC_ENABLE
-#include "cvp_tms.h"
-#define aec_open		    aec_tms_init
-#define aec_close		    aec_tms_exit
-#define aec_in_data		    aec_tms_fill_in_data
-#define aec_in_data_ref     aec_tms_fill_in_ref_data
-#define aec_in_data_ref_1	aec_tms_fill_in_ref_1_data
-#define aec_ref_data	    aec_tms_fill_ref_data
-
-#elif TCFG_AUDIO_DUAL_MIC_ENABLE
-#include "cvp_dms.h"
-#if (TCFG_AUDIO_DMS_SEL == DMS_NORMAL)
-#define aec_open		aec_dms_init
-#define aec_close		aec_dms_exit
-#define aec_in_data		aec_dms_fill_in_data
-#define aec_in_data_ref	aec_dms_fill_in_ref_data
-#define aec_ref_data	aec_dms_fill_ref_data
-#elif (TCFG_AUDIO_DMS_SEL == DMS_FLEXIBLE)
-#define aec_open		aec_dms_flexible_init
-#define aec_close		aec_dms_flexible_exit
-#define aec_in_data		aec_dms_flexible_fill_in_data
-#define aec_in_data_ref	aec_dms_flexible_fill_in_ref_data
-#define aec_ref_data	aec_dms_flexible_fill_ref_data
-#elif (TCFG_AUDIO_DMS_SEL == DMS_HYBRID)
-#define aec_open		aec_dms_hybrid_init
-#define aec_close		aec_dms_hybrid_exit
-#define aec_in_data		aec_dms_hybrid_fill_in_data
-#define aec_in_data_ref	aec_dms_hybrid_fill_in_ref_data
-#define aec_ref_data	aec_dms_hybrid_fill_ref_data
-#elif (TCFG_AUDIO_DMS_SEL == DMS_AWN)
-#define aec_open		aec_dms_awn_init
-#define aec_close		aec_dms_awn_exit
-#define aec_in_data		aec_dms_awn_fill_in_data
-#define aec_in_data_ref	aec_dms_awn_fill_in_ref_data
-#define aec_ref_data	aec_dms_awn_fill_ref_data
-#endif/*TCFG_AUDIO_DMS_SEL*/
-
-#elif (TCFG_AUDIO_SMS_SEL == SMS_TDE)
-#include "cvp_sms.h"
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
 #define aec_open		sms_tde_init
 #define aec_close		sms_tde_exit
 #define aec_in_data		sms_tde_fill_in_data
 #define aec_in_data_ref(...)
 #define aec_ref_data	sms_tde_fill_ref_data
 #else
-#include "cvp_sms.h"
 #define aec_open		aec_init
 #define aec_close		aec_exit
 #define aec_in_data		aec_fill_in_data
@@ -223,6 +187,7 @@ int audio_cvp_get_wind_detect_info(int *wd_flag, int *wd_val, int *wd_lev);
 int audio_tms_mode_choose(enum cvp_tms_mode mode);
 #endif
 
+void cvp_node_context_setup(u16 uuid);
 u16 get_cvp_node_uuid();
 
 #endif

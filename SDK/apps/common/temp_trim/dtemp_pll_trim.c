@@ -78,6 +78,7 @@ void bt_temperature_pll_trim_task(void *priv)
 
 }
 
+__INITCALL_BANK_CODE
 int trim_timer_add()
 {
     if (config_bt_temperature_pll_trim) {
@@ -88,6 +89,7 @@ int trim_timer_add()
     }
     return 0;
 }
+__initcall(trim_timer_add);
 
 
 static u8 pll_trim_idle_query(void)
@@ -101,4 +103,3 @@ REGISTER_LP_TARGET(plll_trim_lp_target) = {
 };
 
 
-__initcall(trim_timer_add);

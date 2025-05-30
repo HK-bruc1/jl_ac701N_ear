@@ -12,7 +12,7 @@ struct audio_general_params {
 };
 
 struct audio_dac_noisegate {
-    u8 threshold;			//底噪阈值，pcm数据绝对值
+    u8 threshold;			//底噪阈值，pcm数据绝对值，|pcm| ≤threshold判定为noise
     u16 detect_interval;	//检测间隔，单位ms
 };
 

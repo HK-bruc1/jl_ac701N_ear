@@ -12,6 +12,8 @@ typedef enum {
     RCSPDevMapFLASH,
     RCSPDevMapAUX,
     RCSPDevMapFLASH_2,
+    RCSPDevMapNAND, // nand_flash
+    RCSPDevMapRESERVE, // 预留区域
     RCSPDevMapMax,
 } RCSPDevMap;
 

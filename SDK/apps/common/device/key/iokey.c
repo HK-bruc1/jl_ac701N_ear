@@ -12,6 +12,7 @@
 #include "iokey.h"
 #include "gpio.h"
 #include "asm/power_interface.h"
+#include "system/init.h"
 
 
 
@@ -229,6 +230,7 @@ const struct iokey_platform_data *get_iokey_platform_data()
     return NULL;
 }
 
+__INITCALL_BANK_CODE
 int iokey_init(void)
 {
     __this = get_iokey_platform_data();

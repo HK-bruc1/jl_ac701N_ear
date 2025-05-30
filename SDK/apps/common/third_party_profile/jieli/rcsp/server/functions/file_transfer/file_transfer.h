@@ -11,7 +11,7 @@
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_init(void (*end_callback)(void));
+void rcsp_file_transfer_init(void (*end_callback)(void), u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件下载拓展参数配置
    @param    OpCode_SN:数据包序列号，data:数据， len:数据长度
@@ -19,9 +19,9 @@ void rcsp_file_transfer_init(void (*end_callback)(void));
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_download_parm_extra(u8 OpCode_SN, u8 *data, u16 len);
+void rcsp_file_transfer_download_parm_extra(u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 // rcsp文件下载开始命令处理
-void rcsp_file_transfer_download_start(void *priv, u8 OpCode_SN, u8 *data, u16 len);
+void rcsp_file_transfer_download_start(void *priv, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件下载结束(F->A的回复处理)
    @param    status:命令执行状态，data:数据， len:数据长度
@@ -29,7 +29,7 @@ void rcsp_file_transfer_download_start(void *priv, u8 OpCode_SN, u8 *data, u16 l
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_download_end(u8 status, u8 *data, u16 len);
+void rcsp_file_transfer_download_end(u8 status, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件传输过程处理(A->F)
    @param    data:数据， len:数据长度
@@ -37,7 +37,7 @@ void rcsp_file_transfer_download_end(u8 status, u8 *data, u16 len);
    @note	 此过程接收的数据是实际文件传输的内容
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_download_doing(u8 *data, u16 len);
+void rcsp_file_transfer_download_doing(u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件传输，被动取消处理
    @param    OpCode_SN:数据包sn码， 回复的时候用的
@@ -45,7 +45,7 @@ void rcsp_file_transfer_download_doing(u8 *data, u16 len);
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_download_passive_cancel(u8 OpCode_SN, u8 *data, u16 len);
+void rcsp_file_transfer_download_passive_cancel(u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件传输，主动取消处理
    @param
@@ -61,7 +61,7 @@ void rcsp_file_transfer_download_active_cancel(void);
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_download_active_cancel_response(u8 status, u8 *data, u16 len);
+void rcsp_file_transfer_download_active_cancel_response(u8 status, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件传输， 重命名处理
    @param
@@ -69,7 +69,7 @@ void rcsp_file_transfer_download_active_cancel_response(u8 status, u8 *data, u16
    @note
 */
 /*----------------------------------------------------------------------------*/
-void rcsp_file_transfer_file_rename(u8 status, u8 *data, u16 len);
+void rcsp_file_transfer_file_rename(u8 status, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
 //*----------------------------------------------------------------------------*/
 /**@brief    文件传输关闭处理
    @param
@@ -78,6 +78,7 @@ void rcsp_file_transfer_file_rename(u8 status, u8 *data, u16 len);
 */
 /*----------------------------------------------------------------------------*/
 void rcsp_file_transfer_close(void);
+void rcsp_file_transfer_special_flag_set(u8 flag);
 
 #endif//__FILE_TRANSFER_H__
 

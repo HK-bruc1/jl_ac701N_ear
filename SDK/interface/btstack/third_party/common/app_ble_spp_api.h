@@ -104,6 +104,7 @@ extern int app_ble_all_sync_data_get(u8 *sync_buf);
 extern int app_ble_all_sync_data_set(u8 *sync_buf, int buf_len);
 
 extern int app_ble_att_connect_type_set(void *_hdl, u8 connect_type);
+extern int app_ble_gatt_over_edr_connect_type_set(void *_hdl, u8 en);
 
 
 /**********************************************

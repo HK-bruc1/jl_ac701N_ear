@@ -25,7 +25,6 @@
 #endif
 #if AUDIO_CVP_COMMON_AT_RAM
     . = ALIGN(4);
-    *(.aec_mem)
     *(.aec_mux)
     *(.aec_code)
     *(.aec_const)

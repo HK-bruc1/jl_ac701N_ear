@@ -7,6 +7,12 @@ extern const int const_audio_cvp_debug_online_enable;
 /*支持外部参考数据的流程，才需要判断output_way类型，否则(aec->attr->output_way == 0)为真*/
 extern const int config_audio_cvp_ref_source;
 
+typedef enum {
+    CVP_TALK_MIC = 0,
+    CVP_FF_MIC,
+    CVP_FB_MIC,
+} CVP_MIC_ENUM;
+
 /*DMS输出选择*/
 typedef enum {
     DMS_OUTPUT_SEL_DEFAULT = 0,	/*默认输出：dms处理后的数据*/

@@ -53,7 +53,7 @@ static u32 target_feature_attr_sys_info(void *priv, u8 attr, u8 *buf, u16 buf_si
         return 0;
     }
     struct _SYS_info sys_info = {0};
-#if (RCSP_MODE != RCSP_MODE_EARPHONE)
+#if 1//(RCSP_MODE != RCSP_MODE_EARPHONE)
     extern u8 get_vbat_percent(void);
     sys_info.bat_lev = get_vbat_percent(); //get_battery_level() / 10;
     rcsp_get_max_vol_info(&sys_info.max_vol);
@@ -336,6 +336,9 @@ static u32 target_feature_md5_game_support(void *priv, u8 attr, u8 *buf, u16 buf
 #if RCSP_ADV_ADAPTIVE_NOISE_REDUCTION
     ext_function_flag_byte1 |= BIT(1);
 #endif
+#if RCSP_ADV_TRANSLATOR
+    ext_function_flag_byte1 |= BIT(2);
+#endif
 #if RCSP_ADV_AI_NO_PICK
     ext_function_flag_byte1 |= BIT(3);
 #endif
@@ -351,6 +354,9 @@ static u32 target_feature_md5_game_support(void *priv, u8 attr, u8 *buf, u16 buf
 #if TCFG_RCSP_DUAL_CONN_ENABLE
     // 是否一拖二
     ext_function_flag_byte1 |= BIT(7);
+#endif
+#if RCSP_TONE_FILE_TRANSFER_ENABLE
+    ext_function_flag_byte1 |= BIT(2);
 #endif
     ext_function_flag[1] = ext_function_flag_byte1;
 

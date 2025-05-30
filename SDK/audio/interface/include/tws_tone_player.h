@@ -42,11 +42,17 @@ int tws_play_tone_file_callback(const char *file_name, int delay_msec, u32 func_
 
 /*
  * 打断方式同步播放单个文件
+ * 打断是打断其他播放器，不打断提示音
  */
 int tws_play_tone_file_alone(const char *file_name, int delay_msec);
 
 int tws_play_tone_file_alone_callback(const char *file_name, int delay_msec, u32 func_uuid);
 
+/*
+ * 打断方式同步播放单个文件
+ * 打断是打断其他播放器. 如果有正在播放的提示音，则会先关闭提示音再播放
+ */
+int tws_play_tone_file_preemption_callback(const char *file_name, int delay_msec, u32 func_uuid);
 /*
  * 同步播放文件列表
  */

@@ -142,32 +142,11 @@ int get_eff_default_param(int arg)
     //cppcheck-suppress unreadVariable
     struct _name *name = (struct _name *)arg;
 #if TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE
-//virtual bass pro 模块节点默认参数配置, virtual bass pro节点名需配置成：VBassPro,此处默认配置才会生效
-    char virtual_bass_pro[16];
-#if TCFG_EQ_ENABLE
-    char *sw_eqname_tab[] = {"HPEQ", "PEAKEQ"};//子节点名
-    for (int i = 0; i < ARRAY_SIZE(sw_eqname_tab); i++) {
-        jlstream_module_node_get_name(sw_eqname_tab[i], "VBassPro", virtual_bass_pro);
-        if (!strcmp(name->name, virtual_bass_pro)) {
-            struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
-            get_eq_parm->cfg_index = 0;
-            get_eq_parm->mode_index = get_current_scene();
-            ret = 1;
-            break;
-        }
-    }
-#endif
-
-    char *virtual_bass_classic_name[] = {"MFreqGen", "HPDRC"};//子节点名
-    for (int i = 0; i < ARRAY_SIZE(virtual_bass_classic_name); i++) {
-        jlstream_module_node_get_name(virtual_bass_classic_name[i], "VBassPro", virtual_bass_pro);
-        if (!strcmp(name->name, virtual_bass_pro)) {
-            struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
-            get_parm->mode_index = get_current_scene();
-            get_parm->cfg_index = 0;//目标配置项
-            ret = 1;
-            break;
-        }
+    if (!strncmp(name->name, "VBassPro", strlen("VBassPro"))) {
+        struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+        get_parm->cfg_index = 0;//目标配置项
+        get_parm->mode_index = get_current_scene();
+        ret = 1;
     }
 #endif
 

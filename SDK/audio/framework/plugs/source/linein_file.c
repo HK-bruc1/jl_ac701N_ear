@@ -53,6 +53,7 @@ int adc_file_linein_open(struct adc_linein_ch *linein, int ch)
 #if TCFG_AUDIO_LINEIN_ENABLE
 
 
+__AUDIO_INIT_BANK_CODE
 void audio_linein_file_init()
 {
     char mode_index = 0;

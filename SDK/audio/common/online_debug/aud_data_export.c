@@ -219,6 +219,7 @@ static int aud_online_data_export_parse(u8 *packet, u8 size, u8 *ext_data, u16 e
     return 0;
 }
 
+__INITCALL_BANK_CODE
 int aud_data_export_open(void)
 {
     app_online_db_register_handle(DB_PKT_TYPE_EXPORT, aud_online_data_export_parse);

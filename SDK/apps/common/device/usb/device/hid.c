@@ -162,11 +162,22 @@ static void hid_output_report_handler(u8 *buf, u32 len)
 
 static u8 *hid_ep_in_dma;
 static u8 *hid_ep_out_dma;
+static u8 hid_tx_flag;
 
 static u32 hid_tx_data(struct usb_device_t *usb_device, const u8 *buffer, u32 len)
 {
+    if (hid_tx_flag == 0) {
+        return 0;
+    }
     const usb_dev usb_id = usb_device2id(usb_device);
     return usb_g_intr_write(usb_id, HID_EP_IN, buffer, len);
+}
+static void hid_tx_data_cb(struct usb_device_t *usb_device, u32 ep)
+{
+    const usb_dev usb_id = usb_device2id(usb_device);
+    usb_clr_intr_txe(usb_id, ep);
+    usb_g_set_intr_hander(usb_id, HID_EP_IN | USB_DIR_IN, NULL);
+    hid_tx_flag = 1;
 }
 static void hid_rx_data(struct usb_device_t *usb_device, u32 ep)
 {
@@ -182,6 +193,18 @@ static void hid_endpoint_init(struct usb_device_t *usb_device, u32 itf)
     usb_g_ep_config(usb_id, HID_EP_IN | USB_DIR_IN, USB_ENDPOINT_XFER_INT, 0, hid_ep_in_dma, MAXP_SIZE_HIDIN);
     usb_enable_ep(usb_id, HID_EP_IN);
 
+    usb_g_set_intr_hander(usb_id, HID_EP_IN | USB_DIR_IN, hid_tx_data_cb);
+    usb_set_intr_txe(usb_id, HID_EP_IN);
+    u32 host_type = usb_get_host_type(usb_id);
+    u8 key_buf[3] = {0};
+    if (host_type == HOST_TYPE_ERR) { //枚举未完成
+    } else if (host_type == HOST_TYPE_IOS) {
+        key_buf[0] = 0x01;  //report id
+        usb_g_intr_write(usb_id, HID_EP_IN, key_buf, 3);
+    } else {
+        usb_g_intr_write(usb_id, HID_EP_IN, key_buf, 2);
+    }
+
     /* usb_g_set_intr_hander(usb_id, HID_EP_OUT, hid_rx_data); */
     /* usb_g_ep_config(usb_id, HID_EP_OUT, USB_ENDPOINT_XFER_INT, 1, hid_ep_out_dma, MAXP_SIZE_HIDOUT); */
 }
@@ -196,6 +219,7 @@ u32 hid_register(const usb_dev usb_id)
 
 void hid_release(const usb_dev usb_id)
 {
+    hid_tx_flag = 0;
     if (hid_ep_in_dma) {
         usb_free_ep_dmabuffer(usb_id, hid_ep_in_dma);
         hid_ep_in_dma = NULL;
@@ -216,6 +240,7 @@ static void hid_reset(struct usb_device_t *usb_device, u32 itf)
 #else
     hid_endpoint_init(usb_device, itf);
 #endif
+    hid_tx_flag = 0;
 }
 
 static u32 hid_recv_output_report(struct usb_device_t *usb_device, struct usb_ctrlrequest *setup)

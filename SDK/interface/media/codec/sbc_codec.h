@@ -33,7 +33,16 @@ enum {
     ERR_READ_NO_DATA = 0x10002,
 };
 
-
+typedef struct _SBC_DEC_CH_OPUT_PARA {
+    u32 mode;      //0:old_LRLRLR  1:LLLLLL  2:RRRRRR  3:(L*p0+R*p1)/16384
+    short pL;      //new_3_chL       Q14  8192表示合成数据中对应通道音量为50%
+    short pR;      //new_3_chR       Q14
+    short pL_g;    //new_3_chL_goal  Q14
+    short pR_g;    //new_3_chR_goal  Q14
+    char pLadd;
+    char pRadd;
+    char new_mode;
+} SBC_DEC_CH_OPUT_PARA;
 
 ////////////////////////////
 //硬件sbc 解码使用

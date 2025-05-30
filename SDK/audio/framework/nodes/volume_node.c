@@ -79,6 +79,7 @@ static void volume_open_iport(struct stream_iport *iport)
 }
 
 
+__VOLUME_BANK_CODE
 static void volume_ioc_start(struct volume_hdl *hdl)
 {
     struct audio_vol_params params = {0};
@@ -161,6 +162,13 @@ static void volume_ioc_start(struct volume_hdl *hdl)
         audio_digital_vol_bg_fade(1);
 #endif
         break;
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+    case STREAM_SCENE_AI_VOICE:
+        /*puts("set_a2dp_volume\n");*/
+        hdl->state = APP_AUDIO_STATE_MUSIC;
+        params.fade_step  = MUSIC_DVOL_FS;
+        break;
+#endif
     case STREAM_SCENE_LEA_CALL:
     case STREAM_SCENE_ESCO:
         hdl->state          = APP_AUDIO_STATE_CALL;
@@ -232,6 +240,7 @@ static void volume_ioc_start(struct volume_hdl *hdl)
 #endif
 }
 
+__VOLUME_BANK_CODE
 static void volume_ioc_stop(struct volume_hdl *hdl)
 {
     if ((hdl->scene != STREAM_SCENE_MIC_EFFECT) && (hdl->scene != STREAM_SCENE_MIC_EFFECT2)) {
@@ -245,6 +254,7 @@ static void volume_ioc_stop(struct volume_hdl *hdl)
     hdl->dvol_hdl = NULL;
 }
 
+__STREAM_BANK_CODE
 int volume_ioc_get_cfg(const char *name, struct volume_cfg *vol_cfg)
 {
     struct cfg_info info;

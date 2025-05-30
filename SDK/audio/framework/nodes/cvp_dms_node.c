@@ -216,14 +216,20 @@ struct cvp_dms_awn_cfg_t {
     struct CVP_DEBUG_CONFIG debug;
 } __attribute__((packed));
 
-struct cvp_cfg_t {
+union cvp_cfg_t {
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
     struct cvp_dms_beamfroming_cfg_t dms_beamfroming;
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
     struct cvp_dms_flexible_cfg_t dms_flexible;
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
     struct cvp_dms_hybrid_cfg_t dms_hybrid;
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
     struct cvp_dms_awn_cfg_t dms_awn;
 #endif
 } __attribute__((packed));
@@ -250,9 +256,9 @@ struct cvp_node_hdl {
     struct CVP_REF_MIC_CONFIG ref_mic;
 };
 
-static struct cvp_node_hdl *g_cvp_hdl;
+static struct cvp_node_hdl *g_cvp_hdl = NULL;
 
-int cvp_node_output_handle(s16 *data, u16 len)
+int cvp_dms_node_output_handle(s16 *data, u16 len)
 {
     struct stream_frame *frame;
     frame = jlstream_get_frame(hdl_node(g_cvp_hdl)->oport, len);
@@ -266,7 +272,7 @@ int cvp_node_output_handle(s16 *data, u16 len)
 }
 
 extern float eq_db2mag(float x);
-void cvp_node_dms_beamfroming_cfg_update(struct cvp_dms_beamfroming_cfg_t *cfg, void *priv)
+int cvp_node_dms_beamfroming_cfg_update(struct cvp_dms_beamfroming_cfg_t *cfg, void *priv)
 {
     AEC_DMS_CONFIG *p = (AEC_DMS_CONFIG *)priv;
 
@@ -335,10 +341,10 @@ void cvp_node_dms_beamfroming_cfg_update(struct cvp_dms_beamfroming_cfg_t *cfg, 
     p->OnlyDetect = cfg->mfdt.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
 
     p->output_sel = cfg->debug.output_sel;
-
+    return sizeof(AEC_DMS_CONFIG);
 }
 
-void cvp_node_dms_flexible_cfg_update(struct cvp_dms_flexible_cfg_t *cfg, void *priv)
+int cvp_node_dms_flexible_cfg_update(struct cvp_dms_flexible_cfg_t *cfg, void *priv)
 {
     DMS_FLEXIBLE_CONFIG *p = (DMS_FLEXIBLE_CONFIG *)priv;
 
@@ -396,9 +402,10 @@ void cvp_node_dms_flexible_cfg_update(struct cvp_dms_flexible_cfg_t *cfg, void *
     p->echo_present_thr = cfg->agc.echo_present_thr;
 
     p->output_sel = cfg->debug.output_sel;
+    return sizeof(DMS_FLEXIBLE_CONFIG);
 }
 
-void cvp_node_dms_awn_cfg_update(struct cvp_dms_awn_cfg_t *cfg, void *priv)
+int cvp_node_dms_awn_cfg_update(struct cvp_dms_awn_cfg_t *cfg, void *priv)
 {
     DMS_AWN_CONFIG *p = (DMS_AWN_CONFIG *)priv;
     if (g_cvp_hdl) {
@@ -461,9 +468,10 @@ void cvp_node_dms_awn_cfg_update(struct cvp_dms_awn_cfg_t *cfg, void *priv)
     p->coh_val_T = cfg->wnc.coh_val_T;
     p->eng_db_T = cfg->wnc.eng_db_T;
     p->output_sel = cfg->debug.output_sel;
+    return sizeof(DMS_AWN_CONFIG);
 }
 
-void cvp_node_dms_hybrid_cfg_update(struct cvp_dms_hybrid_cfg_t *cfg, void *priv)
+int cvp_node_dms_hybrid_cfg_update(struct cvp_dms_hybrid_cfg_t *cfg, void *priv)
 {
     DMS_HYBRID_CONFIG *p = (DMS_HYBRID_CONFIG *)priv;
 
@@ -536,29 +544,63 @@ void cvp_node_dms_hybrid_cfg_update(struct cvp_dms_hybrid_cfg_t *cfg, void *priv
     p->eng_db_T = cfg->wnc.eng_db_T;
 
     p->output_sel = cfg->debug.output_sel;
+    return sizeof(DMS_HYBRID_CONFIG);
 }
 
-void cvp_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
+//根据node_uuid，获取对应节点配置信息的长度
+u16 cvp_dms_cfg_size(u16 node_uuid)
 {
-#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    cvp_node_dms_beamfroming_cfg_update(&cfg->dms_beamfroming, priv);
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    cvp_node_dms_flexible_cfg_update(&cfg->dms_flexible, priv);
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    cvp_node_dms_hybrid_cfg_update(&cfg->dms_hybrid, priv);
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    cvp_node_dms_awn_cfg_update(&cfg->dms_awn, priv);
-#endif
+    switch (node_uuid) {
+    case NODE_UUID_CVP_DMS_ANS:
+    case NODE_UUID_CVP_DMS_DNS:
+        return sizeof(struct cvp_dms_beamfroming_cfg_t);
+    case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+    case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+        return sizeof(struct cvp_dms_flexible_cfg_t);
+    case NODE_UUID_CVP_DMS_HYBRID_DNS:
+        return sizeof(struct cvp_dms_hybrid_cfg_t);
+    case NODE_UUID_CVP_DMS_AWN_DNS:
+        return sizeof(struct cvp_dms_awn_cfg_t);
+    }
+    return 0xFFFF;
 }
 
-struct cvp_cfg_t global_cvp_cfg;
-int cvp_param_cfg_read(void)
+int cvp_dms_node_param_cfg_update(union cvp_cfg_t *cfg, void *priv, u16 node_uuid)
+{
+    switch (node_uuid) {
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
+    case NODE_UUID_CVP_DMS_ANS:
+    case NODE_UUID_CVP_DMS_DNS:
+        return cvp_node_dms_beamfroming_cfg_update(&cfg->dms_beamfroming, priv);
+#endif
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+    case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+    case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+        return cvp_node_dms_flexible_cfg_update(&cfg->dms_flexible, priv);
+#endif
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+    case NODE_UUID_CVP_DMS_HYBRID_DNS:
+        return cvp_node_dms_hybrid_cfg_update(&cfg->dms_hybrid, priv);
+#endif
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+    case NODE_UUID_CVP_DMS_AWN_DNS:
+        return cvp_node_dms_awn_cfg_update(&cfg->dms_awn, priv);
+#endif
+    default:
+        break;
+    }
+    return 0;
+}
+
+static union cvp_cfg_t global_cvp_cfg;
+int cvp_dms_param_cfg_read(void)
 {
     u8 subid;
     if (g_cvp_hdl) {
         subid = hdl_node(g_cvp_hdl)->subid;
     } else {
         subid = 0XFF;
+        r_printf("g_cvp_hdl==NULL\n");
     }
 
     /*
@@ -566,19 +608,31 @@ int cvp_param_cfg_read(void)
      * */
     int len = 0;
     struct node_param ncfg = {0};
+    u16 node_uuid = 0;
+    if (g_cvp_hdl) {
+        node_uuid = hdl_node(g_cvp_hdl)->uuid;
+        len = jlstream_read_node_data(node_uuid, subid, (u8 *)&ncfg);
+    } else {
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_ANS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_ANS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_ANS;
 #elif (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_DNS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_DNS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_DNS;
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_ANS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_ANS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_FLEXIBLE_ANS;
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_DNS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_DNS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_FLEXIBLE_DNS;
 #elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_HYBRID_DNS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_HYBRID_DNS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_HYBRID_DNS;
 #elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_AWN_DNS, subid, (u8 *)&ncfg);
+        len = jlstream_read_node_data(NODE_UUID_CVP_DMS_AWN_DNS, subid, (u8 *)&ncfg);
+        node_uuid = NODE_UUID_CVP_DMS_AWN_DNS;
 #endif
+    }
 
     if (len != sizeof(ncfg)) {
         printf("cvp_dms_name read ncfg err\n");
@@ -591,8 +645,9 @@ int cvp_param_cfg_read(void)
         len = jlstream_read_form_cfg_data(&info, &global_cvp_cfg);
     }
 
-    printf(" %s len %d, sizeof(global_cvp_cfg) %d\n", __func__,  len, (int)sizeof(global_cvp_cfg));
-    if (len != sizeof(global_cvp_cfg)) {
+    u16 dms_cfg_size = cvp_dms_cfg_size(node_uuid);
+    printf(" %s len %d, sizeof(global_cvp_cfg) %d\n", __func__,  len, dms_cfg_size);
+    if (len != dms_cfg_size) {
         printf("cvp_dms_param read ncfg err\n");
         return -1 ;
     }
@@ -601,61 +656,103 @@ int cvp_param_cfg_read(void)
 
 u8 cvp_get_talk_mic_ch(void)
 {
+    if (g_cvp_hdl == NULL) {
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    return global_cvp_cfg.dms_beamfroming.mic_sel.talk_mic;
+        return global_cvp_cfg.dms_beamfroming.mic_sel.talk_mic;
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    return global_cvp_cfg.dms_flexible.mic_sel.talk_mic;
+        return global_cvp_cfg.dms_flexible.mic_sel.talk_mic;
 #elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    return global_cvp_cfg.dms_hybrid.mic_sel.talk_mic;
+        return global_cvp_cfg.dms_hybrid.mic_sel.talk_mic;
 #elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    return global_cvp_cfg.dms_awn.mic_sel.talk_mic;
+        return global_cvp_cfg.dms_awn.mic_sel.talk_mic;
 #endif
+        return 0;
+    }
+
+    u16 node_uuid = hdl_node(g_cvp_hdl)->uuid;
+    switch (node_uuid) {
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
+    case NODE_UUID_CVP_DMS_ANS:
+    case NODE_UUID_CVP_DMS_DNS:
+        return global_cvp_cfg.dms_beamfroming.mic_sel.talk_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+    case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+    case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+        return global_cvp_cfg.dms_flexible.mic_sel.talk_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+    case NODE_UUID_CVP_DMS_HYBRID_DNS:
+        return global_cvp_cfg.dms_hybrid.mic_sel.talk_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+    case NODE_UUID_CVP_DMS_AWN_DNS:
+        return global_cvp_cfg.dms_awn.mic_sel.talk_mic;
+#endif
+    }
+    return 0;
 }
 
 u8 cvp_get_talk_ref_mic_ch(void)
 {
+    if (g_cvp_hdl == NULL) {
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    return global_cvp_cfg.dms_beamfroming.mic_sel.talk_ref_mic;
+        return global_cvp_cfg.dms_beamfroming.mic_sel.talk_ref_mic;
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    return global_cvp_cfg.dms_flexible.mic_sel.talk_ref_mic;
+        return global_cvp_cfg.dms_flexible.mic_sel.talk_ref_mic;
 #elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    return global_cvp_cfg.dms_hybrid.mic_sel.talk_ref_mic;
+        return global_cvp_cfg.dms_hybrid.mic_sel.talk_ref_mic;
 #elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    return global_cvp_cfg.dms_awn.mic_sel.talk_ref_mic;
+        return global_cvp_cfg.dms_awn.mic_sel.talk_ref_mic;
 #endif
+        return 0;
+    }
+
+    u16 node_uuid = hdl_node(g_cvp_hdl)->uuid;
+    switch (node_uuid) {
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
+    case NODE_UUID_CVP_DMS_ANS:
+    case NODE_UUID_CVP_DMS_DNS:
+        return global_cvp_cfg.dms_beamfroming.mic_sel.talk_ref_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+    case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+    case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+        return global_cvp_cfg.dms_flexible.mic_sel.talk_ref_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+    case NODE_UUID_CVP_DMS_HYBRID_DNS:
+        return global_cvp_cfg.dms_hybrid.mic_sel.talk_ref_mic;
+#endif
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+    case NODE_UUID_CVP_DMS_AWN_DNS:
+        return global_cvp_cfg.dms_awn.mic_sel.talk_ref_mic;
+#endif
+    }
+    return 0;
 }
 
-int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
+__CVP_BANK_CODE
+int cvp_dms_node_param_cfg_read(void *priv, u8 ignore_subid, u16 node_uuid)
 {
-    struct cvp_cfg_t cfg;
+    union cvp_cfg_t cfg;
     u8 subid;
     if (g_cvp_hdl) {
         subid = hdl_node(g_cvp_hdl)->subid;
     } else {
         subid = 0XFF;
     }
+    y_printf("cvp node_uuid:%x", node_uuid);
     /*
      *解析配置文件内效果配置
      * */
-    int len = 0;
     struct node_param ncfg = {0};
-#if (TCFG_AUDIO_CVP_DMS_ANS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_ANS, subid, (u8 *)&ncfg);
-#elif (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_DNS, subid, (u8 *)&ncfg);
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_ANS, subid, (u8 *)&ncfg);
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_FLEXIBLE_DNS, subid, (u8 *)&ncfg);
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_HYBRID_DNS, subid, (u8 *)&ncfg);
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    len = jlstream_read_node_data(NODE_UUID_CVP_DMS_AWN_DNS, subid, (u8 *)&ncfg);
-#endif
+    int len = jlstream_read_node_data(node_uuid, subid, (u8 *)&ncfg);
     if (len != sizeof(ncfg)) {
         printf("cvp_dms_node read ncfg err\n");
         return 0;
     }
+    printf("cvp_dms_node read ncfg succ\n");
 
     char mode_index = 0;
     char cfg_index = 0;//目标配置项序号
@@ -663,8 +760,9 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
     if (!jlstream_read_form_node_info_base(mode_index, ncfg.name, cfg_index, &info)) {
         len = jlstream_read_form_cfg_data(&info, &cfg);
     }
-    printf(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(cfg));
-    if (len != sizeof(cfg)) {
+    u16 dms_cfg_size = cvp_dms_cfg_size(node_uuid);
+    printf("%s len %d, sizeof(cfg) %d\n", __func__,  len, dms_cfg_size);
+    if (len != dms_cfg_size) {
         return 0 ;
     }
 
@@ -679,17 +777,9 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
             }
         }
     }
-    cvp_node_param_cfg_update(&cfg, priv);
-
-#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    return sizeof(AEC_DMS_CONFIG);
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    return sizeof(DMS_FLEXIBLE_CONFIG);
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    return sizeof(DMS_HYBRID_CONFIG);
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    return sizeof(DMS_AWN_CONFIG);
-#endif
+    int ret_val = cvp_dms_node_param_cfg_update(&cfg, priv, node_uuid);
+    printf("ret_val:%d,%x", ret_val, node_uuid);
+    return ret_val;
 }
 
 /*节点输出回调处理，可处理数据或post信号量*/
@@ -783,7 +873,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
-
+    cvp_node_context_setup(uuid);
     node->type = NODE_TYPE_ASYNC;
     g_cvp_hdl = hdl;
     return 0;
@@ -838,6 +928,7 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
 }
 
 /*节点start函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 {
     struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt;
@@ -845,6 +936,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     init_param.sample_rate = fmt->sample_rate;
     init_param.ref_sr = hdl->ref_sr;
     init_param.ref_channel = 1;;
+    init_param.node_uuid = hdl_node(hdl)->uuid;
     u8 mic_num; //算法需要使用的MIC个数
 
     audio_aec_init(&init_param);
@@ -881,18 +973,34 @@ static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
 static int cvp_ioc_update_parm(struct cvp_node_hdl *hdl, int parm)
 {
     int ret = false;
-    struct cvp_cfg_t *cfg = (struct cvp_cfg_t *)parm;
+    union cvp_cfg_t *cfg = (union cvp_cfg_t *)parm;
+    u16 node_uuid = hdl_node(hdl)->uuid;
     if (hdl) {
-        cvp_node_param_cfg_update(cfg, &hdl->online_cfg);
+        cvp_dms_node_param_cfg_update(cfg, &hdl->online_cfg, node_uuid);
+        switch (node_uuid) {
+        case NODE_UUID_CVP_DMS_ANS:
+        case NODE_UUID_CVP_DMS_DNS:
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-        aec_dms_cfg_update(&hdl->online_cfg.dms_beamfroming);
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-        aec_dms_flexible_cfg_update(&hdl->online_cfg.dms_flexible);
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-        aec_dms_hybrid_cfg_update(&hdl->online_cfg.dms_hybrid);
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-        aec_dms_awn_cfg_update(&hdl->online_cfg.dms_awn);
+            aec_dms_cfg_update(&hdl->online_cfg.dms_beamfroming);
 #endif
+            break;
+        case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+        case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+            aec_dms_flexible_cfg_update(&hdl->online_cfg.dms_flexible);
+#endif
+            break;
+        case NODE_UUID_CVP_DMS_HYBRID_DNS:
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+            aec_dms_hybrid_cfg_update(&hdl->online_cfg.dms_hybrid);
+#endif
+            break;
+        case NODE_UUID_CVP_DMS_AWN_DNS:
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+            aec_dms_awn_cfg_update(&hdl->online_cfg.dms_awn);
+#endif
+            break;
+        }
         ret = true;
     }
     return ret;
@@ -952,52 +1060,101 @@ static void cvp_adapter_release(struct stream_node *node)
         g_cvp_hdl->buf_2 = NULL;
     }
     g_cvp_hdl = NULL;
+    cvp_node_context_setup(0);
 }
 
 /*节点adapter 注意需要在sdk_used_list声明，否则会被优化*/
-REGISTER_STREAM_NODE_ADAPTER(cvp_node_adapter) = {
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_ans_node_adapter) = {
     .name       = "cvp_dms_ans",
     .uuid       = NODE_UUID_CVP_DMS_ANS,
-#elif (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    .name       = "cvp_dms_dns",
-    .uuid       = NODE_UUID_CVP_DMS_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE)
-    .name       = "cvp_dms_flexible_ans",
-    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_ANS,
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    .name       = "cvp_dms_flexible_dns",
-    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    .name       = "cvp_dms_hybrid_dns",
-    .uuid       = NODE_UUID_CVP_DMS_HYBRID_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    .name       = "cvp_dms_awn_dns",
-    .uuid       = NODE_UUID_CVP_DMS_AWN_DNS,
-#endif
     .bind       = cvp_adapter_bind,
     .ioctl      = cvp_adapter_ioctl,
     .release    = cvp_adapter_release,
     .hdl_size   = sizeof(struct cvp_node_hdl),
     .ability_channel_convert = 1, //支持声道转换
 };
-
-//注册工具在线调试
-REGISTER_ONLINE_ADJUST_TARGET(cvp_dms) = {
-#if TCFG_AUDIO_CVP_DMS_ANS_MODE
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_ans) = {
     .uuid       = NODE_UUID_CVP_DMS_ANS,
-#elif (TCFG_AUDIO_CVP_DMS_DNS_MODE)
-    .uuid       = NODE_UUID_CVP_DMS_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE)
-    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_ANS,
-#elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
-    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
-    .uuid       = NODE_UUID_CVP_DMS_HYBRID_DNS,
-#elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
-    .uuid       = NODE_UUID_CVP_DMS_AWN_DNS,
-#endif
 };
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_DNS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_dns_node_adapter) = {
+    .name       = "cvp_dms_dns",
+    .uuid       = NODE_UUID_CVP_DMS_DNS,
+    .bind       = cvp_adapter_bind,
+    .ioctl      = cvp_adapter_ioctl,
+    .release    = cvp_adapter_release,
+    .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
+};
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_dns) = {
+    .uuid       = NODE_UUID_CVP_DMS_DNS,
+};
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_flexible_ans_node_adapter) = {
+    .name       = "cvp_dms_flexible_ans",
+    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_ANS,
+    .bind       = cvp_adapter_bind,
+    .ioctl      = cvp_adapter_ioctl,
+    .release    = cvp_adapter_release,
+    .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
+};
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_flexible_ans) = {
+    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_ANS,
+};
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_flexible_dns_node_adapter) = {
+    .name       = "cvp_dms_flexible_dns",
+    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_DNS,
+    .bind       = cvp_adapter_bind,
+    .ioctl      = cvp_adapter_ioctl,
+    .release    = cvp_adapter_release,
+    .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
+};
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_flexible_dns) = {
+    .uuid       = NODE_UUID_CVP_DMS_FLEXIBLE_DNS,
+};
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_hybrid_dns_node_adapter) = {
+    .name       = "cvp_dms_hybrid_dns",
+    .uuid       = NODE_UUID_CVP_DMS_HYBRID_DNS,
+    .bind       = cvp_adapter_bind,
+    .ioctl      = cvp_adapter_ioctl,
+    .release    = cvp_adapter_release,
+    .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
+};
+//注册工具在线调试
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_hybrid_dns) = {
+    .uuid       = NODE_UUID_CVP_DMS_HYBRID_DNS,
+};
+#endif
+
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+REGISTER_STREAM_NODE_ADAPTER(dms_awn_dns_node_adapter) = {
+    .name       = "cvp_dms_awn_dns",
+    .uuid       = NODE_UUID_CVP_DMS_AWN_DNS,
+    .bind       = cvp_adapter_bind,
+    .ioctl      = cvp_adapter_ioctl,
+    .release    = cvp_adapter_release,
+    .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_convert = 1, //支持声道转换
+};
+//注册工具在线调试
+REGISTER_ONLINE_ADJUST_TARGET(cvp_dms_awn_dns) = {
+    .uuid       = NODE_UUID_CVP_DMS_AWN_DNS,
+};
+#endif
 
 #endif/* TCFG_AUDIO_CVP_DMS_ANS_MODE || TCFG_AUDIO_CVP_DMS_DNS_MODE*/
 

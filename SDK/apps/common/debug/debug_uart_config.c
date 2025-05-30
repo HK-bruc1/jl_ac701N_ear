@@ -7,6 +7,7 @@
 #include "app_config.h"
 #include "cpu/includes.h"
 #include "gpio_config.h"
+#include "system/init.h"
 
 #if CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE
 
@@ -14,6 +15,7 @@
 
 static u8 uart_mode = 0;        //0:typical putbyte, 1:exception putbyte
 
+__INITCALL_BANK_CODE
 void debug_uart_init()
 {
     const struct uart_config debug_uart_config = {

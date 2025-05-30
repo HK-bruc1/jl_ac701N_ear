@@ -296,6 +296,13 @@ int a2dp_player_open(u8 *btaddr)
     err = jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
                               NODE_IOC_SET_BTADDR, (int)player->bt_addr);
 
+#if TCFG_AI_TX_NODE_ENABLE
+    struct stream_fmt ai_tx_fmt = {0};
+    ai_tx_fmt.sample_rate = 16000;
+    ai_tx_fmt.coding_type = AUDIO_CODING_OPUS;
+    jlstream_node_ioctl(player->stream, NODE_UUID_AI_TX, NODE_IOC_SET_FMT, (int)&ai_tx_fmt);
+#endif
+
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
     a2dp_player_breaker_mode(get_a2dp_spatial_audio_mode(),
                              BREAKER_SOURCE_NODE_UUID, BREAKER_SOURCE_NODE_NEME,
@@ -373,6 +380,15 @@ int a2dp_player_start_slience_detect(u8 *btaddr, void (*handler)(u8 *, bool), in
         return -EINVAL;
     }
     return 0;
+}
+
+void a2dp_player_set_ai_tx_node_func(int (*func)(u8 *, u32))
+{
+    struct a2dp_player *player = g_a2dp_player;
+
+    if (player && player->stream) {
+        jlstream_node_ioctl(player->stream, NODE_UUID_AI_TX, NODE_IOC_SET_PRIV_FMT, (int)func);
+    }
 }
 
 void a2dp_player_close(u8 *btaddr)

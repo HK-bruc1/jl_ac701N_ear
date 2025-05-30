@@ -13,9 +13,18 @@
 #include "esco_player.h"
 
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE || TCFG_CALL_KWS_SWITCH_ENABLE
+
+static u16 jl_call_status;
+
+u16 jl_call_kws_get_status()
+{
+    return jl_call_status;
+}
+
 static void jl_call_kws_handler(int event)
 {
     if (event == BT_STATUS_PHONE_INCOME) {
+        jl_call_status = BT_STATUS_PHONE_INCOME;
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
         acoustic_echo_cancel_reboot(1);
         jl_kws_speech_recognition_open();
@@ -27,6 +36,7 @@ static void jl_call_kws_handler(int event)
         audio_phone_call_kws_start();
 #endif /* #if TCFG_CALL_KWS_SWITCH_ENABLE */
     } else if (event == BT_STATUS_PHONE_ACTIVE) {
+        jl_call_status = BT_STATUS_PHONE_ACTIVE;
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
         jl_kws_speech_recognition_close();
         acoustic_echo_cancel_reboot(0);
@@ -41,6 +51,7 @@ static void jl_call_kws_handler(int event)
         acoustic_echo_cancel_reboot(0);
 #endif /* TCFG_CALL_KWS_SWITCH_ENABLE */
     } else if (event == BT_STATUS_PHONE_HANGUP) {
+        jl_call_status = BT_STATUS_PHONE_HANGUP;
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
         jl_kws_speech_recognition_close();
 #endif

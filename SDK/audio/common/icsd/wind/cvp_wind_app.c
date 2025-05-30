@@ -229,11 +229,13 @@ static void audio_cvp_wind_lvl_sync_cb(void *_data, u16 len, bool rx)
     }
 }
 
+#if TCFG_USER_TWS_ENABLE
 #define TWS_FUNC_ID_CVP_WIND_LVL_SYNC    TWS_FUNC_ID('C', 'V', 'P', 'W')
 REGISTER_TWS_FUNC_STUB(audio_cvp_wind_lvl) = {
     .func_id = TWS_FUNC_ID_CVP_WIND_LVL_SYNC,
     .func    = audio_cvp_wind_lvl_sync_cb,
 };
+#endif
 static void audio_cvp_wind_lvl_sync(u8 *data, int len)
 {
 #if TCFG_USER_TWS_ENABLE

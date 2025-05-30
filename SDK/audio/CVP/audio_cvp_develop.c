@@ -100,7 +100,6 @@ struct audio_cvp_dev {
     int (*output_handle)(s16 *dat, u16 len);//输出回调函数
 };
 struct audio_cvp_dev *cvp_dev = NULL;
-struct audio_cvp_dev  cvp_dev_mem AT(.aec_mem);
 
 #define AEC_REF_CBUF_SIZE         (AEC_FRAME_POINTS * 6)
 #define AEC_REF_CBUF_DOOR_SIZE    (AEC_REF_CBUF_SIZE / 2)
@@ -129,7 +128,7 @@ void audio_aec_ref_start(u8 en)
 /*通话上行同步输出回调*/
 int audio_aec_sync_buffer_set(s16 *data, int len)
 {
-    return cvp_node_output_handle(data, len);
+    return cvp_dev_node_output_handle(data, len);
 }
 
 /*
@@ -169,7 +168,7 @@ static int audio_aec_output(s16 *data, u16 len)
             }
         }
 
-        return cvp_node_output_handle(data, len);
+        return cvp_dev_node_output_handle(data, len);
     }
     return wlen;
 }
@@ -203,6 +202,8 @@ static int ref_hw_src_output(void *p, s16 *data, u16 len)
     }
     return len;
 }
+
+__CVP_BANK_CODE
 static int sw_src_init(u8 nch, u16 insample, u16 outsample)
 {
     if (CONST_REF_SRC == 1) {
@@ -477,6 +478,7 @@ static void audio_aec_task(void *priv)
 *			   数据输出回调函数
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len))
 {
     printf("audio_aec_init,sr = %d\n", init_param->sample_rate);
@@ -490,15 +492,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
 
-    /* cvp_dev = zalloc(sizeof(struct audio_cvp_dev)); */
-    /* if (cvp_dev == NULL) { */
-    /*     printf("cvp_dev malloc failed"); */
-    /*     return -ENOMEM; */
-    /* } */
-    /* audio_overlay_load_code(OVERLAY_AEC); */
-
-    memset(&cvp_dev_mem, 0, sizeof(cvp_dev_mem));
-    cvp_dev = &cvp_dev_mem;
+    cvp_dev = zalloc(sizeof(struct audio_cvp_dev));
     printf("cvp_dev size:%ld\n", sizeof(struct audio_cvp_dev));
     /* clk_set("sys", AEC_CLK); */
 
@@ -618,6 +612,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_init(struct audio_aec_init_param_t *init_param)
 {
     return audio_aec_open(init_param, -1, NULL);
@@ -633,6 +628,7 @@ int audio_aec_init(struct audio_aec_init_param_t *init_param)
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 void audio_aec_close(void)
 {
     printf("audio_aec_close:%x", (u32)cvp_dev);

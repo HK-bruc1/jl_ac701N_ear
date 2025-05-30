@@ -88,6 +88,20 @@ int esco_player_open(u8 *bt_addr)
     jlstream_node_ioctl(player->stream, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_PRIV_FMT, TCFG_ESCO_DL_CVSD_SR_USE_16K);
 #endif /*TCFG_ESCO_DL_CVSD_SR_USE_16K*/
 
+#if TCFG_AI_TX_NODE_ENABLE
+    /* struct stream_fmt ai_tx_fmt = {0}; */
+    /* ai_tx_fmt.sample_rate = 16000; */
+    /* ai_tx_fmt.coding_type = AUDIO_CODING_OPUS; */
+    /* jlstream_node_ioctl(player->stream, NODE_UUID_AI_TX, NODE_IOC_SET_FMT, (int)&ai_tx_fmt); */
+    struct stream_enc_fmt fmt = {0};
+    fmt.coding_type = AUDIO_CODING_JLA_V2;
+    fmt.sample_rate = 16000;
+    fmt.frame_dms = 200;
+    fmt.bit_rate = 16000;
+    fmt.channel = 1;
+    jlstream_ioctl(player->stream, NODE_IOC_SET_ENC_FMT, (int)&fmt);
+#endif
+
     jlstream_set_callback(player->stream, player->stream, esco_player_callback);
     jlstream_set_scene(player->stream, STREAM_SCENE_ESCO);
     jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE, NODE_IOC_SET_BTADDR, (int)bt_addr);
@@ -160,6 +174,15 @@ int esco_player_is_playing(u8 *btaddr)
         return true;
     }
     return false;
+}
+
+void esco_player_set_ai_tx_node_func(int (*func)(u8 *, u32))
+{
+    struct esco_player *player = g_esco_player;
+
+    if (player && player->stream) {
+        jlstream_node_ioctl(player->stream, NODE_UUID_AI_TX, NODE_IOC_SET_PRIV_FMT, (int)func);
+    }
 }
 
 void esco_player_close()

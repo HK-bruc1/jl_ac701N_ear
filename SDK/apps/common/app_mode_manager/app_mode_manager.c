@@ -309,6 +309,7 @@ u8 app_get_curr_task(void)
     return 0;
 }
 
+__INITCALL_BANK_CODE
 static int app_mode_mgr_init()
 {
     struct app_mode *mode, *p;

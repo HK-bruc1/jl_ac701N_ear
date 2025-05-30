@@ -105,7 +105,8 @@ extern const int  stereo_phaser_run_mode;
 extern const int  stereo_flanger_run_mode;
 extern const int  stereo_chorus_run_mode;
 extern const int dynamic_eq_run_mode;
-extern const  int drc_detect_run_mode;
+extern const int drc_detect_run_mode;
+extern const int virtual_bass_pro_soft_crossover;
 
 /*
  *******************************************************************

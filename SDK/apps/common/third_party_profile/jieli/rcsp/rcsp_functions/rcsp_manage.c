@@ -36,6 +36,7 @@
 #include "app_msg.h"
 #include "btstack_rcsp_user.h"
 #include "rcsp_ch_loader_download.h"
+#include "rcsp_translator.h"
 
 #if RCSP_MODE
 
@@ -313,6 +314,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
         log_info("rcsp_find_device_reset\n");
         rcsp_find_device_reset();
 #endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_init();
+#endif
 #if (TCFG_USER_BLE_CTRL_BREDR_EN)
         //bt_init_bredr();
         bredr_conn_last_dev();
@@ -337,6 +341,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
         if (get_jl_update_flag()) {
             rcsp_bt_ble_adv_enable(0);
         }
+#endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_deinit();
 #endif
         break;
     default:
@@ -365,6 +372,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
         log_info("rcsp_find_device_reset\n");
         rcsp_find_device_reset();
 #endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_init();
+#endif
         break;
     default:
         if (flag) {
@@ -379,6 +389,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
 #endif
 #if JL_RCSP_EXTRA_FLASH_OPT
             rcsp_extra_flash_opt_stop();
+#endif
+#if RCSP_ADV_TRANSLATOR
+            JL_rcsp_translator_deinit();
 #endif
         }
 #if RCSP_UPDATE_EN

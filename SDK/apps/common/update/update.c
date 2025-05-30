@@ -85,7 +85,7 @@ extern void sys_auto_sniff_controle(u8 enable, u8 *addr);
 extern void app_audio_set_wt_volume(s16 volume);
 extern u8 get_max_sys_vol(void);
 extern u8 get_bt_trim_info_for_update(u8 *res);
-
+extern const int support_vm_data_keep;
 
 extern const int support_norflash_update_en;
 const u8 loader_file_path[] = "mnt/norflash/C/"LOADER_NAME"";
@@ -95,11 +95,21 @@ const char updata_file_name[] = "/*.UFW";
 static u32 g_updata_flag = 0;
 static volatile u8 ota_status = 0;
 static succ_report_t succ_report;
+static bool g_write_vm_flag = true;
+
+int syscfg_write_update_check(u16 item_id, void *buf, u16 len)
+{
+    return g_write_vm_flag;
+}
 
 bool vm_need_recover(void)
 {
-    printf(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag);
-    return ((g_updata_flag & 0xffff) == UPDATA_SUCC) ? true : false;
+    if (support_vm_data_keep) {
+        return true;
+    }
+    return false;
+    /* printf(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag); */
+    /* return ((g_updata_flag & 0xffff) == UPDATA_SUCC) ? true : false; */
 }
 
 
@@ -203,6 +213,7 @@ __retry:
 
 extern void update_tone_event_clear();
 
+__INITCALL_BANK_CODE
 int update_result_deal()
 {
 #ifdef CONFIG_FPGA_ENABLE
@@ -602,6 +613,9 @@ static void update_init_common_handle(int type)
     }
     // 解除保护
     norflash_set_write_protect_remove();
+    if (DUAL_BANK_UPDATA != type) {
+        g_write_vm_flag = false;
+    }
 }
 
 static void update_exit_common_handle(int type, void *priv)
@@ -616,6 +630,7 @@ static void update_exit_common_handle(int type, void *priv)
         }
         // 升级失败，添加写保护
         norflash_set_write_protect_en();
+        g_write_vm_flag = true;
     }
 
 #if TCFG_AUTO_SHUT_DOWN_TIME
@@ -672,7 +687,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
     }
 }
 
-
+__INITCALL_BANK_CODE
 static int app_update_init(void)
 {
     update_module_init(update_common_state_cbk);

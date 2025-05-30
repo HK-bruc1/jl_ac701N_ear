@@ -16,7 +16,7 @@
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & AURACAST_APP_EN)
 
-int auracast_app_notify_source_list(struct auracst_source_item_t *src)
+int auracast_app_notify_source_list(struct auracast_source_item_t *src)
 {
     printf("auracast_app_notify_source_list\n");
 
@@ -49,10 +49,10 @@ int auracast_app_notify_source_list(struct auracst_source_item_t *src)
     return auracast_app_packet_cmd(AURACAST_APP_OPCODE_NOTIFY_SOURCE_LIST, 0x01, tbuf, tlen);
 }
 
-struct auracst_source_item_t cur_listening_src = {0};
+struct auracast_source_item_t cur_listening_src = {0};
 static auracast_sink_source_info_t temp_info = {0};
 
-static u8 fill_listening_status_payload(struct auracst_source_item_t *src, u8 *tbuf)
+static u8 fill_listening_status_payload(struct auracast_source_item_t *src, u8 *tbuf)
 {
     u8 tlen = 0;
     u8 name_len = strlen(src->broadcast_name);
@@ -94,8 +94,8 @@ int auracast_app_notify_listening_status(u8 status, u8 error)
     }
 #endif
 
-    printf("auracast_app_notify_source_status %d %d\n", status, error);
-    struct auracst_source_item_t *src = &cur_listening_src;
+    printf("auracast_app_notify_listening_status %d %d\n", status, error);
+    struct auracast_source_item_t *src = &cur_listening_src;
     u8 tbuf[64];
     u8 tlen = 0;
     src->listening_state = status;
@@ -119,7 +119,7 @@ u8 auracast_app_get_scan_status(void)
     }
 }
 
-u8 auracast_app_get_listening_status(struct auracst_source_item_t *src)
+u8 auracast_app_get_listening_status(struct auracast_source_item_t *src)
 {
     u8 linstening_status = 0;
     u8 name_len;
@@ -206,7 +206,8 @@ static int auracast_app_source_control_add(u8 opcode, u8 sn, u8 action, u8 *payl
     u8 type = 0;
     int ret = 0;
     u8 name_len;
-    struct auracst_source_item_t src = {0};
+    struct auracast_source_item_t src = {0};
+    u8 temp_broadcast_code[16] = {0};
     u8 *payload_end = payload + payload_len;
     while (payload < payload_end) {
         length = *payload++;
@@ -234,6 +235,12 @@ static int auracast_app_source_control_add(u8 opcode, u8 sn, u8 action, u8 *payl
             printf("addr:");
             put_buf(src.adv_address, 6);
             break;
+        case 0x06: //Broadcast code(0x06)
+            printf("Broadcast code:\n");
+            memcpy(temp_broadcast_code, payload, 16);
+            put_buf(temp_broadcast_code, 16);
+            payload += 16;
+            break;
         default:
             payload += length - 1;
             break;
@@ -257,6 +264,7 @@ static int auracast_app_source_control_add(u8 opcode, u8 sn, u8 action, u8 *payl
         app_auracast_sink_big_sync_terminate();
     }
 
+    auracast_sink_set_broadcast_code(temp_broadcast_code);
     ret = app_auracast_sink_big_sync_create(&temp_info);
     if (ret != 0) {
         tbuf[0] = action;
@@ -269,7 +277,7 @@ static int auracast_app_source_control_add(u8 opcode, u8 sn, u8 action, u8 *payl
     tbuf[1] = 0;
     ret = auracast_app_packet_response(status, opcode, sn, tbuf, 2);
 
-    memcpy(&cur_listening_src, &src, sizeof(struct auracst_source_item_t));
+    memcpy(&cur_listening_src, &src, sizeof(struct auracast_source_item_t));
     auracast_app_notify_listening_status(1, 0);
     return ret;
 }

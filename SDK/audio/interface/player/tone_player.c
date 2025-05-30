@@ -613,11 +613,13 @@ u16 tone_player_get_fname_uuid(const char *fname)
 }
 
 
+__INITCALL_BANK_CODE
 static int __tone_player_init()
 {
     os_mutex_create(&g_tone_mutex);
     return 0;
 }
+__initcall(__tone_player_init);
 
 #if FILE_DEC_REPEAT_EN
 static	struct audio_repeat_mode_param rep = {0};
@@ -754,6 +756,5 @@ void multifile_play_demo(void)
     play_fileplay_file(get_tone_files()->bt_disconnect, 7);
 }
 
-__initcall(__tone_player_init);
 
 

@@ -28,6 +28,10 @@
 #include "audio_anc.h"
 #endif
 
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+#include "rcsp_translator.h"
+#endif
+
 #define PIPELINE_UUID_TONE_NORMAL   0x7674
 #define PIPELINE_UUID_A2DP          0xD96F
 #define PIPELINE_UUID_ESCO          0xBA11
@@ -120,6 +124,15 @@ static int get_pipeline_uuid(const char *name)
         clock_alloc("esco", 48 * 1000000UL);
         audio_event_to_user(AUDIO_EVENT_ESCO_START);
         return PIPELINE_UUID_ESCO;
+    }
+
+    if (!strcmp(name, "ai_rx_call")) {
+        clock_alloc("ai_rx", 48 * 1000000UL);
+        return PIPELINE_UUID_ESCO;
+    }
+    if (!strcmp(name, "ai_rx_media")) {
+        clock_alloc("ai_rx", 48 * 1000000UL);
+        return PIPELINE_UUID_A2DP;
     }
 
     if (!strcmp(name, "a2dp")) {
@@ -249,6 +262,9 @@ static int load_decoder_handler(struct stream_decoder_info *info)
     if (info->scene == STREAM_SCENE_MUSIC) {
         info->task_name = "file_dec";
     }
+    if (info->scene == STREAM_SCENE_AI_VOICE) {
+        info->frame_time = 10;
+    }
     return 0;
 }
 
@@ -299,6 +315,54 @@ static int tws_switch_get_status()
     return 1;
 }
 
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+static int esco_switch_get_status()
+{
+    int trans = 0; //获取翻译状态
+    struct translator_mode_info minfo;
+    JL_rcsp_translator_get_mode_info(&minfo);
+    if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
+        trans = 1;
+    }
+    if (trans) {
+        return 0;
+    } else {
+        return 1;
+    }
+
+}
+
+
+static int esco_trans_switch_get_status()
+{
+    return !esco_switch_get_status();
+
+}
+
+static int media_switch_get_status()
+{
+    int trans = 0;//获取翻译状态
+    struct translator_mode_info minfo;
+    JL_rcsp_translator_get_mode_info(&minfo);
+    if (minfo.mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
+        trans = 1;
+    }
+    if (trans) {
+        return 0;
+    } else {
+        return 1;
+    }
+
+}
+
+
+static int media_trans_switch_get_status()
+{
+    return !media_switch_get_status();
+
+}
+#endif
+
 static int get_switch_node_callback(const char *arg)
 {
     if (!strcmp(arg, "TWS_Switch")) {
@@ -308,6 +372,27 @@ static int get_switch_node_callback(const char *arg)
 #if TCFG_AUDIO_SIDETONE_ENABLE
     if (!strcmp(arg, SIDETONE_SWITCH_NAME)) {
         return (int)get_audio_sidetone_state;
+    }
+#endif
+
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+    if (!strcmp(arg, "ESCO_Switch")) {
+        return (int)esco_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_Trans")) {
+        return (int)esco_trans_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_MIC_Switch")) {
+        return (int)esco_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_MIC_Trans")) {
+        return (int)esco_trans_switch_get_status;
+    }
+    if (!strcmp(arg, "Media_Switch")) {
+        return (int)media_switch_get_status;
+    }
+    if (!strcmp(arg, "Media_Trans")) {
+        return (int)media_trans_switch_get_status;
     }
 #endif
     return 0;

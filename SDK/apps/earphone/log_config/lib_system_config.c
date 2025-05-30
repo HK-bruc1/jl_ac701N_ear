@@ -24,10 +24,12 @@ const int config_printf_time         = 1;
 const int config_asser          = TCFG_EXCEPTION_LOG_ENABLE;  // non 0:使能异常打印; BIT(1):使能当前CPU打印另一个CPU的寄存器信息; BIT(2):使能栈分析回溯函数调用
 const int config_exception_reset_enable = TCFG_EXCEPTION_RESET_ENABLE;
 const int CONFIG_LOG_OUTPUT_ENABLE = 1;
+const int config_ulog_enable = 1;
 #else
 const int config_asser         = 0;
 const int config_exception_reset_enable = 1;
 const int CONFIG_LOG_OUTPUT_ENABLE = 0;
+const int config_ulog_enable = 0;
 #endif
 
 #if CONFIG_DEBUG_LITE_ENABLE
@@ -139,10 +141,24 @@ const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 0;
 const int config_dlog_enable = TCFG_DEBUG_DLOG_ENABLE;
 const int config_dlog_reset_erase_enable = TCFG_DEBUG_DLOG_RESET_ERASE;
 const int config_dlog_auto_flush_timeout = TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT;
+const int config_dlog_cache_buf_num = 3;
+const int config_dlog_flash_enable = 1;
+const int config_dlog_uart_enable = 1;
+const int config_dlog_leaks_dump_timeout = 3 * 60 * 1000;
+const int config_dlog_print_enable = 1;
+const int config_dlog_put_buf_enable = 1;
+const int config_dlog_putchar_enable = 1;
 #else
 const int config_dlog_enable = 0;
 const int config_dlog_reset_erase_enable = 0;
 const int config_dlog_auto_flush_timeout = 0;
+const int config_dlog_cache_buf_num = 0;
+const int config_dlog_flash_enable = 0;
+const int config_dlog_uart_enable = 0;
+const int config_dlog_leaks_dump_timeout = -1;
+const int config_dlog_print_enable = 0;
+const int config_dlog_put_buf_enable = 0;
+const int config_dlog_putchar_enable = 0;
 #endif
 
 //查找关中断时间过久函数功能
