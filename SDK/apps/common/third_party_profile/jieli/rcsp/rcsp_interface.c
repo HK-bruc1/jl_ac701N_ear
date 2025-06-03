@@ -278,9 +278,10 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     /* rcsp_lib_printf_buf((u8 *)&spp_hdl, spp_hdl_size); */
     memcpy(tws_sync_buf + buf_index, spp_hdl, spp_hdl_size);
     buf_index += spp_hdl_size;
-    u8 *adt_hdl = zalloc(adt_hdl_size);
-    ASSERT(adt_hdl, "rcsp tws sync, adt_buf malloc fail!");
+    u8 *adt_hdl = NULL;
     if (adt_profile_support && rcsp_adt_support) {
+        adt_hdl = zalloc(adt_hdl_size);
+        ASSERT(adt_hdl, "rcsp tws sync, adt_buf malloc fail!");
         app_ble_hdl_core_data_get(rcsp_server_edr_att_hdl, adt_hdl);
         /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf((u8 *)&adt_hdl, adt_hdl_size); */
@@ -312,7 +313,9 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     }
     free(ble_hdl);
     free(spp_hdl);
-    free(adt_hdl);
+    if (adt_profile_support && rcsp_adt_support) {
+        free(adt_hdl);
+    }
     /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
     /* rcsp_lib_printf_buf(tws_sync_buf, buf_size); */
     memcpy(send_buf, tws_sync_buf, buf_size);

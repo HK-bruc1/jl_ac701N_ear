@@ -110,11 +110,14 @@ int esco_recoder_open(u8 link_type, void *bt_addr)
 
 #if TCFG_AI_TX_NODE_ENABLE
 #if 0
+#if TCFG_DEC_OPUS_ENABLE
     struct stream_fmt ai_tx_fmt = {0};
     ai_tx_fmt.sample_rate = 16000;
     ai_tx_fmt.coding_type = AUDIO_CODING_OPUS;
     jlstream_node_ioctl(recoder->stream, NODE_UUID_AI_TX, NODE_IOC_SET_FMT, (int)&ai_tx_fmt);
+#endif
 #else
+#if TCFG_DEC_JLA_V2_ENABLE
     struct stream_enc_fmt fmt = {0};
     fmt.coding_type = AUDIO_CODING_JLA_V2;
     fmt.sample_rate = 16000;
@@ -122,6 +125,7 @@ int esco_recoder_open(u8 link_type, void *bt_addr)
     fmt.bit_rate = 16000;
     fmt.channel = 1;
     jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)(&fmt));
+#endif
 #endif
 #endif
 
