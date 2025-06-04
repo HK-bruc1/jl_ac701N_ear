@@ -3,9 +3,7 @@
 #include "app_config.h"
 #include "reference_time.h"
 #include "ai_rx_player.h"
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
 #include "rcsp_translator.h"
-#endif
 
 
 #if  TCFG_AI_RX_NODE_ENABLE
