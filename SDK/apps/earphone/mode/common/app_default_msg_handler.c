@@ -24,6 +24,7 @@
 #include "rcsp_cfg.h"
 #include "app_music.h"
 #include "usb/device/usb_stack.h"
+#include "effects/audio_spk_eq.h"
 
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
@@ -141,6 +142,12 @@ void app_common_key_msg_handler(int *msg)
 #endif
         app_send_message(APP_MSG_VOL_CHANGED, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
         break;
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    case APP_MSG_SPK_EQ_TEST:
+        spk_eq_test();
+        break;
+#endif
+
     case APP_MSG_SWITCH_SOUND_EFFECT:
         effect_scene_switch();
         break;
@@ -411,6 +418,13 @@ static void app_common_app_event_handler(int *msg)
         audio_spatial_effects_mode_switch(mode);
         break;
 #endif
+
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    case APP_MSG_SPK_EQ_TEST:
+        spk_eq_test();
+        break;
+#endif
+
     default:
         break;
     }

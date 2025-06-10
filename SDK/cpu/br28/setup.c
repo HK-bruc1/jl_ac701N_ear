@@ -4,7 +4,7 @@
 #pragma const_seg(".setup.text.const")
 #pragma code_seg(".setup.text")
 #endif
-#include "asm/includes.h"
+#include "cpu/includes.h"
 #include "system/includes.h"
 #include "app_config.h"
 
@@ -210,6 +210,8 @@ void setup_arch()
 
     wdt_init(WDT_16S);
     /* wdt_close(); */
+
+    gpadc_mem_init(8);
 
     efuse_init();
     clk_voltage_init(TCFG_CLOCK_MODE, SYSVDD_VOL_SEL_126V);

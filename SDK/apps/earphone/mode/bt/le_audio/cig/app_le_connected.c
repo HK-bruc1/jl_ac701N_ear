@@ -76,7 +76,7 @@ struct app_cis_conn_info {
     u16 cis_hdl;						// cis句柄，cis连接成功的时候会被设置
     u16 acl_hdl;						// acl句柄，cis连接成功的时候会被设置
     u16 Max_PDU_C_To_P;
-    u16 Max_PDU_P_To_C;
+    u16 Max_PDU_P_To_C;					// 有值说明是LEA_SERVICE_CALL，否则LEA_SERVICE_MEDIA
 };
 
 struct app_cig_conn_info {

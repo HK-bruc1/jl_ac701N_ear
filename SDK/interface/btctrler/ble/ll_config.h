@@ -68,6 +68,24 @@
 #define LL_FEAT_CONN_SUBRATE_HOST_SUPPORT           (UINT64_C(1) << (38))   /*!< Connection subratingHost supported. */
 #define LL_FEAT_CHANNEL_CLASSIFICATION              (UINT64_C(1) << (39))   /*!< Channel classification supported. */
 
+/* --- Core Spec 5.4 --- */
+#define LL_FEAT_ADVERTISING_CODING_SELECTION                     (UINT64_C(1) << (40))
+#define LL_FEAT_ADVERTISING_CODING_SELECTION_HOST_SUPPORT        (UINT64_C(1) << (41))
+
+#define LL_FEAT_PERIODIC_ADVERTISING_WITH_RESPONSES_ADVERTISER   (UINT64_C(1) << (43))
+#define LL_FEAT_PERIODIC_ADVERTISING_WITH_RESPONSES_SCANNER      (UINT64_C(1) << (44))
+
+/* --- Core Spec 6.0 --- */
+#define UNSEGMENTED_FRAMED_MODE                     (UINT64_C(1) << (45))
+#define CHANNEL_SOUNDING                            (UINT64_C(1) << (46))
+#define CHANNEL_SOUNDING_HOST_SUPPORT               (UINT64_C(1) << (47))
+#define CHANNEL_SOUNDING_TONE_QUALITY_INDICATION    (UINT64_C(1) << (48))
+
+#define LL_EXTENDED_FEATURE_SET                     (UINT64_C(1) << (50))  //63
+#define MONITORING_ADVERTISERS                      (UINT64_C(1) << (51))  //64
+#define FRAME_SPACE_UPDATE                          (UINT64_C(1) << (52))  //65
+
+/* --- Vendor --- */
 #define LL_FEAT_VENDOR_BIG_SYNC_TRANSFER            (UINT64_C(1) << (62))   /*!< Vendor BIG sync transfer. */
 #define LL_FEAT_VENDOR_BIG_TRANSFER                 (UINT64_C(1) << (63))   /*!< Vendor BIG transfer. */
 

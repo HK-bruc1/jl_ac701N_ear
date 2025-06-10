@@ -494,7 +494,7 @@ static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
 }
 
 __A2DP_DEC_BANK_CODE
-static void __a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
+static void __a2dp_ioc_stop(struct a2dp_file_hdl *hdl, u8 suspend)
 {
     if (hdl->wake_up_timer) {
         sys_hi_timer_del(hdl->wake_up_timer);
@@ -511,7 +511,11 @@ static void __a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
     }
     a2dp_file_stop_abandon_data(hdl);
     /*a2dp_media_clear_packet_before_seqn(hdl->file, 0);*/
-    a2dp_media_stop_play(hdl->file);
+    if (suspend) {
+        a2dp_media_suspend_play(hdl->file);
+    } else {
+        a2dp_media_stop_play(hdl->file);
+    }
     hdl->start = 0;
 }
 
@@ -872,7 +876,7 @@ __A2DP_DEC_BANK_CODE
 static void a2dp_ioc_suspend(struct a2dp_file_hdl *hdl)
 {
     a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
-    __a2dp_ioc_stop(hdl);
+    __a2dp_ioc_stop(hdl, 1);
     a2dp_file_timestamp_close(hdl);
     a2dp_media_reference_time_close(hdl);
     a2dp_file_start_abandon_data(hdl);
@@ -882,7 +886,7 @@ __A2DP_DEC_BANK_CODE
 static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
 {
     a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
-    __a2dp_ioc_stop(hdl);
+    __a2dp_ioc_stop(hdl, 0);
     a2dp_file_timestamp_close(hdl);
     a2dp_media_reference_time_close(hdl);
 }

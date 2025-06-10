@@ -57,6 +57,8 @@ typedef struct {
     u16 cis_hdl;								// cis连接句柄
     u16 acl_hdl;								// acl连接句柄
     u8 flush_timeout;
+    u16 BN_C_To_P;								// 一个iso interval里面有多少个包
+    u16 BN_P_To_C;								// 一个iso interval里面有多少个包
     u32 isoIntervalUs;
     void *recorder;								// 编码器
     struct connected_rx_audio_hdl rx_player;	// 解码器
@@ -263,7 +265,7 @@ int connected_perip_connect_deal(void *priv)
 
 
     r_printf("connected_perip_connect_deal");
-    log_info("hdl->cig_hdl:%d, hdl->cis_hdl:%dMax_PDU_C_To_P:%d,Max_PDU_P_To_C:%d,", hdl->cig_hdl, hdl->cis_hdl, hdl->Max_PDU_C_To_P, hdl->Max_PDU_P_To_C);
+    log_info("hdl->cig_hdl:%d, hdl->cis_hdl:%dMax_PDU_C_To_P:%d,Max_PDU_P_To_C:%d,BN_C_To_P:%d,BN_P_To_C:%d\n", hdl->cig_hdl, hdl->cis_hdl, hdl->Max_PDU_C_To_P, hdl->Max_PDU_P_To_C, hdl->BN_C_To_P, hdl->BN_P_To_C);
 
     //真正连上设备后，清除BIT(7)，使外部跑转发流程
     connected_role &= ~BIT(7);
@@ -326,6 +328,8 @@ int connected_perip_connect_deal(void *priv)
     connected_hdl->cis_hdl_info[index].cis_hdl = hdl->cis_hdl;
     connected_hdl->cis_hdl_info[index].flush_timeout = hdl->flush_timeout_C_to_P;
     connected_hdl->cis_hdl_info[index].isoIntervalUs = hdl->isoIntervalUs;
+    connected_hdl->cis_hdl_info[index].BN_C_To_P = hdl->BN_C_To_P;
+    connected_hdl->cis_hdl_info[index].BN_P_To_C = hdl->BN_P_To_C;
 
     printf("le_audio  fmt: %d %d %d %d %d %d\n", params.fmt.coding_type, params.fmt.frame_dms, params.fmt.bit_rate,
            params.fmt.sample_rate, params.fmt.sdu_period, params.fmt.nch);
@@ -559,9 +563,9 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
 {
     struct connected_hdl *connected_hdl = 0;
     cis_hdl_info_t *cis_hdl_info;
-    u32 timestamp;
+    u32 timestamp = 0;
     cis_txsync_t txsync;
-    int rlen = 0, i, j;
+    int rlen = 0, i, j, k;
     int err;
     u8 capture_send_update = 0;
     u8 packet_num;
@@ -582,7 +586,9 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
 
         for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
             cis_hdl_info = &connected_hdl->cis_hdl_info[i];
-            if (connected_hdl->cis_hdl_info[i].cis_hdl) {
+
+            /* printf("c:%d, i:%d, bn:%d\n", cis_hdl_info->cis_hdl, i, cis_hdl_info->BN_P_To_C); */
+            if (cis_hdl_info->cis_hdl && cis_hdl_info->BN_P_To_C) {
 
                 if (cis_hdl_info->recorder && (cis_hdl_info->recorder != last_recorder)) {
                     last_recorder = cis_hdl_info->recorder;
@@ -590,18 +596,28 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
                     connected_get_cis_tick_time(&txsync);
                     timestamp = (txsync.tx_ts + connected_hdl->cig_sync_delay +
                                  get_cig_mtl_time() * 1000L + get_cig_sdu_period_us()) & 0xfffffff;
-                    rlen = le_audio_stream_tx_data_handler(cis_hdl_info->recorder, transmit_buf, get_cig_transmit_data_len(), timestamp);
                 }
 
-                if (!rlen) {
-                    putchar('^');
-                    continue;
-                }
+                for (k = 0; k < cis_hdl_info->BN_P_To_C; k++) {
 
-                param.cis_hdl = cis_hdl_info->cis_hdl;
-                err = wireless_trans_transmit((connected_role & CONNECTED_ROLE_PERIP) == CONNECTED_ROLE_PERIP ? "cig_perip" : "cig_central", transmit_buf, get_cig_transmit_data_len(), &param);
-                if (err != 0) {
-                    log_error("wireless_trans_transmit fail\n");
+                    if (timestamp) {
+                        /* printf("tm:%u\n", timestamp); */
+                        rlen = le_audio_stream_tx_data_handler(cis_hdl_info->recorder, transmit_buf, get_cig_transmit_data_len(), timestamp);
+                    }
+
+                    if (!rlen) {
+                        putchar('^');
+                        /* printf("c:%d, n\n", cis_hdl_info->cis_hdl); */
+                        continue;
+                    }
+                    /* printf("c:%d, tl:%d\n", cis_hdl_info->cis_hdl, rlen); */
+
+                    param.cis_hdl = cis_hdl_info->cis_hdl;
+                    err = wireless_trans_transmit((connected_role & CONNECTED_ROLE_PERIP) == CONNECTED_ROLE_PERIP ? "cig_perip" : "cig_central", transmit_buf, get_cig_transmit_data_len(), &param);
+                    if (err != 0) {
+                        log_error("wireless_trans_transmit fail\n");
+                    }
+
                 }
             }
         }

@@ -78,8 +78,13 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         }
     }
 
+    if (((get_bt_dual_config() == DUAL_CONN_CLOSE) || (get_bt_dual_config() == DUAL_CONN_SET_ONE)) && (bt_get_total_connect_dev())) { //关闭1t2功能，或者关闭双连，已连接一台手机，屏蔽其它状态
+        g_printf("bt dual close\n");
+        scan_enable = 0;
+        conn_enable = 0;
+    }
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn() || is_cig_acl_conn() || is_cig_other_acl_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;

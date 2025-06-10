@@ -45,6 +45,7 @@ int spk_eq_spp_rx_packet(u8 *packet, u8 len);
 int spk_eq_read_seg_l(u8 **buf);
 int spk_eq_read_seg_r(u8 **buf);
 float spk_eq_read_global_gain(u8 ch);
+void spk_eq_test(void);
 
 #define UPDATE_SPK_EQ_SEG         0
 #define UPDATE_SPK_EQ_GLOBAL_GIAN 1

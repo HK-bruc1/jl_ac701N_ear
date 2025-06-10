@@ -26,7 +26,7 @@ struct lp_ws_t {
 
 void lmp_private_a2dp_start(void *_conn);
 
-void lmp_private_a2dp_stop(void *_conn);
+void lmp_private_a2dp_stop(void *_conn, u8 suspend);
 
 int lmp_private_is_clearing_a2dp_packet(void *_conn);
 
@@ -306,4 +306,5 @@ void *lmp_private_get_speak_mic_packet(int *len, u32 *hash);
 void lmp_jl_dongle_mic_set_rx_notify(u8 *addr, void *priv, void (*notify)(void *));
 int check_a2dp_source_send_packet_limit_cnt(u8 *addr, u8 dump_limit);
 
+u8 lmp_get_rssi_end_per_for_edr_address(u8 *edr_address, u8 *per, s8 *phone_rssi, s8 *tws_rssi);
 #endif

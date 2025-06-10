@@ -77,6 +77,12 @@ const char vm_ram_storage_in_irq_enable = TRUE;
 /* 设置vm的ram内存缓存区总大小限制，0为不限制，非0为限制大小（单位/byte）。 */
 const int  vm_ram_storage_limit_data_total_size  = 16 * 1024;
 
+// 设置vm写是否进行组包:
+// 0 :不组包
+// -1:使用malloc的buf进行组包(vm_write时分配)
+// 具体数值:使用固定的buf进行组包(vm_init时分配)
+const int vm_packet_size = 256;
+
 const int config_rtc_enable = 0;
 
 //gptimer

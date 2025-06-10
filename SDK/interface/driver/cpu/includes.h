@@ -15,7 +15,7 @@
 #include "crc.h"
 #include "uart.h"
 #include "asm/wdt.h"
-
+#include "gpadc.h"
 #include "gptimer.h"
 
 

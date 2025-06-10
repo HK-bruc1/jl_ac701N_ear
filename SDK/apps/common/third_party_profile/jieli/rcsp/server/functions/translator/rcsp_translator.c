@@ -141,6 +141,7 @@ static void translator_tws_sync_play(u8 source);
 static void translator_tws_recv_ch_suspend(u8 source);
 static void translator_tws_recv_ch_resume(u8 source);
 extern u32 bt_audio_conn_clock_time(void *addr);
+extern void set_esco_link_timing2_interval(u8 esco_timing2_interval);
 
 static u8 source_to_ch_remap(u8 source)
 {
@@ -1718,6 +1719,10 @@ static int translator_bt_event_handler(int *event)
     struct translator_mode_info minfo;
 
     switch (bt->event) {
+    case BT_STATUS_INIT_OK:
+        //修改成每5个esco通讯周期留出1个空隙给acl通讯用
+        set_esco_link_timing2_interval(5 * 12);
+        break;
     case BT_STATUS_AVRCP_VOL_CHANGE:
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;

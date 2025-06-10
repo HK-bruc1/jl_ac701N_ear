@@ -10,6 +10,8 @@
 
 extern void *rcsp_server_ble_hdl;		// ble连接handle
 extern void *rcsp_server_ble_hdl1;		// ble连接handle，rcsp双连的时候有效
+extern void *rcsp_server_edr_att_hdl;   // att连接handle
+extern void *rcsp_server_edr_att_hdl1;  // att连接handle，rcsp双连的时候有效
 
 /**
  * @brief rcsp ble/spp handle初始化

@@ -13,6 +13,13 @@ enum BATTERY_MODE {
 };
 
 //以下为用户常用api
+
+/**
+ * @brief gpadc_mem_init adc内存初始化
+ *
+ * @param adc_max_ch 配置最大的adc通道数量
+ */
+void gpadc_mem_init(u32 adc_max_ch);
 /**@brief 获取指定通道原始值,从队列中获取
   * @param[in]  ch      指定通道
   * @return     value   原始值,范围根据采样精度变化

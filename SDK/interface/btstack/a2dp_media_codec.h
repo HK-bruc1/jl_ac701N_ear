@@ -30,6 +30,7 @@ void a2dp_close_media_file(void *file);
 void a2dp_media_start_play(void *_file);
 
 void a2dp_media_stop_play(void *_file);
+void a2dp_media_suspend_play(void *_file);
 
 int a2dp_media_set_rx_notify(void *_file, void *priv, void (*notify)(void *));
 

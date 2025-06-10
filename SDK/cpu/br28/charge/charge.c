@@ -436,10 +436,6 @@ static void charge_config(void)
     if (__this->data->charge_full_V < CHARGE_FULL_V_4237) {
         CHG_HV_MODE(0);
         charge_trim_val = efuse_get_vbat_trim_4p20();//4.20V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat low not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4199;
-        }
         log_info("low charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4199) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4199;
@@ -460,10 +456,6 @@ static void charge_config(void)
     } else {
         CHG_HV_MODE(1);
         charge_trim_val = efuse_get_vbat_trim_4p35();//4.35V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat high not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4354 - 16;
-        }
         log_info("high charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4354) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4354;
@@ -526,7 +518,7 @@ int charge_init(const struct charge_platform_data *data)
     p33_io_wakeup_enable(IO_CHGFL_DET, 0);
     CHARGE_EN(0);
     CHGGO_EN(0);
-
+    L5V_IO_MODE(0);
     //消除vbat到vpwr的漏电再判断ldo5v状态
     u8 temp = 10;
     if (is_reset_source(P33_VDDIO_POR_RST)) {

@@ -17,6 +17,8 @@
 
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
 
+
+
 //如果以下声道数的配置覆盖不了所有情况的话，spk eq声道数需由用户根据实际声道数指定
 #if TCFG_DAC_NODE_ENABLE
 
@@ -398,4 +400,69 @@ int spk_eq_init(void)
     return 0;
 }
 __initcall(spk_eq_init);
+
+//*********************************************************************************//
+//                  在SDK开发阶段验收Speaker EQ是否有效,步骤如下
+//1、 在可视化流程内拖入Speaker EQ节点。
+//2、 代码打开宏TCFG_SPEAK_EQ_TEST_EN
+//3、 编译下载，开机, 不做调节的情况下第一次测试一条频响曲线A。
+//3、 按键发送消息APP_MSG_SPK_EQ_TEST（消息响应时会设置测试的默认曲线与总增益），第二次过ap测试频响曲线B。
+//3、 关机断电，重新开机后，进行第三次过ap测试频响曲线C。频响曲线C与第二次的频响B曲线一致。
+//4、 在第三次测试完成后，不关机（保持开机状态），进行第四次测试频响曲线D，频响曲线D与第二次的频响B曲线一致。
+//5、 测试的频响曲线见表spk_eq_test_tab,测试总增益默认-2dB。
+//6、 验收分析设置后的频响曲线B与C与D频响曲线重叠。B与C与D频响曲线最大值与频响曲线A重叠。
+//7、 测试完毕关闭宏定义TCFG_SPEAK_EQ_TEST_EN
+//*********************************************************************************//
+#define TCFG_SPEAK_EQ_TEST_EN  0  //0:关闭  1：打开
+
+#if defined(TCFG_SPEAK_EQ_TEST_EN) && TCFG_SPEAK_EQ_TEST_EN
+
+struct eq_seg_info spk_eq_test_tab[] = {
+    {0, EQ_IIR_TYPE_BAND_PASS, 100,    2,  10},
+    {1, EQ_IIR_TYPE_BAND_PASS, 500,    0,  10},
+    {2, EQ_IIR_TYPE_BAND_PASS, 1000,   -2, 10},
+    {3, EQ_IIR_TYPE_BAND_PASS, 1500,   0,  10},
+    {4, EQ_IIR_TYPE_BAND_PASS, 2000,   2,  10},
+    {5, EQ_IIR_TYPE_BAND_PASS, 4000,   0,  10},
+    {6, EQ_IIR_TYPE_BAND_PASS, 6000,   -2, 10},
+    {7, EQ_IIR_TYPE_BAND_PASS, 8000,   0,  10},
+    {8, EQ_IIR_TYPE_BAND_PASS, 10000,  2,  10},
+    {9, EQ_IIR_TYPE_BAND_PASS, 16000,  -2, 10}
+};
+
+void spk_eq_test(void)
+{
+    printf("=====================spk_eq_test=================\n");
+    if (!spk_eq_tab) {
+        spk_eq_tab_size = sizeof(struct eq_seg_info) * SPK_EQ_NSECTION * spk_eq_ch_num;
+        spk_eq_tab = malloc(spk_eq_tab_size);
+    }
+    if (spk_eq_tab && SPK_EQ_NSECTION <= ARRAY_SIZE(spk_eq_test_tab)) {
+        memcpy(spk_eq_tab, spk_eq_test_tab, sizeof(struct eq_seg_info) * SPK_EQ_NSECTION);
+        if (spk_eq_ch_num == 2) {
+            memcpy(&spk_eq_tab[SPK_EQ_NSECTION], spk_eq_test_tab, sizeof(struct eq_seg_info) * SPK_EQ_NSECTION);
+        }
+        spk_eq_global_gain[0] = -2;//总增益-2dB
+        spk_eq_global_gain[1] = -2;
+
+        int ret = syscfg_write(CFG_SPK_EQ_SEG_SAVE, spk_eq_tab, spk_eq_tab_size);
+        if (ret <= 0) {
+            printf("spk_eq tab write to vm err, ret %d\n", ret);
+        }
+        ret = syscfg_write(CFG_SPK_EQ_GLOBAL_GAIN_SAVE, spk_eq_global_gain, sizeof(spk_eq_global_gain));
+        if (ret <= 0) {
+            printf("spk_eq global gain write to vm err ret %d\n", ret);
+        }
+    } else {
+        printf("============spk_eq nsection error============\n");
+    }
+}
+#else
+
+void spk_eq_test(void)
+{
+
+}
+#endif
+
 #endif

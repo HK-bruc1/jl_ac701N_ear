@@ -1097,6 +1097,7 @@ void app_anctool_spp_disconnect(void)
     __this->pair_flag = 0;
 #endif
     anctool_api_uninit();
+    anc_online_busy_set(0);
 }
 
 u8 get_app_anctool_spp_connected_flag()
