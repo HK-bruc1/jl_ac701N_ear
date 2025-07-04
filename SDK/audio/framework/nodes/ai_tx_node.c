@@ -38,6 +38,8 @@ static void ai_tx_handle_frame(struct stream_iport *iport, struct stream_note *n
 
 static int ai_tx_bind(struct stream_node *node, u16 uuid)
 {
+    struct ai_tx_hdl *hdl = (struct ai_tx_hdl *)node->private_data;
+    hdl->fmt.coding_type = AUDIO_CODING_OPUS;
     return 0;
 }
 
@@ -54,18 +56,15 @@ static int ai_tx_ioc_fmt_nego(struct ai_tx_hdl *hdl, struct stream_iport *iport)
     in_fmt->sample_rate = 16000;
     in_fmt->channel_mode = AUDIO_CH_MIX;
 #else
-    if (hdl->fmt.coding_type == AUDIO_CODING_OPUS) {
-        in_fmt->coding_type = hdl->fmt.coding_type;
-        in_fmt->sample_rate = 16000;
-        in_fmt->channel_mode = AUDIO_CH_MIX;
-
-    } else {
+    if (in_fmt->coding_type != AUDIO_CODING_UNKNOW) {
         hdl->fmt.coding_type = in_fmt->coding_type;
-        hdl->fmt.sample_rate = in_fmt->sample_rate;
-        hdl->fmt.frame_dms = in_fmt->frame_dms;
-        hdl->fmt.channel_mode = in_fmt->channel_mode;
-        hdl->fmt.bit_rate = in_fmt->bit_rate;
+    } else {
+        in_fmt->coding_type = hdl->fmt.coding_type;
     }
+    hdl->fmt.sample_rate = in_fmt->sample_rate;
+    hdl->fmt.frame_dms = in_fmt->frame_dms;
+    hdl->fmt.channel_mode = in_fmt->channel_mode;
+    hdl->fmt.bit_rate = in_fmt->bit_rate;
 
     /* printf("ai_tx: coding_type: %x", in_fmt->coding_type); */
     /* printf("ai_tx: sample_rate: %d", in_fmt->sample_rate); */
@@ -73,6 +72,10 @@ static int ai_tx_ioc_fmt_nego(struct ai_tx_hdl *hdl, struct stream_iport *iport)
     /* printf("ai_tx: channel_mode: %d", hdl->fmt.channel_mode); */
     /* printf("ai_tx: bit_rate: %d", hdl->fmt.bit_rate); */
 
+    if (in_fmt->coding_type == AUDIO_CODING_UNKNOW) {
+        g_printf("ai_tx coding_type nego fail\n");
+        return NEGO_STA_CONTINUE;
+    }
     if (in_fmt->sample_rate == 0) {
         return  NEGO_STA_CONTINUE;
     }

@@ -273,9 +273,6 @@ int audio_anc_mode_ear_adaptive_permit(void)
     if (anc_ext_ear_adaptive_param_check()) { //没有自适应参数
         return ANC_EXT_OPEN_FAIL_CFG_MISS;
     }
-    if (hdl->param->mode != ANC_ON) {	//非ANC模式
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
-    }
     if (hdl->adaptive_state != EAR_ADAPTIVE_STATE_END) { //重入保护
         return ANC_EXT_OPEN_FAIL_REENTRY;
     }
@@ -301,7 +298,10 @@ int audio_anc_mode_ear_adaptive_permit(void)
 
 int audio_anc_ear_adaptive_open(void)
 {
-
+    if (anc_mode_get() != ANC_ON) {
+        //非ANC模式启动耳道自适应时，因库关联函数较多，需设置为ANC_ON打开
+        audio_anc_mode_set(ANC_ON);
+    }
 #if ANC_EAR_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_open(CMP_FROM_ANC_EAR_ADAPTIVE);
 #endif
@@ -335,7 +335,7 @@ int audio_anc_ear_adaptive_a2dp_suspend_cb(void)
         int msg[2];
         msg[0] = (int)audio_anc_ear_adaptive_open;
         msg[1] = 1;
-        if (os_taskq_post_type("app_core", Q_CALLBACK, 2, msg)) {
+        if (os_taskq_post_type("anc", Q_CALLBACK, 2, msg)) {
             anc_log("anc ear adaptive taskq_post err\n");
         }
     }

@@ -202,6 +202,7 @@ const struct task_info task_info_table[] = {
     {"dlog",                1,     0,  256,   128 },
 #endif
     {"aud_adc_demo",        1,     0,  512,   128 },
+    {"aud_dac_demo",        1,     0,  512,   128 },
     {0, 0},
 };
 

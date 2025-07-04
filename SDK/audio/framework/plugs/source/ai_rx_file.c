@@ -9,12 +9,12 @@
 #if  TCFG_AI_RX_NODE_ENABLE
 
 struct ai_rx_file_handle {
-    u8 start;
     void *bt_addr;
+    u8 start;
     u8 source;
     u8 reference;
     struct stream_node *node;
-    u16 play_latency; //us
+    u32 play_latency; //us
     struct ai_rx_player_param param;
 };
 
@@ -44,7 +44,7 @@ static enum stream_node_state ai_rx_get_frame(void *file, struct stream_frame **
     memcpy(frame->data, trans_frame->buf, trans_frame->size);
     frame->len = trans_frame->size;
     if (hdl->reference) {
-        frame->timestamp = ((trans_frame->timestamp + hdl->play_latency) & 0xfffffff) * TIMESTAMP_US_DENOMINATOR;
+        frame->timestamp = (trans_frame->timestamp + hdl->play_latency) * TIMESTAMP_US_DENOMINATOR;
         frame->flags |= FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP;
     }
 #if RCSP_MODE && RCSP_ADV_TRANSLATOR
@@ -113,7 +113,7 @@ static int ai_rx_file_start(struct ai_rx_file_handle *hdl)
         return 0;
     }
 
-    hdl->play_latency = 50 * 1000;//设置延时us
+    hdl->play_latency = 300 * 1000;//设置延时us
 
     hdl->reference = audio_reference_clock_select(hdl->bt_addr, 0);
 

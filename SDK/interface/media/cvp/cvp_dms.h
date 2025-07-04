@@ -415,7 +415,14 @@ void aec_dms_awn_toggle(u8 toggle);
 int aec_dms_awn_cfg_update(DMS_AWN_CONFIG *cfg);
 int aec_dms_awn_reboot(u8 enablebit);
 u8 get_cvp_dms_awn_rebooting();
-
+void audio_cvp_dms_lock();              // dms
+void audio_cvp_dms_unlock();
+void audio_cvp_dms_hybrid_lock();		// dms + hybrid
+void audio_cvp_dms_hybrid_unlock();
+void audio_cvp_dms_flexible_lock();     // dms + flexible
+void audio_cvp_dms_flexible_unlock();
+void audio_cvp_dms_awn_lock();			// dms + awn
+void audio_cvp_dms_awn_unlock();
 /*获取风噪的检测结果，1：有风噪，0：无风噪*/
 int cvp_dms_get_wind_detect_state(void);
 

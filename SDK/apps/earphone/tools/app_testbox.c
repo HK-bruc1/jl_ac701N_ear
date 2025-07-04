@@ -633,7 +633,11 @@ static int app_testbox_data_handler(u8 *buf, u8 len)
             __this->keep_tws_conn_flag = 0;
         }
         __this->channel = (buf[1] == TWS_CHANNEL_LEFT) ? 'L' : 'R';
+#ifdef UPDATE_VOICE_REMIND
+        if (0 == __this->event_hdl_flag || app_var.update_tone_end_flag == 1) {
+#else
         if (0 == __this->event_hdl_flag) {
+#endif
             testbox_event_to_user(NULL, CMD_BOX_TWS_CHANNEL_SEL, 0);
             __this->event_hdl_flag = 1;
         }

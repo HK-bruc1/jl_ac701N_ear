@@ -74,7 +74,7 @@ u8 check_local_not_accept_sniff_by_remote()
         return TRUE;
     }
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-    if (le_auracast_status_get() == BROADCAST_STATUS_SCAN_START) {
+    if (le_auracast_is_running()) {
         return TRUE;
     }
 #endif

@@ -197,6 +197,9 @@ void aec_tms_toggle(u8 toggle);
 int aec_tms_cfg_update(AEC_TMS_CONFIG *cfg);
 int aec_tms_reboot(u8 enablebit);
 u8 get_cvp_tms_rebooting();
+void audio_cvp_tms_lock();
+void audio_cvp_tms_unlock();
+
 
 int cvp_tms_read_ref_data(void);
 

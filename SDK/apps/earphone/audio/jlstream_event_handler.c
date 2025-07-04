@@ -257,7 +257,7 @@ static int load_decoder_handler(struct stream_decoder_info *info)
     if (info->scene == STREAM_SCENE_LEA_CALL || info->scene == STREAM_SCENE_LE_AUDIO) {
         //printf("decoder scene:LEA CALL\n");
         info->frame_time = 10;
-        info->task_name = "a2dp_dec";
+        /* info->task_name = "a2dp_dec"; */
     }
     if (info->scene == STREAM_SCENE_MUSIC) {
         info->task_name = "file_dec";

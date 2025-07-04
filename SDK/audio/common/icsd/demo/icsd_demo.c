@@ -371,12 +371,12 @@ void audio_anc_howl_det_toggle_demo()
     static u8 flag = 0;
     flag ^= 1;
     anc_howling_detect_toggle(flag);
-    if (flag) {
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
-    } else {
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
-    }
+    /* if (flag) { */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM2); */
+    /* } else { */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM2); */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM0); */
+    /* } */
 #endif
 }
 

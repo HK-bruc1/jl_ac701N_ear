@@ -229,6 +229,10 @@ SDP_RECORD_HANDLER_REGISTER(hfp_ag_sdp_record_item) = {
 const u8 hci_inquiry_support = 0;
 const u8 btstack_emitter_support  = 0;  /*定义用于优化代码编译*/
 #endif
+
+const u8 config_le_enhanced_credit_based_folw_control_mode = 0;
+const u8 config_le_credit_based_folw_control_mode = 0;
+
 /*u8 l2cap_debug_enable = 0xf0;
 u8 rfcomm_debug_enable = 0xf;
 u8 profile_debug_enable = 0xff;
@@ -236,6 +240,8 @@ u8 ble_debug_enable    = 0xff;
 u8 btstack_tws_debug_enable = 0xf;*/
 
 #else
+const u8 config_le_enhanced_credit_based_folw_control_mode = 0;
+const u8 config_le_credit_based_folw_control_mode = 0;
 const u8 btstack_emitter_support  = 1;  /*定义用于优化代码编译*/
 const u8 adt_profile_support = 0;
 const u8 pbg_support_enable = 0;

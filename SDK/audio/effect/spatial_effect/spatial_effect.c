@@ -23,12 +23,13 @@
 #include "tech_lib/effect_surTheta_api.h"
 #include "tech_lib/SpatialAudio_api.h"
 #include "tech_lib/3DSpatial_ctrl.h"
+#include "tech_lib/spatial_imp_ctrl.h"
 
 /* 音效算法版本选择
  * 0：V1.0.0
  * 1：V2.0.0
+ * 2：V3.0.0
  * */
-extern const int CONFIG_SPATIAL_EFFECT_VERSION;
 
 /************** V1.0.0版本音效算法配置 ***********************/
 const int  voicechange_fft_PLATFORM = 2;
@@ -55,7 +56,8 @@ const int P360_REVERB_NE = 1;
 static struct spatial_audio_context *spatial_hdl = NULL;
 
 struct sound360td_algo {
-    int angle;
+    s16 angle_azimuth;      //方向角
+    s16 angle_elevation;    //俯仰角
     const void *ops;
     u8 *tmpbuf;
     unsigned int run_buf[0];
@@ -72,7 +74,7 @@ int  angleresetflag = 0;
 static u8 param_update_flag = 0;
 static spatial_effect_cfg_t effect_cfg;
 
-static char *version[2] = {"SPATIAL_EFFECT_V1", "SPATIAL_EFFECT_V2"};
+static char *version[] = {"SPATIAL_EFFECT_V1", "SPATIAL_EFFECT_V2", "SPATIAL_EFFECT_V3"};
 void spatial_effect_param_dump(spatial_effect_cfg_t *effect_cfg)
 {
     printf("version : %s", version[CONFIG_SPATIAL_EFFECT_VERSION]);
@@ -81,7 +83,52 @@ void spatial_effect_param_dump(spatial_effect_cfg_t *effect_cfg)
     put_float(effect_cfg->angle.track_sensitivity);
     puts("angle_reset_sensitivity :");
     put_float(effect_cfg->angle.angle_reset_sensitivity);
-    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        puts("===== spatial_effect_v3 =====");
+        puts("sc");
+        printf("sampleRate %d\n", effect_cfg->si.sc.sampleRate);
+        printf("FarField %d\n", effect_cfg->si.sc.FarField);
+        printf("mono_enable %d\n", effect_cfg->si.sc.mono_enable);
+        printf("switch_channel %d\n", effect_cfg->si.sc.switch_channel);
+        puts("sp");
+        printf("Azimuth_angle %d\n", effect_cfg->si.sp.Azimuth_angle);
+        printf("Elevation_angle %d\n", effect_cfg->si.sp.Elevation_angle);
+        printf("radius %d\n", (int)effect_cfg->si.sp.radius);
+        printf("bias_angle %d\n", effect_cfg->si.sp.bias_angle);
+        printf("attenuation %d\n", (int)effect_cfg->si.sp.attenuation);
+        puts("hp");
+        printf("referenceDistance %d\n", (int)effect_cfg->si.hp.referenceDistance);
+        printf("ListenerHeadRadius %d\n", (int)effect_cfg->si.hp.ListenerHeadRadius);
+        printf("per_ch_point %d\n", effect_cfg->si.hp.per_ch_point);
+        printf("length_hrtf_sle %d\n", effect_cfg->si.hp.length_hrtf_sle);
+        printf("real_hlength %d\n", effect_cfg->si.hp.real_hlength);
+        printf("delay_time %d\n", effect_cfg->si.hp.delay_time);
+        printf("intp %d\n", effect_cfg->si.hp.intp);
+        printf("ildenable %d\n", effect_cfg->si.hp.ildenable);
+        printf("rev_mode %d\n", effect_cfg->si.hp.rev_mode);
+        puts("adt");
+        printf("IndataBit %d\n", effect_cfg->si.adt.IndataBit);
+        printf("OutdataBit %d\n", effect_cfg->si.adt.OutdataBit);
+        printf("IndataInc %d\n", effect_cfg->si.adt.IndataInc);
+        printf("OutdataInc %d\n", effect_cfg->si.adt.OutdataInc);
+        printf("Qval %d\n", effect_cfg->si.adt.Qval);
+        puts("es");
+        printf("sr             %d\n", effect_cfg->si.es.sr);
+        printf("nch            %d\n", effect_cfg->si.es.nch);
+        printf("shortflag      %d\n", effect_cfg->si.es.shortflag);
+        printf("delaybuf_max_ms %d\n", effect_cfg->si.es.delaybuf_max_ms);
+        printf("Erfactor       %d\n", effect_cfg->si.es.Erfactor);
+        printf("Ewidth         %d\n", effect_cfg->si.es.Ewidth);
+        printf("outGain        %d\n", effect_cfg->si.es.outGain);
+        printf("lowcutoff      %d\n", effect_cfg->si.es.lowcutoff);
+        printf("early_taps     %d\n", effect_cfg->si.es.early_taps);
+        printf("preset0_room   %d\n", effect_cfg->si.es.preset0_room);
+        printf("preset0_roomgain %d\n", effect_cfg->si.es.preset0_roomgain);
+        puts("rs");
+        printf("rev1_gain0 %d\n", (int)effect_cfg->si.rs.rev1_gain0);
+        printf("rev1_gain1 %d\n", (int)effect_cfg->si.rs.rev1_gain1);
+
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
 
         printf("===== pcm info =====");
         printf("IndataBit : %d", effect_cfg->pcm_info.IndataBit);
@@ -123,31 +170,77 @@ void spatial_effect_param_init()
     effect_cfg.angle.track_sensitivity = 1.0f;//工具配置，头部跟踪灵敏度
     effect_cfg.angle.angle_reset_sensitivity = 0.01f;//工具配置，静止角度复位灵敏度
 
-    /*V100音效参数*/
-    effect_cfg.rp_parm.trackKIND = P360_T0;
-    effect_cfg.rp_parm.ReverbKIND = P360_R1;
-    effect_cfg.rp_parm.reverbance = 70;
-    effect_cfg.rp_parm.dampingval = 70;
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V1) {
+        /*V100音效参数*/
+        effect_cfg.rp_parm.trackKIND = P360_T0;
+        effect_cfg.rp_parm.ReverbKIND = P360_R1;
+        effect_cfg.rp_parm.reverbance = 70;
+        effect_cfg.rp_parm.dampingval = 70;
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+        /*V200音效参数*/
+        effect_cfg.pcm_info.IndataBit = DATA_INT_16BIT;//节点协商确定
+        effect_cfg.pcm_info.OutdataBit = DATA_INT_16BIT;//节点协商确定
+        effect_cfg.pcm_info.IndataInc = 2;
+        effect_cfg.pcm_info.OutdataInc = 2;
+        effect_cfg.pcm_info.Qval = 15;
 
-    /*V200音效参数*/
-    effect_cfg.pcm_info.IndataBit = DATA_INT_16BIT;//节点协商确定
-    effect_cfg.pcm_info.OutdataBit = DATA_INT_16BIT;//节点协商确定
-    effect_cfg.pcm_info.IndataInc = 2;
-    effect_cfg.pcm_info.OutdataInc = 2;
-    effect_cfg.pcm_info.Qval = 15;
+        effect_cfg.scfi.CustomizedITD = 1;
+        effect_cfg.scfi.FarField = 1;
+        effect_cfg.scfi.sampleRate = 44100;//节点协商确定
 
-    effect_cfg.scfi.CustomizedITD = 1;
-    effect_cfg.scfi.FarField = 1;
-    effect_cfg.scfi.sampleRate = 44100;//节点协商确定
+        effect_cfg.sag.Azimuth_angle = 0; //实时更新的角度
+        effect_cfg.sag.Elevation_angle = 0;
+        effect_cfg.sag.radius = 1;//工具配置，半径是声源到人的距离，调节远近的效果
+        effect_cfg.sag.bias_angle = 40; //工具配置，偏角是调节声像的，偏角为0，听上去就是点声源，比如30度就听感上是60度范围的声像
 
-    effect_cfg.sag.Azimuth_angle = 0; //实时更新的角度
-    effect_cfg.sag.Elevation_angle = 0;
-    effect_cfg.sag.radius = 1;//工具配置，半径是声源到人的距离，调节远近的效果
-    effect_cfg.sag.bias_angle = 40; //工具配置，偏角是调节声像的，偏角为0，听上去就是点声源，比如30度就听感上是60度范围的声像
+        effect_cfg.cor.ListenerHeadRadius = 0.0875f;
+        effect_cfg.cor.soundSpeed = 343;
+        effect_cfg.cor.channel = 2;
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        /*V300音效参数*/
+        effect_cfg.si.adt.IndataBit = DATA_INT_32BIT;//节点协商确定
+        effect_cfg.si.adt.OutdataBit = DATA_INT_32BIT;//节点协商确定
+        effect_cfg.si.adt.IndataInc = 2; //节点协商确定
+        effect_cfg.si.adt.OutdataInc = 2; //节点协商确定
+        effect_cfg.si.adt.Qval = 23;
 
-    effect_cfg.cor.ListenerHeadRadius = 0.0875f;
-    effect_cfg.cor.soundSpeed = 343;
-    effect_cfg.cor.channel = 2;
+        effect_cfg.si.sc.sampleRate = 44100;
+        effect_cfg.si.sc.FarField = 1;
+        effect_cfg.si.sc.mono_enable = 0;
+        effect_cfg.si.sc.switch_channel = 2;//节点协商确定
+
+        effect_cfg.si.sp.Azimuth_angle = 0; //实时更新的角度
+        effect_cfg.si.sp.Elevation_angle = 0;
+        effect_cfg.si.sp.radius = 1;//工具配置，半径是声源到人的距离，调节远近的效果
+        effect_cfg.si.sp.bias_angle = 0; //工具配置，偏角是调节声像的，偏角为0，听上去就是点声源，比如30度就听感上是60度范围的声像
+        effect_cfg.si.sp.attenuation = -2.1f;
+
+        effect_cfg.si.hp.referenceDistance = 1.0f;
+        effect_cfg.si.hp.ListenerHeadRadius = 0.0875f;
+        effect_cfg.si.hp.per_ch_point = 128;//固定每帧处理的单通道点数
+        effect_cfg.si.hp.length_hrtf_sle = 128;//选择hrtf处理的长度，是每帧点数的倍数
+        effect_cfg.si.hp.real_hlength = 128;//实际的hrtf长度
+        effect_cfg.si.hp.delay_time = 4;
+        effect_cfg.si.hp.intp = 1;
+        effect_cfg.si.hp.ildenable = 0;
+        effect_cfg.si.hp.rev_mode = 2;
+
+        effect_cfg.si.es.sr = 44100;
+        effect_cfg.si.es.nch = 1;
+        effect_cfg.si.es.shortflag = 0;
+        effect_cfg.si.es.delaybuf_max_ms = 50;
+        effect_cfg.si.es.Erfactor = 6;
+        effect_cfg.si.es.Ewidth = 0;
+        effect_cfg.si.es.outGain = 43;
+        effect_cfg.si.es.lowcutoff = 0;
+        effect_cfg.si.es.early_taps = 9;
+        effect_cfg.si.es.preset0_room = 20;
+        effect_cfg.si.es.preset0_roomgain = 0;
+
+        effect_cfg.si.rs.rev1_gain0 = 0.6f;
+        effect_cfg.si.rs.rev1_gain1 = 0.8f;
+    }
+
 
     int len = spatial_effects_node_param_cfg_read(&effect_cfg, sizeof(effect_cfg));
     if (len != sizeof(effect_cfg)) {
@@ -165,15 +258,36 @@ void spatial_effect_online_updata(void *params)
     effect_cfg.angle.track_sensitivity = p->angle.track_sensitivity;
     effect_cfg.angle.angle_reset_sensitivity = p->angle.angle_reset_sensitivity;
 
-    effect_cfg.sag.radius = p->sag.radius;
-    effect_cfg.sag.bias_angle = p->sag.bias_angle;
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        effect_cfg.si.sp.Azimuth_angle      = p->si.sp.Azimuth_angle   ;
+        effect_cfg.si.sp.Elevation_angle    = p->si.sp.Elevation_angle ;
+        effect_cfg.si.sp.radius             = p->si.sp.radius          ;
+        effect_cfg.si.sp.bias_angle         = p->si.sp.bias_angle      ;
+        effect_cfg.si.sp.attenuation        = p->si.sp.attenuation     ;
+        effect_cfg.si.hp.delay_time         = p->si.hp.delay_time      ;
+        effect_cfg.si.hp.ildenable          = p->si.hp.ildenable       ;
+        effect_cfg.si.hp.rev_mode           = p->si.hp.rev_mode        ;
+        effect_cfg.si.es.delaybuf_max_ms    = p->si.es.delaybuf_max_ms ;
+        effect_cfg.si.es.Erfactor           = p->si.es.Erfactor        ;
+        effect_cfg.si.es.Ewidth             = p->si.es.Ewidth          ;
+        effect_cfg.si.es.outGain            = p->si.es.outGain         ;
+        effect_cfg.si.es.lowcutoff          = p->si.es.lowcutoff       ;
+        effect_cfg.si.es.early_taps         = p->si.es.early_taps      ;
+        effect_cfg.si.es.preset0_room       = p->si.es.preset0_room    ;
+        effect_cfg.si.es.preset0_roomgain   = p->si.es.preset0_roomgain;
+        effect_cfg.si.rs.rev1_gain0         = p->si.rs.rev1_gain0      ;
+        effect_cfg.si.rs.rev1_gain1         = p->si.rs.rev1_gain1      ;
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+        effect_cfg.sag.radius = p->sag.radius;
+        effect_cfg.sag.bias_angle = p->sag.bias_angle;
+    } else {
+        effect_cfg.rp_parm.trackKIND = p->rp_parm.trackKIND;
+        effect_cfg.rp_parm.ReverbKIND = p->rp_parm.ReverbKIND;
+        effect_cfg.rp_parm.reverbance = p->rp_parm.reverbance;
+        effect_cfg.rp_parm.dampingval = p->rp_parm.dampingval;
+    }
 
-    /* effect_cfg.scfi.sampleRate = p->scfi.sampleRate; */
 
-    effect_cfg.rp_parm.trackKIND = p->rp_parm.trackKIND;
-    effect_cfg.rp_parm.ReverbKIND = p->rp_parm.ReverbKIND;
-    effect_cfg.rp_parm.reverbance = p->rp_parm.reverbance;
-    effect_cfg.rp_parm.dampingval = p->rp_parm.dampingval;
     spatial_effect_param_dump(&effect_cfg);
     param_update_flag = 1;
 }
@@ -194,7 +308,31 @@ static void *spatial_audio_effect_init(void)
 
     spatial_effect_param_init();
 
-    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        struct Spatial_imp *ops = get_SpatialImp_ops();//获取句柄
+        buf_size = ops->need_buf(&effect_cfg.si);//获取bufsize
+        printf("effect buf size %d", buf_size);
+
+        algo = (struct sound360td_algo *)zalloc(sizeof(struct sound360td_algo) + buf_size);
+        if (!algo) {
+            return NULL;
+        }
+
+        /*tmpbuf的大小和输入处理的数据长度有关系*/
+        int tmpbuf_len = ops->tmp_buf_size(&effect_cfg.si);
+        printf("tmpbuf_len %d", tmpbuf_len);
+        algo->tmpbuf = zalloc(tmpbuf_len);
+        if (!algo->tmpbuf) {
+            free(algo);
+            return NULL;
+        }
+        int type = ops->init(algo->run_buf, &effect_cfg.si, algo->tmpbuf);
+        if (type == af_DATABIT_NOTSUPPORT) {
+            printf("[error] type == af_DATABIT_NOTSUPPORT !!! ");
+        }
+        ops->set_tmp_buf(algo->run_buf, algo->tmpbuf);
+        algo->ops = ops;
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
         Sound_3DSpatial *ops = get_SpatialEffect_ops();//获取句柄
         buf_size = ops->need_buf(effect_cfg.cor.channel);//获取bufsize
         printf("effect buf size %d", buf_size);
@@ -238,7 +376,7 @@ static void *spatial_audio_effect_init(void)
         }
 
         ops->open_config(algo->run_buf, &params, &effect_cfg.rp_parm);
-        algo->angle = 0;
+        algo->angle_azimuth = 0;
         algo->ops = ops;
     }
 #endif /*SPATIAL_AUDIO_EFFECT_ENABLE*/
@@ -274,9 +412,17 @@ static int spatial_audio_effect_handler(void *effect, void *data, int len, u8 ma
     if ((algo == NULL) || (len == 0)) {
         return 0;
     }
-    int frames = len >> 2;//输入单通道的点数
 
-    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        struct Spatial_imp *ops = (struct Spatial_imp *)algo->ops;
+        u8 offset = (effect_cfg.si.adt.IndataBit == DATA_INT_32BIT) ? 4 : 2;
+        if ((len / (2 * offset)) % spatial_imp_run_points != 0) {
+            //长度检查
+            ASSERT(0);
+        }
+        ops->run(algo->run_buf, data, data, len / (2 * offset));
+        len = (get_Sound_3DSpatial_output_channal(mapping_channel) != 2) ? len >> 1 : len;
+    } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
         Sound_3DSpatial *ops = (Sound_3DSpatial *)algo->ops;
         int data_len = len;
         s8 *in_data = data;
@@ -316,6 +462,7 @@ static int spatial_audio_effect_handler(void *effect, void *data, int len, u8 ma
 
     } else {
         PointSound360TD_FUNC_API *ops = (PointSound360TD_FUNC_API *)algo->ops;
+        int frames = len >> 2;//输入单通道的点数
         ops->run(algo->run_buf, data, data, frames);
     }
 #endif /*SPATIAL_AUDIO_EFFECT_ENABLE*/
@@ -341,7 +488,7 @@ static void spatial_audio_effect_close(void *effect)
 /*
  * 空间效果参数配置接口
  */
-static void spatial_audio_effect_params_setup(void *effect, int angle)
+static void spatial_audio_effect_params_setup(void *effect, s16 angle_azimuth, s16 angle_elevation)
 {
     struct sound360td_algo *algo = (struct sound360td_algo *)effect;
     if (algo == NULL) {
@@ -351,11 +498,19 @@ static void spatial_audio_effect_params_setup(void *effect, int angle)
 #if SPATIAL_AUDIO_EFFECT_ENABLE
 
     /*角度发生变化 || 在线更新参数*/
-    if ((angle != algo->angle) || param_update_flag) {
-        if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+    if ((angle_azimuth != algo->angle_azimuth) || (angle_elevation != algo->angle_elevation) || param_update_flag) {
+        if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+            struct Spatial_imp *ops = (struct Spatial_imp *)algo->ops;
             param_update_flag = 0;
-            effect_cfg.sag.Azimuth_angle = angle;
-            algo->angle = angle;
+            effect_cfg.si.sp.Azimuth_angle = angle_azimuth;
+            effect_cfg.si.sp.Elevation_angle = angle_elevation;
+            algo->angle_azimuth = angle_azimuth;
+            algo->angle_elevation = angle_elevation;
+            ops->update(algo->run_buf, &effect_cfg.si);
+        } else if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V2) {
+            param_update_flag = 0;
+            effect_cfg.sag.Azimuth_angle = angle_azimuth;
+            algo->angle_azimuth = angle_azimuth;
             updata_position(algo->run_buf, &effect_cfg.cor, &effect_cfg.sag);
         } else {
             PointSound360TD_FUNC_API *ops = (PointSound360TD_FUNC_API *)algo->ops;
@@ -363,16 +518,16 @@ static void spatial_audio_effect_params_setup(void *effect, int angle)
             //TODO
             if (param_update_flag) {
                 /*在线更新参数,有杂音*/
-                params.theta = angle;
+                params.theta = angle_azimuth;
                 params.volume = anglevolume;
                 ops->open_config(algo->run_buf, &params, &effect_cfg.rp_parm);
             } else {
                 /*更新角度参数，无杂音*/
-                params.theta = angle;
+                params.theta = angle_azimuth;
                 params.volume = anglevolume;
                 ops->init(algo->run_buf, &params);
             }
-            algo->angle = angle;
+            algo->angle_azimuth = angle_azimuth;
         }
         param_update_flag = 0;
     }
@@ -587,12 +742,11 @@ void spatial_audio_angle_reset()
 /*
  * 空间位置检测处理
  */
-static int space_motion_detect(void *calculator, short *data, int len)
+static void space_motion_detect(void *calculator, short *data, int len, s16 *angle)
 {
     struct spatial_calculator *c = (struct spatial_calculator *)calculator;
-    int heading = 0;
     if ((c == NULL) || (len == 0)) {
-        return 0;
+        return;
     }
 
 #if SPACE_MOTION_CALCULATOR_ENABLE
@@ -609,19 +763,19 @@ static int space_motion_detect(void *calculator, short *data, int len)
     while (group_num--) {
         Spatial_cacl(c->work_buf, data);
         data += 6;
-        heading = get_Spa_angle(c->work_buf,
-                                effect_cfg.angle.track_sensitivity,
-                                effect_cfg.angle.angle_reset_sensitivity);
+        angle[0] = get_Spa_angle(c->work_buf,
+                                 effect_cfg.angle.track_sensitivity,
+                                 effect_cfg.angle.angle_reset_sensitivity);
+        angle[1] = get_Pitch_angle(c->work_buf);
 
-        int flag = Spatial_stra(c->work_buf, ANGLE_RESET_TIME, 0.5f); /*建议范围0.1~0.6；值越小，越接近静止条件下的回正，0.1为静止下的参考值*/
+        int flag = Spatial_stra(c->work_buf, ANGLE_RESET_TIME, 0.3f); /*建议范围0.1~0.6；值越小，越接近静止条件下的回正，0.1为静止下的参考值*/
         if (flag == 1) {
             Spatial_reset(c->work_buf);
             flag = 0;
         }
     }
-    /* printf("%d\n", heading); */
+    /* printf("%d %d\n", angle[0], angle[1]); */
 #endif /*SPACE_MOTION_CALCULATOR_ENABLE*/
-    return heading;
 
 }
 
@@ -645,7 +799,7 @@ void aud_spatial_sensor_task(void *priv)
 {
 
     struct spatial_audio_context *ctx = priv;
-    int angle = 0;
+    s16 angle[2] = {0};
     while (1) {
         os_time_dly(2);
         if (!ctx->sensor_task_state) {
@@ -665,16 +819,14 @@ void aud_spatial_sensor_task(void *priv)
 #if SPACE_MOTION_CALCULATOR_ENABLE
             if (ctx->calculator) {
                 if (ctx->head_tracked) {
-                    angle = space_motion_detect(ctx->calculator, (s16 *)ctx->data, sensor_data_len);
-                } else {
-                    angle = 0;
+                    space_motion_detect(ctx->calculator, (s16 *)ctx->data, sensor_data_len, angle);
                 }
             }
 #endif /*SPACE_MOTION_CALCULATOR_ENABLE*/
 
 #if SPATIAL_AUDIO_ANGLE_TWS_SYNC
             if (ctx->tws_conn) {
-                spatial_tws_audio_data_sync(ctx->tws_conn, (void *)&angle, sizeof(angle));
+                spatial_tws_audio_data_sync(ctx->tws_conn, (void *)angle, sizeof(angle));
             }
             /* printf("%d", ctx->tws_angle); */
 #endif /*SPATIAL_AUDIO_ANGLE_TWS_SYNC*/
@@ -684,10 +836,11 @@ void aud_spatial_sensor_task(void *priv)
 #if SPATIAL_AUDIO_EFFECT_ENABLE
         if (ctx->effect) {
 #if SPATIAL_AUDIO_ANGLE_TWS_SYNC
-            spatial_audio_effect_params_setup(ctx->effect, ctx->tws_angle);
-#else
-            spatial_audio_effect_params_setup(ctx->effect, angle);
+            angle[0] = ctx->tws_angle & 0xFFFF;
+            angle[1] = (ctx->tws_angle >> 16) & 0xFFFF;
 #endif /*SPATIAL_AUDIO_ANGLE_TWS_SYNC*/
+            /* printf("after tws_sync angle_azimuth %d, angle_elevation %d\n", angle[0], angle[1]); */
+            spatial_audio_effect_params_setup(ctx->effect, angle[0], angle[1]);
         }
 #endif /*SPATIAL_AUDIO_EFFECT_ENABLE*/
 

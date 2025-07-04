@@ -24,6 +24,7 @@
 #include "reference_time.h"
 #include "asm/charge.h"
 #include "ai_voice_recoder.h"
+#include "system/task.h"
 
 #define RCSP_DEBUG_EN
 #ifdef  RCSP_DEBUG_EN
@@ -38,7 +39,7 @@
 
 #if RCSP_MODE && RCSP_ADV_TRANSLATOR
 
-#define AUDIO_CBUF_SIZE(frame_size)         ((frame_size) * 4)
+#define AUDIO_CBUF_SIZE(frame_size)         ((frame_size) * 10)
 #define AUDIO_CH_MAX                        2
 #define MIC_REC_METHOD_NEW                  1  //填1时录音翻译用文件内send_ch替换ai_mic_rec_start管理发数缓存，支持2路发送
 #define TRANSLATION_RECV_CHANNEL_ENABLE     0  //填1时翻译播报用文件内recv_ch接口，否则可以用a2dp等方式播放翻译音频
@@ -140,7 +141,13 @@ static int translator_tws_send_cmd(u8 cmd, u8 OpCode, u8 *param, u32 len);
 static void translator_tws_sync_play(u8 source);
 static void translator_tws_recv_ch_suspend(u8 source);
 static void translator_tws_recv_ch_resume(u8 source);
+static int translator_todo_list_init();
+static int translator_todo_list_add(u8 cmd, u8 *param, u32 param_len);
+static struct todo_list *translator_todo_list_find(u8 cmd);
+static int translator_todo_list_del(struct todo_list *todo);
+static int translator_todo_list_clear();
 extern u32 bt_audio_conn_clock_time(void *addr);
+extern u32 bt_audio_reference_clock_time(u8 network);
 extern void set_esco_link_timing2_interval(u8 esco_timing2_interval);
 
 static u8 source_to_ch_remap(u8 source)
@@ -447,10 +454,14 @@ static int translator_recv_ch_put_frame(u8 source, u8 *buf, u32 len, u32 timesta
             channel->underrun |= 0x02;
         }
     }
-    if (channel->recv_size + len > channel->max_size) {
-        rcsp_putchar('T');
+    //临界溢出情况处理，允许稍微超一点
+    if (channel->recv_size + len > channel->max_size * 3 / 2) {
+        r_printf("drop frame");
         ret = -ENOMEM;
         goto __err_exit;
+    } else if (channel->recv_size + len > channel->max_size) {
+        r_printf("translate cache full");
+        put_buf(buf, 40);
     }
     frame = zalloc(sizeof(*frame) + len);
     if (frame == NULL) {
@@ -474,7 +485,10 @@ static int translator_recv_ch_put_frame(u8 source, u8 *buf, u32 len, u32 timesta
     }
 
     if (!channel->ready) {
-        if (channel->recv_size >= channel->max_size * 2 / 4) {
+        //用ai_rx_file.c里的play_latency做起播缓存控制，这里就
+        //去掉起播缓存控制
+        /* if (channel->recv_size >= channel->frame_dms * 3) */
+        {
             channel->ready = 1;
             if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
                 //if (tws_api_get_role() == TWS_ROLE_MASTER) {
@@ -492,7 +506,7 @@ static int translator_recv_ch_put_frame(u8 source, u8 *buf, u32 len, u32 timesta
     }
 
 #if RECV_SPEED_DEBUG
-    g_printf("put[%d]: %d %d\n", ch, frame->size, channel->recv_size);
+    g_printf("put[%d]: %d %d t %x\n", ch, frame->size, channel->recv_size, bt_audio_reference_clock_time(1));
 #endif
     os_mutex_post(&tlr_hdl.rx_ch[ch].mutex);
     return ret;
@@ -621,10 +635,10 @@ int JL_rcsp_translator_recv_ch_free_frame(u8 source, struct translator_recv_audi
     channel = &tlr_hdl.rx_ch[ch];
     channel->recv_size -= frame->size;
 #if RECV_SPEED_DEBUG
-    g_printf("get[%d]: %d %d\n", ch, frame->size, channel->recv_size);
+    g_printf("get[%d]: %d %d, t %x\n", ch, frame->size, channel->recv_size, bt_audio_reference_clock_time(1));
 #endif
     if (channel->full) {
-        if (channel->recv_size <= channel->max_size * 3 / 4) {
+        if (channel->recv_size <= channel->max_size * 6 / 10) {
             //消耗一定量缓存之后通知APP恢复发数
             u32 free_size = channel->max_size - channel->recv_size;
             _translator_op_inform_cache_free_size(frame->source, free_size);
@@ -747,6 +761,9 @@ static int translator_send_ch_for_phone_mic(u8 *buf, u32 len)
 static int translator_send_ch_try_to_set_func(struct tx_ch_t *channel)
 {
     int done = 0;
+    struct stream_enc_fmt s_enc_fmt = {0};
+    u8 *remote_bt_addr;
+
     switch (tlr_hdl.mode_info.mode) {
     case RCSP_TRANSLATOR_MODE_RECORD:
     case RCSP_TRANSLATOR_MODE_RECORD_TRANSLATION:
@@ -766,12 +783,56 @@ static int translator_send_ch_try_to_set_func(struct tx_ch_t *channel)
         switch (channel->source) {
         case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM:
             if (esco_recoder_running()) {
+                switch (tlr_hdl.mode_info.encode) {
+                case RCSP_TRANSLATOR_ENCODE_TYPE_OPUS:
+                    s_enc_fmt.coding_type = AUDIO_CODING_OPUS;
+                    s_enc_fmt.sample_rate = 16000;
+                    s_enc_fmt.frame_dms = 200;
+                    s_enc_fmt.bit_rate = 16000;
+                    s_enc_fmt.channel = 1;
+                    break;
+                case RCSP_TRANSLATOR_ENCODE_TYPE_JLA_V2:
+                    s_enc_fmt.coding_type = AUDIO_CODING_JLA_V2;
+                    s_enc_fmt.sample_rate = 16000;
+                    s_enc_fmt.frame_dms = 200;
+                    s_enc_fmt.bit_rate = 16000;
+                    s_enc_fmt.channel = 1;
+                    break;
+                }
+                remote_bt_addr = translator_get_remote_bt_addr();
+                if (remote_bt_addr == NULL) {
+                    break;
+                }
+                esco_recoder_close();
+                esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
                 esco_recoder_set_ai_tx_node_func(translator_send_ch_for_esco_upstream);
                 done = 1;
             }
             break;
         case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM:
             if (esco_player_runing()) {
+                switch (tlr_hdl.mode_info.encode) {
+                case RCSP_TRANSLATOR_ENCODE_TYPE_OPUS:
+                    s_enc_fmt.coding_type = AUDIO_CODING_OPUS;
+                    s_enc_fmt.sample_rate = 16000;
+                    s_enc_fmt.frame_dms = 200;
+                    s_enc_fmt.bit_rate = 16000;
+                    s_enc_fmt.channel = 1;
+                    break;
+                case RCSP_TRANSLATOR_ENCODE_TYPE_JLA_V2:
+                    s_enc_fmt.coding_type = AUDIO_CODING_JLA_V2;
+                    s_enc_fmt.sample_rate = 16000;
+                    s_enc_fmt.frame_dms = 200;
+                    s_enc_fmt.bit_rate = 16000;
+                    s_enc_fmt.channel = 1;
+                    break;
+                }
+                remote_bt_addr = translator_get_remote_bt_addr();
+                if (remote_bt_addr == NULL) {
+                    break;
+                }
+                esco_player_close();
+                esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
                 esco_player_set_ai_tx_node_func(translator_send_ch_for_esco_downstream);
                 done = 1;
             }
@@ -1216,10 +1277,8 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
 #endif
             goto __err_exit;
         } else if (last_mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
-            if (tws_api_get_role() == TWS_ROLE_MASTER) {
-                source_tx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
-                source_rx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
-            }
+            source_tx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
+            source_rx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
             source_tx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
             source_rx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
             goto __err_exit;
@@ -1404,7 +1463,11 @@ static int _translator_op_get_cache_free_size(u8 source, u32 *free_size)
         return -ENOMEM;
     }
     channel = &tlr_hdl.rx_ch[ch];
-    *free_size = channel->max_size - channel->recv_size;
+    if (channel->recv_size > channel->max_size) {
+        *free_size = 0;
+    } else {
+        *free_size = channel->max_size - channel->recv_size;
+    }
 #if RECV_SPEED_DEBUG
     g_printf("free_size[%d]: %d\n", ch, *free_size);
 #endif
@@ -1621,6 +1684,11 @@ int JL_rcsp_translator_functions(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, 
             }
             break;
         case RCSP_TRANSLATOR_OP_GET_CACHE_FREE_SIZE:
+#if RECV_SPEED_DEBUG
+            int usage[2];
+            os_cpu_usage(NULL, usage);
+            rcsp_printf("usage: %d - %d\n", usage[0], usage[1]);
+#endif
             resp_len = 7;
             resp_buf = zalloc(resp_len);
             check_resp_alloc(resp_buf);
@@ -1738,6 +1806,10 @@ static int translator_bt_event_handler(int *event)
         }
         break;
     case BT_STATUS_SCO_CONNECTION_REQ:
+        //来电暂停录音
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            _translator_op_record_mode_stop(0);
+        }
 #if TRANSLATION_CALL_CONTROL_BY_DEVICE
         //来电关闭录音（听译、音视频，面对面）翻译模式
         switch (tlr_hdl.mode_info.mode) {
@@ -1755,6 +1827,12 @@ static int translator_bt_event_handler(int *event)
 #endif
         break;
     case BT_STATUS_SCO_DISCON:
+        //结束通话恢复录音
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            if (tlr_hdl.record_state) {
+                _translator_op_record_mode_start(0);
+            }
+        }
 #if TRANSLATION_CALL_CONTROL_BY_DEVICE
         //挂断电话关闭通话录音模式
         switch (tlr_hdl.mode_info.mode) {

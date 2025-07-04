@@ -144,13 +144,13 @@ void audio_dac_initcall(void)
     if (len != sizeof(dac_trim)) {
         struct trim_init_param_t trim_init = {0};
         audio_dac_do_trim(&dac_hdl, &dac_trim, &trim_init);
+        printf("DAC trim:left=%d,right=%d,vcomo=%d\n", dac_trim.left, dac_trim.right, dac_trim.vcomo);
         syscfg_write(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(dac_trim));
     }
     audio_dac_set_trim_value(&dac_hdl, &dac_trim);
 #endif
 
 #if TCFG_SUPPORT_MIC_CAPLESS
-    audio_dac_set_capless_DTB(&dac_hdl, read_capless_DTB());
     mic_capless_trim_run();
 #endif
     audio_dac_set_fade_handler(&dac_hdl, NULL, audio_fade_in_fade_out);

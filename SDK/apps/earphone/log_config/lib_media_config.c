@@ -611,7 +611,7 @@ const int config_audio_eq_lp_adv_enable = 1;	//Low Pass Advance：对应工具�
 
 const int AUDIO_EQ_MAX_SECTION = EQ_SECTION_MAX;
 
-#if TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE || TCFG_VOCAL_REMOVER_NODE_ENABLE
 const int config_audio_eq_en = EQ_EN
 #if TCFG_CROSSOVER_NODE_ENABLE
                                | EQ_HW_CROSSOVER_TYPE0_EN

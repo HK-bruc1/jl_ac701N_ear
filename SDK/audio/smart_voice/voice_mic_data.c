@@ -124,6 +124,13 @@ static int audio_smart_voice_aec_run(void *priv, s16 *data, int len)
             putchar('a');
         }
         int dac_read_len;
+        //cvp lock
+        if (TCFG_AUDIO_SMS_SEL == SMS_TDE) {
+            audio_cvp_sms_tde_lock();
+        } else {
+            audio_cvp_sms_lock();
+        }
+
         if (voice_aec_hdl->bit_width == ADC_BIT_WIDTH_16) {
             dac_read_len = len * 1 * voice_aec_hdl->ref_channel * voice_aec_hdl->multiple_cnt;
             audio_dac_read(0, voice_aec_hdl->ref_tmpbuf, dac_read_len / voice_aec_hdl->ref_channel, voice_aec_hdl->ref_channel);
@@ -155,6 +162,12 @@ static int audio_smart_voice_aec_run(void *priv, s16 *data, int len)
             /* printf("wlen : %d", wlen); */
         } else {
             //printf("data_len : %d", cbuf_get_data_len(&__this->aec_cbuf));
+        }
+        //cvp unlock
+        if (TCFG_AUDIO_SMS_SEL == SMS_TDE) {
+            audio_cvp_sms_tde_unlock();
+        } else {
+            audio_cvp_sms_unlock();
         }
         return len;
     } else {

@@ -104,7 +104,10 @@ static void rcsp_process(void *p)
 #if TCFG_RCSP_DUAL_CONN_ENABLE
     rcsp_1t2_setting_reset();
 #endif
+
+#if RCSP_UPDATE_EN
     rcsp_clean_update_hdl_for_end_update(0, NULL);
+#endif
 
     while (1) {
         os_sem_pend(&__this->sem, 0);

@@ -56,6 +56,15 @@ extern u32 bt_audio_reference_clock_time(u8 network);
 #define A2DP_STREAM_INFO_REGULAR_ENABLE     1
 #define A2DP_RF_QUALITY_DETECT_ENABLE       1
 
+#define RF_QUALITY_BAD_THRESHOLD            2
+#define RF_QUALITY_GOOD_THRESHOLD           3
+#define RF_PER_BAD_LEVEL0                   30
+#define RF_PER_BAD_LEVEL1                   50
+#define RF_PER_BAD_LEVEL2                   70
+
+#define RF_RSSI_BAD_LEVEL0                  -85
+#define RF_RSSI_BAD_LEVEL1                  -99
+
 #define A2DP_STREAM_INFO_DEBUG_PREIOD       500
 
 #define A2DP_STREAM_NO_ERR                  0
@@ -245,10 +254,12 @@ static void a2dp_tws_latency_sync_handler(void *buf, u16 len, bool rx)
     local_irq_enable();
 }
 
+#if TCFG_BT_SUPPORT_A2DP
 REGISTER_TWS_FUNC_STUB(a2dp_latency_sync) = {
     .func_id = A2DP_TWS_LATENCY_SYNC,
     .func    = a2dp_tws_latency_sync_handler,
 };
+#endif
 
 
 /*经典蓝牙RF质量评估*/
@@ -266,16 +277,16 @@ static u8 a2dp_rf_quality(struct a2dp_stream_control *ctrl)
         per = 0;
     }
 
-    if (per >= 70) {
+    if (per >= RF_PER_BAD_LEVEL2) {
         quality = 1;
-    } else if (per >= 50) {
+    } else if (per >= RF_PER_BAD_LEVEL1) {
         quality = 2;
-    } else if (per >= 30) {
+    } else if (per >= RF_PER_BAD_LEVEL0) {
         quality = 3;
     }
 
-    if (ctrl->link_rssi <= -85 && link_rssi <= -85) {
-        if (ctrl->link_rssi <= -99 && link_rssi <= -99 && quality > 3) {
+    if (ctrl->link_rssi <= RF_RSSI_BAD_LEVEL0 && link_rssi <= RF_RSSI_BAD_LEVEL0) {
+        if (ctrl->link_rssi <= RF_RSSI_BAD_LEVEL1 && link_rssi <= RF_RSSI_BAD_LEVEL1 && quality > 3) {
             quality = 3;
         }
         quality -= 1;
@@ -283,7 +294,7 @@ static u8 a2dp_rf_quality(struct a2dp_stream_control *ctrl)
 
     ctrl->link_rssi = link_rssi;
     if (CONFIG_BTCTLER_TWS_ENABLE) {
-        if (tws_rssi <= -85) {
+        if (tws_rssi <= RF_RSSI_BAD_LEVEL0) {
             quality -= 1;
         }
     }
@@ -458,7 +469,7 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
     int adaptive_latency = ctrl->adaptive_latency;
 
     u8 rf_quality = a2dp_rf_quality(ctrl);
-    if (rf_quality < 3 || gap < median_depth_value) {
+    if (rf_quality < RF_QUALITY_GOOD_THRESHOLD || gap < median_depth_value) {
         if (ctrl->overrun_detect_enable) {
             ctrl->overrun_detect_enable = 0;
             r_printf("adaptive stop overrun detect : %d, %d, %d.\n", rf_quality, gap, median_depth_value);
@@ -510,7 +521,7 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
 
     if (discrete >= min_latency) {
         ctrl->adaptive_latency = ctrl->adaptive_max_latency;
-    } else if (rf_quality < 2) {
+    } else if (rf_quality < RF_QUALITY_BAD_THRESHOLD) {
         u16 rf_compensation = (ctrl->adaptive_max_latency - min_latency) / (rf_quality + 1);
         u16 new_latency = min_latency + rf_compensation;
         if (ctrl->adaptive_latency < new_latency) {
@@ -631,7 +642,7 @@ void *a2dp_stream_control_plan_select(void *stream, int low_latency, u32 codec_t
             }
         }
         ctrl->adaptive_max_latency = low_latency ? (ctrl->initial_latency + MAX_DELAY_INCREMENT) : CONFIG_A2DP_ADAPTIVE_MAX_LATENCY;
-        ctrl->initial_compensation = bt_get_total_connect_dev() > 1 ? DUAL_CONN_COMPENSATION_LATENCY : 0;
+        ctrl->initial_compensation = 0;//bt_get_total_connect_dev() > 1 ? DUAL_CONN_COMPENSATION_LATENCY : 0;
         ctrl->adaptive_latency = ctrl->initial_latency + ctrl->initial_compensation;
         break;
     }

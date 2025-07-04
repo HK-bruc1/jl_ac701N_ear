@@ -1785,8 +1785,6 @@ void anc_mode_next(void)
 
 #if ANC_EAR_ADAPTIVE_EN && ANC_EAR_ADAPTIVE_EVERY_TIME		//非通话状态下，每次切模式都自适应
         if ((anc_mode_switch_tab[next_mode] == ANC_ON) && (esco_player_runing() == 0)) {
-            anc_hdl->param.mode = ANC_ON;
-            anc_hdl->new_mode = anc_hdl->param.mode;
             audio_anc_mode_ear_adaptive(1);
         } else
 #endif/*ANC_EAR_ADAPTIVE_EVERY_TIME*/
@@ -2594,6 +2592,19 @@ void audio_anc_param_reset(u8 fade_en)
 {
     if ((anc_hdl->param.mode != ANC_OFF) && !anc_hdl->mode_switch_lock) {
         os_taskq_post_msg("anc", 2, ANC_MSG_RESET, fade_en);
+    }
+}
+
+/*
+ 	设置ANC模式变量，仅在耳道自适应启动使用，使用ANC_ON的模式调用对应的库接口
+ */
+void audio_anc_mode_set(u8 mode)
+{
+    if (anc_hdl && (strcmp(os_current_task(), "anc") == 0)) {
+        anc_hdl->param.mode = mode;
+        anc_hdl->new_mode = mode;
+    } else {
+        user_anc_log("anc_mode_set err ,task %s\n", os_current_task());
     }
 }
 

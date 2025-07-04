@@ -40,7 +40,7 @@ void Spatial_reset(void *ptr);
  * val1 : 建议范围0.1~0.6；值越小，越接近静止条件下的回正，0.1为静止下的参考值*/
 int Spatial_stra(void *ptr, int time, float val1);
 int get_test_angle(void *ptr);
-//int get_Pitch_angle(void* ptr);
+int get_Pitch_angle(void *ptr);
 
 #endif // !1
 

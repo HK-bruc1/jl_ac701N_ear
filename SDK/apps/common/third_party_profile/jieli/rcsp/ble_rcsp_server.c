@@ -509,7 +509,10 @@ void rcsp_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *pac
             rcsp_ble_con_handle = 0;
             ble_user_cmd_prepare(BLE_CMD_ATT_SEND_INIT, 4, rcsp_ble_con_handle, 0, 0, 0);
 #endif
+#if RCSP_UPDATE_EN
             rcsp_clean_update_hdl_for_end_update(dis_con_handle, NULL);
+#endif
+
 #if TCFG_RCSP_DUAL_CONN_ENABLE
             rcsp_1t2_reset_edr_info_for_ble_disconn(dis_con_handle);
 #endif

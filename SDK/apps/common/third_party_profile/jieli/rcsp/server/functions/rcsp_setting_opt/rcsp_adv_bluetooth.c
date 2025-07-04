@@ -225,8 +225,11 @@ static void rcsp_wait_reboot_dev(void *priv)
 
 static void rcsp_rcsp_reboot_dev(void)
 {
+#if RCSP_ADV_NAME_SET_ENABLE
     extern void adv_edr_name_change_now(void);
     adv_edr_name_change_now();
+#endif
+
 #if TCFG_USER_TWS_ENABLE
     if (get_bt_tws_connect_status()) {
         modify_bt_name_and_reset(500);

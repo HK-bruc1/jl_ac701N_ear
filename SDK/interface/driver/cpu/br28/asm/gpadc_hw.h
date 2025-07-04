@@ -127,6 +127,7 @@ enum AD_CH {
 #define     ADC_VBG_CENTER        800
 #define     ADC_VBG_TRIM_STEP     3
 #define     ADC_VBG_DATA_WIDTH    4
+#define     ADC_EXTERN_VOLTAGE_TRIM_EN  0
 
 //防编译报错
 extern const u8 gpadc_battery_mode;

@@ -86,6 +86,8 @@ struct cvp_node_hdl {
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
     u8 talk_mic_ch;					//通话MIC
+    void (*lock)(void);
+    void (*unlock)(void);
     struct CVP_REF_MIC_CONFIG ref_mic;
     u8 ref_mic_num; //回采mic个数
 };
@@ -312,7 +314,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             if (++hdl->buf_cnt > ((CVP_INPUT_SIZE / 256) - 1)) {
                 hdl->buf_cnt = 0;
             }
-
+            hdl->lock();
             /*查找对应mic的数据index*/
             u8 mic_cnt = 0, ref_cnt = 0;
             for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
@@ -344,6 +346,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             }
             audio_aec_refbuf(ref_buf, NULL, wlen << hdl->ref_mic_num);
             audio_aec_inbuf(mic_buf, wlen << 1);
+            hdl->unlock();
         } else {//参考数据软回采
             dat = hdl->buf + (in_frame->len / 2 * hdl->buf_cnt);
             //模仿ADCbuff的存储方法
@@ -357,11 +360,44 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
     }
 }
 
+static int cvp_sms_lock_init(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+#if (TCFG_AUDIO_CVP_SMS_ANS_MODE)
+        case NODE_UUID_CVP_SMS_ANS:
+            if (TCFG_AUDIO_SMS_SEL == SMS_TDE) { // TDE
+                hdl->lock   = audio_cvp_sms_tde_lock;
+                hdl->unlock = audio_cvp_sms_tde_unlock;
+            } else { // DEFAULT
+                hdl->lock   = audio_cvp_sms_lock;
+                hdl->unlock = audio_cvp_sms_unlock;
+            }
+#endif
+            break;
+#if (TCFG_AUDIO_CVP_SMS_DNS_MODE)
+        case NODE_UUID_CVP_SMS_DNS:
+            hdl->lock   = audio_cvp_sms_lock;
+            hdl->unlock = audio_cvp_sms_unlock;
+#endif
+            break;
+        default:
+            ASSERT(0, "cvp_sms_lock_init: unknown node UUID\n");
+            break;
+        }
+        ret = true;
+    }
+    return ret;
+}
+
 /*节点预处理-在ioctl之前*/
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
-
+    /*初始化spinlock*/
+    cvp_sms_lock_init(hdl);
     node->type = NODE_TYPE_ASYNC;
     g_cvp_hdl = hdl;
     /*先读取节点需要用的参数*/

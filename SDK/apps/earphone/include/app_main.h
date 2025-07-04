@@ -51,6 +51,7 @@ typedef struct _APP_VAR {
     u8 have_mass_storage;
     u8 poweron_reason;
     u8 poweroff_reason;
+    u8 update_tone_end_flag;//升级完成后提示音播放结束标志位
     int auto_stop_page_scan_timer;     //用于1拖2时，有一台连接上后，超过三分钟自动关闭Page Scan
     u16 auto_off_time;
     u16 warning_tone_v;

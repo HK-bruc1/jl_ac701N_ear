@@ -10,6 +10,7 @@
 #include "media/bt_audio_timestamp.h"
 #include "reference_time.h"
 #include "system/timer.h"
+#include "app_config.h"
 
 #define ESCO_DISCONNECTED_FILL_PACKET_NUMBER    5 //esco 链路断开时，补包的数量
 
@@ -265,6 +266,12 @@ static void esco_release(void *_hdl)
     free(hdl);
 }
 
+/*
+ * 1、没有定义仅显示电量，TCFG_BT_SUPPORT_HFP使能则有通话功能
+ * 2、定义仅显示电量，则TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE不使能且TCFG_BT_SUPPORT_HFP使能有通话功能
+ */
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
 
 REGISTER_SOURCE_NODE_PLUG(esco_file_plug) = {
     .uuid       = NODE_UUID_ESCO_RX,
@@ -273,6 +280,7 @@ REGISTER_SOURCE_NODE_PLUG(esco_file_plug) = {
     .ioctl      = esco_ioctl,
     .release    = esco_release,
 };
+#endif
 
 
 

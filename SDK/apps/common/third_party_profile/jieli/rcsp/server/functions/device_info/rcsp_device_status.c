@@ -770,7 +770,10 @@ static u32 common_function_attr_high_low_get(void *priv, u8 attr, u8 *buf, u16 b
 static u32 common_function_attr_misc_setting_info_get(void *priv, u8 attr, u8 *buf, u16 buf_size, u32 offset)
 {
     u32 rlen = 0;
-    u32 data_len = rcsp_get_misc_setting_data_len();
+    u32 data_len = 0;
+#if (RCSP_MODE && RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
+    data_len = rcsp_get_misc_setting_data_len();
+#endif
     RCSP_SETTING_OPT *setting_opt_hdl = get_rcsp_setting_opt_hdl(ATTR_TYPE_MISC_SETTING);
     if (data_len && setting_opt_hdl) {
         u8 *misc_data = zalloc(data_len);

@@ -101,6 +101,7 @@ struct audio_cvp_dev {
 };
 struct audio_cvp_dev *cvp_dev = NULL;
 
+static spinlock_t cvp_lock;
 #define AEC_REF_CBUF_SIZE         (AEC_FRAME_POINTS * 6)
 #define AEC_REF_CBUF_DOOR_SIZE    (AEC_REF_CBUF_SIZE / 2)
 static cbuffer_t *aec_ref_cbuf = NULL;
@@ -496,6 +497,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     printf("cvp_dev size:%ld\n", sizeof(struct audio_cvp_dev));
     /* clk_set("sys", AEC_CLK); */
 
+    spin_lock_init(&cvp_lock);
     cvp_dev->mic_num = init_param->mic_num;
 
     cvp_dev->dump_packet = CVP_OUT_DUMP_PACKET;
@@ -695,7 +697,7 @@ u8 audio_aec_status(void)
     return 0;
 }
 
-int cvp_develop_read_ref_data(void)
+int cvp_develop_read_ref_data_base(void)
 {
     u16 rlen = -1;
     u8 i;
@@ -736,6 +738,32 @@ int cvp_develop_read_ref_data(void)
     return rlen;
 }
 
+int cvp_develop_read_ref_data(void)
+{
+    spin_lock(&cvp_lock);
+    int ret = cvp_develop_read_ref_data_base();
+    spin_unlock(&cvp_lock);
+    return ret;
+}
+/*
+*********************************************************************
+*                  Audio spinlock
+* Description: None
+* Arguments  : None
+*
+* Return	 : None.
+* Note(s)    : None
+*********************************************************************
+*/
+void audio_cvp_develop_lock()
+{
+    spin_lock(&cvp_lock);
+}
+
+void audio_cvp_develop_unlock()
+{
+    spin_unlock(&cvp_lock);
+}
 /*
 *********************************************************************
 *                  Audio AEC Input
@@ -782,6 +810,26 @@ void audio_aec_inbuf(s16 *buf, u16 len)
                 bulk->used = 0;
                 __list_del_entry(&bulk->entry);
             }
+            if (cvp_dev->mic_num == 2) {
+                list_for_each_entry(bulk, &cvp_dev->inref_head, entry) {
+                    bulk->used = 0;
+                    __list_del_entry(&bulk->entry);
+                }
+            }
+            if (cvp_dev->mic_num == 3) {
+                list_for_each_entry(bulk, &cvp_dev->inref_1_head, entry) {
+                    bulk->used = 0;
+                    __list_del_entry(&bulk->entry);
+                }
+            }
+            if (cvp_dev->adc_ref_en == 1) {
+                list_for_each_entry(bulk, &cvp_dev->ref0_head, entry) {
+                    bulk->used = 0;
+                    __list_del_entry(&bulk->entry);
+                }
+
+            }
+
             return;
         }
         os_sem_set(&cvp_dev->sem, 0);

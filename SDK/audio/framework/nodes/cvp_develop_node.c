@@ -30,6 +30,8 @@ struct cvp_node_hdl {
     s16 *buf_ref_1;
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
+    void (*lock)(void);
+    void (*unlock)(void);
 };
 
 static struct cvp_node_hdl *g_cvp_hdl;
@@ -110,6 +112,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             memcpy((u8 *)dat, in_frame->data, in_frame->len);
             audio_aec_inbuf(dat, in_frame->len);
         } else if (hdl->cfg.mic_num == 2) {	//双麦第三方算法
+            hdl->lock();
             wlen = in_frame->len >> 2;	//单个ADC的点数
             tbuf = hdl->buf + (wlen * hdl->buf_cnt);
             tbuf_ref = hdl->buf_ref + (wlen * hdl->buf_cnt);
@@ -125,7 +128,9 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             audio_aec_inbuf_ref(tbuf, wlen << 1);
             audio_aec_inbuf(tbuf_ref, wlen << 1);
 #endif/*TCFG_AUDIO_DMS_MIC_MANAGE*/
+            hdl->unlock();
         } else if (hdl->cfg.mic_num == 3) {	//三麦第三方算法
+            hdl->lock();
             wlen = in_frame->len / 6;	//单个ADC的点数
             tbuf = hdl->buf + (wlen * hdl->buf_cnt);
             tbuf_ref = hdl->buf_ref + (wlen * hdl->buf_cnt);
@@ -139,6 +144,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             audio_aec_inbuf_ref(tbuf_ref, wlen << 1);
             audio_aec_inbuf_ref_1(tbuf_ref_1, wlen << 1);
             audio_aec_inbuf(tbuf, wlen << 1);
+            hdl->unlock();
         }
         if (++hdl->buf_cnt > ((CVP_INPUT_SIZE / 256) - 1)) {	//计算下一个ADCbuffer位置
             hdl->buf_cnt = 0;
@@ -147,10 +153,32 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
     }
 }
 
+static int cvp_develop_lock_init(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+        case NODE_UUID_CVP_DEVELOP:
+            hdl->lock   = audio_cvp_develop_lock;
+            hdl->unlock = audio_cvp_develop_unlock;
+            break;
+        default:
+            printf("cvp_develop_lock_init: unknown node UUID %d\n", node_uuid);
+            hdl->lock   = NULL;
+            hdl->unlock = NULL;
+            break;
+        }
+        ret = true;
+    }
+    return ret;
+}
+
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
-
+    /*初始化spinlock锁*/
+    cvp_develop_lock_init(hdl);
 
     node->type = NODE_TYPE_ASYNC;
     cvp_node_param_cfg_read(hdl, 0);

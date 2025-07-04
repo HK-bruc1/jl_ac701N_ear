@@ -236,6 +236,12 @@ u8 is_cig_other_phone_call_play();
  */
 /* ----------------------------------------------------------------------------*/
 void le_audio_media_control_cmd(u8 *data, u8 len);
+void le_audio_unicast_play_resume_by_a2dp();
+int le_audio_unicast_play_stop_by_a2dp();
+void le_audio_unicast_play_remove_by_phone_call();
+void le_audio_unicast_try_resume_play_by_phone_call_remove();
+u8 try_a2dp_resume_by_le_audio_preempted();
+u8 a2dp_suspend_by_le_audio();
 
 #ifdef __cplusplus
 };

@@ -72,6 +72,8 @@
 #define    JL_OPCODE_TRANSLATOR                                     0x34//翻译功能
 #define    JL_OPCODE_PUBLIC_SET_CMD                                 0x33
 
+#define    JL_OPCODE_PUBLIC_SET_CMD                                 0x33
+
 #define    JL_OPCODE_SPORTS_DATA_INFO_GET							0xA0
 #define    JL_OPCODE_SPORTS_DATA_INFO_SET							0xA1
 #define    JL_OPCODE_SPORTS_DATA_INFO_AUTO_UPDATE					0xA2

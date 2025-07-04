@@ -82,6 +82,7 @@
 	*(.m4a_dec.data.bss)
 	*(.m4a.data.bss)
 	*(.alac.data.bss)
+	*(.llns_dns.bss)
 
 	*(.audio_track_bss)
 

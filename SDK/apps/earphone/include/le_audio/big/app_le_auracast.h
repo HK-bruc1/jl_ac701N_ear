@@ -9,17 +9,19 @@ extern "C" {
 #endif
 
 typedef enum {
-    BROADCAST_STATUS_DEFAULT = 0,
-    BROADCAST_STATUS_SCAN_START,
-    BROADCAST_STATUS_SCAN_STOP,
-    BROADCAST_STATUS_START,
-    BROADCAST_STATUS_STOP,
-} BROADCAST_STATUS;
+    APP_AURACAST_STATUS_STOP,
+    APP_AURACAST_STATUS_SUSPEND,
+    APP_AURACAST_STATUS_BROADCAST,
+    APP_AURACAST_STATUS_SCAN,
+    APP_AURACAST_STATUS_SYNC,
+} APP_AURACAST_STATUS;
 
 /**
- * @brief 获取auracast状态
+ * @brief le auracast是否正在运行
+ *
+ * @return 1:正在运行；0:空闲
  */
-BROADCAST_STATUS le_auracast_status_get();
+u8 le_auracast_is_running();
 
 /**
  * @brief 关闭auracast功能（音频、扫描）
@@ -34,7 +36,7 @@ void le_auracast_stop(void);
 int app_auracast_sink_big_sync_create(auracast_sink_source_info_t *param);
 
 /**
- * @brief 关闭所有正在监听播歌的广播设备
+ * @brief 主动关闭所有正在监听播歌的广播设备
  */
 int app_auracast_sink_big_sync_terminate(void);
 

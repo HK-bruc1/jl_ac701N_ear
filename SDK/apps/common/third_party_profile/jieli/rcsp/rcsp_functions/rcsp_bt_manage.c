@@ -518,7 +518,10 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
         rcsp_simplified_reset_spp_info();
 #endif
 
+#if RCSP_UPDATE_EN
         rcsp_clean_update_hdl_for_end_update(0, spp_remote_addr);
+#endif
+
 #if RCSP_ADV_EN
         set_connect_flag(SECNE_UNCONNECTED);
 #endif

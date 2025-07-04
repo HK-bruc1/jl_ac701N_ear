@@ -25,6 +25,11 @@ const int config_asser          = TCFG_EXCEPTION_LOG_ENABLE;  // non 0:使能异
 const int config_exception_reset_enable = TCFG_EXCEPTION_RESET_ENABLE;
 const int CONFIG_LOG_OUTPUT_ENABLE = 1;
 const int config_ulog_enable = 1;
+#elif TCFG_DEBUG_DLOG_ENABLE
+const int config_asser         = 1;
+const int config_exception_reset_enable = 1;
+const int CONFIG_LOG_OUTPUT_ENABLE = 0;
+const int config_ulog_enable = 0;
 #else
 const int config_asser         = 0;
 const int config_exception_reset_enable = 1;
@@ -170,6 +175,9 @@ const int config_irq_time_debug_time = 10000;  //查找中断时间超过10000us
 const int config_irq_time_debug_enable = 0;
 const int config_irq_time_debug_time = 0;
 #endif
+
+//0: 自由分配, 1: 固定核
+const int config_os_core_affinity_en = 0;
 
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)

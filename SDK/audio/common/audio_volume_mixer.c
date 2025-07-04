@@ -513,7 +513,7 @@ void audio_sw_digital_vol_init(u8 cfg_en)
     */
 #if 0
     float dB_value = DEFAULT_DIGITAL_VOLUME;
-#if (TCFG_AUDIO_ANC_ENABLE)
+#if (TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT)
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
     __this->sys_hw_dvol_max = 16384.0f * dB_Convert_Mag(dB_value);
@@ -1518,7 +1518,10 @@ u8 app_audio_bt_volume_update(u8 *btaddr, u8 state)
 #else
 void app_audio_bt_volume_save(u8 state) {}
 void app_audio_bt_volume_save_mac(u8 *addr) {}
-u8 app_audio_bt_volume_update(u8 *btaddr, u8 state) {}
+u8 app_audio_bt_volume_update(u8 *btaddr, u8 state)
+{
+    return 0;
+}
 #endif/*TCFG_1T2_VOL_RESUME_WHEN_NO_SUPPORT_VOL_SYNC*/
 
 /*

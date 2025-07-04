@@ -196,6 +196,12 @@ static void esco_tx_release(struct stream_node *node)
 
 }
 
+/*
+ * 1、没有定义仅显示电量，TCFG_BT_SUPPORT_HFP使能则有通话功能
+ * 2、定义仅显示电量，则TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE不使能且TCFG_BT_SUPPORT_HFP使能有通话功能
+ */
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
 
 REGISTER_STREAM_NODE_ADAPTER(esco_tx_adapter) = {
     .name       = "esco_tx",
@@ -205,4 +211,4 @@ REGISTER_STREAM_NODE_ADAPTER(esco_tx_adapter) = {
     .release    = esco_tx_release,
     .hdl_size   = sizeof(struct esco_tx_hdl),
 };
-
+#endif

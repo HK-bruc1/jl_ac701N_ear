@@ -508,6 +508,7 @@ struct jlstream {
     u8 thread_run;
     u8 thread_num;
     u8 thread_policy_step;
+    u8 continue_nego_flag;
     enum stream_state state;
     enum stream_state pp_state;
     enum stream_coexist coexist;

@@ -105,12 +105,33 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         scan_enable = 0;
         conn_enable = 0;
     }
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
     if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
     }
+#elif (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+    g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
+    if (bt_get_total_connect_dev() == 0) {
+        if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+            scan_enable = 1;
+            conn_enable = 1;
+
+        }
+
+    } else if (is_cig_phone_conn() && bt_get_total_connect_dev()) {
+        scan_enable = 0;
+        conn_enable = 0;
+
+    }
+#else
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+        scan_enable = 0;
+        conn_enable = 0;
+    }
+#endif
 #endif
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
     int share_state = get_share_phone_conn_state();
@@ -228,10 +249,11 @@ static int dual_conn_try_open_inquiry_page_scan()
     }
 #if TCFG_DUAL_CONN_INQUIRY_SCAN_TIME
     int connect_device      = bt_get_total_connect_dev();
+    //y_printf("connect_device=%d,need_keep_scan=%d,device_num_recorded=%d,inquiry_scan_disable=%d\n",connect_device,g_dual_conn.need_keep_scan,g_dual_conn.device_num_recorded,g_dual_conn.inquiry_scan_disable);
     if (connect_device == 0) {
         write_scan_conn_enable(1, 1);
     } else {
-        write_scan_conn_enable(g_dual_conn.inquiry_scan_disable ? 0 : 1, 1);
+        write_scan_conn_enable(g_dual_conn.inquiry_scan_disable ? 0 : 1, g_dual_conn.inquiry_scan_disable ? 0 : 1);
     }
 #else
     if (g_dual_conn.need_keep_scan) {

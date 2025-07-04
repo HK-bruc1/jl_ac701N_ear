@@ -556,8 +556,9 @@ void bt_ble_adv_enable(u8 enable)
     tuya_bt_ble_adv_enable(enable);
 #endif
 }
+#endif
 
-
+#if TCFG_USER_BLE_ENABLE
 //编译问题加几个空的
 _WEAK_ void bt_ble_init(void)
 {
@@ -565,5 +566,4 @@ _WEAK_ void bt_ble_init(void)
 _WEAK_ void bt_ble_exit(void)
 {
 }
-
 #endif

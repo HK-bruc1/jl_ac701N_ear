@@ -182,7 +182,7 @@ int bt_key_power_msg_remap(int *msg)
         int tws_cig_state = is_cig_phone_conn();
         if ((tws_state & TWS_STA_PHONE_CONNECTED) || tws_cig_state) { //已连接手机经典蓝牙或者cig
 #elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-        if ((tws_state & TWS_STA_PHONE_CONNECTED) && (le_auracast_status_get() != BROADCAST_STATUS_START)) { //已连接手机经典蓝牙&&耳机没有auracast播歌
+        if ((tws_state & TWS_STA_PHONE_CONNECTED) && (!le_auracast_is_running())) { //已连接手机经典蓝牙&&耳机没有auracast播歌
 #else
         if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
 #endif
@@ -226,7 +226,7 @@ int bt_key_power_msg_remap(int *msg)
             }
         }
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-        if (le_auracast_status_get() == BROADCAST_STATUS_START) {
+        if (le_auracast_is_running()) {
             switch (key_action) {
             case KEY_ACTION_DOUBLE_CLICK:
                 app_msg = APP_MSG_VOL_UP;

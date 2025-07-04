@@ -400,6 +400,12 @@ static void audio_aec_param_init(struct aec_s_attr *p)
     p->aec_tail_length = AEC_TAIL_LENGTH;
     p->ES_OverSuppressThr = 0.02f;
     p->ES_OverSuppress = 2.f;
+    if (CONST_SMS_DNS_VERSION == SMS_DNS_V200) {
+        p->AEC_Process_MaxFrequency = 8000;
+        p->AEC_Process_MinFrequency = 0;
+        p->NLP_Process_MaxFrequency = 8000;
+        p->NLP_Process_MinFrequency = 0;
+    }
 
     /* aec_param_dump(p); */
 }

@@ -176,6 +176,8 @@ typedef enum {
     CIG_EVENT_OPID_PAUSE        = 0x46,
     CIG_EVENT_OPID_NEXT         = 0x4B,
     CIG_EVENT_OPID_PREV         = 0x4C,
+    CIG_EVENT_OPID_REQ_REMOVE_CIS   = 0x4D,
+    CIG_EVENT_OPID_REQ_CREAT_CIS   = 0x4E,
 } CIG_EVENT_CMD_TYPE;
 // 检查是否已经开始退出蓝牙模式
 extern bool bt_mode_is_try_exit();

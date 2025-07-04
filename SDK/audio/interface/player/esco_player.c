@@ -9,6 +9,7 @@
 #include "sdk_config.h"
 #include "app_config.h"
 #include "aec_ref_dac_ch_data.h"
+#include "encoder_node.h"
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
@@ -42,6 +43,11 @@ static void esco_player_callback(void *private_data, int event)
 
 int esco_player_open(u8 *bt_addr)
 {
+    return esco_player_open_extended(bt_addr, ESCO_PLAYER_EXT_TYPE_NONE, NULL);
+}
+
+int esco_player_open_extended(u8 *bt_addr, int ext_type, void *ext_param)
+{
     int err;
     struct esco_player *player;
 
@@ -54,8 +60,10 @@ int esco_player_open(u8 *bt_addr)
     if (!player) {
         return -ENOMEM;
     }
-
-    player->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ESCO_RX);
+    player->stream = jlstream_pipeline_parse_by_node_name(uuid, "esco_rx");
+    if (!player->stream) {
+        player->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ESCO_RX);
+    }
     if (!player->stream) {
         err = -ENOMEM;
         goto __exit0;
@@ -89,21 +97,34 @@ int esco_player_open(u8 *bt_addr)
 #endif /*TCFG_ESCO_DL_CVSD_SR_USE_16K*/
 
 #if TCFG_AI_TX_NODE_ENABLE
-#if TCFG_DEC_OPUS_ENABLE
-    /* struct stream_fmt ai_tx_fmt = {0}; */
-    /* ai_tx_fmt.sample_rate = 16000; */
-    /* ai_tx_fmt.coding_type = AUDIO_CODING_OPUS; */
-    /* jlstream_node_ioctl(player->stream, NODE_UUID_AI_TX, NODE_IOC_SET_FMT, (int)&ai_tx_fmt); */
+    if (ext_type == ESCO_PLAYER_EXT_TYPE_AI) {
+        struct stream_enc_fmt *s_enc_fmt = ext_param;
+        struct stream_enc_fmt ai_tx_s_enc_fmt = {0};
+        jlstream_node_ioctl(player->stream, NODE_UUID_ENCODER, NODE_IOC_GET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+        if (s_enc_fmt && s_enc_fmt->coding_type == AUDIO_CODING_OPUS) {
+#if TCFG_ENC_OPUS_ENABLE
+            ai_tx_s_enc_fmt.coding_type = s_enc_fmt->coding_type;
+            ai_tx_s_enc_fmt.bit_rate = s_enc_fmt->bit_rate;
+            ai_tx_s_enc_fmt.sample_rate = s_enc_fmt->sample_rate;
+            ai_tx_s_enc_fmt.frame_dms = s_enc_fmt->frame_dms;
+            jlstream_node_ioctl(player->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+            struct encoder_fmt ai_tx_enc_fmt = {0};
+            ai_tx_enc_fmt.complexity = 0;
+            ai_tx_enc_fmt.format = 0;
+            ai_tx_enc_fmt.frame_dms = 200;
+            jlstream_node_ioctl(player->stream, NODE_UUID_ENCODER, NODE_IOC_SET_PRIV_FMT, (int)&ai_tx_enc_fmt);
 #endif
-#if TCFG_DEC_JLA_V2_ENABLE
-    struct stream_enc_fmt fmt = {0};
-    fmt.coding_type = AUDIO_CODING_JLA_V2;
-    fmt.sample_rate = 16000;
-    fmt.frame_dms = 200;
-    fmt.bit_rate = 16000;
-    fmt.channel = 1;
-    jlstream_ioctl(player->stream, NODE_IOC_SET_ENC_FMT, (int)&fmt);
+        } else if (s_enc_fmt && s_enc_fmt->coding_type == AUDIO_CODING_JLA_V2) {
+#if TCFG_ENC_JLA_V2_ENABLE
+            ai_tx_s_enc_fmt.coding_type = s_enc_fmt->coding_type;
+            ai_tx_s_enc_fmt.sample_rate = s_enc_fmt->sample_rate;
+            ai_tx_s_enc_fmt.frame_dms = s_enc_fmt->frame_dms;
+            ai_tx_s_enc_fmt.bit_rate = s_enc_fmt->bit_rate;
+            ai_tx_s_enc_fmt.channel = s_enc_fmt->channel;
+            jlstream_ioctl(player->stream, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
 #endif
+        }
+    }
 #endif
 
     jlstream_set_callback(player->stream, player->stream, esco_player_callback);

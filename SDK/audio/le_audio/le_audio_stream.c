@@ -111,6 +111,8 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)tx_stream->parent;
     u32 rlen = 0;
     u32 read_alloc_len = 0;
+    struct le_audio_rx_stream *rx_stream = ctx->rx_stream;
+
 
     /*putchar('A');*/
     rlen = cbuf_read(&tx_stream->buf.cbuf, data, len);
@@ -136,11 +138,9 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
             spin_unlock(&ctx->lock);
             return rlen;
         }
-        void *addr = cbuf_read_alloc(&rx_stream->buf.cbuf, &read_alloc_len);
         if (tx_stream->coding_type == AUDIO_CODING_LC3 && rx_stream->coding_type == AUDIO_CODING_PCM) {
             timestamp = (timestamp + (ctx->fmt.frame_dms == 75 ? 4000L : 2500L)) & 0xfffffff;
         }
-        timestamp = (timestamp + latency) & 0xfffffff;
         le_audio_stream_rx_frame(rx_stream, addr, rx_stream->isoIntervalUs_len, timestamp);
         cbuf_read_updata(&rx_stream->buf.cbuf, rx_stream->isoIntervalUs_len);
         spin_unlock(&ctx->lock);

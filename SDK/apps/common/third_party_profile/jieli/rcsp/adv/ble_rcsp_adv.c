@@ -766,7 +766,7 @@ static void deal_sibling_seq_rand_sync_in_task(void *data, u16 len)
         }
 
         break;
-#if RCSP_MODE == RCSP_MODE_EARPHONE
+#if RCSP_MODE == RCSP_MODE_EARPHONE && RCSP_UPDATE_EN
     case TWS_UPDATE_INFO:                                               //单备份升级走BLE主机需要要通过该消息来通知从机进入升级
         bt_ble_rcsp_adv_disable();
         ble_module_enable(0);                                           //关闭广播防止从机被手机误回连

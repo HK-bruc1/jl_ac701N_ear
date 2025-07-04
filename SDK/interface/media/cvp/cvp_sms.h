@@ -213,4 +213,12 @@ int cvp_sms_tde_read_ref_data(void);
 int get_cvp_sms_output_way_writable_len();
 int get_cvp_sms_tde_output_way_writable_len();
 
+/*spinlock*/
+void audio_cvp_sms_lock();
+void audio_cvp_sms_unlock();
+
+void audio_cvp_sms_tde_lock();
+void audio_cvp_sms_tde_unlock();
+
+
 #endif/*_CVP_SMS_H_*/

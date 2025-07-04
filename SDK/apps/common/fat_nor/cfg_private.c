@@ -23,6 +23,7 @@ typedef struct {
 
 CFG_PRIVATE_HDL *cp_hdl = NULL;
 
+#define CFG_PRIVARE_LEN_TYPE  1 //保持最大限制下，写头为实际长度
 
 static int cfg_private_addr_check(u32 addr)
 {
@@ -47,7 +48,14 @@ static RESFILE *cfg_private_create(const char *path, const char *mode)
         int addr = cp_hdl->cfg_private_part_flash_addr + i * sizeof(SDFILE_FILE_HEAD);
         norflash_read(NULL, (void *)&cp_hdl->head, sizeof(SDFILE_FILE_HEAD), addr);
         if (CRC16((u8 *)&cp_hdl->head + 2, sizeof(SDFILE_FILE_HEAD) - 2) == cp_hdl->head.head_crc) {
-            file_head_len += cp_hdl->head.len;
+#if CFG_PRIVARE_LEN_TYPE
+            if (cp_hdl->cfg_private_file_maxsize) {
+                file_head_len += cp_hdl->cfg_private_file_maxsize;
+            } else
+#endif
+            {
+                file_head_len += cp_hdl->head.len;
+            }
             continue;
         }
         memset(&cp_hdl->head, 0, sizeof(SDFILE_FILE_HEAD));
@@ -96,6 +104,9 @@ RESFILE *cfg_private_open(const char *path, const char *mode)
                 //置上标志，close时修改最终实际写入长度
                 cp_hdl->cfg_private_create_flag = 1;
             }
+#if CFG_PRIVARE_LEN_TYPE
+            cp_hdl->cfg_private_create_flag = 1;
+#endif
         }
     }
     cp_hdl->cfg_private_file_maxsize = 0;
@@ -104,6 +115,9 @@ RESFILE *cfg_private_open(const char *path, const char *mode)
 
 int cfg_private_read(RESFILE *file, void *buf, u32 len)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     return resfile_read(file, buf, len);
 }
 
@@ -144,6 +158,9 @@ static int cfg_private_check(char *buf, int len)
 
 int cfg_private_write(RESFILE *file, void *buf, u32 len)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     struct resfile_attrs attrs = {0};
     resfile_get_attrs(file, &attrs);
     /* r_printf(">>>[test]:attrs.sclust = 0x%x\n", attrs.sclust); */
@@ -188,6 +205,9 @@ __exit:
 
 int cfg_private_erase_file(RESFILE *file)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     struct resfile_attrs attrs = {0};
     resfile_get_attrs(file, &attrs);
     attrs.sclust = sdfile_cpu_addr2flash_addr(attrs.sclust);
@@ -218,6 +238,9 @@ int cfg_private_erase_file(RESFILE *file)
 
 int cfg_private_close(RESFILE *file)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     if (cp_hdl->cfg_private_create_flag) {
         int i = 0;
         char name[SDFILE_NAME_LEN];
@@ -252,6 +275,9 @@ int cfg_private_close(RESFILE *file)
 
 int cfg_private_seek(RESFILE *file, int offset, int fromwhere)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     return resfile_seek(file, offset, fromwhere);
 }
 

@@ -262,6 +262,11 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
         audio_dc_offset_remove_run(cvp_sms->dcc_hdl, (void *)talk_mic, len);
     }
 #endif
+    if (cvp_sms->inbuf_clear_cnt) {
+        cvp_sms->inbuf_clear_cnt--;
+        memset(talk_mic, 0, len);
+    }
+
     return 0;
 }
 
@@ -779,10 +784,6 @@ void audio_aec_inbuf(s16 *buf, u16 len)
             memset(buf, 0, len);
         }
 #if CVP_TOGGLE
-        if (cvp_sms->inbuf_clear_cnt) {
-            cvp_sms->inbuf_clear_cnt--;
-            memset(buf, 0, len);
-        }
         int ret = aec_in_data(buf, len);
         if (ret == -1) {
         } else if (ret == -2) {

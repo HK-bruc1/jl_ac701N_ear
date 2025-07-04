@@ -47,7 +47,7 @@ struct dual_conn_handle {
 static struct dual_conn_handle g_dual_conn;
 static u8 page_mode_active = 0;
 
-static void dual_conn_page_device();
+void dual_conn_page_device();
 
 void bt_set_need_keep_scan(u8 en)
 {
@@ -71,7 +71,7 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
     u32 rets_addr = 0;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
-    printf("write_scan_conn_enable rets=0x%x\n", rets_addr);
+    r_printf("write_scan_conn_enable rets=0x%x,%d,%d\n", rets_addr, scan_enable, conn_enable);
     if (g_dual_conn.page_scan_auto_disable) {
         if (!scan_enable && conn_enable) {
             return;
@@ -83,12 +83,31 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         scan_enable = 0;
         conn_enable = 0;
     }
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
     if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
     }
+#elif (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
+    if (bt_get_total_connect_dev() == 0) {
+        scan_enable = 1;
+        conn_enable = 1;
+
+    } else if (is_cig_phone_conn() && bt_get_total_connect_dev()) {
+        scan_enable = 0;
+        conn_enable = 0;
+
+    }
+#else
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+        g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
+        scan_enable = 0;
+        conn_enable = 0;
+    }
+#endif
+
 #endif
     if (classic_update_task_exist_flag_get()) {
         g_printf("bt dual close for update\n");
@@ -146,7 +165,7 @@ static int add_device_2_page_list(u8 *mac_addr, u32 timeout)
 {
     struct page_device_info *info;
 
-    printf("add_device_2_page_list: %d\n", timeout);
+    r_printf("add_device_2_page_list: %d\n", timeout);
     put_buf(mac_addr, 6);
 
     if (!g_dual_conn.page_head_inited) {
@@ -200,7 +219,7 @@ static void del_device_from_page_list(u8 *mac_addr)
 
 void clr_device_in_page_list()
 {
-    printf("clr_device_in_page_list\n");
+    r_printf("clr_device_in_page_list\n");
     struct page_device_info *info, *n;
 
     if (!g_dual_conn.page_head_inited) {
@@ -286,7 +305,7 @@ static void dual_conn_page_device_timeout(void *p)
     }
 }
 
-static void dual_conn_page_device()
+void dual_conn_page_device()
 {
     struct page_device_info *info, *n;
 

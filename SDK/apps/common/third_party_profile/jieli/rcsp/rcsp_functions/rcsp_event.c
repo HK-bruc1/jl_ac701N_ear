@@ -294,11 +294,14 @@ static void rcsp_common_event_deal(int msg, int argc, int *argv)
         break;
 #endif
 
+#if (JL_RCSP_SENSORS_DATA_OPT && JL_RCSP_NFC_DATA_OPT)
     case USER_MSG_RCSP_NFC_FILE_TRANS_BACK:
         rcsp_printf("USER_MSG_RCSP_NFC_FILE_TRANS_BACK\n");
         extern void nfc_file_trans_back_end(void *priv, u32 handler, u8 op, int result, int param);
         nfc_file_trans_back_end((void *)rcspModel, (u32)argv[1], (u8)argv[2], argv[3], argv[4]);
         break;
+#endif
+
 #if JL_RCSP_SENSORS_DATA_OPT
     case USER_MSG_RCSP_SPORT_DATA_EVENT:
         rcsp_printf("USER_MSG_RCSP_SPORT_DATA_EVENT\n");

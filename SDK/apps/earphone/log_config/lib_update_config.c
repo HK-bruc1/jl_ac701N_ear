@@ -16,6 +16,13 @@ const int support_dual_bank_update_en = 1;
 const int support_dual_bank_update_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
 
+//是否双备份升级方案，但appcore1的区域相比appcore0更小
+#if CONFIG_DOUBLE_BANK_LESS
+const int support_dual_bank_less_en = 1;
+#else
+const int support_dual_bank_less_en = 0;
+#endif  //CONFIG_DOUBLE_BANK_ENABLE
+
 // 是否支持双备份升级前和升级失败对升级区域全擦，升级过程只写的功能
 const int support_dual_bank_update_no_erase = 0;
 

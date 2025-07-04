@@ -157,7 +157,7 @@ RCSP_BTMATE_EN
 
 // 耳机SDK可配置工具版本 RCSP功能配置
 #elif (RCSP_MODE == RCSP_MODE_EARPHONE)
-
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 #define RCSP_ADV_EN												1
 #define RCSP_DEVICE_STATUS_ENABLE								1		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
@@ -193,8 +193,6 @@ RCSP_BTMATE_EN
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
 #endif      //CONFIG_DOUBLE_BANK_ENABLE
 
-
-
 // 默认的功能模块使能
 #define RCSP_ADV_NAME_SET_ENABLE        						1		// 蓝牙名设置
 #define RCSP_ADV_KEY_SET_ENABLE         						1		// 按键设置
@@ -223,10 +221,49 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_WIND_NOISE_DETECTION							0		// 风噪检测
 #define RCSP_ADV_VOICE_ENHANCEMENT_MODE							0		// 人声增强模式
 #endif
+#endif
 
+#else
+
+#define RCSP_ADV_EN												1
+#define RCSP_DEVICE_STATUS_ENABLE								0		//设备状态信息功能
+#define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
+#define RCSP_TONE_FILE_TRANSFER_ENABLE                          0       //提示音传输至预留区域功能
+#define RCSP_UPDATE_EN		         							0		//是否支持rcsp升级
+
+#define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
+#define OTA_TWS_SAME_TIME_NEW        							0		//使用新的tws ota流程
+#define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
+
+#define RCSP_ADV_NAME_SET_ENABLE        						0		// 蓝牙名设置
+#define RCSP_ADV_KEY_SET_ENABLE         						0		// 按键设置
+#define RCSP_ADV_LED_SET_ENABLE         						0		// 灯光设置
+#define RCSP_ADV_MIC_SET_ENABLE         						0		// mic设置
+#define RCSP_ADV_WORK_SET_ENABLE        						0		// 模式设置（游戏模式）
+#define RCSP_ADV_HALTER_ENABLE									0		// 挂脖功能
+#define RCSP_ADV_EQ_SET_ENABLE          			            0		// eq设置
+#define RCSP_ADV_MUSIC_INFO_ENABLE      						0		// 音乐信息设置
+#define RCSP_ADV_HIGH_LOW_SET									0		// 高低音设置
+#define RCSP_ADV_FIND_DEVICE_ENABLE     						0		// 查找设备设置
+#define RCSP_ADV_PRODUCT_MSG_ENABLE     						0		// 获取产品信息
+#define RCSP_ADV_COLOR_LED_SET_ENABLE   						0		// 彩灯设置
+#define RCSP_ADV_KARAOKE_SET_ENABLE								0		// 卡拉OK设置
+#define RCSP_ADV_KARAOKE_EQ_SET_ENABLE							0		// 卡拉OK EQ设置
+#define RCSP_ADV_AI_NO_PICK										0		// 智能免摘
+#define RCSP_ADV_ASSISTED_HEARING								0		// 辅听，注意开启辅听后，需要关闭ANC相关功能
+
+#if !RCSP_ADV_ASSISTED_HEARING
+#define RCSP_ADV_ANC_VOICE     					                0		// 主动降噪
+#if RCSP_ADV_ANC_VOICE
+#define RCSP_ADV_ADAPTIVE_NOISE_REDUCTION 						0		// 自适应降噪
+#define RCSP_ADV_SCENE_NOISE_REDUCTION							0		// 场景降噪
+#define RCSP_ADV_WIND_NOISE_DETECTION							0		// 风噪检测
+#define RCSP_ADV_VOICE_ENHANCEMENT_MODE							0		// 人声增强模式
+#endif
 #endif
 
 
+#endif
 
 // 通用 RCSP功能配置
 #else // (RCSP_MODE == RCSP_MODE_COMMON)
@@ -469,4 +506,5 @@ RCSP_BTMATE_EN
 #endif
 
 #endif // __RCSP_CFG_H__
+
 

@@ -14,6 +14,7 @@
 #include "system/includes.h"
 #include "task.h"
 #include "app_msg.h"
+#include "clock_manager/clock_manager.h"
 
 
 /*校准时间配置*/

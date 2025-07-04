@@ -226,6 +226,7 @@ u8 auto_check_a2dp_play_control_qos(u16 cur_delay_timer,u16 delay_set_timer,u16 
 }
 #endif
 const int CONFIG_TWS_SUPER_TIMEOUT          = 4000;
+const int CONFIG_TWS_SAVE_POWER_ENABLE      = 0;     //tws省功耗配置，默认不开，客户需要再开
 const int CONFIG_BTCTLER_QOS_ENABLE         = 1;
 const int CONFIG_A2DP_DATA_CACHE_LOW_AAC    = 100;
 const int CONFIG_A2DP_DATA_CACHE_HI_AAC     = 250;
@@ -399,12 +400,20 @@ const int config_delete_link_key          = 1;           //配置是否连接失
        #define LE_AUDIO_BIS_RX_LE_ROLE     0
 	#endif
 
+    #if (THIRD_PARTY_PROTOCOLS_SEL & MULTI_CLIENT_EN)
+        #define MULTI_CLIENT_LE_ROLE (LE_MASTER | LE_SCAN | LE_INIT)
+        #define MULTI_CLIENT_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY)
+    #else
+        #define MULTI_CLIENT_LE_ROLE 0
+        #define MULTI_CLIENT_LE_FEATURES 0
+    #endif
+
 #if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 	const int config_btctler_le_roles    = (LE_SLAVE | LE_ADV);
 	const uint64_t config_btctler_le_features = LE_ENCRYPTION;
 #else
-	const int config_btctler_le_roles    = (LE_SLAVE  | LE_ADV|LE_AUDIO_BIS_RX_LE_ROLE);
-	const uint64_t config_btctler_le_features = LE_AUDIO_CIS_LE_FEATURES|DEFAULT_LE_FEATURES|RCSP_MODE_LE_FEATURES|LE_AUDIO_BIS_RX_LE_FEATURES;
+	const int config_btctler_le_roles    = (LE_SLAVE  | LE_ADV|LE_AUDIO_BIS_RX_LE_ROLE | MULTI_CLIENT_LE_ROLE);
+	const uint64_t config_btctler_le_features = LE_AUDIO_CIS_LE_FEATURES|DEFAULT_LE_FEATURES|RCSP_MODE_LE_FEATURES|LE_AUDIO_BIS_RX_LE_FEATURES|MULTI_CLIENT_LE_FEATURES;
 #endif
 
 #else /* TCFG_USER_BLE_ENABLE */

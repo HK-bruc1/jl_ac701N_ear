@@ -2,8 +2,14 @@
 #define ESCO_PLAYER_H
 
 
+enum {
+    ESCO_PLAYER_EXT_TYPE_NONE,
+    ESCO_PLAYER_EXT_TYPE_AI
+};
 
 int esco_player_open(u8 *bt_addr);
+
+int esco_player_open_extended(u8 *bt_addr, int ext_type, void *ext_param);
 
 void esco_player_close();
 

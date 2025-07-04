@@ -392,6 +392,10 @@ indicator_node_adapter
 llns_node_adapter
 #endif
 
+#if TCFG_LLNS_DNS_NODE_ENABLE
+llns_dns_node_adapter
+#endif
+
 #if TCFG_VOICE_CHANGER_ADV_NODE_ENABLE
 voice_changer_adv_node_adapter
 #endif
@@ -556,3 +560,8 @@ aac_enc_plug
 #if TCFG_LHDC_X_NODE_ENABLE
 lhdc_x_node_adapter
 #endif
+
+#if TCFG_MUTE_NODE_ENABLE
+mute_node_adapter
+#endif
+

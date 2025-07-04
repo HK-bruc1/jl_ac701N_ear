@@ -30,6 +30,7 @@
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
 #endif
+#if TCFG_AUDIO_ADC_ENABLE
 
 #if 1
 #define adc_file_log	printf
@@ -630,7 +631,8 @@ int adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通话使用
             mic_pre_gain            = esco_adc_f.cfg.param[ch_index].mic_pre_gain;
 
             if ((mic_param.mic_bias_sel == 0) && (esco_adc_f.platform_cfg[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io);
+                /* u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io); */
+                u32 gpio = esco_adc_f.platform_cfg[ch_index].power_io;
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -660,7 +662,8 @@ int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common
             mic_pre_gain            = adc_f->cfg.param[ch_index].mic_pre_gain;
 
             if ((mic_param.mic_bias_sel == 0) && (adc_f->platform_cfg[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);
+                /*u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);*/
+                u32 gpio = adc_f->platform_cfg[ch_index].power_io;
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -788,7 +791,8 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
             if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
                 if ((hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) && (hdl->adc_f->platform_cfg[i].power_io != 0)) {
                     if (!audio_adc_is_active()) {
-                        u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
+                        //u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
+                        u32 gpio = hdl->adc_f->platform_cfg[i].power_io;
                         gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_LOW);
                     }
                 }
@@ -882,3 +886,18 @@ REGISTER_SOURCE_NODE_PLUG(adc_file_plug) = {
 REGISTER_ONLINE_ADJUST_TARGET(adc) = {
     .uuid = NODE_UUID_ADC,
 };
+#else
+
+u8 audio_get_mic_num(u32 mic_ch)
+{
+    return 0;
+}
+u8 audio_adc_file_get_mic_en_map(void)
+{
+    return 0;
+}
+u8 audio_adc_file_get_esco_mic_num(void)
+{
+    return 0;
+}
+#endif

@@ -175,7 +175,9 @@ void cfg_file_parse(u8 idx)
         memset(bt_cfg.edr_name, 0x00, LOCAL_NAME_LEN);
         memcpy(bt_cfg.edr_name, tmp, ret);
     }
+#if TCFG_BT_NAME_SEL_BY_AD_ENABLE
     bt_name_config_parse((char *)bt_cfg.edr_name);
+#endif
 
     /* g_printf("bt name config:%s", bt_cfg.edr_name); */
     log_info("bt name config:%s", bt_cfg.edr_name);

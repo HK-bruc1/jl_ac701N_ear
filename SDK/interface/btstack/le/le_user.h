@@ -134,7 +134,7 @@ extern "C" {
 
     extern void hci_event_callback_set(void(*cbk_ph)(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size));
     extern void ll_hci_connection_updata(u8 *data);
-
+    extern void le_hci_disconnect_all_connections(void);
 
     /*************************************************************************************************/
 //le_audio_profile.a的对外接口说明

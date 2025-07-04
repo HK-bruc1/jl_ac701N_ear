@@ -934,7 +934,7 @@ static void a2dp_release(void *_hdl)
     free(hdl);
 }
 
-
+#if TCFG_BT_SUPPORT_A2DP
 REGISTER_SOURCE_NODE_PLUG(a2dp_file_plug) = {
     .uuid       = NODE_UUID_A2DP_RX,
     .frame_size = 1024,
@@ -943,6 +943,7 @@ REGISTER_SOURCE_NODE_PLUG(a2dp_file_plug) = {
     .ioctl      = a2dp_ioctl,
     .release    = a2dp_release,
 };
+#endif
 
 
 

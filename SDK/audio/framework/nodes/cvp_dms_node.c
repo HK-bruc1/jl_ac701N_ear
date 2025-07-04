@@ -252,6 +252,8 @@ struct cvp_node_hdl {
     s16 *buf_2;
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
+    void (*lock)(void);
+    void (*unlock)(void);
     struct CVP_MIC_SEL_CONFIG mic_sel;
     struct CVP_REF_MIC_CONFIG ref_mic;
 };
@@ -821,6 +823,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 tbuf_1[i] = dat[3 * i + 1];
                 tbuf_2[i] = dat[3 * i + 2];
             }
+            hdl->lock();
             u8 cnt = 0;
             u8 talk_data_num = 0;//记录通话MIC数据位置
             s16 *mic_data[3];
@@ -843,8 +846,10 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             }
             /*通话MIC数据需要最后传进算法*/
             audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+            hdl->unlock();
 
         } else {//参考数据软回采
+            hdl->lock();
             wlen = in_frame->len >> 2;	//一个ADC的点数
             //模仿ADCbuff的存储方法
             tbuf_0 = hdl->buf + (wlen * hdl->buf_cnt);
@@ -864,15 +869,60 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 audio_aec_inbuf_ref(tbuf_1, wlen << 1);
                 audio_aec_inbuf(tbuf_0, wlen << 1);
             }
+            hdl->unlock();
         }
         jlstream_free_frame(in_frame);	//释放iport资源
     }
+}
+
+static int cvp_dms_lock_int(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+        case NODE_UUID_CVP_DMS_ANS:
+        case NODE_UUID_CVP_DMS_DNS:
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_DNS_MODE)
+            hdl->lock   = audio_cvp_dms_lock;
+            hdl->unlock = audio_cvp_dms_unlock;
+#endif
+            break;
+        case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+        case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) || (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+            hdl->lock   = audio_cvp_dms_flexible_lock;
+            hdl->unlock = audio_cvp_dms_flexible_unlock;
+#endif
+            break;
+        case NODE_UUID_CVP_DMS_HYBRID_DNS:
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+            hdl->lock   =  audio_cvp_dms_hybrid_lock;
+            hdl->unlock =  audio_cvp_dms_hybrid_unlock;
+#endif
+            break;
+        case NODE_UUID_CVP_DMS_AWN_DNS:
+#if (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE)
+            hdl->lock   = audio_cvp_dms_awn_lock;
+            hdl->unlock = audio_cvp_dms_awn_unlock;
+#endif
+            break;
+        default:
+            ASSERT(0, "cvp_dms_lock_init: unknown node UUID\n");
+            break;
+
+        }
+        ret = true;
+    }
+    return ret;
 }
 
 /*节点预处理-在ioctl之前*/
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
+    /*初始化spinlock锁*/
+    cvp_dms_lock_int(hdl);
     cvp_node_context_setup(uuid);
     node->type = NODE_TYPE_ASYNC;
     g_cvp_hdl = hdl;

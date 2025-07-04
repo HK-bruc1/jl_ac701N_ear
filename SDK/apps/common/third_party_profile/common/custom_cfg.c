@@ -1221,7 +1221,7 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
      *        bt_name_len      |         0x9          |        name_str       |
      *  jl_payloader_len(14)   |         0xff         |      jl_payloader     |
     */
-#if (RCSP_ADV_EN || RCSP_BTMATE_EN) && (!RCSP_MODE)
+#if (RCSP_ADV_EN || RCSP_BTMATE_EN || RCSP_MODE)
     if (get_rcsp_support_new_reconn_flag()) {
 #else
     if (0) {

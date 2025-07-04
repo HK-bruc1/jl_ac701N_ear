@@ -447,6 +447,9 @@ float get_anc_gains_lfb_transgain();
 u8 get_anc_lfb_transyorder();
 int anc_mode_change_tool(u8 dat);
 
+/*设置ANC模式变量*/
+void audio_anc_mode_set(u8 mode);
+
 /*获取ANC alogm参数，type 滤波器类型 */
 u32 audio_anc_gains_alogm_get(enum ANC_IIR_TYPE type);
 

@@ -238,6 +238,7 @@ static int a2dp_tws_media_handshake_init(struct a2dp_file_hdl *hdl)
         memcpy(a2dp_tws.run_addr, hdl->bt_addr, sizeof(a2dp_tws.run_addr));
         local_irq_enable();
         /*g_printf("current seqn : %d\n", seqn);*/
+        hdl->tws_case = 0;
         hdl->handshake_state = A2DP_HANDSHAKE_STATE_RUN;
         hdl->handshake_timeout = jiffies + msecs_to_jiffies(300);
     }

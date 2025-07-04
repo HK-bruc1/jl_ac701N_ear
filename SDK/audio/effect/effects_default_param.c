@@ -201,8 +201,8 @@ int get_eff_default_param(int arg)
     char *vspro_name[] = {"PreLimiter", "LRLimiter", "CLimiter", "LRSLimiter",
                           "CDrcAdv", "LRSDrcAdv", "LRCross", "LRBand", "LR3Band", "LSCBand", "RSCBand",
                           "LRPcmDly", "LRSNsGate", "UpMix2to5", "RLSCBand", "RRSCBand",
-                          "SPWider"
-                         };//子节点名
+                          "SPWider", "StereoSpat6"
+                         };//子节点名,其中"StereoSpat6"是virtual surround 2to5流程内子节点名
 
     for (int i = 0; i < ARRAY_SIZE(vspro_name); i++) {
         jlstream_module_node_get_name(vspro_name[i], "VSPro", out);
@@ -364,6 +364,8 @@ int get_eff_default_param(int arg)
 #endif
 
 #if TCFG_EQ_ENABLE
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
     if (!effect_strcmp(name->name, "EscoDlEq") || !effect_strcmp(name->name, "EscoUlEq")) {
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         int type = lmp_private_get_esco_packet_type();
@@ -375,6 +377,7 @@ int get_eff_default_param(int arg)
         }
         ret = 1;
     }
+#endif
 #endif
 
 #if TCFG_SPECTRUM_ADVANCE_NODE_ENABLE

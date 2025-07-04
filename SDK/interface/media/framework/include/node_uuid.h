@@ -142,6 +142,7 @@
 #define NODE_UUID_PINGPONG_PCM_DELAY       0xF936//pingpong延时
 #define NODE_UUID_THREE_D                  0x8c21 //three d
 #define NODE_UUID_LLNS                     0x9FE //低延时降噪
+#define NODE_UUID_LLNS_DNS                 0x1CA2 //低延时降噪(神经网络)
 #define NODE_UUID_FADE                     0x1BF5//淡入
 
 #define NODE_UUID_SOURCE_DEV0              0x8FC4//自定义源节点0

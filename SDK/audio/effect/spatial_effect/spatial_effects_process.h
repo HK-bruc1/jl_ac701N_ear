@@ -74,4 +74,6 @@ int spatial_effect_eq_default_parm_set(char name[16], struct eq_default_parm *ge
 
 int spatial_effects_node_param_cfg_read(void *cfg, int size);
 
+int audio_spatial_effects_frame_pack_disable();
+
 #endif

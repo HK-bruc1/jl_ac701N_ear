@@ -203,7 +203,9 @@ void usb_isr(const usb_dev usb_id)
         usb_reset_interface(usb_device);
 
         log_info("USB_PLL_AUTO_TRIM RUN\n");
+#if USB_PLL_TRIM_EN
         usb_pll_trim_init(USB_TRIM_AUTO, 5, 80);
+#endif
 
 #if USB_SUSPEND_RESUME || USB_SUSPEND_RESUME_SYSTEM_NO_SLEEP
         u32 reg = usb_read_power(usb_id);
