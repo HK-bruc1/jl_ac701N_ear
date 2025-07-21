@@ -228,6 +228,7 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl);
 int cig_event_to_user(int event, void *value, u32 len);
 int cis_audio_player_close(u8 cig_hdl);
 int cis_audio_player_resume(u8 cig_hdl, u8 cig_phone_call_play);
+int connected_iso_recv_handle_register(void *priv, void (*recv_handle)(u16 conn_handle, const void *const buf, size_t length, void *priv));
 
 #ifdef __cplusplus
 };

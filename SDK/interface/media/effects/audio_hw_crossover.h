@@ -4,7 +4,29 @@
 #include "effects/eq_config.h"
 #include "effects/audio_eq.h"
 
-/*eq 打开
+/*eq 打开(支持配置数据输入输出的排放方式块模式和序列模式)
+*coeff:nsection个二阶IIR滤波器。每5个系数对应一个二阶的IIR滤波器.
+       每个系数都是float类型,左右声道使用同一分系数.
+       b0 b1 b2 a1 a2对应coeff排列如下：
+                                        coeff[0]:b0
+                                        coeff[1]:-a2
+                                        coeff[2]:b2 / b0
+                                        coeff[3]:-a1
+                                        coeff[4]:b1 / b0
+ *nsection    :系数表的段数(二阶滤波器个数)
+ *sample_rate :采样率
+ *ch_num      :通道数（1声道还是2声道)
+ *in_mode     :eq输入数据位宽，2:float, 1：输入32bit数据， 0：输入16bit是数据
+ *out_mode    :eq输出数据位宽，2:float, 1：输出32bit数据， 0：输出16bit是数据
+ *data_in_mode :输入数据的排放方式，块模式：BLOCK_DAT_IN, 序列模式:SEQUENCE_DAT_IN
+ *data_out_mode:输出数据的排放方式,块模式：BLOCK_DAT_OUT, 序列模式:SEQUENCE_DAT_OUT
+ *return      :返回句柄
+ *注意        :使用out_mode的高16bit传递eq core num (JL703N是双eq核 0:指定使用核0， 1：指定使用核1)
+ * */
+void *audio_eq_coeff_open_adv(void *coeff, u8 nsection, u32 sample_rate, u32 ch_num, u32 in_mode, u32 out_mode, u32 data_in_mode, u32 data_out_mode);
+
+
+/*eq 打开(数据输入输出的排放方式仅支持序列模式)
  *coeff:nsection个二阶IIR滤波器。每5个系数对应一个二阶的IIR滤波器。
         每个系数都是float类型,左右声道使用同一分系数.
         b0 b1 b2 a1 a2对应coeff排列如下：

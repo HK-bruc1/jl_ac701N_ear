@@ -94,6 +94,8 @@ struct todo_list {
 struct translator_meta_t {
     u8 state;
     u8 ch_state;
+    u8 record_state;
+    u8 esco_param_is_set;
     u16 ble_con_handle;
     u8 ble_remote_addr[6];
     u8 spp_remote_addr[6];
@@ -103,7 +105,6 @@ struct translator_meta_t {
     struct tx_ch_t tx_ch[AUDIO_CH_MAX];
     struct list_head todo_list_head;
     u16 detect_timer_id;
-    u8 record_state;
 };
 static struct translator_meta_t tlr_hdl;
 
@@ -758,11 +759,63 @@ static int translator_send_ch_for_phone_mic(u8 *buf, u32 len)
     return translator_send_ch_send(RCSP_TRANSLATOR_AUDIO_SOURCE_PHONE_MIC, buf, len);
 }
 
+static int translator_send_ch_set_esco_stream_param()
+{
+    int ret = 0;
+    u8 *remote_bt_addr;
+    struct stream_enc_fmt s_enc_fmt = {0};
+
+    if (esco_recoder_running() == 0) {
+        return 0;
+    }
+    switch (tlr_hdl.mode_info.encode) {
+    case RCSP_TRANSLATOR_ENCODE_TYPE_OPUS:
+        s_enc_fmt.coding_type = AUDIO_CODING_OPUS;
+        s_enc_fmt.sample_rate = 16000;
+        s_enc_fmt.frame_dms = 200;
+        s_enc_fmt.bit_rate = 16000;
+        s_enc_fmt.channel = 1;
+        break;
+    case RCSP_TRANSLATOR_ENCODE_TYPE_JLA_V2:
+        s_enc_fmt.coding_type = AUDIO_CODING_JLA_V2;
+        s_enc_fmt.sample_rate = 16000;
+        s_enc_fmt.frame_dms = 200;
+        s_enc_fmt.bit_rate = 16000;
+        s_enc_fmt.channel = 1;
+        break;
+    }
+    remote_bt_addr = translator_get_remote_bt_addr();
+    if (remote_bt_addr == NULL) {
+        ret = -EFAULT;
+        goto __err_exit;
+    }
+    esco_recoder_close();
+    esco_player_close();
+    ret = esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
+    if (ret < 0) {
+        goto __err_exit;
+    }
+    esco_player_set_ai_tx_node_func(translator_send_ch_for_esco_downstream);
+    ret = esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
+    if (ret < 0) {
+        goto __err_exit;
+    }
+    esco_recoder_set_ai_tx_node_func(translator_send_ch_for_esco_upstream);
+
+    return 1;
+
+__err_exit:
+    esco_recoder_close();
+    esco_player_close();
+    //恢复默认配置
+    esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_NONE, NULL);
+    esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_NONE, NULL);
+    return ret;
+}
+
 static int translator_send_ch_try_to_set_func(struct tx_ch_t *channel)
 {
     int done = 0;
-    struct stream_enc_fmt s_enc_fmt = {0};
-    u8 *remote_bt_addr;
 
     switch (tlr_hdl.mode_info.mode) {
     case RCSP_TRANSLATOR_MODE_RECORD:
@@ -782,58 +835,18 @@ static int translator_send_ch_try_to_set_func(struct tx_ch_t *channel)
     case RCSP_TRANSLATOR_MODE_CALL_TRANSLATION:
         switch (channel->source) {
         case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM:
-            if (esco_recoder_running()) {
-                switch (tlr_hdl.mode_info.encode) {
-                case RCSP_TRANSLATOR_ENCODE_TYPE_OPUS:
-                    s_enc_fmt.coding_type = AUDIO_CODING_OPUS;
-                    s_enc_fmt.sample_rate = 16000;
-                    s_enc_fmt.frame_dms = 200;
-                    s_enc_fmt.bit_rate = 16000;
-                    s_enc_fmt.channel = 1;
-                    break;
-                case RCSP_TRANSLATOR_ENCODE_TYPE_JLA_V2:
-                    s_enc_fmt.coding_type = AUDIO_CODING_JLA_V2;
-                    s_enc_fmt.sample_rate = 16000;
-                    s_enc_fmt.frame_dms = 200;
-                    s_enc_fmt.bit_rate = 16000;
-                    s_enc_fmt.channel = 1;
-                    break;
-                }
-                remote_bt_addr = translator_get_remote_bt_addr();
-                if (remote_bt_addr == NULL) {
-                    break;
-                }
-                esco_recoder_close();
-                esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
-                esco_recoder_set_ai_tx_node_func(translator_send_ch_for_esco_upstream);
+            if (tlr_hdl.esco_param_is_set) {
+                done = 1;
+            } else if (translator_send_ch_set_esco_stream_param() > 0) {
+                tlr_hdl.esco_param_is_set = 1;
                 done = 1;
             }
             break;
         case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM:
-            if (esco_player_runing()) {
-                switch (tlr_hdl.mode_info.encode) {
-                case RCSP_TRANSLATOR_ENCODE_TYPE_OPUS:
-                    s_enc_fmt.coding_type = AUDIO_CODING_OPUS;
-                    s_enc_fmt.sample_rate = 16000;
-                    s_enc_fmt.frame_dms = 200;
-                    s_enc_fmt.bit_rate = 16000;
-                    s_enc_fmt.channel = 1;
-                    break;
-                case RCSP_TRANSLATOR_ENCODE_TYPE_JLA_V2:
-                    s_enc_fmt.coding_type = AUDIO_CODING_JLA_V2;
-                    s_enc_fmt.sample_rate = 16000;
-                    s_enc_fmt.frame_dms = 200;
-                    s_enc_fmt.bit_rate = 16000;
-                    s_enc_fmt.channel = 1;
-                    break;
-                }
-                remote_bt_addr = translator_get_remote_bt_addr();
-                if (remote_bt_addr == NULL) {
-                    break;
-                }
-                esco_player_close();
-                esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
-                esco_player_set_ai_tx_node_func(translator_send_ch_for_esco_downstream);
+            if (tlr_hdl.esco_param_is_set) {
+                done = 1;
+            } else if (translator_send_ch_set_esco_stream_param() > 0) {
+                tlr_hdl.esco_param_is_set = 1;
                 done = 1;
             }
             break;
@@ -1188,6 +1201,7 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
             translator_stop_a2dp_player();
         }
         if (tlr_hdl.state == 0) {
+            tlr_hdl.esco_param_is_set = 0;
             ret = translator_send_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM);
             if (ret) {
                 ret = -TRANS_SET_MODE_STATUS_FAIL;

@@ -239,6 +239,9 @@ struct dms_attr {
     u8 aptfilt_only: 1;
     u8 reserved: 3;
 
+
+    u8 output_way;   /*输出方式配置0:dac  1:fm_tx */
+    u8 fm_tx_start;  /*fm发射同步标志*/
     u8 dst_delay;/*延时估计目标延时*/
     u8 EnableBit;
     u8 FB_EnableBit;

@@ -416,6 +416,7 @@
 <Add option="cpu/br28/liba/ascii.a" />
 <Add option="cpu/br28/liba/cfg_tool.a" />
 <Add option="cpu/br28/liba/vm.a" />
+<Add option="cpu/br28/liba/ftl.a" />
 <Add option="cpu/br28/liba/debug_record.a" />
 <Add option="cpu/br28/liba/lzma_dec.a" />
 <Add option="cpu/br28/liba/chargestore.a" />
@@ -464,6 +465,8 @@
 <Unit filename="apps/common/debug/debug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_lite.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_uart_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_output_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.h" />
 <Unit filename="apps/common/dev_manager/dev_reg.c"><Option compilerVer="CC"/></Unit>
@@ -524,6 +527,7 @@
 <Unit filename="apps/common/device/sensor/ir_sensor/jsa1221.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/ntc/ntc_det.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/ntc/ntc_det_api.h" />
+<Unit filename="apps/common/device/storage_device/norflash/norflash.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/storage_device/norflash/norflash_sfc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/usb/demo/host/udisk_block_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/usb/device/cdc.c"><Option compilerVer="CC"/></Unit>
@@ -987,6 +991,7 @@
 <Unit filename="apps/common/update/update.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/update/update_tws.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/update/update_tws_new.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/update/update_tws_new_less.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/app_main.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/jlstream_event_handler.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/scene_switch.c"><Option compilerVer="CC"/></Unit>

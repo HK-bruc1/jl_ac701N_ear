@@ -33,6 +33,7 @@
 
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
 #include "spatial_effects_process.h"
+#include "spatial_effect.h"
 #endif
 
 #if TCFG_AUDIO_ANC_ENABLE
@@ -135,6 +136,15 @@ static void a2dp_player_callback(void *private_data, int event)
     printf("a2dp_callback: %d\n", event);
     switch (event) {
     case STREAM_EVENT_START:
+#if 0 //v300默认流程不添加动态eq
+#if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
+        if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+            //播歌打开时，设置spatial_eff_v300流程中的dynamic_eq状态
+            u8 is_bypass = get_a2dp_spatial_audio_mode() ? 0 : 1;
+            spatial_effect_dy_eq_bypass(is_bypass);
+        }
+#endif
+#endif
 #if AUDIO_VBASS_LINK_VOLUME
         vbass_link_volume();
 #endif

@@ -436,7 +436,7 @@ int multi_ch_adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通
             mic_gain                = esco_adc_f.cfg.param[ch_index].mic_gain;
             mic_pre_gain            = esco_adc_f.cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (esco_adc_f.platform_cfg[ch_index].power_io != 0)) {
+            if (mic_param.mic_bias_sel == 0) {
                 u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io);
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
@@ -465,7 +465,7 @@ static int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file
             mic_gain                = adc_f->cfg.param[ch_index].mic_gain;
             mic_pre_gain            = adc_f->cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (adc_f->platform_cfg[ch_index].power_io != 0)) {
+            if (mic_param.mic_bias_sel == 0) {
                 u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
@@ -628,7 +628,7 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
 
         for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
-                if ((hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) && (hdl->adc_f->platform_cfg[i].power_io != 0)) {
+                if (hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) {
                     if (!audio_adc_is_active()) {
                         u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
                         gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_LOW);

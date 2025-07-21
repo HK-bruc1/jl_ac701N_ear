@@ -12,6 +12,7 @@
 #include "le_audio_stream.h"
 #include "reference_time.h"
 #include "app_config.h"
+#include "sync/audio_syncts.h"
 
 #if LE_AUDIO_STREAM_ENABLE
 
@@ -73,7 +74,7 @@ static void *le_audio_file_init(void *priv, struct stream_node *node)
     struct le_audio_file_handle *hdl = (struct le_audio_file_handle *)zalloc(sizeof(struct le_audio_file_handle));
 
     hdl->node = node;
-    node->type |= NODE_TYPE_IRQ | NODE_TYPE_FLOW_CTRL;
+    node->type |= NODE_TYPE_FLOW_CTRL ;
 
     return hdl;
 }
@@ -155,6 +156,7 @@ static int le_audio_file_ioctl(void *file, int cmd, int arg)
         break;
     case NODE_IOC_GET_FMT:
         le_audio_file_get_fmt(hdl, (struct stream_fmt *)arg);
+        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, AUDIO_NETWORK_BLE);
         break;
     case NODE_IOC_START:
         le_audio_file_start(hdl);

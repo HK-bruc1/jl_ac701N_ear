@@ -136,13 +136,14 @@
 #endif
 
 #define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK           BIT(1) //支持dongle和手机保持连接,声音互抢
-#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX             BIT(2) //支持dongle和手机保持连接,声音叠加
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX                  BIT(2) //支持dongle和手机保持连接,声音叠加
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
 #define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG  LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK
 #else
 #define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG  0
 #endif
+
 
 #define ATT_OVER_EDR_DEMO_EN          0
 
@@ -1048,16 +1049,20 @@
 
 #if !TCFG_DEBUG_UART_ENABLE
 #define TCFG_DEBUG_DLOG_ENABLE             0      // 离线log功能
-#define TCFG_DEBUG_DLOG_FLASH_SEL          0      // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
-#if TCFG_DEBUG_DLOG_FLASH_SEL
+#define TCFG_DEBUG_DLOG_FLASH_SEL          1      // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
+#define TCFG_DLOG_FLASH_START_ADDR         (0x00)         // 配置外置flash用于存储dlog和异常数据的区域起始地址
+#define TCFG_DLOG_FLASH_REGION_SIZE        (512 * 1024)   // 配置外置flash用于存储dlog和异常数据的区域大小
+#if (TCFG_DEBUG_DLOG_ENABLE && TCFG_DEBUG_DLOG_FLASH_SEL)
 #if (!defined(TCFG_NORFLASH_DEV_ENABLE) || (TCFG_NORFLASH_DEV_ENABLE == 0))
 #undef TCFG_NORFLASH_DEV_ENABLE
-#define TCFG_NORFLASH_DEV_ENABLE           1
+#define TCFG_NORFLASH_DEV_ENABLE           1              // 使能外置flash驱动
+#define TCFG_NORFLASH_START_ADDR           (0x00)         // 配置外置flash起始地址
+#define TCFG_NORFLASH_SIZE                 (512 * 1024)   // 配置外置flash大小
 #endif
 #endif
 #define TCFG_DEBUG_DLOG_RESET_ERASE        0      // 开机擦除flash的log数据
 #define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (30)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
-#define TCFG_DEBUG_DLOG_UART_TX_PIN        IO_PORTA_04//IO_PORT_DP //IO_PORT_LDOIN
+#define TCFG_DEBUG_DLOG_UART_TX_PIN        IO_PORT_DP  // dlog串口打印的引脚
 #if (defined(LIB_DEBUG) && TCFG_DEBUG_DLOG_ENABLE)
 #undef LIB_DEBUG
 #define LIB_DEBUG    1

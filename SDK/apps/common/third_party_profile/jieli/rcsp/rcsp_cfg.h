@@ -186,10 +186,13 @@ RCSP_BTMATE_EN
 #if CONFIG_DOUBLE_BANK_ENABLE              						//双备份才能打开同步升级流程
 #define OTA_TWS_SAME_TIME_ENABLE     		 TCFG_USER_TWS_ENABLE		//是否支持TWS同步升级
 #define OTA_TWS_SAME_TIME_NEW        		 TCFG_USER_TWS_ENABLE		//使用新的tws ota流程
+#define OTA_TWS_SAME_TIME_NEW_LESS           CONFIG_DOUBLE_BANK_LESS	//使用tws ota 升级app1区域更小结构（压缩/差分）
+
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
 #else
 #define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
 #define OTA_TWS_SAME_TIME_NEW        							0		//使用新的tws ota流程
+#define OTA_TWS_SAME_TIME_NEW_LESS                              0	//使用tws ota 升级app1区域更小结构（压缩/差分）
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
 #endif      //CONFIG_DOUBLE_BANK_ENABLE
 

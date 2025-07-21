@@ -155,7 +155,7 @@ int user_platform_asr_open(void)
      * V1.1.0版本支持了低功耗VAD MIC的使用，需要可以改为VAD MIC
      *
      */
-    smart_voice_core_post_msg(4, SMART_VOICE_MSG_MIC_OPEN, VOICE_VAD_MIC, 16000, 4096);
+    smart_voice_core_post_msg(4, SMART_VOICE_MSG_MIC_OPEN, VOICE_MCU_MIC, 16000, 4096);
 
     __this = asr;
     return 0;

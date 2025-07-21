@@ -500,7 +500,6 @@ void bt_rcsp_recieve_callback(void *hdl, void *remote_addr, u8 *buf, u16 len)
     /* if (remote_addr) { */
     /* rcsp_lib_printf_buf(remote_addr, 6); */
     /* } */
-
     // 获取监听hdl绑定的bthdl
     // 只有连接时绑定了handle才能处理数据
     if (hdl && (!remote_addr)) {
@@ -634,6 +633,11 @@ _WEAK_ u8 bt_rcsp_spp_can_send(void)
     return 1;
 }
 
+_WEAK_ int bt_rcsp_data_send_filter(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
+{
+    return 0;
+}
+
 /**
  *	@brief 用于发送rcsp的数据使用
  *
@@ -644,6 +648,9 @@ _WEAK_ u8 bt_rcsp_spp_can_send(void)
  */
 int bt_rcsp_data_send(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
 {
+    if (bt_rcsp_data_send_filter(ble_con_hdl, remote_addr, buf, len)) {
+        return 0;
+    }
     if (ble_con_hdl) {
         rcsp_lib_printf("ble_con_hdl:%d\n", ble_con_hdl);
     }

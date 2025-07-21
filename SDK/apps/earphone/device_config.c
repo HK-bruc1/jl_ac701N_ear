@@ -11,6 +11,8 @@
 #include "asm/rtc.h"
 #include "linein_dev.h"
 #include "usb/host/usb_storage.h"
+#include "asm/spi_hw.h"
+#include "spi.h"
 
 #if TCFG_SD0_ENABLE
 SD0_PLATFORM_DATA_BEGIN(sd0_data) = {
@@ -98,6 +100,84 @@ RTC_DEV_PLATFORM_DATA_BEGIN(rtc_data)
 
 #endif
 
+#if (TCFG_HW_SPI1_ENABLE || TCFG_HW_SPI2_ENABLE)
+const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
+    {
+        //spi0
+    },
+    {
+        //spi1
+        .port = {
+            TCFG_HW_SPI1_PORT_CLK, //clk any io
+            TCFG_HW_SPI1_PORT_DO, //do any io
+            TCFG_HW_SPI1_PORT_DI, //di any io
+#ifdef  TCFG_HW_SPI1_PORT_D2
+            TCFG_HW_SPI1_PORT_D2, //d2 any io
+#endif
+#ifdef  TCFG_HW_SPI1_PORT_D3
+            TCFG_HW_SPI1_PORT_D3, //d3 any io
+#endif
+            0xff, //cs any io(主机不操作cs)
+        },
+        .role = TCFG_HW_SPI1_ROLE,//SPI_ROLE_MASTER,
+        .clk  = TCFG_HW_SPI1_BAUD,
+        .mode = TCFG_HW_SPI1_MODE,//SPI_MODE_BIDIR_1BIT,//SPI_MODE_UNIDIR_2BIT,
+        .bit_mode = SPI_FIRST_BIT_MSB,
+        .cpol = 0,//clk level in idle state:0:low,  1:high
+        .cpha = 0,//sampling edge:0:first,  1:second
+        .ie_en = 0, //ie enbale:0:disable,  1:enable
+        .irq_priority = 3,
+        .spi_isr_callback = NULL,  //spi isr callback
+    },
+#if SUPPORT_SPI2
+    {
+        //spi2
+        .port = {
+            TCFG_HW_SPI2_PORT_CLK, //clk any io
+            TCFG_HW_SPI2_PORT_DO, //do any io
+            TCFG_HW_SPI2_PORT_DI, //di any io
+#ifdef  TCFG_HW_SPI2_PORT_D2
+            TCFG_HW_SPI2_PORT_D2, //d2 any io
+#endif
+#ifdef  TCFG_HW_SPI2_PORT_D3
+            TCFG_HW_SPI2_PORT_D3, //d3 any io
+#endif
+            0xff, //cs any io(主机不操作cs)
+        },
+        .role = TCFG_HW_SPI2_ROLE,//SPI_ROLE_MASTER,
+        .clk  = TCFG_HW_SPI2_BAUD,
+        .mode = TCFG_HW_SPI2_MODE,//SPI_MODE_BIDIR_1BIT,//SPI_MODE_UNIDIR_2BIT,
+        .bit_mode = SPI_FIRST_BIT_MSB,
+        .cpol = 0,//clk level in idle state:0:low,  1:high
+        .cpha = 0,//sampling edge:0:first,  1:second
+        .ie_en = 0, //ie enbale:0:disable,  1:enable
+        .irq_priority = 3,
+        .spi_isr_callback = NULL,  //spi isr callback
+    },
+#endif
+};
+#endif
+
+
+#if TCFG_NANDFLASH_DEV_ENABLE
+#include "nandflash.h"
+NANDFLASH_DEV_PLATFORM_DATA_BEGIN(nandflash_dev_data) = {
+    .spi_hw_num     = TCFG_FLASH_DEV_SPI_HW_NUM,
+    .spi_cs_port    = TCFG_FLASH_DEV_SPI_CS_PORT,
+    .spi_read_width = TCFG_FLASH_DEV_FLASH_READ_WIDTH,//flash读数据的线宽
+    .start_addr     = 0,
+    .size           = 128 * 1024 * 1024,
+#if (TCFG_FLASH_DEV_SPI_HW_NUM == 1)
+    .spi_pdata      = &spix_p_data[1],
+#elif (TCFG_FLASH_DEV_SPI_HW_NUM == 2)
+    .spi_pdata      = &spix_p_data[2],
+#endif
+};
+
+
+#endif
+
+
 REGISTER_DEVICES(device_table) = {
 #if TCFG_SD0_ENABLE
     { "sd0", 	&sd_dev_ops,	(void *) &sd0_data},
@@ -112,4 +192,10 @@ REGISTER_DEVICES(device_table) = {
 #if TCFG_APP_RTC_EN
     { "rtc",   &rtc_dev_ops, (void *) &rtc_data},
 #endif
+
+#if TCFG_NANDFLASH_DEV_ENABLE
+    {"nand_flash",   &nandflash_dev_ops, (void *) &nandflash_dev_data},
+    {"nandflash_ftl",   &ftl_dev_ops, NULL },
+#endif
+
 };

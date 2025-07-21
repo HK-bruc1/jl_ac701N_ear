@@ -270,6 +270,7 @@ void auracast_app_ble_init(void)
 {
     printf("auracast_app_ble_init\n");
     const uint8_t *edr_addr = bt_get_mac_addr();
+    uint8_t temp_ble_addr[6] = {0};
 
     if (auracast_app_ble_hdl != NULL) {
         printf("auracast_app_ble_hdl is not NULL\n");
@@ -278,6 +279,9 @@ void auracast_app_ble_init(void)
 
     printf("edr addr:");
     put_buf((uint8_t *)edr_addr, 6);
+    memcpy(temp_ble_addr, edr_addr, 6);
+    temp_ble_addr[0] = 0xF1;
+    temp_ble_addr[1] = 0xF2;
 
     // BLE init
     auracast_app_ble_hdl = app_ble_hdl_alloc();
@@ -285,7 +289,7 @@ void auracast_app_ble_init(void)
         printf("auracast_app_ble_hdl alloc err !\n");
         return;
     }
-    app_ble_set_mac_addr(auracast_app_ble_hdl, (void *)edr_addr);
+    app_ble_set_mac_addr(auracast_app_ble_hdl, (void *)temp_ble_addr);
     app_ble_profile_set(auracast_app_ble_hdl, auracast_app_ble_profile_data);
     app_ble_att_read_callback_register(auracast_app_ble_hdl, auracast_app_att_read_callback);
     app_ble_att_write_callback_register(auracast_app_ble_hdl, auracast_app_att_write_callback);

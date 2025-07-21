@@ -261,7 +261,7 @@ static int auracast_app_source_control_add(u8 opcode, u8 sn, u8 action, u8 *payl
 
     if (auracast_app_get_listening_status(NULL) != 0) {
         auracast_app_notify_listening_status(0, 0);
-        app_auracast_sink_big_sync_terminate();
+        app_auracast_sink_big_sync_terminate(0);
     }
 
     auracast_sink_set_broadcast_code(temp_broadcast_code);
@@ -291,7 +291,7 @@ static int auracast_app_source_control_remove(u8 opcode, u8 sn, u8 action)
     tbuf[1] = 0;
     ret = auracast_app_packet_response(0x00, opcode, sn, tbuf, 2);
 
-    app_auracast_sink_big_sync_terminate();
+    app_auracast_sink_big_sync_terminate(0);
     auracast_app_notify_listening_status(0, 0);
     return ret;
 }

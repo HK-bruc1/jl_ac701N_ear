@@ -33,8 +33,6 @@ struct SPATIAL_CONIFG {
 };
 
 struct SPATIAL_CONFIG_IMP {
-    int azimuth_angle;
-    int elevation_angle;
     float radius;
     int bias_angle;
     float attenuation;
@@ -45,6 +43,8 @@ struct SPATIAL_CONFIG_IMP {
     int early_taps;
     int preset0_room;
     int preset0_roomgain;
+    int azimuth_angle;
+    int elevation_angle;
     int delay_time;
     int ildenable;
     int rev_mode;
@@ -92,8 +92,14 @@ void spatial_effect_node_param_cfg_updata(struct SPATIAL_EFFECT_CONFIG *effect_c
         param->angle.track_sensitivity = effect_cfg->angle.track_sensitivity;
         param->angle.angle_reset_sensitivity = effect_cfg->angle.angle_reset_sensitivity;
         if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
-            param->si.sp.Azimuth_angle = effect_cfg->v3_parm_spatial.azimuth_angle;
-            param->si.sp.Elevation_angle = effect_cfg->v3_parm_spatial.elevation_angle;
+            /*
+             * 不同模式头部与声源的相对运动：
+             * 跟踪模式：头部动声源不动
+             * 固定模式：声源动头部不动
+             * 此处固定模式参数更新时，需要做"360-angle"操作，与跟踪模式对齐
+             */
+            param->si.sp.Azimuth_angle = 360 - effect_cfg->v3_parm_spatial.azimuth_angle;
+            param->si.sp.Elevation_angle = 360 - effect_cfg->v3_parm_spatial.elevation_angle;
             param->si.sp.radius = effect_cfg->v3_parm_spatial.radius;
             param->si.sp.bias_angle = effect_cfg->v3_parm_spatial.bias_angle;
             param->si.sp.attenuation = effect_cfg->v3_parm_spatial.attenuation;

@@ -10,6 +10,7 @@ void rcsp_clean_update_hdl_for_end_update(u16 ble_con_handle, u8 *spp_remote_add
  * @brief rcsp升级继续
  */
 void rcsp_update_resume(void);
+void rcsp_cis_update_init(void);
 
 #endif
 

@@ -25,8 +25,15 @@ u8 le_auracast_is_running();
 
 /**
  * @brief 关闭auracast功能（音频、扫描）
+ *
+ * @param need_recover 需要恢复：0:不恢复; 1:恢复
  */
-void le_auracast_stop(void);
+void le_auracast_stop(u8 need_recover);
+
+/**
+ * @brief auracast音频恢复
+ */
+void le_auracast_audio_recover();
 
 /**
  * @brief 手机选中广播设备开始播歌
@@ -37,8 +44,10 @@ int app_auracast_sink_big_sync_create(auracast_sink_source_info_t *param);
 
 /**
  * @brief 主动关闭所有正在监听播歌的广播设备
+ *
+ * @param need_recover 需要恢复：0:不恢复; 1:恢复
  */
-int app_auracast_sink_big_sync_terminate(void);
+int app_auracast_sink_big_sync_terminate(u8 need_recover);
 
 /**
  * @brief 手机通知设备开始搜索auracast广播

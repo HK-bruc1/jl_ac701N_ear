@@ -85,7 +85,7 @@ void hw_iic_slave_polling_test()
         .config.scl_io = IIC_SCL_IO + IIC_SLAVE_INDEX,
         .config.sda_io = IIC_SDA_IO + IIC_SLAVE_INDEX,
         .config.io_mode = PORT_INPUT_PULLUP_10K,//上拉或浮空
-        .config.hdrive = PORT_DRIVE_STRENGT_2p4mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
+        .config.hdrive = PORT_DRIVE_STRENGT_8p0mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
         .config.ie_en = 0,
         .config.irq_priority = 3,
         .config.io_filter = 1,

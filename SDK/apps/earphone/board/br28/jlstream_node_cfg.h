@@ -90,6 +90,7 @@
 #define TCFG_NOISEGATE_PRO_NODE_ENABLE 0 // NoiseGate Pro
 #define TCFG_NOTCH_HOWLING_NODE_ENABLE 0 // Howling Suppress
 #define TCFG_NS_NODE_ENABLE 0 // Noise Suppressor
+#define TCFG_NS_NODE_LITE_ENABLE 0 // Noise Suppressor LITE
 #define TCFG_PCM_DELAY_NODE_ENABLE 0 // PCM Delay
 #define TCFG_PDM_NODE_ENABLE 0 // PDM MIC
 #define TCFG_PLATE_REVERB_ADVANCE_NODE_ENABLE 0 // Plate Reverb Advance

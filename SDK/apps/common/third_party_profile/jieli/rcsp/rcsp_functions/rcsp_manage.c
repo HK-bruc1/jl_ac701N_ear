@@ -250,7 +250,7 @@ static void rcsp_ble_disconnect(void)
     rcsp_timer_contrl(0);
 
     // 防止上一次接收长度太长且未接收完成就中断，影响到下一次连接后的交互
-    JL_packet_clear();
+    JL_packet_clear_all_data();
 }
 
 static void rcsp_ble_connect(void)

@@ -286,7 +286,18 @@ void mcpwm_pause(int mcpwm_cfg_id)
 
 void mcpwm_resume(int mcpwm_cfg_id)
 {
-    mcpwm_start(mcpwm_cfg_id);
+    /* mcpwm_start(mcpwm_cfg_id); */
+    ASSERT(mcpwm_info[mcpwm_cfg_id] != NULL, "func:%s(), line:%d\n", __func__, __LINE__);
+    int id = mcpwm_cfg_id;
+    u32 ch = (u32)mcpwm_info[id]->cfg.ch;
+    u32 mcpwm_con = JL_MCPWM->MCPWM_CON0;
+    asm("csync");
+    /* mcpwm_con |= BIT(MCPWM_CON_CLK_EN); */
+    mcpwm_con |= BIT(ch + MCPWM_CON_TMR_EN);
+    mcpwm_con |= BIT(ch + MCPWM_CON_PWM_EN);
+    spin_lock(&mcpwm_lock);
+    JL_MCPWM->MCPWM_CON0 = mcpwm_con;
+    spin_unlock(&mcpwm_lock);
 }
 
 void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 frequency)

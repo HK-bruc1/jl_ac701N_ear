@@ -321,6 +321,10 @@ int bt_phone_esco_play(u8 *bt_addr)
 #if TCFG_SMART_VOICE_ENABLE
     esco_smart_voice_detect_handler();
 #endif
+    int ret = 0;
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    ret = le_audio_unicast_play_stop_by_esco();
+#endif
 
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
@@ -366,6 +370,11 @@ int bt_phone_esco_play(u8 *bt_addr)
     phone_income_num_check(NULL);
 #endif
     pbg_user_mic_fixed_deal(1);
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    if (ret) {
+        le_audio_unicast_play_resume_by_esco();
+    }
+#endif
     return 0;
 
 }
@@ -580,7 +589,7 @@ static int bt_phone_status_event_handler(int *msg)
         if (bt->value != 0xff) {
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
             if (le_audio_player_is_playing()) {
-                le_auracast_stop();
+                le_auracast_stop(1);
             }
 #endif
             u8 call_vol = 15;
@@ -606,7 +615,11 @@ static int bt_phone_status_event_handler(int *msg)
 
             bt_phone_esco_stop(bt->args);
             bt_phone_esco_stop(bt->args);
-
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (!le_audio_player_is_playing()) {
+                le_auracast_audio_recover();
+            }
+#endif
         }
         break;
     case BT_STATUS_CALL_VOL_CHANGE:

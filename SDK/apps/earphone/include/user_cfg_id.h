@@ -19,6 +19,10 @@
 #define     CFG_VBG_TRIM                    10//保存VBG配置参数id
 #define     CFG_DACLDO_TRIM                 11//保存DACLDO配置参数id
 
+#define     TUYA_SYNC_KEY_INFO              12
+#define     CFG_USER_COMMON_ADDR            13
+
+
 #define     CFG_EQ0_INDEX               	19
 #define     CFG_MIC_EFF_VOLUME_INDEX        20
 
@@ -66,7 +70,6 @@
 #define     CFG_VOLUME_ENHANCEMENT_MODE        58
 #define     CFG_ANC_ADAPTIVE_DATA_ID   		59//保存ANC自适应参数id
 
-#define     TUYA_SYNC_KEY_INFO          55
 
 
 // ll sync

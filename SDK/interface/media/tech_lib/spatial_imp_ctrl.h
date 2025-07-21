@@ -2,6 +2,7 @@
 #define SPATIAL_IMP_CTRL_H
 
 #include "effects/AudioEffect_DataType.h"
+#include "generic/typedef.h"
 extern const int spatial_imp_run_mode;//16t16 32t32
 extern const int spatial_imp_fft_mode;//1浮点 2定点 0关闭
 extern const int JL_HW_FFT_V;//3 FFT_V3(23/25/30/34/36/29 2的指数次幂)  4(27/28/50/52 支持非2指数次幂) 5(56)
@@ -20,11 +21,6 @@ extern const int JL_HW_FFT_V;//3 FFT_V3(23/25/30/34/36/29 2的指数次幂)  4(2
 #define SPATIAL_IMP_SPARSE_CODE		SPATIAL_IMP(.spatial_imp.text)
 #define SPATIAL_IMP_SPARSE_CONST	SPATIAL_IMP(.spatial_imp.text.const)
 #endif
-
-
-typedef unsigned char	u8;
-typedef unsigned short	u16;
-typedef unsigned int u32;
 
 
 struct SourceCtrl { //修改需要重新初始化

@@ -46,6 +46,9 @@ void key_wakeup_init()
         port0.gpio  =  data->port[wakeup_key_num].key_type.two_io.in_port;
     }
 #endif
+
+#if TCFG_IOKEY_ENABLE || TCFG_ADKEY_ENABLE
     p33_io_wakeup_port_init(&port0);
     p33_io_wakeup_enable(port0.gpio, 1);
+#endif
 }

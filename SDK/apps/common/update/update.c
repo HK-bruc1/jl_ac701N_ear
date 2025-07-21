@@ -324,7 +324,7 @@ static void update_before_jump_common_handle(UPDATA_TYPE up_type)
 {
 
 #if CPU_CORE_NUM > 1            //双核需要把CPU1关掉
-    printf("Before Suspend Current Cpu ID:%d Cpu In Irq?:%d\n", current_cpu_id(),  cpu_in_irq());
+    printf("Before Suspend Current Cpu ID:%d, Cpu In Irq?:%d, cpu_irq_disabled:%d\n", current_cpu_id(),  cpu_in_irq(), cpu_irq_disabled());
     if (current_cpu_id() == 1) {
         os_suspend_other_core();
     }

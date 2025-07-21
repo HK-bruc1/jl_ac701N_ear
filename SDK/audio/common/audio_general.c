@@ -25,6 +25,13 @@ const int config_media_tws_en = 1;
 const int config_media_tws_en = 0;
 #endif
 
+/*蓝牙音频关联的使能配置，不含蓝牙的系统配置为0*/
+#if TCFG_APP_BT_EN
+const int config_bt_audio_enable = 1;
+#else
+const int config_bt_audio_enable = 0;
+#endif
+
 const int config_audio_dac_ng_debug = 0;
 
 /* 16bit数据流中也存在32bit位宽数据的处理 */
@@ -35,6 +42,7 @@ const int config_audio_eq_xfade_enable = 1;
 const int config_peak_rms_32bit_enable = 1;
 const int config_audio_vocal_track_synthesis_32bit_enable = 1;
 
+const int config_audio_dac_enable = TCFG_DAC_NODE_ENABLE;//DAC使能配置
 #if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L)
 const int config_audio_dac_channel_left_enable = 1;
 const int config_audio_dac_channel_right_enable = 0;
@@ -432,8 +440,8 @@ const int voicechanger_effect_v_config = (0
         /* | BIT(EFFECT_VOICECHANGE_FEEDBACK) */
                                          );
 
-/*mb limiter 3带使能(1.2k) */
-const int mb_limiter_3band_run_en       = 1;
+/*mb drc/limiter 3带使能(1.2k) */
+const int audio_crossover_3band_enable       = 1;
 
 /*Vocal Remover Configs*/
 const int audio_vocal_remover_low_cut_enable = 1;

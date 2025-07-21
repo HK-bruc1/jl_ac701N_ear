@@ -76,4 +76,6 @@ int spatial_effects_node_param_cfg_read(void *cfg, int size);
 
 int audio_spatial_effects_frame_pack_disable();
 
+int spatial_effect_dy_eq_bypass(u8 is_bypass);
+
 #endif

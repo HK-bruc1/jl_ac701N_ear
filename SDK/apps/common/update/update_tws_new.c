@@ -20,11 +20,11 @@
 #include "timer.h"
 #include "clock_manager/clock_manager.h"
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
 
 //#define LOG_TAG_CONST       EARPHONE
 #define LOG_TAG             "[UPDATE_TWS]"
-#define log_errorOR_ENABLE
+#define log_ERROR_ENABLE
 #define LOG_DEBUG_ENABLE
 #define LOG_INFO_ENABLE
 /* #define LOG_DUMP_ENABLE */

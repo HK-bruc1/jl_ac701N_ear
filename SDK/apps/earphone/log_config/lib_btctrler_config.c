@@ -15,6 +15,7 @@
 #include "system/includes.h"
 #include "btcontroller_config.h"
 #include "bt_common.h"
+#include "classic/tws_api.h"
 
 // *INDENT-OFF*
 /**
@@ -191,6 +192,13 @@ u32 get_a2dp_max_buf_size(u8 codec_type)
     } else if (codec_type == 0xE || codec_type == 0xC) {
         a2dp_max_buf_size = CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
     }
+
+#if TCFG_USER_TWS_ENABLE
+    if (tws_api_get_role_async() == TWS_ROLE_SLAVE) {
+        a2dp_max_buf_size += 1024;
+    }
+#endif
+
     return a2dp_max_buf_size;
 }
 
@@ -374,7 +382,7 @@ const int config_delete_link_key          = 1;           //配置是否连接失
  */
 
 #if (TCFG_USER_BLE_ENABLE)
-	#define DEFAULT_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LL_FEAT_LE_EXT_ADV)
+	#define DEFAULT_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LL_FEAT_LE_EXT_ADV | LL_FEAT_CHANNEL_CLASSIFICATION)
 
 	#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	    #define LE_AUDIO_CIS_LE_FEATURES (LE_ENCRYPTION | LE_FEATURES_CIS | LE_2M_PHY|CHANNEL_SELECTION_ALGORITHM_2|LL_FEAT_LE_EXT_ADV)
@@ -450,7 +458,12 @@ const int config_btctler_le_master_multilink = 0;
 
 
 const int config_btctler_le_slave_conn_update_winden = 2500;//range:100 to 2500
-const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8);
+#if (defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52)
+//br50 br52 默认开启频道监测
+const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH | BIT(11) | BIT(12) | BIT(13);
+#else
+const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;
+#endif
 
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))

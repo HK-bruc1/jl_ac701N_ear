@@ -512,6 +512,8 @@ const int JLA_V2_PLC_FADE_OUT_START_POINT = 480;   //plc维持音量的点数.
 const int JLA_V2_PLC_FADE_OUT_POINTS = 120 * 5;    //plc维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
 const int JLA_V2_PLC_FADE_IN_POINTS = 120 * 5;     //plc后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
 
+const int JLA_V2_CODEC_WITH_FRAME_HEADER = 0;//jla_v2编解码是否带2个byte的头信息，注意这2个byte 的头信息没有算到编解码的码率里面
+
 //***********************
 //* 	LE Audio        *
 //***********************
@@ -663,6 +665,11 @@ const  int  ESCO_PLC_SUPPORT_24BIT_EN = MEDIA_24BIT_ENABLE;  //24bit开关
 const  int  ESCO_PLC_FADE_OUT_START_POINT = 500;	//丢包后修复过程中，维持音量的点数.即修复这么多点后，开始淡出
 const  int  ESCO_PLC_FADE_OUT_POINTS = 2048; 		//丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数. 即淡出完需要的点数
 const  int  ESCO_PLC_FADE_IN_POINTS = 32; 			//丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.即淡入完需要的点数
+
+//1:在配置的淡出点数结束之前，根据信号的特征如果认为已经修不好了，提前快速淡出，
+//0:按照实际配置的淡出点数淡出
+const  int  ESCO_PLC_ADV_ENABLE = 1;
+
 //***********************
 //*   Howling Suppress  *
 //***********************

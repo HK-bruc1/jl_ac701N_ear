@@ -185,6 +185,8 @@ void port_hd_init(u32 hd_lev)
 }
 void setup_arch()
 {
+    q32DSP(core_num())->PMU_CON1 &= ~BIT(8); //open bpu
+
     //IO开1档强驱，避免IO短路的时候烧毁IO
     //开启后需要确认是否对蓝牙，audio，EMI指标造成影响
     port_hd_init(1);

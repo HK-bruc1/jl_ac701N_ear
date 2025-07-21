@@ -146,11 +146,12 @@ int get_cig_tx_rtn(void);
 int get_cig_tx_delay(void);
 u8 get_cis_num(u8 role);
 void reset_cig_params(void);
-void set_unicast_lc3_info(u8 *date);
+void set_unicast_lc3_info(u8 *date, u8 len);
 u8 get_le_audio_jl_dongle_device_type();
 void set_le_audio_jl_dongle_device_type(u8 type);
 void get_decoder_params_fmt(struct le_audio_stream_format *fmt);
 void get_encoder_params_fmt(struct le_audio_stream_format *fmt);
+u16 get_lc3_decoder_info_octets_per_frame();
 
 #ifdef __cplusplus
 };

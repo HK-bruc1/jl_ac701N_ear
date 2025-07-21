@@ -348,6 +348,16 @@ static void wl_audio_clk_on(void)
     JL_WL_AUD->CON0 = 1;
 }
 
+static void audio_common_clock_open(void)
+{
+    JL_WL_AUD->CON0 = 1;
+    JL_ASS->CLK_CON |= BIT(0);//audio时钟
+
+    SFR(JL_WLA->WLA_CON9, 17, 2, 1);        // DAC_HDS
+    SFR(JL_WLA->WLA_CON9, 19, 1, 1);        // XOSE_DAC_OE
+    SFR(JL_CLOCK->CLK_CON2, 22,  2,  0);        // ass_clk=?,   0: std_48m  1: pll_96m  2: hsb_clk  3: 1
+}
+
 
 /*audio模块初始化*/
 static int audio_init()
@@ -363,10 +373,16 @@ static int audio_init()
     audio_digital_vol_init(NULL, 0);
 #endif
 
+#if (TCFG_DAC_NODE_ENABLE || TCFG_AUDIO_DAC_IO_ENABLE || TCFG_AUDIO_ADC_ENABLE)
+    audio_common_clock_open();
+#endif
+
 #if TCFG_DAC_NODE_ENABLE
     audio_dac_initcall();
 #elif (defined(TCFG_AUDIO_DAC_IO_ENABLE) && TCFG_AUDIO_DAC_IO_ENABLE)
     audio_dac_io_initcall();
+#elif (defined(TCFG_AUDIO_ADC_ENABLE) && TCFG_AUDIO_ADC_ENABLE)
+    request_irq(IRQ_AUDIO_IDX, 2, audio_irq_handler, 0);
 #endif
 
 #if TCFG_AUDIO_ANC_ENABLE
@@ -476,6 +492,7 @@ void dac_power_off(void)
 #define abs(x) ((x)>0?(x):-(x))
 int audio_dac_trim_value_check(struct audio_dac_trim *dac_trim)
 {
+    //cppcheck-suppress unreadVariable
     s16 reference = 0;
 
     printf("audio_dac_trim_value_check %d %d\n", dac_trim->left, dac_trim->right);

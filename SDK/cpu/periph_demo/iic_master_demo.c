@@ -30,7 +30,7 @@ void iic_master_polling_test()
         .scl_io = IIC_SCL_IO,
         .sda_io = IIC_SDA_IO,
         .io_mode = PORT_INPUT_PULLUP_10K,//上拉或浮空
-        .hdrive = PORT_DRIVE_STRENGT_2p4mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
+        .hdrive = PORT_DRIVE_STRENGT_8p0mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
         .master_frequency = 100000, //软件iic频率不准(hz)
         .io_filter = 1,  //软件无效
         .ie_en = 1,//1:注册中断

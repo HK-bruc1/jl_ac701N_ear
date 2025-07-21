@@ -34,7 +34,7 @@ typedef struct {
 * Note(s)    : 采样率只支持8k、16k
 *********************************************************************
 */
-void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, float MinSuppress);
+void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, float MinSuppress, u8 lite, float eng_gain, float output16);
 
 /*
 *********************************************************************
@@ -49,7 +49,7 @@ void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, floa
 *			   帧长整数倍，则某一次会输出0长度，即没有输出
 *********************************************************************
 */
-int audio_ns_run(void *ns, short *in, short *out, u16 len);
+int audio_ns_run(void *ns, short *in, void *out, u16 len);
 
 /*
 *********************************************************************

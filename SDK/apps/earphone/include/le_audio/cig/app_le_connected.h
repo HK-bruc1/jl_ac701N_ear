@@ -242,6 +242,8 @@ void le_audio_unicast_play_remove_by_phone_call();
 void le_audio_unicast_try_resume_play_by_phone_call_remove();
 u8 try_a2dp_resume_by_le_audio_preempted();
 u8 a2dp_suspend_by_le_audio();
+void le_audio_unicast_play_resume_by_esco();
+int le_audio_unicast_play_stop_by_esco();
 
 #ifdef __cplusplus
 };

@@ -32,6 +32,10 @@
 #include "rcsp_translator.h"
 #endif
 
+#if TCFG_USER_TWS_ENABLE
+extern const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT;
+#endif
+
 #define PIPELINE_UUID_TONE_NORMAL   0x7674
 #define PIPELINE_UUID_A2DP          0xD96F
 #define PIPELINE_UUID_ESCO          0xBA11
@@ -431,6 +435,17 @@ static int get_spatial_adv_node_callback(const char *arg)
     return (int)tws_get_output_channel;
 }
 
+static int get_output_node_delay(int arg)
+{
+#if TCFG_USER_TWS_ENABLE
+    if (arg == STREAM_SCENE_A2DP && CONFIG_EXTWS_NACK_LIMIT_INT_CNT < 63) {
+        /*A2DP模式下，DAC或输出设备在监听+转发的机制下最大延时约束为30ms，其他延时补偿到蓝牙缓冲预留转发时间*/
+        return 30/*ms*/;
+    }
+#endif
+    return 0;
+}
+
 int jlstream_event_notify(enum stream_event event, int arg)
 {
     int ret = 0;
@@ -495,6 +510,11 @@ int jlstream_event_notify(enum stream_event event, int arg)
 #if TCFG_NOISEGATE_NODE_ENABLE
     case STREAM_EVENT_GET_NOISEGATE_CALLBACK:
         ret = get_noisegate_node_callback((const char *)arg);
+        break;
+#endif
+#if TCFG_USER_TWS_ENABLE
+    case STREAM_EVENT_GET_OUTPUT_NODE_DELAY:
+        ret = get_output_node_delay(arg);
         break;
 #endif
     default:

@@ -149,5 +149,13 @@ void le_audio_mic_recorder_close(void)
     jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio_call");
 }
 
+bool le_audio_mic_recorder_is_running(void)
+{
+    if (g_mic_recorder) {
+        return 1;
+    }
+    return 0;
+}
+
 #endif
 

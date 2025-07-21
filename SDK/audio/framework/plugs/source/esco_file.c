@@ -227,6 +227,7 @@ static int esco_ioctl(void *_hdl, int cmd, int arg)
         break;
     case NODE_IOC_GET_FMT:
         esco_ioc_get_fmt(hdl, (struct stream_fmt *)arg);
+        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, AUDIO_NETWORK_BT2_1);
         break;
     case NODE_IOC_SUSPEND:
         lmp_esco_set_rx_notify(hdl->bt_addr, NULL, NULL);

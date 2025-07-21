@@ -36,24 +36,55 @@ ring_file_plug
 #if TCFG_KEY_TONE_NODE_ENABLE
 key_tone_file_plug
 #endif
-msbc_decoder_plug
 
+#ifndef TCFG_DEC_SBC_ENABLE
+#define TCFG_DEC_SBC_ENABLE 1
+#endif
+
+#ifndef TCFG_DEC_MSBC_ENABLE
+#define TCFG_DEC_MSBC_ENABLE 1
+#endif
+
+#ifndef TCFG_ENC_MSBC_ENABLE
+#define TCFG_ENC_MSBC_ENABLE 1
+#endif
+
+
+#if TCFG_TONE_SBC_ENABLE || TCFG_DEC_SBC_ENABLE || TCFG_TONE_MSBC_ENABLE || TCFG_DEC_MSBC_ENABLE || TCFG_ENC_MSBC_ENABLE
+sbc_hwaccel
+#endif
+
+#if TCFG_TONE_SBC_ENABLE || TCFG_DEC_SBC_ENABLE
 #if 0
 sbc_decoder_sw_plug
 #else
-sbc_hwaccel
 sbc_decoder_hw_plug
 #endif
+#endif
+
+#if TCFG_TONE_MSBC_ENABLE || TCFG_DEC_MSBC_ENABLE
+msbc_decoder_plug
+#endif
+
 
 #if TCFG_PDM_NODE_ENABLE
 pdm_mic_file_plug
 #endif
 
+#if TCFG_ENC_MSBC_ENABLE
 #if TCFG_BT_DONGLE_ENABLE
 msbc_encoder_soft_plug
 #else
 msbc_encoder_hw_plug
 #endif
+#endif
+
+
+#if TCFG_ENC_SBC_ENABLE
+sbc_encoder_soft_plug
+#endif
+
+
 
 #if TCFG_BT_SUPPORT_AAC || TCFG_DEC_AAC_ENABLE || TCFG_TONE_AAC_ENABLE
 aac_dec_plug
@@ -180,6 +211,10 @@ noisegate_node_adapter
 
 #if TCFG_NS_NODE_ENABLE
 ns_node_adapter
+#endif
+
+#if TCFG_NS_NODE_LITE_ENABLE
+ns_node_lite_adapter
 #endif
 
 #if TCFG_DNS_NODE_ENABLE

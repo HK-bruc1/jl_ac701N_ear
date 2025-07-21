@@ -565,6 +565,10 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
                 hdl->attr.write_mode = WRITE_MODE_BLOCK;
                 log_error("iis node param read err, set default\n");
             }
+            int delay_time = jlstream_event_notify(STREAM_EVENT_GET_OUTPUT_NODE_DELAY, hdl->scene);
+            if (delay_time) {
+                hdl->attr.delay_time = delay_time;
+            }
             if (hdl->attr.dev_properties != SYNC_TO_MASTER_DEV) { //从设备不需要挂载前级的同步节点
                 hdl->syncts_mount_en = 1;
             } else {

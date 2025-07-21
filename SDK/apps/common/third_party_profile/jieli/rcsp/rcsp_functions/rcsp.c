@@ -212,6 +212,9 @@ void rcsp_init(void)
     if (err) {
         rcsp_printf("rcsp create fail %x\n", err);
     }
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    rcsp_cis_update_init();
+#endif
 }
 
 static void rcsp_exit_in_app_core_task(void)

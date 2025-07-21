@@ -84,6 +84,10 @@ static int tws_files_callback(void *priv, enum stream_event event)
 
 static void play_timestamp_init(struct tws_tone_player *player)
 {
+    if (player->tws_timestamp) {
+        jlstream_node_ioctl(player->player.stream, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, TWS_TONE_PLAYER_REFERENCE_CLOCK ? AUDIO_NETWORK_LOCAL : AUDIO_NETWORK_BT2_1);
+    }
+
     if (TWS_TONE_PLAYER_REFERENCE_CLOCK == 1) {
         if (!player->tws_timestamp) {
             return;

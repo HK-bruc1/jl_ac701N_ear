@@ -92,6 +92,7 @@ struct jlstream;
 #define NODE_IOC_GET_ENC_TIME       0x00020032		//获取编码时间
 #define NODE_IOC_GET_FMT_EX         0x00020033
 #define NODE_IOC_SET_FMT_EX         0x00020034
+#define NODE_IOC_SET_SYNC_NETWORK   0x00020035
 
 #define NODE_IOC_START              (0x00040000 | NODE_STA_RUN)
 #define NODE_IOC_PAUSE              (0x00040000 | NODE_STA_PAUSE)
@@ -134,6 +135,7 @@ enum stream_event {
 
     STREAM_EVENT_GLOBAL_PAUSE,
     STREAM_EVENT_GET_NOISEGATE_CALLBACK,
+    STREAM_EVENT_GET_OUTPUT_NODE_DELAY,
 };
 
 enum stream_scene : u8 {

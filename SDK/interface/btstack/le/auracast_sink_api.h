@@ -3,7 +3,7 @@
 
 #include "typedef.h"
 
-#define AURACAST_SINK_API_VERSION    (20250530)
+#define AURACAST_SINK_API_VERSION    (20250625)
 
 // max config
 #define MAX_NUM_BIS 1
@@ -37,6 +37,8 @@ typedef struct {
     uint8_t BIS[8];
     uint16_t Connection_Handle[2];
     uint32_t presentation_delay_us;
+    uint8_t *adv_data;
+    uint16_t adv_data_len;
     uint8_t bn;
 } auracast_sink_source_info_t;
 
@@ -147,7 +149,8 @@ typedef enum {
     BASS_BIG_ENCRYPTION_RFU
 } bass_big_encryption_t;
 
-extern void le_audio_bass_notify_pa_sync_state(u8 id, u8 pa_sync_state, u8 big_encryption, u32 bis_sync_state);
+extern void app_le_audio_bass_notify_pa_sync_state(u8 pa_sync_state, u8 big_encryption, u32 bis_sync_state);
 
 
 #endif /* __AURACAST_SINK_API_H__ */
+

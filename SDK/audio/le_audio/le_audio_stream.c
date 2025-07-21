@@ -15,6 +15,7 @@
 #include "system/timer.h"
 #include "app_config.h"
 #include "audio_time.h"
+#include "media_config.h"
 
 #if LE_AUDIO_STREAM_ENABLE
 
@@ -203,8 +204,11 @@ void *le_audio_stream_tx_open(void *le_audio, int coding_type, void *priv, int (
 
     if (ctx->fmt.coding_type == AUDIO_CODING_LC3) {
         frame_size = ctx->fmt.frame_dms * ctx->fmt.bit_rate / 8 / 10000 ;
+    } else if (coding_type == AUDIO_CODING_JLA_V2) {
+        frame_size = ctx->fmt.frame_dms * ctx->fmt.bit_rate / 8 / 10000 + (JLA_V2_CODEC_WITH_FRAME_HEADER == 0 ? 0 : 2);
     } else {
         //TODO : 其他格式的buffer设置
+        printf(" le_audio tx unsupport this type\n");
     }
 
     int isoIntervalUs_len = (ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms) * frame_size;
@@ -293,8 +297,12 @@ void *le_audio_stream_rx_open(void *le_audio, int coding_type)
     INIT_LIST_HEAD(&rx_stream->frames);
     if (coding_type == AUDIO_CODING_LC3) {
         frame_size = ctx->fmt.frame_dms * ctx->fmt.bit_rate / 8 / 10000 ;
+    } else if (coding_type == AUDIO_CODING_JLA_V2) {
+        frame_size = ctx->fmt.frame_dms * ctx->fmt.bit_rate / 8 / 10000  + (JLA_V2_CODEC_WITH_FRAME_HEADER == 0 ? 0 : 2);
     } else if (coding_type == AUDIO_CODING_PCM) {
         frame_size = ctx->fmt.frame_dms * ctx->fmt.sample_rate * ctx->fmt.nch * (ctx->fmt.bit_width ? 4 : 2) / 10000;
+    } else {
+        printf(" le_audio rx unsupport this type\n");
     }
 
     int iso_interval_len = (ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms) * frame_size;
@@ -441,7 +449,7 @@ static int le_audio_stream_rx_fill_frame(struct le_audio_rx_stream *rx_stream)
 {
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)rx_stream->parent;
 
-    if (rx_stream->coding_type == AUDIO_CODING_LC3) {
+    if (rx_stream->coding_type == AUDIO_CODING_LC3 || rx_stream->coding_type == AUDIO_CODING_JLA_V2) {
         rx_stream->timestamp = (rx_stream->timestamp + ctx->fmt.sdu_period) & 0xfffffff;
         u8 jla_err_frame[2] = {0x02, 0x00};
         u8 err_packet[10] = {0};
@@ -484,7 +492,7 @@ get_frame:
     }
 
     if (!frame && !rx_stream->online) {
-        if (rx_stream->coding_type == AUDIO_CODING_LC3) {
+        if (rx_stream->coding_type == AUDIO_CODING_LC3 || rx_stream->coding_type == AUDIO_CODING_JLA_V2) {
             le_audio_stream_rx_fill_frame(rx_stream);
             goto get_frame;
         }

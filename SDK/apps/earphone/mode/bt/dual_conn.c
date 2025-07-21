@@ -89,7 +89,7 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         scan_enable = 0;
         conn_enable = 0;
     }
-#elif (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
 #if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
     if (bt_get_total_connect_dev() == 0) {
         scan_enable = 1;
@@ -107,7 +107,6 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         conn_enable = 0;
     }
 #endif
-
 #endif
     if (classic_update_task_exist_flag_get()) {
         g_printf("bt dual close for update\n");

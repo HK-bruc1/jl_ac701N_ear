@@ -122,6 +122,7 @@ struct audio_eq {
     u8 core;                              //多硬件支持选配，需芯片支持
     u8 run_status;
     u8 dma_ram;                           //是否使用外部配置的dma_ram 0:否， 1：是
+    u8 lrmem_clear;                            //update tab clear lrmem
     u8 ext_seg_num[2];
     u8 ext_coeff_lp_num[2];
     u8 ext_coeff_hp_num[2];

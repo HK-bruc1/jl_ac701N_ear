@@ -52,6 +52,15 @@ static void tws_a2dp_play_in_task(u8 *data)
     case CMD_A2DP_PLAY:
         puts("app_msg_bt_a2dp_play\n");
         put_buf(bt_addr, 6);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_audio_player_is_playing()) {
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+                g_printf("a2dp_media_mute line:%d\n", __LINE__);
+                a2dp_media_mute(bt_addr);
+                break;
+            }
+        }
+#endif
 #if (TCFG_BT_A2DP_PLAYER_ENABLE == 0)
         break;
 #endif
@@ -169,11 +178,6 @@ static int a2dp_bt_status_event_handler(int *event)
         if (app_var.goto_poweroff_flag) {
             break;
         }
-#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-        if (le_audio_player_is_playing()) {
-            le_auracast_stop();
-        }
-#endif
         dac_try_power_on_thread();//dac初始化耗时有120ms,此处提前将dac指定到独立任务内做初始化，优化蓝牙通路启动的耗时，减少时间戳超时的情况
         if (tws_api_get_role() == TWS_ROLE_MASTER &&
             bt_get_call_status_for_addr(bt->args) == BT_CALL_INCOMING) {

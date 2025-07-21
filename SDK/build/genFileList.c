@@ -14,7 +14,7 @@ c_SRC_FILES += \
       audio/framework/nodes/plc_node.c \
       audio/framework/nodes/volume_node.c \
 
-#if TCFG_NS_NODE_ENABLE
+#if TCFG_NS_NODE_ENABLE || TCFG_NS_NODE_LITE_ENABLE
 c_SRC_FILES += \
       audio/framework/nodes/ns_node.c
 #endif
@@ -633,12 +633,10 @@ c_SRC_FILES += \
 #endif
 
 
-#ifdef TCFG_DEBUG_DLOG_ENABLE
 #if TCFG_DEBUG_DLOG_ENABLE
 c_SRC_FILES += \
 	apps/common/debug/dlog_config.c \
     apps/common/debug/dlog_output_config.c
-#endif
 #endif
 
 
@@ -655,9 +653,14 @@ c_SRC_FILES += \
 	apps/common/update/update_tws.c
 #endif
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
 c_SRC_FILES += \
 	apps/common/update/update_tws_new.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && OTA_TWS_SAME_TIME_NEW_LESS)
+c_SRC_FILES += \
+	apps/common/update/update_tws_new_less.c
 #endif
 
 #ifdef CONFIG_UPDATE_MUTIL_CPU_UART
@@ -678,6 +681,10 @@ c_SRC_FILES += \
 #endif
 #endif
 
+#if defined(TCFG_NORFLASH_DEV_ENABLE) && TCFG_NORFLASH_DEV_ENABLE
+c_SRC_FILES += \
+    apps/common/device/storage_device/norflash/norflash.c
+#endif
 
 
 // *INDENT-OFF*
@@ -1684,7 +1691,7 @@ c_SRC_FILES += \
 c_SRC_FILES += \
 	  audio/cpu/br28/audio_demo/audio_adc_demo.c \
 
-#if 0
+#if 1
 c_SRC_FILES += \
 	  audio/cpu/br28/audio_demo/audio_dac_demo.c \
 	  audio/cpu/br28/audio_demo/audio_fft_demo.c \
@@ -1811,23 +1818,23 @@ c_SRC_FILES += \
 
 #if TCFG_LE_AUDIO_APP_CONFIG
 c_SRC_FILES += \
-	apps/$(APP_CASE)/mode/bt/le_audio/le_audio_common.c \
+	apps/earphone/mode/bt/le_audio/le_audio_common.c \
 
 #endif
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SOURCE_EN | LE_AUDIO_JL_UNICAST_SOURCE_EN | LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 c_SRC_FILES += \
-	apps/$(APP_CASE)/mode/bt/le_audio/cig/app_le_connected.c \
-	apps/$(APP_CASE)/mode/bt/le_audio/cig/le_connected.c \
-	apps/$(APP_CASE)/mode/bt/le_audio/cig/le_connected_config.c \
+	apps/earphone/mode/bt/le_audio/cig/app_le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected.c \
+	apps/earphone/mode/bt/le_audio/cig/le_connected_config.c \
 
 #endif
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN))
 c_SRC_FILES += \
-	apps/$(APP_CASE)/mode/bt/le_audio/big/app_le_auracast.c \
-	apps/$(APP_CASE)/mode/bt/le_audio/big/le_broadcast.c \
-	apps/$(APP_CASE)/mode/bt/le_audio/big/le_broadcast_config.c \
+	apps/earphone/mode/bt/le_audio/big/app_le_auracast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast.c \
+	apps/earphone/mode/bt/le_audio/big/le_broadcast_config.c \
 
 #endif
 

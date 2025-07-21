@@ -102,7 +102,7 @@ u8 rcsp_allow_ble_spp_connect_simultaneously = 0;			// 1t1时，是否允许ble�
 #endif
 
 //le 配置,可以优化代码和RAM
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if 1//((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN)))
 	const int config_le_hci_connection_num = 2;//支持同时连接个数
 	const int config_le_sm_support_enable = 1; //是否支持加密配对
 #else

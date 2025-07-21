@@ -172,6 +172,15 @@ static void tws_a2dp_play_in_task(u8 *data)
     case CMD_A2DP_PLAY:
         puts("app_msg_bt_a2dp_play\n");
         put_buf(bt_addr, 6);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_audio_player_is_playing()) {
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+                g_printf("a2dp_media_mute line:%d\n", __LINE__);
+                a2dp_media_mute(bt_addr);
+                break;
+            }
+        }
+#endif
 #if (TCFG_BT_A2DP_PLAYER_ENABLE == 0)
         break;
 #endif
@@ -372,7 +381,7 @@ void try_play_preempted_a2dp(void *p)
         memset(a2dp_preempted_addr, 0xff, 6);
         return;
     }
-    if (bt_get_call_status() != BT_CALL_HANGUP) {
+    if (esco_player_runing()) {
         sys_timeout_add(NULL, try_play_preempted_a2dp, 500);
         return;
     }
@@ -473,11 +482,6 @@ static int a2dp_bt_status_event_handler(int *event)
         if (app_var.goto_poweroff_flag) {
             break;
         }
-#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-        if (le_audio_player_is_playing()) {
-            le_auracast_stop();
-        }
-#endif
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
 #if TCFG_A2DP_PREEMPTED_ENABLE
             if (device_b &&
@@ -691,9 +695,6 @@ static int a2dp_bt_status_event_handler(int *event)
                (bt->value >> 16), (bt->value & 0x0000ffff));
         if (bt->value != 0xff) {
             a2dp_suspend_by_call(addr_b, device_b);
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
-            le_audio_unicast_play_remove_by_phone_call(1);
-#endif
         } else {
 #if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
             le_audio_unicast_try_resume_play_by_phone_call_remove();

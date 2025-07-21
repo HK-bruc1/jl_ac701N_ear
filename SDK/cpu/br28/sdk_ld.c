@@ -175,7 +175,7 @@ SECTIONS
 	.data_code ALIGN(32):SUBALIGN(4)
 	{
 		data_code_pc_limit_begin = .;
-		#include "media/media_lib_data_text.ld"
+
 		*(.flushinv_icache)
         *(.cache)
         *(.os_critical_code)
@@ -221,6 +221,9 @@ SECTIONS
 		. = ALIGN(4);
 
         *(.debug_code)
+		. = ALIGN(4);
+		#include "media/media_lib_data_text.ld"
+		. = ALIGN(4);
 
 #if  (TCFG_LED7_RUN_RAM)
 		. = ALIGN(4);
@@ -454,6 +457,23 @@ SECTIONS
 
 		. = ALIGN(32);
 	  } > code0
+
+    . = ORIGIN(dlog0);
+    .dlog_data ALIGN(4):SUBALIGN(4)
+    {
+        // 头部的0x100空间
+        KEEP(*(.dlog.rodata.head))
+        /* . = 0x100 + ORIGIN(dlog0); */
+		. = ALIGN(0x100);
+
+        dlog_str_tab_seg_begin = .;
+        *(.dlog.rodata.str_tab*)
+        dlog_str_tab_seg_end = .;
+		. = ALIGN(32);
+        dlog_str_seg_begin = .;
+        *(.dlog.rodata.string*)
+        dlog_str_seg_end = .;
+    } > dlog0
 }
 
 #include "app.ld"
@@ -541,6 +561,23 @@ _MALLOC_SIZE = _HEAP_END - _HEAP_BEGIN;
 PROVIDE(MALLOC_SIZE = _HEAP_END - _HEAP_BEGIN);
 
 ASSERT(MALLOC_SIZE  >= 0x8000, "heap space too small !")
+
+
+//===================== dlog check =====================//
+// 宏DLOG_STR_TAB_STRUCT_SIZE = 16 (即 dlog_str_tab_s 结构体的大小), 0xFFFF是支持的最大log index数
+STR_TAB_SIZE = 16;
+ASSERT((dlog_str_tab_seg_end - dlog_str_tab_seg_begin) <= (STR_TAB_SIZE * 0xFFFF), "err: log index out of range, only 0x0000 ~ 0xFFFF !!!");
+ASSERT((dlog_str_tab_seg_begin - ADDR(.dlog_data)) <= 0x100, "err: .dlog.rodata.head out of range, only less than 0x100 !!!");
+/* ASSERT((dlog_str_tab_segAll_end - dlog_str_tab_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.str_tab* !!!"); */
+/* ASSERT((dlog_str_segAll_end - dlog_str_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.string* !!!"); */
+// 定义异常信息和dlog打印数据在保存dlog数据区域的起始地址
+#if TCFG_CONFIG_DEBUG_RECORD_ENABLE
+dlog_exception_data_start_addr = 0x0FFF;   // 这个地址是相对于保存dlog数据起始地址的偏移
+dlog_log_data_start_addr = 0x1000;         // 这个地址是相对于保存dlog数据起始地址的偏移
+#else
+dlog_exception_data_start_addr = 0;
+dlog_log_data_start_addr = 0;
+#endif
 
 //============================================================//
 //=== report section info begin:

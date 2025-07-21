@@ -194,10 +194,8 @@
 #endif
 
 #if AUDIO_LC3_CODEC_AT_RAM
-	    *(.lc3_dec.text.const)
-	    *(.lc3_dec.text)
-	    *(.lc3_enc.text.const)
-	    *(.lc3_enc.text)
+		*(.lc3_enc.text.cache.L2.run)
+		*(.lc3_dec.text.cache.L2.run)
 	    *(.lc3_codec_c_const)
 	    *(.lc3_codec_c_code)
 	    *(.lc3_codec_c_sparse_code)

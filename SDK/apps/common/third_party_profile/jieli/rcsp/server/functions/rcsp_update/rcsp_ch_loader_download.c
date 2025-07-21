@@ -11,11 +11,18 @@
 #include "update_loader_download.h"
 #include "rcsp_update.h"
 #include "JL_rcsp_protocol.h"
+#include "JL_rcsp_packet.h"
 #include "classic/tws_api.h"
 #include "os/os_api.h"
 #include "ble_rcsp_server.h"
 #include "btstack/avctp_user.h"
 #include "rcsp_ch_loader_download.h"
+#include "cig.h"
+#include "app_msg.h"
+#include "JL_rcsp_api.h"
+#include "rcsp_config.h"
+#include "le_connected.h"
+#include "btstack_rcsp_user.h"
 
 #include <string.h>
 
@@ -83,6 +90,7 @@ static u8 rcsp_seek_type = 0;
 
 static u8 g_rcsp_ancs_state_flag = 0;
 static u32 rcsp_offset_addr = 0;
+static u16 g_cis_conn_handle = 0;
 
 //NOTE:测试盒的定义和本sdk文件系统的seek_type定义不一样;
 enum {
@@ -177,6 +185,9 @@ u16 rcsp_f_read(void *fp, u8 *buff, u16 len)
 {
     //printf("===rcsp_read:%x %x\n", __this->file_offset, len);
     u8 retry_cnt = 0;
+    if (g_cis_conn_handle) {
+        retry_cnt = RETRY_TIMES;
+    }
 
     __this->need_rx_len = len;
     __this->state = UPDATA_REV_DATA;
@@ -223,7 +234,6 @@ __RETRY:
     if ((u16) - 1 != len) {
         __this->file_offset += len;
     }
-
 
     return len;
 }
@@ -459,7 +469,7 @@ static void rcsp_update_state_cbk(int type, u32 state, void *priv)
         rcsp_bt_ble_adv_enable(0);
 #endif
         // 如果是ble，则设置连接参数，提高传输效率
-        if (0 == get_curr_device_type()) {
+        if (0 == get_curr_device_type() && 0 == g_cis_conn_handle) {
             notify_update_connect_parameter(3);
         }
         break;
@@ -480,7 +490,7 @@ static void rcsp_update_state_cbk(int type, u32 state, void *priv)
             }
         }
         // 如果是ble，则设置连接参数，还原传输效率
-        if (0 == get_curr_device_type()) {
+        if (0 == get_curr_device_type() && 0 == g_cis_conn_handle) {
             notify_update_connect_parameter(-1);
         }
 #if TCFG_RCSP_DUAL_CONN_ENABLE
@@ -518,6 +528,69 @@ void rcsp_update_loader_download_init(int update_type, void (*result_cbk)(void *
     app_active_update_task_init(&info);
 #endif
 }
+
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+void cis_rcsp_recv_handle(u16 conn_handle, const void *const buf, size_t length, void *priv)
+{
+    if (g_cis_conn_handle == conn_handle) {
+        printf("rcsp_cis_rx(%d)", (int)length);
+        put_buf(buf, length);
+        u8 custem_buf[] = {0x4A, 0x4C, 0xFF, 0xED};
+        if (0 == memcmp(buf, custem_buf, sizeof(custem_buf))) {
+            rcsp_update_ancs_disconn_handler();
+            JL_packet_clear_all_data();
+        }
+        bt_rcsp_recieve_callback(rcsp_server_ble_hdl, NULL, (u8 *)buf, length);
+    }
+}
+
+int bt_rcsp_data_send_filter(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
+{
+    int ret = 0;
+    if (g_cis_conn_handle && ble_con_hdl == g_cis_conn_handle) {
+        if (!JL_rcsp_get_auth_flag_with_bthdl(ble_con_hdl, NULL)) {
+            if (!rcsp_protocol_head_check(buf, len)) {
+                connected_send_acl_data(ble_con_hdl, buf, len);
+            }
+        } else {
+            connected_send_acl_data(ble_con_hdl, buf, len);
+        }
+        ret = 1;
+    }
+    return ret;
+}
+
+static int app_connected_conn_status_event_handler(int *msg)
+{
+    cis_acl_info_t *acl_info = NULL;
+    int *event = msg;
+    switch (event[0]) {
+    case CIG_EVENT_ACL_CONNECT:
+        acl_info = (cis_acl_info_t *)&event[1];
+        if (rcsp_get_auth_support() && acl_info) {
+            JL_rcsp_reset_bthdl_auth(acl_info->acl_hdl, NULL);
+        }
+        g_cis_conn_handle = acl_info->acl_hdl;
+        break;
+    case CIG_EVENT_ACL_DISCONNECT:
+        g_cis_conn_handle = 0;
+        break;
+    };
+    return 0;
+}
+
+APP_MSG_PROB_HANDLER(cis_rcsp_connected_msg_entry_filter) = {
+    .owner = 0xff,
+    .from = MSG_FROM_CIG,
+    .handler = app_connected_conn_status_event_handler,
+};
+
+
+void rcsp_cis_update_init(void)
+{
+    connected_iso_recv_handle_register(NULL, cis_rcsp_recv_handle);
+}
+#endif // ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
 #else // (RCSP_MODE && RCSP_UPDATE_EN && !RCSP_BLE_MASTER)
 
