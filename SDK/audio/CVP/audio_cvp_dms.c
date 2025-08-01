@@ -1026,9 +1026,11 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 #endif
         break;
     default:
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE || TCFG_AUDIO_CVP_DMS_DNS_MODE)
         printf("CVP 2mic Algo:Beamfroming");
         audio_aec_param_init(aec_param, init_param->node_uuid);
         cvp_dms->adapter = cvp_2mic_beamforming_adapter();
+#endif
         break;
     }
 

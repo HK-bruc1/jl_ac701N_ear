@@ -2,6 +2,8 @@
 #define __WM8978_H
 ////////////////////////////////////////////////////////////
 
+#include "generic/typedef.h"
+
 #define WM8978_ADDR				0X1A	//WM8978的器件地址,固定为0X1A
 
 #define EQ1_80Hz		0X00

@@ -84,6 +84,18 @@ int audio_adc_mic_set_gain(struct adc_mic_ch *mic, u32 ch_map, int gain);
 
 /*
 *********************************************************************
+*                  Audio ADC Mic Digital Gain
+* Description: 设置mic数字增益
+* Arguments  : 数字增益
+* Return	 : none
+* Note(s)    : 单位dB，可配范围参考可视化工具(不同系列范围不同):
+*              "音频配置->ADC配置->数字增益"
+*********************************************************************
+*/
+void audio_adc_set_digital_gain(float gain_dB);
+
+/*
+*********************************************************************
 *                  Audio ADC Mic Pre_Gain
 * Description: 设置mic第一级/前级增益
 * Arguments  : en 前级增益使能(0:6dB 1:0dB)

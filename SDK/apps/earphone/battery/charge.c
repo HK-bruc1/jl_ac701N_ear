@@ -49,8 +49,6 @@ static void charge_start_deal(void)
 {
     log_info("%s\n", __FUNCTION__);
 
-    power_set_mode(PWR_LDO15);
-
     batmgr_send_msg(BAT_MSG_CHARGE_START, 0);
 }
 
@@ -92,8 +90,6 @@ static void charge_full_deal(void)
 static void charge_close_deal(void)
 {
     log_info("%s\n", __FUNCTION__);
-
-    power_set_mode(TCFG_LOWPOWER_POWER_SEL);
 
     batmgr_send_msg(BAT_MSG_CHARGE_CLOSE, 0);
 }
@@ -141,6 +137,8 @@ void ldo5v_keep_deal(void)
 
     charge_close();
 
+    power_set_mode(TCFG_LOWPOWER_POWER_SEL);
+
     //插入交换
     batmgr_send_msg(POWER_EVENT_POWER_CHANGE, 0);
 
@@ -175,6 +173,8 @@ void charge_ldo5v_in_deal(void)
 
     //插入交换
     batmgr_send_msg(POWER_EVENT_POWER_CHANGE, 0);
+
+    power_set_mode(PWR_LDO15);
 
     charge_full_flag = 0;
 
@@ -230,6 +230,8 @@ void charge_ldo5v_off_deal(void)
     charge_full_flag = 0;
 
     charge_close();
+
+    power_set_mode(TCFG_LOWPOWER_POWER_SEL);
 
     batmgr_send_msg(BAT_MSG_CHARGE_LDO5V_OFF, 0);
 

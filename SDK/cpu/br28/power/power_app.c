@@ -5,6 +5,7 @@
 #pragma code_seg(".power_app.text")
 #endif
 #include "asm/power_interface.h"
+#include "rtc/rtc_dev.h"
 #include "app_config.h"
 #include "includes.h"
 #include "gpio_config.h"
@@ -80,6 +81,8 @@ u8 power_soff_callback()
     DO_PLATFORM_UNINITCALL();
 
     __mask_io_cfg();
+
+    poweroff_save_rtc_time();
 
     void gpio_config_soft_poweroff(void);
     gpio_config_soft_poweroff();

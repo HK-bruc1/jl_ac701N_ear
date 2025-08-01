@@ -90,6 +90,11 @@
 #include "audio_config.h"
 #include "clock_manager/clock_manager.h"
 
+#if TCFG_MIX_RECORD_ENABLE
+#include "dev_manager.h"
+#include "mix_record_api.h"
+#endif
+
 #if TCFG_APP_BT_EN
 
 #if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN)) || \
@@ -455,11 +460,13 @@ void bt_function_select_init()
     }
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     extern void set_le_audio_unicast_witch_phone_play_mix(u8 en);
-    extern int tws_api_pure_monitor_enable(bool enable);
     set_le_audio_unicast_witch_phone_play_mix(1);
+#if TCFG_USER_TWS_ENABLE
+    extern int tws_api_pure_monitor_enable(bool enable);
     tws_api_pure_monitor_enable(1);
+#endif
 
 #endif
 #endif
@@ -1294,6 +1301,18 @@ int bt_app_msg_handler(int *msg)
         sys_enter_soft_poweroff(POWEROFF_NORMAL);
         break;
 #endif
+    case APP_MSG_REC_PP:
+#if TCFG_MIX_RECORD_ENABLE
+        printf("\n APP_MSG_REC_PP \n");
+        if (get_mix_recorder_status()) {
+            mix_recorder_stop();
+        } else {
+            if (dev_manager_get_phy_logo(dev_manager_find_active(0))) {
+                mix_recorder_start();
+            }
+        }
+#endif
+        break;
     default:
         break;
     }

@@ -90,6 +90,10 @@ static void le_audio_rx_tick_handler(void *priv)
     struct le_audio_file_handle *hdl = (struct le_audio_file_handle *)priv;
 
     if (hdl->start) {
+        if (!(hdl->node->type & NODE_TYPE_IRQ) &&
+            !(hdl->node->state & NODE_STA_SOURCE_NO_DATA)) {
+            return;
+        }
         jlstream_wakeup_thread(NULL, hdl->node, NULL);
     }
 }

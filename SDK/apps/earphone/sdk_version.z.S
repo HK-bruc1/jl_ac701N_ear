@@ -1,4 +1,4 @@
 .section .sys.version, "ax"
 
-.long 301475993 
-.asciz "-@20250721-$bbc73320e"
+.long 302424421 
+.asciz "-@20250801-$699289414"

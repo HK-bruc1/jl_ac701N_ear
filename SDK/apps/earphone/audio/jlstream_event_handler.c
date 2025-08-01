@@ -19,6 +19,7 @@
 #include "esco_recoder.h"
 #include "clock.h"
 #include "dual_a2dp_play.h"
+#include "mix_record_api.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -46,6 +47,7 @@ extern const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT;
 #define PIPELINE_UUID_MIC_EFFECT    0x9C2D
 #define PIPELINE_UUID_PC_AUDIO		0xDC8D
 #define PIPELINE_UUID_LE_AUDIO      0x99AA
+#define PIPELINE_UUID_RECODER       0x49EC
 
 
 
@@ -180,6 +182,12 @@ static int get_pipeline_uuid(const char *name)
         /* clock_alloc("a2dp", 24 * 1000000UL); */
         return PIPELINE_UUID_AI_VOICE;
     }
+
+#if TCFG_MIX_RECORD_ENABLE
+    if (!strcmp(name, "mix_recorder")) {
+        return PIPELINE_UUID_RECODER;
+    }
+#endif
 
     if (!strcmp(name, "dev_flow")) {
         return PIPELINE_UUID_DEV_FLOW;
@@ -399,6 +407,13 @@ static int get_switch_node_callback(const char *arg)
         return (int)media_trans_switch_get_status;
     }
 #endif
+
+#if TCFG_MIX_RECORD_ENABLE
+    if (!strncmp(arg, "SW_Rec", strlen("SW_Rec"))) {
+        return (int)get_mix_recorder_status;
+    }
+#endif // TCFG_MIX_RECORD_ENABLE
+
     return 0;
 }
 

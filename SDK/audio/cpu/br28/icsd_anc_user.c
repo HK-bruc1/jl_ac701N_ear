@@ -9,7 +9,7 @@
 #include "adc_file.h"
 #include "app_tone.h"
 #include "clock_manager/clock_manager.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 #include "audio_config.h"
 #include "audio_adc.h"
 #include "cvp_node.h"

@@ -165,6 +165,11 @@ static JL_PRO_CB bt_rcsp_callback = {
     .wait_resp_timeout = NULL,
 };
 
+void rcsp_clear_all_buffer(void)
+{
+    JL_protocol_dev_switch(&bt_rcsp_callback);
+}
+
 void rcsp_init(void)
 {
     if (__this) {

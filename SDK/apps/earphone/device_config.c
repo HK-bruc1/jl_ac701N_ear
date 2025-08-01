@@ -8,7 +8,7 @@
 #include "app_main.h"
 #include "app_config.h"
 #include "asm/sdmmc.h"
-#include "asm/rtc.h"
+#include "rtc/rtc_dev.h"
 #include "linein_dev.h"
 #include "usb/host/usb_storage.h"
 #include "asm/spi_hw.h"
@@ -89,23 +89,22 @@ RTC_DEV_PLATFORM_DATA_BEGIN(rtc_data)
 .default_sys_time = &def_sys_time,
  .default_alarm = &def_alarm,
 
-  .clk_sel = CLK_SEL_32K,
-   /* #if defined(CONFIG_CPU_BR27) */
-   /* .rtc_sel = HW_RTC, */
-   /* #endif */
-   //闹钟中断的回调函数,用户自行定义
-   .cbfun = NULL,
-    /* .cbfun = alarm_isr_user_cbfun, */
-    RTC_DEV_PLATFORM_DATA_END()
+  .rtc_clk = RTC_CLK_RES_SEL,
+   .rtc_sel = HW_RTC,
+    //闹钟中断的回调函数,用户自行定义
+    .cbfun = NULL,
+     /* .cbfun = alarm_isr_user_cbfun, */
+     RTC_DEV_PLATFORM_DATA_END()
 
 #endif
 
 #if (TCFG_HW_SPI1_ENABLE || TCFG_HW_SPI2_ENABLE)
 const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
-    {
+    [0] = {
         //spi0
     },
-    {
+#if TCFG_HW_SPI1_ENABLE
+    [1] = {
         //spi1
         .port = {
             TCFG_HW_SPI1_PORT_CLK, //clk any io
@@ -129,8 +128,10 @@ const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
         .irq_priority = 3,
         .spi_isr_callback = NULL,  //spi isr callback
     },
+#endif
 #if SUPPORT_SPI2
-    {
+#if TCFG_HW_SPI2_ENABLE
+    [2] = {
         //spi2
         .port = {
             TCFG_HW_SPI2_PORT_CLK, //clk any io
@@ -154,6 +155,7 @@ const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
         .irq_priority = 3,
         .spi_isr_callback = NULL,  //spi isr callback
     },
+#endif
 #endif
 };
 #endif

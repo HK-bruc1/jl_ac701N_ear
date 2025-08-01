@@ -41,7 +41,7 @@ const int CONFIG_DISTURB_SCAN_ENABLE = 0;
 #define TWS_PURE_MONITOR_MODE    0//1:纯监听模式
 
 #if TWS_PURE_MONITOR_MODE
-	u8 get_extws_nack_adjust(u8 per_v, int a2dp_dly_paly_time, int msec)
+	u8 get_extws_nack_adjust(u8 per_v, int a2dp_dly_paly_time, int msec, int num)
 	{
 		return 0;
 	}

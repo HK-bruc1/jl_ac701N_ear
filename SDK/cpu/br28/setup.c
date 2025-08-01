@@ -114,10 +114,10 @@ void cpu1_setup_arch()
 
     //用于控制其他核进入停止状态。
     extern void cpu_suspend_handle(void);
-    request_irq(IRQ_SOFT0_IDX, 7, cpu_suspend_handle, 0);
-    request_irq(IRQ_SOFT1_IDX, 7, cpu_suspend_handle, 1);
-    irq_unmask_set(IRQ_SOFT0_IDX, 0, 0); //设置CPU0软中断0为不可屏蔽中断
-    irq_unmask_set(IRQ_SOFT1_IDX, 0, 1); //设置CPU1软中断1为不可屏蔽中断
+    request_irq(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 7, cpu_suspend_handle, 0);
+    request_irq(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 7, cpu_suspend_handle, 1);
+    irq_unmask_set(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 0, 0); //设置CPU0软中断0为不可屏蔽中断
+    irq_unmask_set(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 0, 1); //设置CPU1软中断1为不可屏蔽中断
 
     debug_init();
 }

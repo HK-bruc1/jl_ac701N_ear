@@ -79,6 +79,7 @@ typedef struct _rcsp_update_param_t {
 } rcsp_update_param_t;
 
 extern const int support_dual_bank_update_en;
+extern void rcsp_clear_all_buffer(void);
 
 static rcsp_update_param_t	rcsp_update_param;
 #define __this (&rcsp_update_param)
@@ -538,7 +539,7 @@ void cis_rcsp_recv_handle(u16 conn_handle, const void *const buf, size_t length,
         u8 custem_buf[] = {0x4A, 0x4C, 0xFF, 0xED};
         if (0 == memcmp(buf, custem_buf, sizeof(custem_buf))) {
             rcsp_update_ancs_disconn_handler();
-            JL_packet_clear_all_data();
+            rcsp_clear_all_buffer();
         }
         bt_rcsp_recieve_callback(rcsp_server_ble_hdl, NULL, (u8 *)buf, length);
     }

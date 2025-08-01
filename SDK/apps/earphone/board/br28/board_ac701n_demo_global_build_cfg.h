@@ -15,6 +15,16 @@
 #endif
 #define CONFIG_DOUBLE_BANK_ENABLE               TCFG_DUAL_BANK_ENABLE       //单双备份选择(若打开了改宏,FLASH结构变为双备份结构，适用于接入第三方协议的OTA， PS: JL-OTA同样支持双备份升级, 需要根据实际FLASH大小同时配置CONFIG_FLASH_SIZE)
 
+#ifndef TCFG_UPDATE_COMPRESS
+#define TCFG_UPDATE_COMPRESS					0
+#endif
+
+#ifndef TCFG_UPDATE_UPDIFF
+#define TCFG_UPDATE_UPDIFF					    0
+#endif
+
+#define CONFIG_DOUBLE_BANK_LESS               ((TCFG_UPDATE_UPDIFF||TCFG_UPDATE_COMPRESS)&&TCFG_DUAL_BANK_ENABLE) //双备份结构，但appcore1区域可以更小
+
 #define CONFIG_UPDATE_JUMP_TO_MASK              0   	//配置升级到loader的方式0为直接reset,1为跳转(适用于芯片电源由IO口KEEP住的方案,需要注意检查跳转前是否将使用DMA的硬件模块全部关闭)
 
 #define CONFIG_IO_KEY_EN					  	0		//配置是否使用IO按键，配合RESET1

@@ -5,7 +5,7 @@
 #include "sync/audio_syncts.h"
 #include "effects/effects_adj.h"
 #include "media/audio_general.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 
 
 struct dev_sync_params {

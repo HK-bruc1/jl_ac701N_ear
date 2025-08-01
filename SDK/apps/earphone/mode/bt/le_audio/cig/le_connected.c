@@ -363,8 +363,8 @@ int connected_perip_connect_deal(void *priv)
         params.service_type = (hdl->Max_PDU_P_To_C) ? LEA_SERVICE_CALL : LEA_SERVICE_MEDIA;
     }
 
-    g_printf("nch:%d, coding_type:0x%x, dec_ch_mode:%d, conn:%d, dms:%d, sdu_period:%d, br:%d\n",
-             params.fmt.nch, params.fmt.coding_type, params.fmt.dec_ch_mode, params.conn, params.fmt.frame_dms, params.fmt.sdu_period, params.fmt.bit_rate);
+    g_printf("nch:%d, coding_type:0x%x, dec_ch_mode:%d, conn:%d, dms:%d, sdu_period:%d, br:%d, sr:%d\n",
+             params.fmt.nch, params.fmt.coding_type, params.fmt.dec_ch_mode, params.conn, params.fmt.frame_dms, params.fmt.sdu_period, params.fmt.bit_rate, params.fmt.sample_rate);
 
     if (connected_hdl->rx_cis_num > 1) {
         if (multi_cis_rx_buf) {
@@ -806,7 +806,7 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
             continue;
         }
         if ((!hdl->rx_player.le_audio) || (!hdl->rx_player.rx_stream)) {
-            log_error("%s, %d\n", __FUNCTION__, __LINE__);
+            /* log_error("%s, %d\n", __FUNCTION__, __LINE__); */
             continue;
         }
 #if CIS_AUDIO_PLC_ENABLE
@@ -868,8 +868,18 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
         } else {
             if (multi_cis_rx_buf) {
                 /* printf("[%d][%d][%d][%d][%d][0x%x]\n", i, param->cis_hdl, multi_cis_data_offect, (int)length, multi_cis_rx_temp_buf_len, (unsigned int)multi_cis_rx_buf); */
-                memcpy(multi_cis_rx_buf + multi_cis_data_offect, buf, length);
-                multi_cis_data_offect += length;
+
+                //区分左右耳填buffer
+                if (i == 0) {
+                    memcpy(multi_cis_rx_buf, buf, length);
+                    multi_cis_data_offect += length;
+                } else if (i == 1) {
+                    memcpy(multi_cis_rx_buf + (multi_cis_rx_temp_buf_len / UNICAST_SINK_CIS_NUMS), buf, length);
+                    multi_cis_data_offect += length;
+                } else {
+                    //TODO 多声道继续叠加
+                    putchar('+');
+                }
                 ASSERT(multi_cis_data_offect <= multi_cis_rx_temp_buf_len);
                 if (multi_cis_data_offect >= multi_cis_rx_temp_buf_len) {
                     /* put_buf((void *)multi_cis_rx_buf, multi_cis_rx_temp_buf_len); */

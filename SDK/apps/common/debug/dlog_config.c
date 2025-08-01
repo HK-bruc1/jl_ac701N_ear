@@ -7,6 +7,7 @@
 #include "norflash.h"
 #include "system/includes.h"
 
+#if TCFG_DEBUG_DLOG_ENABLE
 extern u32 __attribute__((weak)) dlog_log_data_start_addr[];
 
 __attribute__((weak))
@@ -426,7 +427,6 @@ REGISTER_DLOG_OPS(ex_flash_op, 0) = {
 #endif
 
 
-#if TCFG_DEBUG_DLOG_ENABLE
 u16 dlog_read_log_data(u8 *buf, u16 len, u32 offset)
 {
     u16 ret = -1;
@@ -447,7 +447,6 @@ u16 dlog_read_log_data(u8 *buf, u16 len, u32 offset)
 
     return ret;
 }
-#endif
 
 
 #if 0  // dlog demo
@@ -534,4 +533,6 @@ u32 dlog_get_rtc_time_ms(void)
     u32 time_ms = get_sys_time_ms();  // get_sys_time_ms函数需要自行实现, 此处仅示例
     return time_ms;
 }
+#endif
+
 #endif

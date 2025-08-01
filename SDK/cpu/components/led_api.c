@@ -137,7 +137,6 @@ static void led_effect_output_by_hardware(led_pdata_t *led_effect, int cbpriv)
         pwm_led_hw_close();
         return;
     }
-    pwm_led_hw_close();
     pwm_led_hw_init(&pled);
 }
 

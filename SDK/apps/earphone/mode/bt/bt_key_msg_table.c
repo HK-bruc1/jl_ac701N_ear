@@ -146,6 +146,11 @@ int bt_key_power_msg_remap(int *msg)
         case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CALL_HANGUP;
             break;
+#if 0
+        case KEY_ACTION_TRIPLE_CLICK:
+            app_msg = APP_MSG_REC_PP;
+            break;
+#endif
         default:
             break;
         }

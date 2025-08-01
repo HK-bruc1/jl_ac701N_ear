@@ -20,13 +20,17 @@ struct esco_tx_sync_node {
 struct esco_tx_hdl {
     u8 start;
     u8 reference_network;
+    u8 swb;
+    u8 sync_index;
     u8 tx_frames;
     u8 bt_addr[6];
+    struct stream_node *node;
     struct list_head sync_list;
 };
 
 static void esco_tx_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
+    struct esco_tx_hdl *hdl = (struct esco_tx_hdl *)iport->node->private_data;
     struct stream_frame *frame;
 
     while (1) {
@@ -35,7 +39,19 @@ static void esco_tx_handle_frame(struct stream_iport *iport, struct stream_note 
             break;
         }
         /*printf("esco_tx: %d\n", frame->len);*/
-        lmp_private_send_esco_packet(NULL, frame->data, frame->len);
+        if (hdl->swb) {
+            u8 sco_frame[60];
+            u8 H2_header_index[4] = {0x08, 0x38, 0xC8, 0xF8};
+            sco_frame[0] = 0x01;
+            sco_frame[1] = H2_header_index[hdl->sync_index++];
+            if (hdl->sync_index >= 4) {
+                hdl->sync_index = 0;
+            }
+            memcpy(&sco_frame[2], frame->data, frame->len);
+            lmp_private_send_esco_packet(NULL, sco_frame, 60);
+        } else {
+            lmp_private_send_esco_packet(NULL, frame->data, frame->len);
+        }
 
         jlstream_free_frame(frame);
     }
@@ -69,13 +85,26 @@ static void esco_tx_open_iport(struct stream_iport *iport)
 
     INIT_LIST_HEAD(&hdl->sync_list);
     hdl->reference_network = 0xff;
+    hdl->node = iport->node;
     iport->handle_frame = esco_tx_handle_frame;
 }
 
 static void esco_tx_set_bt_addr(struct esco_tx_hdl *hdl, void *bt_addr)
 {
+    int media_type = lmp_private_get_esco_packet_type() & 0xff;
+
     memcpy(hdl->bt_addr, bt_addr, 6);
 
+    if (media_type == 2) {
+        struct stream_enc_fmt fmt = {
+            .channel = 1,           /*Mono*/
+            .bit_rate = 62000,      /*61867bits/s*/
+            .sample_rate = 32000,   /*32Khz*/
+            .frame_dms = 75,        /*7.5ms*/
+            .coding_type = AUDIO_CODING_LC3,
+        };
+        jlstream_node_ioctl(jlstream_for_node(hdl->node), NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&fmt);
+    }
 
     bt_edr_conn_system_clock_init(hdl->bt_addr, 1);
 }
@@ -92,10 +121,15 @@ static int esco_tx_ioc_fmt_nego(struct stream_iport *iport)
         in_fmt->sample_rate = 8000;
         in_fmt->coding_type = AUDIO_CODING_CVSD;
         hdl->tx_frames = frame_time == 12 ? 60 : 30;
-    } else  {
+    } else if (media_type == 1) {
         in_fmt->sample_rate = 16000;
         in_fmt->coding_type = AUDIO_CODING_MSBC;
         hdl->tx_frames = frame_time == 12 ? 120 : 60;
+    } else {
+        in_fmt->sample_rate = 32000;
+        in_fmt->coding_type = AUDIO_CODING_LC3;
+        hdl->tx_frames = 60;
+        hdl->swb = 1;
     }
     in_fmt->channel_mode = AUDIO_CH_MIX;
 

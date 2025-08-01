@@ -313,7 +313,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
 #endif
         }
 #endif
-        if (role == TWS_ROLE_MASTER) {
+        if (role != TWS_ROLE_SLAVE) {
             //master enable
             log_info("master do icon_open\n");
             if (phone_link_connection) {
@@ -369,6 +369,9 @@ static void rcsp_bt_tws_event_handler(int *msg)
         } else {
             ble_adv_miss_flag = 0;
         }
+        break;
+    case TWS_EVENT_CONNECTION_TIMEOUT:
+        rcsp_ble_adv_enable_with_con_dev();
         break;
     case TWS_EVENT_CONNECTION_DETACH:
         /*
@@ -490,7 +493,7 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
         if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
             rcsp_ble_adv_enable_with_con_dev();
         } else {
-            if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
                 rcsp_ble_adv_enable_with_con_dev();
             } else {
                 rcsp_bt_ble_adv_enable(0);
@@ -541,7 +544,7 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
         if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
             rcsp_ble_adv_enable_with_con_dev();
         } else {
-            if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
                 rcsp_ble_adv_enable_with_con_dev();
             }
         }

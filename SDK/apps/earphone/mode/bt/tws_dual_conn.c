@@ -113,7 +113,7 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
     }
 #elif (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
     g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
-#if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
     if (bt_get_total_connect_dev() == 0) {
         if (tws_api_get_role() != TWS_ROLE_SLAVE) {
             scan_enable = 1;

@@ -650,6 +650,7 @@
 <Unit filename="apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.h" />
+<Unit filename="apps/common/third_party_profile/app_ble_ancs_ams/app_ble_ancs_ams.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_ble.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_ble.h" />
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_gatt_over_edr.c"><Option compilerVer="CC"/></Unit>
@@ -994,6 +995,7 @@
 <Unit filename="apps/common/update/update_tws_new_less.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/app_main.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/jlstream_event_handler.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/audio/mix_record_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/scene_switch.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/tone_table.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/audio/vol_sync.c"><Option compilerVer="CC"/></Unit>
@@ -1063,6 +1065,7 @@
 <Unit filename="apps/earphone/include/linein_dev.h" />
 <Unit filename="apps/earphone/include/low_latency.h" />
 <Unit filename="apps/earphone/include/mic_effect.h" />
+<Unit filename="apps/earphone/include/mix_record_api.h" />
 <Unit filename="apps/earphone/include/pbg_user.h" />
 <Unit filename="apps/earphone/include/pc.h" />
 <Unit filename="apps/earphone/include/phone_call.h" />
@@ -1508,7 +1511,6 @@
 <Unit filename="cpu/br28/lua_port_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/overlay_code.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/overlay_code.h" />
-<Unit filename="cpu/br28/periph/led/pwm_led.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/mcpwm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/rdec.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br28/periph/touch/lp_touch_key.c"><Option compilerVer="CC"/></Unit>
@@ -1526,6 +1528,7 @@
 <Unit filename="cpu/components/ir_decoder.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/ir_encoder.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/led_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/pwm_led_v1.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/rdec_soft.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/touch/lp_touch_key_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/two_io_led.c"><Option compilerVer="CC"/></Unit>
@@ -1623,7 +1626,6 @@
 <Unit filename="interface/driver/cpu/br28/asm/power/rtc_app.h" />
 <Unit filename="interface/driver/cpu/br28/asm/power_interface.h" />
 <Unit filename="interface/driver/cpu/br28/asm/rdec.h" />
-<Unit filename="interface/driver/cpu/br28/asm/rtc.h" />
 <Unit filename="interface/driver/cpu/br28/asm/sdmmc.h" />
 <Unit filename="interface/driver/cpu/br28/asm/sfc_norflash_api.h" />
 <Unit filename="interface/driver/cpu/br28/asm/sfc_spi.h" />
@@ -1655,6 +1657,7 @@
 <Unit filename="interface/driver/cpu/periph/two_io_led.h" />
 <Unit filename="interface/driver/cpu/periph/uart.h" />
 <Unit filename="interface/driver/device/inside_flash.h" />
+<Unit filename="interface/driver/device/rtc/rtc_dev.h" />
 <Unit filename="interface/driver/device/sdmmc/sdmmc.h" />
 <Unit filename="interface/driver/device/usb/ch9.h" />
 <Unit filename="interface/driver/device/usb/device/custom_hid.h" />
@@ -1701,6 +1704,8 @@
 <Unit filename="interface/media/audio_general.h" />
 <Unit filename="interface/media/audio_iis.h" />
 <Unit filename="interface/media/audio_splicing.h" />
+<Unit filename="interface/media/audio_src.h" />
+<Unit filename="interface/media/audio_src_base.h" />
 <Unit filename="interface/media/audio_time.h" />
 <Unit filename="interface/media/automute.h" />
 <Unit filename="interface/media/bt_audio_timestamp.h" />
@@ -1717,9 +1722,6 @@
 <Unit filename="interface/media/cpu/br28/asm/anc.h" />
 <Unit filename="interface/media/cpu/br28/asm/audio_common.h" />
 <Unit filename="interface/media/cpu/br28/asm/audio_link.h" />
-<Unit filename="interface/media/cpu/br28/asm/audio_src.h" />
-<Unit filename="interface/media/cpu/br28/asm/audio_src_base.h" />
-<Unit filename="interface/media/cpu/br28/asm/audio_sync_resample.h" />
 <Unit filename="interface/media/cpu/br28/asm/cpu_includes.h" />
 <Unit filename="interface/media/cpu/br28/asm/dac.h" />
 <Unit filename="interface/media/cpu/br28/asm/hw_eq.h" />
@@ -1835,6 +1837,7 @@
 <Unit filename="interface/media/framework/include/encoder_node.h" />
 <Unit filename="interface/media/framework/include/jldemuxer.h" />
 <Unit filename="interface/media/framework/include/jlstream.h" />
+<Unit filename="interface/media/framework/include/jlstream_report.h" />
 <Unit filename="interface/media/framework/include/node_uuid.h" />
 <Unit filename="interface/media/framework/include/source_node.h" />
 <Unit filename="interface/media/hw_fft.h" />

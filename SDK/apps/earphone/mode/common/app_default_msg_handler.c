@@ -25,6 +25,7 @@
 #include "app_music.h"
 #include "usb/device/usb_stack.h"
 #include "effects/audio_spk_eq.h"
+#include "mix_record_api.h"
 
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
@@ -228,6 +229,18 @@ void app_common_key_msg_handler(int *msg)
         }
         app_send_message(APP_MSG_MUTE_CHANGED, sys_audio_mute_statu);
         break;
+    case APP_MSG_REC_PP:
+#if TCFG_MIX_RECORD_ENABLE
+        printf("\n APP_MSG_REC_PP \n");
+        if (get_mix_recorder_status()) {
+            mix_recorder_stop();
+        } else {
+            if (dev_manager_get_phy_logo(dev_manager_find_active(0))) {
+                mix_recorder_start();
+            }
+        }
+#endif
+        break;
     }
 }
 
@@ -267,7 +280,11 @@ int app_common_device_event_handler(int *msg)
         if (true == app_in_mode(APP_MODE_MUSIC)) {
             music_device_msg_handler(msg);
         }
+#endif
+#if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
         ret = dev_status_event_filter(msg);///解码设备上下线， 设备挂载等处理
+#endif
+#if TCFG_APP_MUSIC_EN
         if (ret == true) {
             if (msg[1] == DEVICE_EVENT_IN) {
                 ///设备上线， 非解码模式切换到解码模式播放
@@ -277,6 +294,9 @@ int app_common_device_event_handler(int *msg)
             }
         }
 #endif
+#if TCFG_MIX_RECORD_ENABLE
+        mix_record_device_msg_handler(msg);
+#endif // TCFG_MIX_RECORD_ENABLE
         break;
     case DEVICE_EVENT_FROM_LINEIN:
 #if TCFG_APP_LINEIN_EN

@@ -363,7 +363,7 @@ void rcsp_close_inquiry_scan(bool close_inquiry_scan)
     printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
 #if TCFG_USER_TWS_ENABLE
     if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
-        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+        if (tws_api_get_role() != TWS_ROLE_SLAVE) {
             // 根据已连接设备数量判断是否开关蓝牙广播
             rcsp_ble_adv_enable_with_con_dev();
         }
@@ -417,7 +417,7 @@ void rcsp_ble_adv_enable_with_con_dev()
     u8 conn_num = bt_rcsp_device_conn_num();
     printf("%s, %s, %d, max:%d, conn_num:%d\n", __FILE__, __FUNCTION__, __LINE__, max_con_dev, conn_num);
 #if TCFG_USER_TWS_ENABLE
-    if (TWS_ROLE_MASTER == tws_api_get_role()) {
+    if (TWS_ROLE_SLAVE != tws_api_get_role()) {
 #if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
         if (conn_num >= max_con_dev) {
 #else
@@ -1168,7 +1168,11 @@ void rcsp_bt_ble_init(void)
     app_ble_set_mac_addr(rcsp_server_ble_hdl1, tmp_ble_addr);
 #endif
 
+#if TCFG_USER_TWS_ENABLE
+    ble_module_enable(0);
+#else
     ble_module_enable(1);
+#endif
 
     ble_init_flag = 1;
 }

@@ -164,5 +164,6 @@ void ldoin_wakeup_isr(void);
 void charge_wakeup_isr(void);
 int charge_init(const struct charge_platform_data *data);
 void charge_set_ldo5v_detect_stop(u8 stop);
+void charge_exit_shipping(void);
 
 #endif    //_CHARGE_H_

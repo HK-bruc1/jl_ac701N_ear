@@ -48,6 +48,8 @@ const int CONFIG_STREAM_BIN_ENC_ENABLE = 1;
 const int CONFIG_STREAM_BIN_ENC_ENABLE = 0;
 #endif
 
+const int config_jlstream_node_report_enable = TCFG_CFG_TOOL_ENABLE;
+
 //音频流位宽配置
 #ifndef MEDIA_24BIT_ENABLE
 #define MEDIA_24BIT_ENABLE 		0
@@ -61,7 +63,11 @@ const int config_media_24bit_enable = MEDIA_24BIT_ENABLE;
 #endif
 
 
+#if TCFG_MIX_RECORD_ENABLE
+const int CONFIG_SEAMLESS_RECORDER_ENABLE = 1;
+#else
 const int CONFIG_SEAMLESS_RECORDER_ENABLE = 0;
+#endif
 
 //输出缓存低于该阈值触发一个中断对数据做淡出
 const float const_out_dev_pns_time_ms = 1.0f;
@@ -323,6 +329,10 @@ const int MP3_OUTPUT_LEN = 1;
 #define FAST_FILTER_restrict			0x02 //限制滤波器长度【子带滤波器旁瓣加大，边缘不够陡】
 #define FAST_CHANNEL_restrict			0x04 //混合左右声道，再解码【如果是左右声道独立性较强的歌曲，会牺牲空间感，特别耳机听会听出来的话】
 const int config_mp3_dec_speed_mode 	=  0;//FAST_FREQ_restrict | FAST_FILTER_restrict | FAST_CHANNEL_restrict; //3个开关都置上，是最快的解码模式
+#ifndef TCFG_ENC_MP3_TYPE
+#define TCFG_ENC_MP3_TYPE  0
+#endif
+const int config_mp3_enc_use_layer_3	=  TCFG_ENC_MP3_TYPE;
 #if TCFG_APP_MUSIC_EN
 const int CONFIG_MUSIC_FILE_BUF_SIZE = 4 * 1024;
 #else

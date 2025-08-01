@@ -4,18 +4,24 @@
 #pragma const_seg(".wm8978.text.const")
 #pragma code_seg(".wm8978.text")
 #endif
-#include "iic.h"
+
 #include "wm8978.h"
-#include "clock.h"
+#include "iic_api.h"
+#include "system/includes.h"
 
-//--------------------------------------------------------------------------------
-#define IIC_Init   wm8978_iic_init_io
-#define IIC_Start  wm8978_iic_start
-#define IIC_Stop   wm8978_iic_stop
-#define IIC_Send_Byte  wm8978_iic_sendbyte_io
-#define IIC_Wait_Ack   wm8978_r_ack
-
-
+struct iic_master_config wm8978_iic_config = {
+    .role = IIC_MASTER,
+    .scl_io = IO_PORTA_00,
+    .sda_io = IO_PORTA_01,
+    .io_mode = PORT_INPUT_PULLUP_10K,//上拉或浮空
+    .hdrive = PORT_DRIVE_STRENGT_2p4mA,   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
+    .master_frequency = 100000, //软件iic频率不准(hz)
+    .io_filter = 0,  //软件无效
+};
+static void IIC_Init()
+{
+    iic_init(0, &wm8978_iic_config);
+}
 
 
 //WM8978寄存器值缓存区(总共58个寄存器,0~57),占用116字节内存
@@ -40,20 +46,19 @@ static u16 WM8978_REGVAL_TBL[58] = {
 // 其他,错误代码
 u8 WM8978_Write_Reg(u8 reg, u16 val)
 {
-    IIC_Start();
-    IIC_Send_Byte((WM8978_ADDR << 1) | 0); //发送器件地址+写命令
-    if (IIC_Wait_Ack()) {
+    iic_start(0);
+    if (0 == iic_tx_byte(0, (WM8978_ADDR << 1) | 0)) {
         return 1;    //等待应答(成功?/失败?)
     }
-    IIC_Send_Byte((reg << 1) | ((val >> 8) & 0X01)); //写寄存器地址+数据的最高位
-    if (IIC_Wait_Ack()) {
+    delay_nops(100);
+    if (0 == iic_tx_byte(0, ((reg << 1) | ((val >> 8) & 0X01)))) {
         return 2;    //等待应答(成功?/失败?)
     }
-    IIC_Send_Byte(val & 0XFF);	//发送数据
-    if (IIC_Wait_Ack()) {
+    delay_nops(100);
+    if (0 == iic_tx_byte(0, (val & 0XFF))) {
         return 3;    //等待应答(成功?/失败?)
     }
-    IIC_Stop();
+    iic_stop(0);
     WM8978_REGVAL_TBL[reg] = val;	//保存寄存器值到本地
     return 0;
 }

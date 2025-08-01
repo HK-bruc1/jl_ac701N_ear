@@ -649,7 +649,8 @@ extern void bt_set_support_lhdc_flag(bool flag);
 extern void bt_set_support_lhdc_v5_flag(bool flag);
 /*配置协议栈使用支持LDAC的信息*/
 extern void bt_set_support_ldac_flag(bool flag);
-
+/*配置协议栈使用支持Super Wide Band Speech*/
+extern void bt_set_support_hfp_swb_flag(bool flag);
 
 
 /*有些自选接口用来实现个性化功能流程，回调函数注册，记得常来看看哟*/

@@ -65,11 +65,12 @@ extern u32 bt_audio_reference_clock_time(u8 network);
 #define RF_RSSI_BAD_LEVEL0                  -85
 #define RF_RSSI_BAD_LEVEL1                  -99
 
+
 #define A2DP_STREAM_INFO_DEBUG_PREIOD       500
 
 #define A2DP_STREAM_NO_ERR                  0
 #define A2DP_STREAM_UNDERRUN                1
-#define A2DP_STREAM_OVERRUN                 2
+#define A2DP_STREAM_RELOAD                  2
 #define A2DP_STREAM_MISSED                  3
 #define A2DP_STREAM_DECODE_ERR              4
 #define A2DP_STREAM_LOW_UNDERRUN            5
@@ -92,6 +93,7 @@ extern u32 bt_audio_reference_clock_time(u8 network);
 #define QUALCOMM_WIFI_COEXIST_INTERVAL      65
 #define RX_INTERVAL_DETECT_PERIOD           30000
 
+
 #define LATENCY_ADAPTIVE_MISSED_PACKET      3
 #define LATENCY_ADAPTIVE_INIT               2
 #define LATENCY_ADAPTIVE_UP                 1
@@ -111,22 +113,21 @@ extern u32 bt_audio_reference_clock_time(u8 network);
 #define ADAPTIVE_OVERRUN_DETECT_PERIOD          120000
 #define ADAPTIVE_UNDERRUN_DETECT_PERIOD         5000
 #define ADAPTIVE_COMPENSATION_VALUE             50
+#define FILL_MISSED_PACKET_DISCRETE_THRESHOLD   -10
 
 struct a2dp_stream_control {
     u8 plan;
     u8 stream_error;
-    u8 frame_free;
     u8 first_in;
     u8 low_latency;
     u8 jl_dongle;
+    u8 fill_missed_packet;
     u8 repair_frame[2];
     u8 overrun_detect_enable;
     s8 link_rssi;
     u16 timer;
     u16 seqn;
-    u16 overrun_seqn;
     u16 missed_num;
-    s16 repair_num;
     s16 initial_latency;
     u16 initial_compensation;
     s16 adaptive_latency;
@@ -138,9 +139,8 @@ struct a2dp_stream_control {
     u32 underrun_detect_timeout;
     u32 underrun_time;
     u32 codec_type;
-    u32 frame_time;
+    u32 fill_missed_cooldown_time;
     void *stream;
-    void *sample_detect;
     u32 next_timestamp;
     void *underrun_signal;
     void (*underrun_callback)(void *);
@@ -156,6 +156,7 @@ struct a2dp_stream_control {
     int total_underrun_num[2];
     int total_missed_num;
     u32 stream_info_timeout;
+    u32 underrun_cooldown_time;
     u32 bit_rate;
     u32 reload_time;
     u32 underflow_time;
@@ -437,6 +438,116 @@ static void a2dp_stream_missed_adaptive_handler(struct a2dp_stream_control *ctrl
     }
 }
 
+static int a2dp_stream_fill_missed_packet_enable(struct a2dp_stream_control *ctrl)
+{
+    int discrete = ctrl->adaptive_max_latency - ctrl->latency;
+    if (!ctrl->fill_missed_packet) {
+        if (discrete >= FILL_MISSED_PACKET_DISCRETE_THRESHOLD) {
+            if (time_after(jiffies, ctrl->fill_missed_cooldown_time)) {
+                ctrl->fill_missed_packet = 1;
+            }
+        } else {
+            ctrl->fill_missed_cooldown_time = jiffies + msecs_to_jiffies(5000);
+        }
+    } else {
+        if (discrete <= FILL_MISSED_PACKET_DISCRETE_THRESHOLD) {
+            ctrl->fill_missed_packet = 0;
+            ctrl->fill_missed_cooldown_time = jiffies + msecs_to_jiffies(5000);
+        }
+    }
+    return 0;
+}
+
+static int a2dp_stream_adaptive_overrun_restart(struct a2dp_stream_control *ctrl)
+{
+
+    if (ctrl->overrun_detect_enable) {
+        return 0;
+    }
+
+    int min_latency = ctrl->initial_latency + ctrl->initial_compensation;
+    int overrun_period = ctrl->low_latency ? LOW_LATENCY_OVERRUN_DETECT_PERIOD : ADAPTIVE_OVERRUN_DETECT_PERIOD;
+
+    if (ctrl->adaptive_latency > min_latency) {
+        ctrl->overrun_detect_enable = 1;
+        ctrl->overrun_detect_timeout = jiffies + msecs_to_jiffies(overrun_period);
+        ctrl->gap = ctrl->adaptive_latency;
+        r_printf("adaptive start overrun detect.\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+static int a2dp_stream_adaptive_overrun_detect(struct a2dp_stream_control *ctrl)
+{
+    int min_latency = ctrl->initial_latency + ctrl->initial_compensation;
+    int overrun_period = ctrl->low_latency ? LOW_LATENCY_OVERRUN_DETECT_PERIOD : ADAPTIVE_OVERRUN_DETECT_PERIOD;
+    int min_depth_value = ctrl->low_latency ? LOW_LATENCY_ADAPTIVE_MIN_DEPTH : (ctrl->adaptive_latency * ADAPTIVE_MIN_DEPTH_PERCENT / 100);
+
+    if (time_after(jiffies, ctrl->overrun_detect_timeout)) {
+        int discrete = ctrl->adaptive_latency - ctrl->gap;
+        int down_value = 0;
+        if (discrete >= min_latency) { /*离散最大值超过基础延时，谨慎回调*/
+            down_value = 0;
+        } else if (discrete >= min_latency / 2) {
+            down_value = (ctrl->adaptive_latency - min_latency) / 4;
+        } else {
+            if (ctrl->adaptive_latency - min_latency < min_depth_value) {
+                down_value = ctrl->adaptive_latency - min_latency;
+            } else {
+                down_value = (ctrl->adaptive_latency - min_latency) / 2;
+            }
+        }
+        r_printf("adaptive down : %d, %d, %d, %d, %d\n", ctrl->adaptive_latency, discrete, down_value, ctrl->adaptive_latency - down_value, min_latency);
+        ctrl->adaptive_latency -= down_value;
+        if (ctrl->adaptive_latency < min_latency) {
+            ctrl->adaptive_latency = min_latency;
+            ctrl->overrun_detect_enable = 0;
+            r_printf("adaptive back to initial latency, stop overrun detect.\n");
+        } else {
+            ctrl->gap = ctrl->adaptive_latency;
+            ctrl->overrun_detect_timeout = jiffies + msecs_to_jiffies(overrun_period);
+        }
+    }
+
+    return 0;
+}
+
+static int a2dp_stream_adaptive_underrun_prediect(struct a2dp_stream_control *ctrl, u8 rf_quality, int discrete)
+{
+    int min_latency = ctrl->initial_latency + ctrl->initial_compensation;
+    int compensation = ctrl->low_latency ? LOW_LATENCY_COMPENSATION_VALUE : ADAPTIVE_COMPENSATION_VALUE;
+    int underrun_period = ctrl->low_latency ? LOW_LATENCY_UNDERRUN_DETECT_PERIOD : ADAPTIVE_UNDERRUN_DETECT_PERIOD;
+    int min_depth_value = ctrl->low_latency ? LOW_LATENCY_ADAPTIVE_MIN_DEPTH : (ctrl->adaptive_latency * ADAPTIVE_MIN_DEPTH_PERCENT / 100);
+
+    if (discrete >= min_latency) {
+        ctrl->adaptive_latency = ctrl->adaptive_max_latency;
+    } else if (rf_quality < RF_QUALITY_BAD_THRESHOLD) {
+        u16 rf_compensation = (ctrl->adaptive_max_latency - min_latency) / (rf_quality + 1);
+        u16 new_latency = min_latency + rf_compensation;
+        if (ctrl->adaptive_latency < new_latency) {
+            printf("rf quality %d, up : %d, %d\n", rf_quality, ctrl->adaptive_latency, new_latency);
+            ctrl->adaptive_latency = new_latency;
+            if (ctrl->adaptive_latency > ctrl->adaptive_max_latency) {
+                ctrl->adaptive_latency = ctrl->adaptive_max_latency;
+            }
+        }
+    } else if (ctrl->latency < min_depth_value) {
+        if (time_before(jiffies, ctrl->underrun_detect_timeout)) {
+            return -EAGAIN;
+        }
+        ctrl->adaptive_latency += ((min_depth_value - ctrl->latency) + compensation);
+        ctrl->underrun_detect_timeout = jiffies + msecs_to_jiffies(underrun_period);
+        printf("adaptive latency up : %d, %d\n", ctrl->adaptive_latency, (ctrl->latency + compensation));
+        if (ctrl->adaptive_latency > ctrl->adaptive_max_latency) {
+            ctrl->adaptive_latency = ctrl->adaptive_max_latency;
+        }
+    }
+
+    return 0;
+}
+
 /*
  * 自适应延时策略
  */
@@ -454,11 +565,6 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
     gap /= 1000; /*ms*/
 
     int median_depth_value = ctrl->low_latency ? LOW_LATENCY_ADAPTIVE_MEDIAN_DEPTH : (ctrl->adaptive_latency * ADAPTIVE_MEDIAN_DEPTH_PERCENT / 100);
-    int min_depth_value = ctrl->low_latency ? LOW_LATENCY_ADAPTIVE_MIN_DEPTH : (ctrl->adaptive_latency * ADAPTIVE_MIN_DEPTH_PERCENT / 100);
-    int overrun_period = ctrl->low_latency ? LOW_LATENCY_OVERRUN_DETECT_PERIOD : ADAPTIVE_OVERRUN_DETECT_PERIOD;
-    int underrun_period = ctrl->low_latency ? LOW_LATENCY_UNDERRUN_DETECT_PERIOD : ADAPTIVE_UNDERRUN_DETECT_PERIOD;
-    int compensation = ctrl->low_latency ? LOW_LATENCY_COMPENSATION_VALUE : ADAPTIVE_COMPENSATION_VALUE;
-    int min_latency = ctrl->initial_latency + ctrl->initial_compensation;
 
     if (gap < 0) {
         gap = 0;
@@ -467,6 +573,7 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
     int discrete = ctrl->adaptive_latency - gap;
     local_irq_disable();
     int adaptive_latency = ctrl->adaptive_latency;
+    a2dp_stream_fill_missed_packet_enable(ctrl);
 
     u8 rf_quality = a2dp_rf_quality(ctrl);
     if (rf_quality < RF_QUALITY_GOOD_THRESHOLD || gap < median_depth_value) {
@@ -475,13 +582,7 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
             r_printf("adaptive stop overrun detect : %d, %d, %d.\n", rf_quality, gap, median_depth_value);
         }
     } else {
-        if (!ctrl->overrun_detect_enable) {
-            if (ctrl->adaptive_latency > min_latency) {
-                ctrl->overrun_detect_enable = 1;
-                ctrl->overrun_detect_timeout = jiffies + msecs_to_jiffies(overrun_period);
-                ctrl->gap = ctrl->adaptive_latency;
-                r_printf("adaptive start overrun detect.\n");
-            }
+        if (a2dp_stream_adaptive_overrun_restart(ctrl)) {
             local_irq_enable();
             return;
         }
@@ -490,62 +591,12 @@ static void a2dp_stream_adaptive_detect_handler(struct a2dp_stream_control *ctrl
             ctrl->gap = gap;
         }
 
-        if (time_after(jiffies, ctrl->overrun_detect_timeout)) {
-            discrete = ctrl->adaptive_latency - ctrl->gap;
-            int down_value = 0;
-            if (discrete >= min_latency) { /*离散最大值超过基础延时，谨慎回调*/
-                down_value = 0;
-            } else if (discrete >= min_latency / 2) {
-                down_value = (ctrl->adaptive_latency - min_latency) / 4;
-            } else {
-                if (ctrl->adaptive_latency - min_latency < min_depth_value) {
-                    down_value = ctrl->adaptive_latency - min_latency;
-                } else {
-                    down_value = (ctrl->adaptive_latency - min_latency) / 2;
-                }
-            }
-            r_printf("adaptive down : %d, %d, %d, %d, %d\n", ctrl->adaptive_latency, discrete, down_value, ctrl->adaptive_latency - down_value, min_latency);
-            ctrl->adaptive_latency -= down_value;
-            if (ctrl->adaptive_latency < min_latency) {
-                ctrl->adaptive_latency = min_latency;
-                ctrl->overrun_detect_enable = 0;
-                r_printf("adaptive back to initial latency, stop overrun detect.\n");
-            } else {
-                ctrl->gap = ctrl->adaptive_latency;
-                ctrl->overrun_detect_timeout = jiffies + msecs_to_jiffies(overrun_period);
-            }
+        a2dp_stream_adaptive_overrun_detect(ctrl);
 
-        }
         goto exit;
     }
 
-    if (discrete >= min_latency) {
-        ctrl->adaptive_latency = ctrl->adaptive_max_latency;
-    } else if (rf_quality < RF_QUALITY_BAD_THRESHOLD) {
-        u16 rf_compensation = (ctrl->adaptive_max_latency - min_latency) / (rf_quality + 1);
-        u16 new_latency = min_latency + rf_compensation;
-        if (ctrl->adaptive_latency < new_latency) {
-            printf("rf quality %d, up : %d, %d\n", rf_quality, ctrl->adaptive_latency, new_latency);
-            ctrl->adaptive_latency = new_latency;
-            if (ctrl->adaptive_latency > ctrl->adaptive_max_latency) {
-                ctrl->adaptive_latency = ctrl->adaptive_max_latency;
-            }
-        }
-    } else if (gap < min_depth_value) {
-        if (time_before(jiffies, ctrl->underrun_detect_timeout)) {
-            local_irq_enable();
-            return;
-        }
-#if A2DP_STREAM_INFO_DEBUG_ENABLE
-        ctrl->total_underrun_num[0]++;
-#endif
-        ctrl->adaptive_latency += ((min_depth_value - gap) + compensation);
-        ctrl->underrun_detect_timeout = jiffies + msecs_to_jiffies(underrun_period);
-        printf("adaptive latency up : %d, %d\n", ctrl->adaptive_latency, (gap + compensation));
-        if (ctrl->adaptive_latency > ctrl->adaptive_max_latency) {
-            ctrl->adaptive_latency = ctrl->adaptive_max_latency;
-        }
-    }
+    a2dp_stream_adaptive_underrun_prediect(ctrl, rf_quality, discrete);
 
 exit:
     if (ctrl->adaptive_latency != adaptive_latency) {
@@ -722,19 +773,18 @@ static int a2dp_stream_underrun_handler(struct a2dp_stream_control *ctrl, struct
 
     if (ctrl->stream_error != A2DP_STREAM_UNDERRUN) {
 #if A2DP_STREAM_INFO_DEBUG_ENABLE
-        ctrl->total_underrun_num[1]++;
+        ctrl->total_underrun_num[0]++;
 #endif
         ctrl->underrun_time = jiffies;
         ctrl->stream_error = A2DP_STREAM_UNDERRUN;
         a2dp_stream_underrun_adaptive_handler(ctrl);
     }
-    ctrl->repair_num++;
     frame->packet = ctrl->repair_frame;
 
     return sizeof(ctrl->repair_frame);
 }
 
-static int a2dp_stream_overrun_handler(struct a2dp_stream_control *ctrl, struct a2dp_media_frame *frame, int *len)
+static int a2dp_stream_reload_latency_handler(struct a2dp_stream_control *ctrl, struct a2dp_media_frame *frame, int *len)
 {
 #if UNDERFLOW_RELOAD_LATENCY_MODE == 1
     int underrun_time = jiffies_to_msecs(jiffies) - jiffies_to_msecs(ctrl->underrun_time);
@@ -757,7 +807,10 @@ static int a2dp_stream_overrun_handler(struct a2dp_stream_control *ctrl, struct 
 #if A2DP_STREAM_INFO_DEBUG_ENABLE
         ctrl->reload_time = jiffies_to_msecs(jiffies) - jiffies_to_msecs(ctrl->underrun_time);
         printf("total reload time : %dms\n", ctrl->reload_time);
+        ctrl->underrun_cooldown_time = jiffies + msecs_to_jiffies(1500);
 #endif
+        ctrl->fill_missed_packet = 0; /*卡顿后重新加载不对丢包数据进行补包*/
+        ctrl->fill_missed_cooldown_time = jiffies + msecs_to_jiffies(5000);
         return 1;
     }
 
@@ -807,7 +860,7 @@ static int a2dp_stream_error_filter(struct a2dp_stream_control *ctrl, struct a2d
 #if A2DP_STREAM_INFO_DEBUG_ENABLE
             ctrl->underflow_time = jiffies_to_msecs(jiffies) - jiffies_to_msecs(ctrl->underrun_time);
 #endif
-            ctrl->stream_error = A2DP_STREAM_OVERRUN;
+            ctrl->stream_error = A2DP_STREAM_RELOAD;
             err = -EAGAIN;
         } else if (!ctrl->stream_error && (u16)(seqn - ctrl->seqn) > 1) {
             err = -EAGAIN;
@@ -818,22 +871,24 @@ static int a2dp_stream_error_filter(struct a2dp_stream_control *ctrl, struct a2d
 
 #if A2DP_STREAM_INFO_DEBUG_ENABLE
             ctrl->total_missed_num += (missed_num - 1);
+            if (time_after(jiffies, ctrl->underrun_cooldown_time)) {
+                ctrl->total_underrun_num[1]++;
+            }
 #endif
             if (missed_num > 10) {
                 missed_num = 10;
             }
             a2dp_stream_missed_adaptive_handler(ctrl);
-            if (ctrl->max_capacity > ctrl->adaptive_max_latency * 3 / 2) { /*接收缓冲容量较大补包数量适当放宽*/
-                ctrl->missed_num = a2dp_media_get_remain_play_time(ctrl->stream, 1) < ctrl->adaptive_latency ? missed_num : 1;//(u16)(seqn - ctrl->seqn);
+            if (ctrl->fill_missed_packet) { /*补包仅在收包稳定情况下丢包后补包*/
+                ctrl->missed_num = missed_num + 1;
             } else {
-                ctrl->missed_num = a2dp_media_get_remain_play_time(ctrl->stream, 1) < ctrl->initial_latency ? 2 : 1;//(u16)(seqn - ctrl->seqn);
+                ctrl->missed_num = 1;
             }
             ctrl->stream_error = A2DP_STREAM_MISSED;
 #if A2DP_STREAM_INFO_DEBUG_ENABLE
-            printf("packet missed num: %d, seqn %d->%d, rx packets : %d, capacity : %dms\n", ctrl->missed_num, ctrl->seqn, seqn, a2dp_media_get_packet_num(ctrl->stream), ctrl->max_capacity);
+            printf("miss=[%d %d %d] seqn:%d->%d\n", missed_num, a2dp_media_get_packet_num(ctrl->stream), ctrl->max_capacity, ctrl->seqn, seqn);
 #endif
         }
-        ctrl->repair_num = 0;
     }
 
 __exit:
@@ -853,26 +908,17 @@ static void a2dp_stream_info_print(struct a2dp_stream_control *ctrl)
         if (per == 255) {
             per = 0;
         }
-#if A2DP_STREAM_INFO_REGULAR_ENABLE
-        printf("a2dp_stream=[%d, %d, %d, %d, %d, %d, %d, %d, %d]\n",
-               ctrl->latency, a2dp_media_get_packet_num(ctrl->stream), ctrl->adaptive_latency, ctrl->adaptive_max_latency,
-               ctrl->total_missed_num,
-               per, link_rssi, tws_rssi, ctrl->bit_rate / 1000);
-#else
-        printf("a2dp stream info : \n"
-               "latency : %dms, adaptive : %dms, max : %dms\n"
-               "underrun : %d，%d\n"
-               "packet missed : %d\n"
-               /*"packet interval : %dms\n"*/
-               "rf_quality : %d,  %d, %d, %d\n"
-               "rx buffer : %d\n"
-               "bitrate : %d kbps\n",
-               trl->latency, ctrl->adaptive_latency, ctrl->adaptive_max_latency,
-               ctrl->total_underrun_num[0], ctrl->total_underrun_num[1], ctrl->total_missed_num,
-               per, link_rssi, tws_rssi, ctrl->rf_quality, a2dp_media_get_packet_num(ctrl->stream), ctrl->bit_rate / 1000);
-#endif
+        /*监控变量分为4个可选类型：延时跟踪、蓝牙信号/收包信息、实时码率、卡顿次数
+         * 1、latency=[latency target max_latency]
+         * 2、bt=[frame_num PER RSSI TWS_RSSI]
+         * 3、bitrate=[]
+         * 4、error=[underrun_num missed_underrun_num missed_num]
+         */
+        printf("latency=[%d %d %d] bt=[%d %d %d %d] bitrate=[%d] error=[%d %d %d]\n",
+               ctrl->latency, ctrl->adaptive_latency, ctrl->adaptive_max_latency,
+               a2dp_media_get_packet_num(ctrl->stream), per, link_rssi, tws_rssi, ctrl->bit_rate / 1000,
+               ctrl->total_underrun_num[0], ctrl->total_underrun_num[1], ctrl->total_missed_num);
         ctrl->stream_info_timeout = jiffies + msecs_to_jiffies(A2DP_STREAM_INFO_DEBUG_PREIOD);
-        ctrl->total_missed_num = 0;
     }
 #endif
 }
@@ -892,8 +938,8 @@ int a2dp_stream_control_pull_frame(void *_ctrl, struct a2dp_media_frame *frame, 
 
 try_again:
     switch (ctrl->stream_error) {
-    case A2DP_STREAM_OVERRUN:
-        new_packet = a2dp_stream_overrun_handler(ctrl, frame, len);
+    case A2DP_STREAM_RELOAD:
+        new_packet = a2dp_stream_reload_latency_handler(ctrl, frame, len);
         break;
     case A2DP_STREAM_MISSED:
         new_packet = a2dp_stream_missed_handler(ctrl, frame, len);
@@ -985,5 +1031,9 @@ void a2dp_stream_control_free(void *_ctrl)
         ctrl->timer = 0;
     }
     local_irq_enable();
+#if A2DP_STREAM_INFO_DEBUG_ENABLE
+    printf("a2dp_total_error=[%d %d %d]\n",
+           ctrl->total_underrun_num[0], ctrl->total_underrun_num[1], ctrl->total_missed_num);
+#endif
     free(ctrl);
 }

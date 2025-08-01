@@ -72,6 +72,8 @@
 #define ONLINE_SUB_OP_REFRESH_TASK_INFO_LIST 	0x00000402	//刷新任务堆栈信息列表缓存
 #define ONLINE_SUB_OP_GET_TASK_INFO_LIST 		0x00000403	//获取任务堆栈信息列表缓存
 #define ONLINE_SUB_OP_GET_CACHE_INFO_LIST 		0x00000405	//获取cache效率列表缓存
+#define ONLINE_SUB_OP_NODE_REPORT 		        0x00000406	//节点信息报告
+
 #define ONLINE_SUB_OP_CPU_RESET			 		0x00000505	//设备重启
 #define DEFAULT_ACTION							0x000000FF	//其他工具的数据
 

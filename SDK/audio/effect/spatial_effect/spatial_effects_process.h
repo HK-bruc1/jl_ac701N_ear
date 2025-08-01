@@ -8,6 +8,12 @@
 /*1：音效节点固定输出立体声，0：音效节点根据传进来的ch来输出单声道还是立体声*/
 #define SPATIAL_AUDIO_EFFECT_OUT_STEREO_EN    1
 
+//模式切换是否添加打断提示音，数据流重新开关
+#define SPATIAL_AUDIO_EFFECT_SW_TONE_PLAY     0
+
+#define A2DP_SPATIAL_ON     "A2DPSpatialOn"
+#define A2DP_SPATIAL_OFF    "A2DPSpatialOff"
+
 /* 配置空间音效的起始节点前面的节点和空间音效结束节点的后一个节点
  * 用于配置开关空间音效*/
 /*起始节点uuid和名字*/
@@ -68,6 +74,8 @@ int audio_spatial_effects_data_handler(u8 out_channel, s16 *data, u16 len);
 
 /*空间音频模式选择*/
 void audio_spatial_effects_mode_switch(enum SPATIAL_EFX_MODE mode);
+
+void audio_spatial_effects_mode_switch_tone_play(enum SPATIAL_EFX_MODE mode);
 
 /*默认eq参数设置*/
 int spatial_effect_eq_default_parm_set(char name[16], struct eq_default_parm *get_eq_parm);

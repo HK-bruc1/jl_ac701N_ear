@@ -826,7 +826,7 @@ void bt_rcsp_spp_state_callback(void *hdl, void *remote_addr, u8 state)
 {
     switch (state) {
     case SPP_USER_ST_CONNECT:
-        printf("bt_rcsp rfcomm connect###########\n");
+        printf("bt_rcsp spp comm connect###########\n");
 
         bt_rcsp_set_conn_info(0, remote_addr, true);
 

@@ -3,7 +3,7 @@
 
 #include "typedef.h"
 
-#define AURACAST_SINK_API_VERSION    (20250625)
+#define AURACAST_SINK_API_VERSION    (20250721)
 
 // max config
 #define MAX_NUM_BIS 1
@@ -20,7 +20,7 @@ enum {
 
 typedef struct {
     uint8_t source_mac_addr[6];
-    uint8_t broadcast_name[28];
+    uint8_t broadcast_name[33];
     uint8_t Address_Type;
     uint8_t Advertising_SID;
     uint8_t feature;

@@ -35,6 +35,7 @@
 #include "tws_a2dp_play.h"
 #include "esco_player.h"
 #include "clock_manager/clock_manager.h"
+#include "dual_a2dp_play.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
@@ -150,10 +151,17 @@ static inline void app_connected_mutex_post(OS_MUTEX *_mutex, u32 line)
     }
 }
 
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio暂停播歌by a2dp
+ *
+ * @return 1:操作成功, 0:操作失败
+ */
+/* ----------------------------------------------------------------------------*/
 int le_audio_unicast_play_stop_by_a2dp()
 {
     int ret = 0;
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     if (is_cig_music_play()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
             if (app_cig_conn_info[i].used && app_cig_conn_info[i].cig_hdl != 0xff) {
@@ -178,9 +186,15 @@ int le_audio_unicast_play_stop_by_a2dp()
     return ret;
 
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio恢复播歌by a2dp
+ */
+/* ----------------------------------------------------------------------------*/
 void le_audio_unicast_play_resume_by_a2dp()
 {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 data[2];
     if (is_cig_music_play()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
@@ -199,9 +213,16 @@ void le_audio_unicast_play_resume_by_a2dp()
 
 #endif
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio暂停播歌by phone call
+ * 			LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK的时候使用
+ */
+/* ----------------------------------------------------------------------------*/
 void le_audio_unicast_play_remove_by_phone_call()
 {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 data[2];
     if (is_cig_acl_conn()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
@@ -212,10 +233,10 @@ void le_audio_unicast_play_remove_by_phone_call()
                 }
             }
             data[0] = CIG_EVENT_OPID_REQ_REMOVE_CIS;//fix dongle must remove cis
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
             data[1] = REMOVE_CIS_ESCO_MIX;
-#if (TCFG_BLE_HIGH_PRIORITY_ENABLE==0)
-#error "waring TCFG_BLE_HIGH_PRIORITY_ENABLE=1"
+#if (TCFG_BLE_HIGH_PRIORITY_ENABLE == 0)
+#error "warning TCFG_BLE_HIGH_PRIORITY_ENABLE need = 1"
 #endif
 #else
 
@@ -227,16 +248,23 @@ void le_audio_unicast_play_remove_by_phone_call()
 #endif
 
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio恢复播歌by phone hangup
+ * 			LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK的时候使用
+ */
+/* ----------------------------------------------------------------------------*/
 void le_audio_unicast_try_resume_play_by_phone_call_remove()
 {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 data[2];
     if (is_cig_acl_conn()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
             if (app_cig_conn_info[i].used) {
                 r_printf("le_audio_unicast_try_resume_play_by_phone_call_remove");
                 data[0] = CIG_EVENT_OPID_REQ_CREAT_CIS;
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
                 data[1] = REMOVE_CIS_ESCO_MIX;
 #else
                 data[1] = REMOVE_CIS_REASON_BY_ESCO;
@@ -248,10 +276,19 @@ void le_audio_unicast_try_resume_play_by_phone_call_remove()
     }
 #endif
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio暂停播歌by esco
+ * 			LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX的时候使用
+ *
+ * @return 1:操作成功, 0:操作失败
+ */
+/* ----------------------------------------------------------------------------*/
 int le_audio_unicast_play_stop_by_esco()
 {
     int ret = 0;
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     if (is_cig_music_play()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
             if (app_cig_conn_info[i].used && app_cig_conn_info[i].cig_hdl != 0xff) {
@@ -267,9 +304,16 @@ int le_audio_unicast_play_stop_by_esco()
     return ret;
 
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio恢复播歌by esco
+ * 			LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX的时候使用
+ */
+/* ----------------------------------------------------------------------------*/
 void le_audio_unicast_play_resume_by_esco()
 {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 data[2];
     if (is_cig_music_play()) {
         for (u8 i = 0; i < CIG_MAX_NUMS; i++) {
@@ -373,6 +417,7 @@ static int app_connected_conn_status_event_handler(int *msg)
 
         if (find) {
             g_le_audio_hdl.cig_phone_conn_status |= APP_CONNECTED_STATUS_MUSIC;
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
             if (hdl->Max_PDU_P_To_C) {
                 u8 now_call_vol  = vcs_server_get_volume(hdl->acl_hdl) * 15 / 255;
                 //set call volume
@@ -382,15 +427,16 @@ static int app_connected_conn_status_event_handler(int *msg)
                 log_info("cis call to stop tone");
                 tone_player_stop();
             }
+#endif
         }
 #if TCFG_USER_TWS_ENABLE
         tws_sync_le_audio_conn_info();
 #endif
 
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
         a2dp_suspend_by_le_audio();
 
-#elif (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#elif (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
         clock_refurbish();
         if (hdl->Max_PDU_P_To_C) {
             //dongle通话不叠加手机播歌，关闭a2dp,dongle cis 通话+手机a2dp+tws声音叠,帧长需要12.5ms,
@@ -428,7 +474,7 @@ static int app_connected_conn_status_event_handler(int *msg)
                 if (app_cig_conn_info[i].used) {
                     if (app_cig_conn_info[i].cig_hdl == hdl->cig_hdl) {
 #if TCFG_BT_DUAL_CONN_ENABLE
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
                         if (app_cig_conn_info[i].break_a2dp_by_le_audio_call) {
                             app_cig_conn_info[i].break_a2dp_by_le_audio_call = 0;
                             try_a2dp_resume_by_le_audio_preempted();
@@ -469,7 +515,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         tws_sync_le_audio_conn_info();
 #endif
 #if TCFG_BT_DUAL_CONN_ENABLE
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
         try_a2dp_resume_by_le_audio_preempted();
 #endif
 #endif
@@ -548,7 +594,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             break;
         }
 #endif
-#if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
 #else
         int connect_device      = bt_get_total_connect_dev();
         log_info("app_le_connected connect_device=%d\n", connect_device);
@@ -560,7 +606,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             bt_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);
         }
 #endif
-#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN)))
         for (i = 0; i < CIG_MAX_NUMS; i++) {
             for (j = 0; j < CIG_MAX_CIS_NUMS; j++) {
                 if (!app_cig_conn_info[i].cis_conn_info[j].acl_hdl) {
@@ -594,7 +640,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             }
         }
 
-#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         if (get_le_audio_jl_dongle_device_type()) {
             cig_event_to_user(CIG_EVENT_JL_DONGLE_DISCONNECT, (void *)&acl_info->acl_hdl, 2);
         }
@@ -621,13 +667,13 @@ static int app_connected_conn_status_event_handler(int *msg)
         dual_conn_page_device();
 #endif
         break;
-#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     case CIG_EVENT_JL_DONGLE_CONNECT:
         if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_CONNECT) {
             break;
         }
         /* app_cig_conn_info[i].cis_conn_info[j].acl_hdl = hdl->acl_hdl; */
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG==0)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG == 0)
         bt_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
         bt_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL);
         clr_device_in_page_list();
@@ -635,7 +681,7 @@ static int app_connected_conn_status_event_handler(int *msg)
 #endif
     case CIG_EVENT_PHONE_CONNECT:
         log_info("CIG_EVENT_PHONE_CONNECT");
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         g_le_audio_hdl.cig_phone_conn_status |= APP_CONNECTED_STATUS_CONNECT;
         le_audio_adv_api_enable(0);
         int edr_total_connect_dev = bt_get_total_connect_dev();
@@ -1169,7 +1215,7 @@ void le_audio_adv_api_enable(u8 en)
         return;
     }
     if (en) {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         if (is_cig_phone_conn()) {
             r_printf("have cig_phone_conn");
             return;
@@ -1397,7 +1443,7 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
 
         break;
     case VENDOR_PRIV_LC3_INFO:
-        set_unicast_lc3_info(&cmd[1], len);
+        set_unicast_lc3_info(&cmd[1], len - 1);
         break;
     case VENDOR_PRIV_OPEN_MIC:
         app_send_message(APP_MSG_LE_AUDIO_CALL_OPEN, handle);
@@ -1545,7 +1591,7 @@ static int le_audio_app_msg_handler(int *msg)
 #endif
         le_audio_surport_config(msg[1]);
         break;
-#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN))
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     case APP_MSG_LE_AUDIO_CALL_OPEN:
         g_le_audio_hdl.cig_phone_conn_status |= APP_CONNECTED_STATUS_PHONE_CALL;
         connected_perip_connect_recoder(1, msg[1]);
@@ -1554,7 +1600,7 @@ static int le_audio_app_msg_handler(int *msg)
         g_le_audio_hdl.cig_phone_conn_status &= ~APP_CONNECTED_STATUS_PHONE_CALL;
         connected_perip_connect_recoder(0, msg[1]);
 #if TCFG_BT_DUAL_CONN_ENABLE
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
         for (int i = 0; i < CIG_MAX_NUMS; i++) {
             if (app_cig_conn_info[i].used && app_cig_conn_info[i].break_a2dp_by_le_audio_call) {
                 app_cig_conn_info[i].break_a2dp_by_le_audio_call = 0;
@@ -1579,8 +1625,8 @@ static int le_audio_conn_btstack_event_handler(int *_event)
     log_info("le_audio_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_FIRST_CONNECTED:
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
-#if LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
         le_audio_adv_api_enable(1);//手机连接成功后，继续开广播给dongle连接
 #else
         le_audio_adv_api_enable(0);
@@ -1792,6 +1838,7 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         cpu_reset();//开关le_audio之后重新reset重启,初始化相关服务
         break;
     case LE_AUDIO_CONN_STATUES:
+        puts("LE_AUDIO_CONN_STATUES\n");
         g_le_audio_hdl.cig_phone_other_conn_status = data[1];
 #if TCFG_AUTO_SHUT_DOWN_TIME
         if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) {
@@ -1799,8 +1846,11 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         }
 #endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
-        clr_device_in_page_list();
-        bt_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);
+        if ((g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) || (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_CONNECT)) {
+            puts("le_audio connect, close page\n");
+            clr_device_in_page_list();
+            bt_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);
+        }
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             tws_dual_conn_state_handler();
         }

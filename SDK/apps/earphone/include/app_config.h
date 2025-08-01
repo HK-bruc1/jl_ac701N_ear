@@ -71,6 +71,7 @@
 #define    XIMALAYA_EN              (1 << 16)
 #define    AURACAST_APP_EN          (1 << 17)
 #define    MULTI_CLIENT_EN          (1 << 18)
+#define    ANCS_AMS_MODE_EN         (1 << 19)
 
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #define THIRD_PARTY_PROTOCOLS_SEL  TCFG_THIRD_PARTY_PROTOCOLS_SEL
@@ -127,6 +128,10 @@
 #endif
 #endif
 
+#if (TCFG_THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN) && (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
+#error "谷歌快连和unicast不支持同时配置，这两个功能开机不能同时初始化；如果想要同时配置，可以自行添加流程让上位机实现两个功能的二选一后开机重启初始化"
+#endif
+
 #ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
 #define TCFG_JL_UNICAST_BOUND_PAIR_EN 0				// 可通过JL小板实现耳机和Dongle的绑定配对
 #endif
@@ -135,13 +140,19 @@
 // #define  TCFG_LOWPOWER_LOWPOWER_SEL 0x0//低功耗连接还有问题
 #endif
 
-#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK           BIT(1) //支持dongle和手机保持连接,声音互抢
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK           BIT(1) //支持dongle和手机保持连接,声音互抢
 #define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX                  BIT(2) //支持dongle和手机保持连接,声音叠加
 
-#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG  LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK
+#ifndef LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_SWITCH
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_SWITCH 0 // JL_UNICAST、EDR一拖二使能
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN) && LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_SWITCH
+#ifndef LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG  LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK
+#endif
 #else
-#define LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG  0
+#undef LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG  0
 #endif
 
 
@@ -180,7 +191,11 @@
 #define TCFG_MUSIC_PLAYER_ENABLE   TCFG_APP_MUSIC_EN
 #endif
 
-#if TCFG_APP_MUSIC_EN
+#ifndef TCFG_MIX_RECORD_ENABLE
+#define TCFG_MIX_RECORD_ENABLE     0
+#endif
+
+#if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
 #define TCFG_DEV_MANAGER_ENABLE					  			1
 #elif TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
 #define TCFG_DEV_MANAGER_ENABLE					  			0
@@ -207,7 +222,7 @@
 //*********************************************************************************//
 #if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #define CONFIG_FATFS_ENABLE                                 1
-#elif TCFG_SD0_ENABLE || TCFG_SD1_ENABLE || TCFG_UDISK_ENABLE || TCFG_NOR_FAT
+#elif TCFG_SD0_ENABLE || TCFG_SD1_ENABLE || TCFG_UDISK_ENABLE || TCFG_NOR_FAT || TCFG_NANDFLASH_DEV_ENABLE
 #define CONFIG_FATFS_ENABLE                                 1
 #else
 #define CONFIG_FATFS_ENABLE                                 0
@@ -247,6 +262,22 @@
 
 #ifndef MBEDTLS_AES_SELF_TEST
 #define MBEDTLS_AES_SELF_TEST   0
+#endif
+
+#ifndef TCFG_NOR_REC
+#define TCFG_NOR_REC         0
+#endif
+
+#ifndef FLASH_INSIDE_REC_ENABLE
+#define FLASH_INSIDE_REC_ENABLE     0
+#endif
+
+#ifndef TCFG_REC_FOLDER_NAME
+#define TCFG_REC_FOLDER_NAME "JL_REC"
+#endif
+#ifndef TCFG_REC_FILE_NAME
+#define TCFG_REC_FILE_NAME "aud_****"
+#define TCFG_REC_FILE_NAME_PREFIX	"aud_"			//录音文件前缀名
 #endif
 
 #if !(THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
@@ -492,8 +523,8 @@
 //*********************************************************************************//
 #define BT_NORMAL_HZ	            24000000
 
-
-
+//*********************************************************************************//
+#define RTC_CLK_RES_SEL	            CLK_SEL_32K
 
 
 //*********************************************************************************//
@@ -791,6 +822,11 @@
 #define TCFG_VAD_LOWPOWER_CLOCK             VAD_CLOCK_USE_RC_AND_BTOSC
 #define CONFIG_BOARD_AISPEECH_VAD_ASR
 #endif /*TCFG_AUDIO_ASR_DEVELOP*/
+
+//关键词KWS是离线识别的一个子功能，不能同时开启
+#if TCFG_SMART_VOICE_ENABLE && TCFG_KWS_VOICE_RECOGNITION_ENABLE
+#error "smart voice and kws voice recognition can not be enabled at the same time"
+#endif
 
 /*
  *蓝牙音频能量检测使能配置

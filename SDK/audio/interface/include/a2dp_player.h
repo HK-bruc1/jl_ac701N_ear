@@ -25,6 +25,8 @@ void a2dp_player_low_latency_enable(u8 enable);
 
 extern void a2dp_file_low_latency_enable(u8 enable);
 
+void a2dp_player_reset_spatial_tone_play(u8 mode);
+
 int a2dp_file_pitch_up();
 
 int a2dp_file_pitch_down();

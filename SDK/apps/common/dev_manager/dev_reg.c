@@ -156,6 +156,15 @@ const struct __dev_reg dev_reg[] = {
         /*fs_type*/			"sdfile_fat",
     },
 #endif
+#if (defined TCFG_NANDFLASH_DEV_ENABLE && TCFG_NANDFLASH_DEV_ENABLE)
+    {
+        /*logo*/			"nandflash_ftl",
+        /*name*/			"nandflash_ftl",
+        /*storage_path*/	"storage/nandflash_ftl",
+        /*root_path*/		"storage/nandflash_ftl/C/",
+        /*fs_type*/			"fat",
+    },
+#endif
     //<新加设备参数请在reg end前添加!!
     //<reg end
     {

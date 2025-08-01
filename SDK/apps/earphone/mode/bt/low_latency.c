@@ -126,7 +126,7 @@ void bt_enter_low_latency_mode()
 #if RCSP_MODE && RCSP_ADV_WORK_SET_ENABLE
     rcsp_set_work_mode(RCSPWorkModeGame);
 #else
-    bt_set_low_latency_mode(1, 1, 300);
+    bt_set_low_latency_mode(1, 1, 400);	// a2dp淡出延时较大，这里调大到400ms可以处理杂音问题
 #endif
 }
 
@@ -136,6 +136,6 @@ void bt_exit_low_latency_mode()
 #if RCSP_MODE && RCSP_ADV_WORK_SET_ENABLE
     rcsp_set_work_mode(RCSPWorkModeNormal);
 #else
-    bt_set_low_latency_mode(0, 1, 300);
+    bt_set_low_latency_mode(0, 1, 400);	// a2dp淡出延时较大，这里调大到400ms可以处理杂音问题
 #endif
 }

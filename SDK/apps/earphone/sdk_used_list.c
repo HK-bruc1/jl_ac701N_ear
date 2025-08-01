@@ -274,6 +274,10 @@ m4a_dec_plug
 ape_dec_plug
 #endif
 
+#if TCFG_ENC_MP3_ENABLE
+mp3_encoder_plug
+#endif
+
 #if CONFIG_FATFS_ENABLE
 fat_vfs_ops
 #endif
@@ -369,6 +373,14 @@ sink_dev3_adapter
 
 #if TCFG_SINK_DEV4_NODE_ENABLE
 sink_dev4_adapter
+#endif
+
+#if TCFG_FILE_PACKAGE_NODE_ENABLE
+packager_adapter
+#endif
+
+#if TCFG_WRITE_FILE_NODE_ENABLE
+write_file_adapter
 #endif
 
 #if TCFG_AGC_NODE_ENABLE
@@ -519,6 +531,10 @@ debug_task_record
 
 #if TCFG_SIGNAL_GENERATOR_NODE_ENABLE
 signal_generator_file_plug
+#endif
+
+#if TCFG_ZERO_ACTIVE_NODE_ENABLE
+zero_file_plug
 #endif
 
 #if TCFG_REPLACE_NODE_ENABLE

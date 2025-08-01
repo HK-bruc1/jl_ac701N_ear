@@ -205,7 +205,9 @@ static void plc_ioc_start(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
     hdl->data_wide.oport_data_wide = hdl_node(hdl)->oport->fmt.bit_wide;
     /*log_d("%s bit_wide, %d %d %d\n", __FUNCTION__, hdl->data_wide.iport_data_wide, hdl->data_wide.oport_data_wide, hdl_node(hdl)->oport->fmt.Qval);*/
     if (hdl->scene == STREAM_SCENE_ESCO) {
-        hdl->esco_plc = esco_plc_open(hdl, sr, ch_num);
+        if (sr == 8000 || sr == 16000) { /*窄带、宽带使用PLC模块，SWB使用解码内置PLC*/
+            hdl->esco_plc = esco_plc_open(hdl, sr, ch_num);
+        }
     } else {
 #if TCFG_MUSIC_PLC_ENABLE
         hdl->plc = music_plc_open(hdl, sr,  ch_num);

@@ -196,14 +196,6 @@ REGISTER_LP_TARGET(audio_init_lp_target) = {
     .is_idle = audio_init_complete,
 };
 
-void audio_fast_mode_test()
-{
-    audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_CURRENT_STATE));
-    audio_dac_start(&dac_hdl);
-    audio_adc_mic_demo_open(AUDIO_ADC_MIC_CH, 10, 16000, 1);
-
-}
-
 struct audio_adc_private_param adc_private_param = {
     .mic_ldo_vsel   = TCFG_AUDIO_MIC_LDO_VSEL,
     .mic_ldo_isel   = TCFG_AUDIO_MIC_LDO_ISEL,
@@ -408,7 +400,9 @@ platform_initcall(audio_init);
 
 static void audio_uninit()
 {
-    dac_power_off();
+#if TCFG_DAC_NODE_ENABLE
+    audio_dac_close(&dac_hdl);
+#endif
 }
 platform_uninitcall(audio_uninit);
 
@@ -469,24 +463,6 @@ void dac_power_on_delay()
     os_time_dly(50);
 }
 #endif
-
-void dac_power_on(void)
-{
-    /* log_info(">>>dac_power_on:%d", __this->ref.counter); */
-    if (atomic_inc_return(&__this->ref) == 1) {
-        audio_dac_open(&dac_hdl);
-    }
-}
-
-void dac_power_off(void)
-{
-    /*log_info(">>>dac_power_off:%d", __this->ref.counter);*/
-    if (atomic_read(&__this->ref) != 0 && atomic_dec_return(&__this->ref)) {
-        return;
-    }
-    audio_dac_close(&dac_hdl);
-}
-
 
 #define TRIM_VALUE_LR_ERR_MAX           (600)   // 距离参考值的差值限制
 #define abs(x) ((x)>0?(x):-(x))

@@ -32,6 +32,7 @@
 #include "audio_config.h"
 #include "bt_slience_detect.h"
 #include "clock_manager/clock_manager.h"
+#include "mix_record_api.h"
 #if TCFG_SMART_VOICE_ENABLE
 #include "asr/jl_kws.h"
 #include "smart_voice/smart_voice.h"
@@ -486,7 +487,7 @@ int bt_phone_esco_play(u8 *bt_addr)
         return 1;
     }
     int ret = 0;
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     ret = le_audio_unicast_play_stop_by_esco();
 #endif
     esco_smart_voice_detect_handler();
@@ -540,7 +541,7 @@ int bt_phone_esco_play(u8 *bt_addr)
 #endif
     tws_page_scan_deal_by_esco(1);
     pbg_user_mic_fixed_deal(1);
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     if (ret) {
         le_audio_unicast_play_resume_by_esco();
     }
@@ -553,6 +554,10 @@ int bt_phone_esco_stop(u8 *bt_addr)
 {
 
     if (!esco_player_is_playing(bt_addr)) {
+        if (ed_ctl.timer && memcmp(ed_ctl.esco_addr, bt_addr, 6) == 0) {
+            sys_timer_del(ed_ctl.timer);
+            ed_ctl.timer = 0;
+        }
         puts("esco_player_is_close\n");
         return 0;
     }
@@ -820,6 +825,13 @@ static int bt_phone_status_event_handler(int *msg)
     switch (bt->event) {
     case BT_STATUS_PHONE_INCOME:
         log_info("BT_STATUS_PHONE_INCOME\n");
+#if TCFG_MIX_RECORD_ENABLE
+        // 来电，结束录音
+        if (get_mix_recorder_status()) {
+            printf(">>> BT_STATUS_PHONE_INCOME, Stop recoder!\n");
+            mix_recorder_stop();
+        }
+#endif
         put_buf(bt->args, 6);
         esco_dump_packet = ESCO_DUMP_PACKET_CALL;
         u8 tmp_bd_addr[6];
@@ -875,6 +887,13 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_HANGUP:
         log_info("BT_STATUS_PHONE_HANGUP\n");
+#if TCFG_MIX_RECORD_ENABLE
+        // 挂断电话, 结束录音
+        if (get_mix_recorder_status()) {
+            printf(">>> BT_STATUS_PHONE_HANGUP, Stop recoder!\n");
+            mix_recorder_stop();
+        }
+#endif
         put_buf(bt->args, 6);
 #if SECONDE_PHONE_IN_RING_COEXIST
         second_phone_call_ring_stop(outband_ring_bt_addr_get());
@@ -1163,6 +1182,11 @@ static int call_tws_msg_handler(int *msg)
                     tws_phone_call_send_cmd(CMD_PHONE_INCOME, phone_addr, 1, 1);
                 } else if (!memcmp(outband_ring_bt_addr_get(), phone_addr, 6)) { //后台来电
                     printf("tws_monitor_start_send_ring_cmd");
+                    if (ring_player_runing()) {
+                        y_printf("stop ring, both sides restart ring");
+                        tone_player_stop();
+                        ring_player_stop();
+                    }
                     tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, phone_addr, 0, 1);
                 }
             }

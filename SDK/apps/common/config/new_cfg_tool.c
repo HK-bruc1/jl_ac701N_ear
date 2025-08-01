@@ -21,6 +21,7 @@
 #include "sniff.h"
 #include "system/malloc.h"
 #include "system/task.h"
+#include "jlstream.h"
 #include "cfg_tool_statistics.h"
 #include "cfg_tool_cdc.h"
 
@@ -545,10 +546,16 @@ static void cfg_tool_callback(u8 *packet, u32 size)
     u32 write_len = 0;
     u32 send_len = 0;
     u8 crc_temp_len, sdkname_temp_len;
-    u8 *buf = NULL;
+    u8 *buf;
     u8 *buf_temp = NULL;
     struct resfile_attrs attr;
     RESFILE *cfg_fp = NULL;
+    R_QUERY_SYS_INFO upload_param = {0};
+    int cpu_use[CPU_CORE_NUM] = {0};
+
+    u8 use_malloc_buf = 0;
+    u32 local_buf[128 / 4];
+    buf = (u8 *)local_buf;
 
     switch (cfg_packet.event) {
     case ONLINE_SUB_OP_QUERY_BASIC_INFO:
@@ -587,16 +594,47 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         __this->s_basic_info.support_node_merge = EFF_SUPPORT_NODE_MERGE;
         __this->s_basic_info.comm_type = TCFG_COMM_TYPE;
         send_len = sizeof(__this->s_basic_info);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_basic_info), send_len);
+        buf = (u8 *)&__this->s_basic_info;
         break;
 
     case ONLINE_SUB_OP_CPU_RESET:
         send_len = 2;
-        u8 cpu_reset_ret[] = "OK";
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, cpu_reset_ret, send_len);
+        buf = (u8 *)ok_return;
         sys_timeout_add(NULL, delay_cpu_reset, 500);
+        break;
+    case ONLINE_SUB_OP_NODE_REPORT:
+        // 0x01, 开启
+        // 0x02, 关闭
+        // 0x03, 获取字符描述
+        // 0x04, 读取节点信息
+        /*printf("node_report: %d\n", cfg_packet.packet[8]);*/
+        if (cfg_packet.packet[8] <= 0x2) {
+            int err = 0;
+            u16 uuid = cfg_packet.packet[9] | (cfg_packet.packet[10] << 8);
+            u8 subid = cfg_packet.packet[11];
+            if (cfg_packet.packet[8] == 0x1) {
+                err = jlstream_node_report_create(uuid, subid);
+            } else if (cfg_packet.packet[8] == 0x2) {
+                jlstream_node_report_free(uuid, subid);
+            }
+            if (err == 0) {
+                buf = (u8 *)ok_return;
+            } else {
+                buf = (u8 *)er_return;
+            }
+            send_len = 2;
+        } else if (cfg_packet.packet[8] == 0x3) {
+            buf = (u8 *)jlstream_get_node_report_description();
+            send_len = strlen((const char *)buf);
+        } else if (cfg_packet.packet[8] == 0x4) {
+            bool is_end;
+            int len = jlstream_node_report_read(buf + 4, sizeof(local_buf) - 4, &is_end);
+            buf[0] = len;
+            buf[1] = len >> 8;
+            buf[2] = is_end;
+            buf[3] = 0;
+            send_len = len + 4;
+        }
         break;
 
     case ONLINE_SUB_OP_QUERY_FILE_SIZE:
@@ -604,14 +642,15 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         cfg_fp = cfg_open_file(__this->r_file_size.file_id);
         if (cfg_fp == NULL) {
             log_error("file open error!\n");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;//文件打开失败返回FA
+            break;
         }
 
         resfile_get_attrs(cfg_fp, &attr);
         __this->s_file_size.file_size = attr.fsize;
         send_len = sizeof(__this->s_file_size.file_size);//长度
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_file_size.file_size), send_len);
+        buf = (u8 *)&__this->s_file_size.file_size;
         resfile_close(cfg_fp);
         break;
 
@@ -623,7 +662,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         cfg_fp = cfg_open_file(__this->r_file_content.file_id);
         if (cfg_fp == NULL) {
             log_error("file open error!\n");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;//文件打开失败返回FA
+            break;
         }
         resfile_get_attrs(cfg_fp, &attr);
         if (__this->r_file_content.size > attr.fsize) {
@@ -633,16 +674,15 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
 
         u32 flash_addr = sdfile_cpu_addr2flash_addr(attr.sclust);
-        buf_temp = (u8 *)malloc(__this->r_file_content.size);
-        if (buf_temp == NULL) {
-            log_error("buf_temp malloc err!");
-            goto _exit_;
-        }
-        norflash_read(NULL, (void *)buf_temp, __this->r_file_content.size, flash_addr + __this->r_file_content.offset);
         send_len = __this->r_file_content.size;
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, buf_temp, __this->r_file_content.size);
-        free(buf_temp);
+        if (send_len > sizeof(local_buf)) {
+            buf = malloc(send_len);
+            if (!buf) {
+                break;
+            }
+            use_malloc_buf = 1;
+        }
+        norflash_read(NULL, buf, __this->r_file_content.size, flash_addr + __this->r_file_content.offset);
         resfile_close(cfg_fp);
         break;
 
@@ -656,14 +696,13 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             break;
         }
         resfile_get_attrs(cfg_fp, &attr);
+        resfile_close(cfg_fp);
 
         __this->s_prepare_write_file.file_size = attr.fsize;
         __this->s_prepare_write_file.file_addr = sdfile_cpu_addr2flash_addr(attr.sclust);
         __this->s_prepare_write_file.earse_unit = get_boot_info()->vm.align * 256;
         send_len = sizeof(__this->s_prepare_write_file);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_prepare_write_file), send_len);
-        resfile_close(cfg_fp);
+        buf = (u8 *)&__this->s_prepare_write_file;
 
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"stream.bin");
@@ -675,16 +714,15 @@ static void cfg_tool_callback(u8 *packet, u32 size)
     case ONLINE_SUB_OP_READ_ADDR_RANGE:
         __this->r_read_addr_range.addr = packet_combined(cfg_packet.packet, 8);
         __this->r_read_addr_range.size = packet_combined(cfg_packet.packet, 12);
-        buf_temp = (u8 *)malloc(__this->r_read_addr_range.size);
-        if (buf_temp == NULL) {
-            log_error("buf_temp malloc err!");
-            goto _exit_;
-        }
-        norflash_read(NULL, (void *)buf_temp, __this->r_read_addr_range.size, __this->r_read_addr_range.addr);
         send_len = __this->r_read_addr_range.size;
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, buf_temp, __this->r_read_addr_range.size);
-        free(buf_temp);
+        if (send_len > sizeof(local_buf)) {
+            buf = malloc(send_len);
+            if (!buf) {
+                break;
+            }
+            use_malloc_buf = 1;
+        }
+        norflash_read(NULL, buf, __this->r_read_addr_range.size, __this->r_read_addr_range.addr);
         break;
 
     case ONLINE_SUB_OP_ERASE_ADDR_RANGE:
@@ -703,11 +741,13 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             break;
         default:
             send_len = sizeof(fa_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, fa_return, send_len);
+            buf = (u8 *)fa_return;
             log_error("erase error!");
             break;
         }
+
+        send_len = sizeof(ok_return);
+        buf = (u8 *)ok_return;
 
         for (u8 i = 0; i < (__this->r_erase_addr_range.size / __this->s_prepare_write_file.earse_unit); i ++) {
             flash_w_region_check_en(0);
@@ -715,14 +755,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             flash_w_region_check_en(1);
             if (ret) {
                 send_len = sizeof(fa_return);
-                buf = send_buf_malloc(send_len);
-                memcpy(buf, fa_return, send_len);
+                buf = (u8 *)fa_return;
                 log_error("erase error!");
                 break;
-            } else {
-                send_len = sizeof(ok_return);
-                buf = send_buf_malloc(send_len);
-                memcpy(buf, ok_return, send_len);
             }
         }
         break;
@@ -733,26 +768,26 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         buf_temp = (u8 *)malloc(__this->r_write_addr_range.size);
         if (buf_temp == NULL) {
             log_error("buf_temp malloc err!");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;
+            break;
         }
         memcpy(buf_temp, cfg_packet.packet + 16, __this->r_write_addr_range.size);
         encode_data_by_user_key(get_boot_info()->chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - get_boot_info()->sfc.sfc_base_addr, 0x20);
         flash_w_region_check_en(0);
         write_len = norflash_write(NULL, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr);
         flash_w_region_check_en(1);
+        if (buf_temp) {
+            free(buf_temp);
+        }
 
         if (write_len != __this->r_write_addr_range.size) {
             send_len = sizeof(fa_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, fa_return, send_len);
+            buf = (u8 *)fa_return;
             log_error("write error!");
         } else {
             send_len = sizeof(ok_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, ok_return, send_len);
-        }
-        if (buf_temp) {
-            free(buf_temp);
+            buf = (u8 *)ok_return;
         }
 
         int a = __this->r_write_addr_range.addr + __this->r_write_addr_range.size;
@@ -776,10 +811,8 @@ static void cfg_tool_callback(u8 *packet, u32 size)
 #endif
 
     case ONLINE_SUB_OP_ONLINE_INSPECTION:
-        R_QUERY_SYS_INFO upload_param = {0};
         upload_param.use_mem = memory_get_size(P_MEMORY_USED);//使用的mem;
         upload_param.total_mem = memory_get_size(P_MEMORY_TOTAL);//总的mem
-        int cpu_use[CPU_CORE_NUM] = {0};
         os_cpu_usage(NULL, cpu_use);
         int cpu_usage = 0;
         for (int i = 0; i < CPU_CORE_NUM; i++) {
@@ -789,28 +822,17 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         upload_param.cpu_use_ratio = cpu_usage;
         upload_param.task_num = get_task_info_list_num();
         send_len = sizeof(upload_param);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &upload_param, send_len);
+        buf = (u8 *)&upload_param;
         break;
 
     default: // DEFAULT_ACTION
-        if (buf) {
-            free(buf);
-            buf = NULL;
-        }
         return;
-        break;
-_exit_:
-        send_len = sizeof(fa_return);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, fa_return, sizeof(fa_return));//文件打开失败返回FA
-        break;
     }
 
     all_assemble_package_send_to_pc(REPLY_STYLE, cfg_packet.packet[3], buf, send_len);
-    if (buf) {
+
+    if (buf && use_malloc_buf) {
         free(buf);
-        buf = NULL;
     }
 }
 

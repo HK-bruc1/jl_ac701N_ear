@@ -149,6 +149,9 @@ void spatial_effect_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /*获取节点位宽*/
 u8 get_spatial_effect_node_bit_width();
 
+/*获取节点采样率*/
+u32 get_spatial_effect_node_sample_rate();
+
 /*获取节点bypass*/
 u8 get_spatial_effect_node_bypass();
 

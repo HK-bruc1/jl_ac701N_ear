@@ -4,7 +4,26 @@
 *****************************************************************/
 #ifndef _AUDIO_SRC_BASE_H_
 #define _AUDIO_SRC_BASE_H_
-#include "asm/audio_src.h"
+#include "typedef.h"
+
+#define AUDIO_ONLY_RESAMPLE         1
+#define AUDIO_SYNC_RESAMPLE         2
+#define AUDIO_LOW_LATENCY_RESAMPLE  3
+#define AUDIO_RESAMPLE_SYNC_OUTPUT  4
+#define AUDIO_SRC_HIGH_PERFORMANCE  5
+
+#define AUDIO_SAMPLE_FMT_16BIT      0
+#define AUDIO_SAMPLE_FMT_24BIT      1
+
+#define BIND_AUDSYNC                0x10
+#define SET_RESAMPLE_TYPE(fmt, type)    (((fmt) << 4) | (type))
+#define RESAMPLE_TYPE_TO_FMT(a)         (((a) >> 4) & 0xf)
+#define RESAMPLE_TYPE(a)                ((a) & 0xf)
+
+
+#define INPUT_FRAME_BITS                            18//20 -- 整数位减少可提高单精度浮点的运算精度
+#define RESAMPLE_INPUT_BIT_RANGE                    ((1 << INPUT_FRAME_BITS) - 1)
+#define RESAMPLE_INPUT_BIT_NUM                      (1 << INPUT_FRAME_BITS)
 
 struct resample_frame {
     u8 nch;
@@ -54,8 +73,8 @@ void audio_src_base_close(void *resample);
 
 int audio_src_base_filter_frames(void *resample);
 
-int audio_src_base_push_data_out(void *resample);
 u8 audio_src_base_get_hw_core_id(void *resample);
 
+int audio_src_base_push_data_out(void *resample);
 #endif
 

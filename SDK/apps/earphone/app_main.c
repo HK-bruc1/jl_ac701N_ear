@@ -47,6 +47,7 @@
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
 #include "icsd_adt_app.h"
 #endif
+#include "mix_record_api.h"
 
 #define LOG_TAG             "[APP]"
 #define LOG_ERROR_ENABLE
@@ -96,6 +97,7 @@ const struct task_info task_info_table[] = {
      */
     {"file_dec",            4,     0,  640,   0 },
     {"file_cache",          6,     0,  512 - 128,   0 },
+    {"write_file",		    5,	   0,  512,   0 },
     {"aec_dbg",				3,	   0,   512,   128 },
     {"update",				1,	   0,   256,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
@@ -578,6 +580,13 @@ struct app_mode *app_mode_switch_handler(int *msg)
     if ((app_get_current_mode() != NULL) && (next_mode == app_get_current_mode())) {
         return NULL;
     }
+
+#if TCFG_MIX_RECORD_ENABLE
+    //切换模式前关闭混合录音
+    if (get_mix_recorder_status()) {
+        mix_recorder_stop();
+    }
+#endif // TCFG_MIX_RECORD_ENABLE
 
     err = app_goto_mode(next_mode->name, arg);
 

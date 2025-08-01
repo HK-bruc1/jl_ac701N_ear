@@ -51,10 +51,10 @@ static void update_work_setting_state(void)
 #endif
     if (RCSPWorkModeNormal == g_work_mode) {
         printf("%s, false\n", __FUNCTION__);
-        bt_set_low_latency_mode(0, 1, 300);
+        bt_set_low_latency_mode(0, 1, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
     } else if (RCSPWorkModeGame == g_work_mode) {
         printf("%s, true\n", __FUNCTION__);
-        bt_set_low_latency_mode(1, 1, 300);
+        bt_set_low_latency_mode(1, 1, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
     } else {
         printf("%s, set deal none\n", __FUNCTION__);
     }

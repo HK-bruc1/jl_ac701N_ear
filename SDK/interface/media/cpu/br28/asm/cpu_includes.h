@@ -7,8 +7,6 @@
 #define _ASM_MEDIA_INCLUDES_H_
 
 #include "audio_adc.h"
-#include "asm/audio_src.h"
-#include "asm/audio_sync_resample.h"
 #include "dac.h"
 #include "asm/hw_eq.h"
 

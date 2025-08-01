@@ -210,6 +210,15 @@ u8 get_spatial_effect_node_bit_width()
     return 0;
 }
 
+u32 get_spatial_effect_node_sample_rate()
+{
+    struct spatial_effects_node_hdl *hdl = spatial_effects_hdl;
+    if (hdl) {
+        return hdl->sample_rate;
+    }
+    return 0;
+}
+
 u8 get_spatial_effect_node_bypass()
 {
     struct spatial_effects_node_hdl *hdl = spatial_effects_hdl;

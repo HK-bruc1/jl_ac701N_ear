@@ -7,7 +7,7 @@
 #ifndef _AUDIO_SYNCTS_H_
 #define _AUDIO_SYNCTS_H_
 #include "typedef.h"
-#include "asm/audio_src_base.h"
+#include "audio_src_base.h"
 
 
 #define PCM_INSIDE_DAC                      0

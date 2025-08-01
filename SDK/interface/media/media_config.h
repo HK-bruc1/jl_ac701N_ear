@@ -2,7 +2,6 @@
 #define LIB_MEDIA_CONFIG_H
 
 
-extern const int CONFIG_DAC_CACHE_MSEC;
 extern const int CONFIG_JLSTREAM_MULTI_THREAD_ENABLE;
 extern const int CONFIG_MULTI_THREAD_SELF_ADAPTION_ENABLE;
 extern const int config_media_24bit_enable;
@@ -10,25 +9,22 @@ extern const int CONFIG_SEAMLESS_RECORDER_ENABLE;
 extern const int config_ch_adapter_32bit_enable;
 extern const int config_mixer_32bit_enable;
 extern const int config_jlstream_fade_32bit_enable;
-extern const int config_audio_eq_xfade_enable;
 extern const int config_out_dev_limiter_enable;
 extern const int config_peak_rms_32bit_enable;
 extern const int config_audio_vocal_track_synthesis_32bit_enable;
-
+extern const int config_jlstream_node_report_enable;
 extern const int CONFIG_MAX_ENC_DATA_CACHE_SIZE;
 extern const int CONFIG_LOG_OUTPUT_ENABLE;
 extern const int config_audio_cfg_online_enable;
-extern const int config_audio_dac_dma_buf_realloc_enable;
-extern const int config_audio_dac_delay_off_ms;
 extern const int CONFIG_MEDIA_MEM_DEBUG;
-
+extern const int config_media_tws_en;
+extern const int config_audio_cvp_ref_ch_recognize_enable;
 
 /*
  *******************************************************************
  *						DAC Configs
  *******************************************************************
  */
-extern const int config_audio_dac_enable;
 extern const int config_audio_dac_output_channel;
 extern const int config_audio_dac_output_mode;
 extern const int config_audio_dac_channel_left_enable;
@@ -42,6 +38,10 @@ extern const int config_audio_dac_mute_timeout;
 extern const int config_audio_dac_pa_mode;
 extern const int config_audio_dac_power_mode;
 extern const int config_audio_dac_ng_debug;
+extern const int config_audio_dac_enable;
+extern const int config_audio_dac_dma_buf_realloc_enable;
+extern const int CONFIG_DAC_CACHE_MSEC;
+extern const int config_audio_dac_delay_off_ms;
 
 /*
  *******************************************************************
@@ -82,7 +82,8 @@ extern const int config_audio_eq_hs_q_enable;	//High Shelf Q
 extern const int config_audio_eq_ls_q_enable;	//Low Shelf Q
 extern const int config_audio_eq_hp_adv_enable;	//High Pass Advance
 extern const int config_audio_eq_lp_adv_enable;	//Low Pass Advance
-
+extern const int config_audio_eq_xfade_enable;
+extern const float config_audio_eq_xfade_time;//0：一帧fade完成 非0：连续多帧fade，过度更加平滑，fade过程算力会相应增加(fade时间 范围(0~1)单位:秒)
 /*
  *******************************************************************
  *						SRC Configs

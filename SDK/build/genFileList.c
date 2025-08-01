@@ -800,6 +800,10 @@ c_SRC_FILES += \
     apps/common/third_party_profile/custom_protocol_demo/custom_protocol.c
 #endif
 
+#if (THIRD_PARTY_PROTOCOLS_SEL & ANCS_AMS_MODE_EN)
+c_SRC_FILES += \
+    apps/common/third_party_profile/app_ble_ancs_ams/app_ble_ancs_ams.c
+#endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & SWIFT_PAIR_EN)
 c_SRC_FILES += \
@@ -1736,7 +1740,7 @@ c_SRC_FILES += \
 #if TCFG_LP_TOUCH_KEY_ENABLE
 c_SRC_FILES += \
 	  cpu/br28/periph/touch/lp_touch_key.c \
-	  cpu/br28/periph/touch/lpctmu_hw.c 
+	  cpu/br28/periph/touch/lpctmu_hw.c
 #endif
 
 c_SRC_FILES += \
@@ -1745,7 +1749,7 @@ c_SRC_FILES += \
 
 #if TCFG_PWMLED_ENABLE
 c_SRC_FILES += \
-	  cpu/br28/periph/led/pwm_led.c
+	  cpu/components/pwm_led_v1.c
 #endif
 
 c_SRC_FILES += \
@@ -1785,16 +1789,21 @@ c_SRC_FILES += \
 
 // *INDENT-OFF*
 
-#if TCFG_APP_MUSIC_EN
+#if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
 c_SRC_FILES += \
 	apps/common/dev_manager/dev_reg.c \
 	apps/common/dev_manager/dev_update.c \
+	apps/earphone/mode/common/dev_status.c \
+
+#endif
+
+#if TCFG_APP_MUSIC_EN
+c_SRC_FILES += \
 	apps/common/music/breakpoint.c \
 	apps/common/music/music_decrypt.c \
 	apps/common/music/music_id3.c \
 	apps/common/music/music_player.c \
 	apps/common/file_operate/file_manager.c \
-	apps/earphone/mode/common/dev_status.c \
 	apps/earphone/mode/music/music.c \
 	apps/earphone/mode/music/music_key_msg_table.c \
 	apps/earphone/mode/music/music_app_msg_handler.c \
@@ -1813,6 +1822,12 @@ c_SRC_FILES += \
 c_SRC_FILES += \
 	apps/earphone/mode/pc/pc.c \
 	apps/earphone/mode/pc/pc_key_msg_table.c \
+
+#endif
+
+#if TCFG_MIX_RECORD_ENABLE
+c_SRC_FILES += \
+	apps/earphone/audio/mix_record_api.c \
 
 #endif
 

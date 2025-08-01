@@ -115,12 +115,32 @@ static enum stream_node_state esco_get_frame(void *_hdl, struct stream_frame **_
     }
     esco_frame_pack_timestamp(hdl, frame, frame_clkn);
     if (packet) {
-        memcpy(frame->data, packet, len);
+        if (hdl->coding_type == AUDIO_CODING_LC3) {
+            u8 H2_header[2] = {0x01, 0x08};
+            /*Standard profile : An LC3-SWB frame shall have the synchronization header H2 before every frame.
+              The 2-byte H2 headerenables the receiver to determine if one or more radio link packets are dropped.*/
+            if (packet[0] != H2_header[0] || ((packet[1] & 0xf) != H2_header[1])) {
+                frame->data[0] = 0x2;
+                frame->data[1] = 0x0;
+                frame->len = 2;
+            } else {
+                memcpy(frame->data, packet + 2, len - 2);
+                frame->len = len - 2;
+            }
+        } else {
+            memcpy(frame->data, packet, len);
+        }
         lmp_private_free_esco_packet(packet);
     } else {
-        //填丢包标志，由plc 进行补包
-        memset(frame->data, 0xAA, len);
-        memset(frame->data, 0x55, 2);
+        if (hdl->coding_type == AUDIO_CODING_LC3) {
+            frame->data[0] = 0x2;
+            frame->data[1] = 0x0;
+            frame->len = 2;
+        } else {
+            //填丢包标志，由plc 进行补包
+            memset(frame->data, 0xAA, len);
+            memset(frame->data, 0x55, 2);
+        }
     }
 
     *_frame = frame;
@@ -149,9 +169,14 @@ static void esco_ioc_get_fmt(struct esco_file_hdl *hdl, struct stream_fmt *fmt)
     if (media_type == 0) {
         fmt->sample_rate = 8000;
         fmt->coding_type = AUDIO_CODING_CVSD;
-    } else  {
+    } else if (media_type == 1) {
         fmt->sample_rate = 16000;
         fmt->coding_type = AUDIO_CODING_MSBC;
+    } else if (media_type == 2) {
+        fmt->sample_rate = 32000;
+        fmt->coding_type = AUDIO_CODING_LC3;
+        fmt->bit_rate = 62000;
+        fmt->frame_dms = 75;
     }
     fmt->channel_mode = AUDIO_CH_MIX;
     hdl->coding_type = fmt->coding_type;

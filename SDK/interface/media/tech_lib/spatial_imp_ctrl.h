@@ -6,7 +6,9 @@
 extern const int spatial_imp_run_mode;//16t16 32t32
 extern const int spatial_imp_fft_mode;//1浮点 2定点 0关闭
 extern const int JL_HW_FFT_V;//3 FFT_V3(23/25/30/34/36/29 2的指数次幂)  4(27/28/50/52 支持非2指数次幂) 5(56)
-
+extern const int spatial_imp_active_azi_group;//方位角控制  如果-1表示全包含
+extern const int spatial_imp_active_ele_group;//俯仰角控制
+extern const int spatial_imp_active_ild_group;//ild控制 0关 1开
 
 #ifdef WIN32
 #define SPATIAL_IMP(x)

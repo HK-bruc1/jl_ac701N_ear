@@ -56,13 +56,7 @@ typedef struct testbox_uart_update_info {
 } TESTBOX_UP_UART;
 
 extern void chargestore_set_baudrate(u32 baudrate);
-/* extern void ldo5v_change_off_filter(u32 inc); */
 static void app_testbox_loader_update_recv(u8 cmd, u8 *buf, u32 len);
-
-_WEAK_
-void  ldo5v_change_off_filter(u32 inc)
-{
-}
 
 extern const char updata_file_name[];
 
@@ -87,7 +81,6 @@ static bool app_testbox_loader_send_packet(u8 *buf, u16 length)
     /* put_buf((u8 *)&protocal_frame, length + SYNC_SIZE); */
     os_sem_set(&loader_sem, 0);
 
-    ldo5v_change_off_filter(100);
 
     loader_uart_write((u8 *)protocal_frame, length + SYNC_SIZE);
     chargestore_api_wait_complete();
@@ -98,7 +91,6 @@ static bool app_testbox_loader_send_packet(u8 *buf, u16 length)
         goto __exit;
     }
 __exit:
-    ldo5v_change_off_filter(0);
     return ret;
 }
 

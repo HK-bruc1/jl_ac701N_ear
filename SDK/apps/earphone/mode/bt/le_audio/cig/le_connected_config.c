@@ -197,6 +197,8 @@ void set_unicast_lc3_info(u8 *date, u8 len)
         /* ASSERT(0,"update dongle,add new sdu_interval");	 */
     } else {
         memcpy(&platform_data.args[platform_data_index].sdu_interval, date + (2 * info_len), 2);
+        ASSERT(platform_data.args[platform_data_index].sdu_interval, "sdu_interval is 0");
+
 
     }
     /* printf("dec sampling=%d,frame_duration%d,octets_per_frame=%d,num_channels=%d\n", */

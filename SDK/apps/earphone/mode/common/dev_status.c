@@ -211,7 +211,7 @@ int dev_status_event_filter(int *msg)
             err = dev_manager_add(add);
             if (!err) {
                 sdx_mount_err_cnt = 0;
-#if (MUSIC_DEV_ONLINE_START_AFTER_MOUNT_EN)
+#if (TCFG_APP_MUSIC_EN && MUSIC_DEV_ONLINE_START_AFTER_MOUNT_EN)
                 music_task_dev_online_start(add);
 #endif
 #if (TCFG_DEV_UPDATE_IF_NOFILE_ENABLE == 0)

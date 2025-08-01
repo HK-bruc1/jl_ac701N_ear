@@ -15,6 +15,7 @@
 #include "a2dp_player.h"
 #include "ascii.h"
 #include "scene_switch.h"
+#include "app_tone.h"
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
 
 typedef struct {
@@ -30,6 +31,7 @@ typedef struct {
 static aud_effect_t *aud_effect = NULL;
 
 struct spatial_effect_global_param {
+    struct jlsream_crossfade crossfade;
     enum SPATIAL_EFX_MODE spatial_audio_mode;
     volatile u8 spatial_audio_fade_finish;
     volatile u8 frame_pack_disable;
@@ -61,40 +63,6 @@ static void audio_spatial_effects_close(void *spatial_audio)
     spatial_audio_close(spatial_audio);
     clock_free("SPATIAL_EFX_FIXED");
     clock_free("SPATIAL_EFX_TRACKED");
-}
-static void data_fade_mix(u8 bit_width, s16 *fade_in_data, s16 *fade_out_data, s16 *output_data, int len)
-{
-    printf("data_fade_mix, bitwidth %d", bit_width);
-    int points;
-    int fade_out_step;
-    int fade_in_step = 0;
-    int fade_in_tmp, fade_out_tmp, i;
-
-    if (bit_width) {
-        s32 *fade_in_data_32 = (s32 *)fade_in_data;
-        s32 *fade_out_data_32 = (s32 *)fade_out_data;
-        s32 *output_data_32 = (s32 *)output_data;
-        points = len >> 2;
-        fade_out_step = points - 1;
-        for (i = 0; i < points; i++) {
-            fade_in_tmp = fade_in_data_32[i] * fade_in_step / points;
-            fade_out_tmp = fade_out_data_32[i] * fade_out_step / points;
-            output_data_32[i] = fade_in_tmp + fade_out_tmp;
-            fade_out_step--;
-            fade_in_step++;
-        }
-
-    } else {
-        points = len >> 1;
-        fade_out_step = points - 1;
-        for (i = 0; i < points; i++) {
-            fade_in_tmp = fade_in_data[i] * fade_in_step / points;
-            fade_out_tmp = fade_out_data[i] * fade_out_step / points;
-            output_data[i] = fade_in_tmp + fade_out_tmp;
-            fade_out_step--;
-            fade_in_step++;
-        }
-    }
 }
 
 int audio_spatial_effects_frame_pack_disable()
@@ -130,6 +98,13 @@ int audio_spatial_effects_data_handler(u8 out_channel, s16 *data, u16 len)
 
         if (!g_param.spatial_audio_fade_finish)  {
             effect->fade_flag = 1;
+            if (!g_param.crossfade.enable) {
+                g_param.crossfade.sample_rate = get_spatial_effect_node_sample_rate();
+                g_param.crossfade.msec = 200;
+                g_param.crossfade.channel = 2;
+                g_param.crossfade.bit_width = effect->bit_width;
+                jlstream_frames_cross_fade_init(&g_param.crossfade);
+            }
         }
         // printf("s");
         if (effect->fade_flag) {
@@ -151,15 +126,18 @@ int audio_spatial_effects_data_handler(u8 out_channel, s16 *data, u16 len)
         wlen = spatial_audio_filter(effect->spatial_audio, data, len);
 
         if (effect->fade_flag) {
+            u8 ret = 0;
             if (g_param.spatial_audio_mode && !bypass) {
                 /*打开空间音效时*/
-                data_fade_mix(effect->bit_width, data, effect->tmp_buf, data, wlen);
+                ret = jlstream_frames_cross_fade_run(&g_param.crossfade, data, effect->tmp_buf, data, wlen);
             } else {
                 /*关闭空间音效时*/
-                data_fade_mix(effect->bit_width, effect->tmp_buf, data, data, wlen);
+                ret = jlstream_frames_cross_fade_run(&g_param.crossfade, effect->tmp_buf, data, data, wlen);
             }
-            effect->fade_flag = 0;
-            g_param.spatial_audio_fade_finish = 1;
+            if (ret == STREAM_FADE_END) {
+                effect->fade_flag = 0;
+                g_param.spatial_audio_fade_finish = 1;
+            }
         }
         effect->busy = 0;
     }
@@ -398,12 +376,36 @@ int spatial_audio_change_effect(u8 mode)
     return 0;
 }
 
+#if SPATIAL_AUDIO_EFFECT_SW_TONE_PLAY
+void audio_spatial_effects_mode_switch_tone_play(enum SPATIAL_EFX_MODE mode)
+{
+    if (mode == g_param.spatial_audio_mode) {
+        //相同模式切换
+        return;
+    }
+    if (mode == SPATIAL_EFX_OFF) {
+        play_tone_file_alone(get_tone_files()->num[0]);
+    } else if (mode == SPATIAL_EFX_FIXED) {
+        play_tone_file_alone(get_tone_files()->num[1]);
+    } else if (mode == SPATIAL_EFX_TRACKED) {
+        play_tone_file_alone(get_tone_files()->num[2]);
+    }
+    a2dp_player_reset_spatial_tone_play(mode);
+}
+#endif
+
+
 /*空间音频模式切换
  * 0 ：关闭
  * 1 ：固定模式
  * 2 ：跟踪模式*/
 void audio_spatial_effects_mode_switch(enum SPATIAL_EFX_MODE mode)
 {
+#if SPATIAL_AUDIO_EFFECT_SW_TONE_PLAY
+    //播放打断提示音，重新创建音频流方式
+    audio_spatial_effects_mode_switch_tone_play(mode);
+    return;
+#endif
     aud_effect_t *effect = (aud_effect_t *)aud_effect;
     /*没有跑节点，不允许切模式*/
     if (spatial_effect_node_is_running() == 0) {

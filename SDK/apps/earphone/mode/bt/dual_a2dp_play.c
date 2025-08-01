@@ -184,8 +184,8 @@ static void tws_a2dp_play_in_task(u8 *data)
 #if (TCFG_BT_A2DP_PLAYER_ENABLE == 0)
         break;
 #endif
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
         le_audio_unicast_play_stop_by_a2dp();
 #endif
         memset(le_audio_a2dp_preempted_addr, 0xff, 6);
@@ -223,7 +223,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         memcpy(msg + 1, bt_addr, 6);
         app_send_message_from(MSG_FROM_APP, 12, msg);
         break;
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     case CMD_A2DP_RESUME_BY_LE_AUDIO:
         puts("CMD_A2DP_RESUME_BY_LE_AUDIO\n");
         if (bt_slience_get_detect_addr(btaddr)) {
@@ -252,8 +252,8 @@ static void tws_a2dp_play_in_task(u8 *data)
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
         share_a2dp_preempted_resume(bt_addr);
 #endif
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PALY_PREEMPTEDK)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
         le_audio_unicast_play_resume_by_a2dp();
 #endif
         memset(le_audio_a2dp_preempted_addr, 0xff, 6);
@@ -405,10 +405,18 @@ static void a2dp_suspend_by_call(u8 *play_addr, void *play_device)
         tws_a2dp_play_send_cmd(CMD_A2DP_MUTE_BY_CALL, play_addr, 6, 1);
     }
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   暂停被leaudio抢掉的a2dp播歌
+ *
+ * @return 1:操作成功, 0:操作失败
+ */
+/* ----------------------------------------------------------------------------*/
 u8 a2dp_suspend_by_le_audio()
 {
     int ret = 0;
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 bt_addr[6];
     if (a2dp_player_get_btaddr(bt_addr)) {
         r_printf("a2dp_suspend_by_le_audio");
@@ -428,31 +436,46 @@ u8 a2dp_suspend_by_le_audio()
 #endif
     return ret;
 }
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   尝试恢复被leaudio抢掉的a2dp播歌
+ *
+ * @return 1:操作成功, 0:操作失败
+ */
+/* ----------------------------------------------------------------------------*/
 u8 try_a2dp_resume_by_le_audio_preempted()
 {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
     u8 addr_b[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     if (tws_api_get_role() == TWS_ROLE_SLAVE) {
         return 0;
     }
 
     r_printf("try_a2dp_resume_by_le_audio_preempted");
+    put_buf(le_audio_a2dp_preempted_addr, 6);
 #if TCFG_A2DP_PREEMPTED_ENABLE
     if (memcmp(le_audio_a2dp_preempted_addr, addr_b, 6) == 0) {
         return 0;
     }
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     void *device = btstack_get_conn_device(le_audio_a2dp_preempted_addr);
     if (device) {
         btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
-        puts(" send USER_CTRL_AVCTP_OPID_PLAY\n");
+        puts("send USER_CTRL_AVCTP_OPID_PLAY\n");
     }
 #endif
     if (a2dp_media_is_mute(le_audio_a2dp_preempted_addr)) {
+        puts("send CMD_A2DP_RESUME_BY_LE_AUDIO1\n");
+#if TCFG_USER_TWS_ENABLE
         tws_api_role_switch_lock_msec(1500);
         tws_a2dp_play_send_cmd(CMD_A2DP_RESUME_BY_LE_AUDIO, le_audio_a2dp_preempted_addr, 6, 1);
+#else
+        tws_a2dp_play_send_cmd(CMD_A2DP_RESUME_BY_LE_AUDIO, le_audio_a2dp_preempted_addr, 6, 0);
+#endif
     }
 #else
+    puts("send CMD_A2DP_RESUME_BY_LE_AUDIO2\n");
     tws_a2dp_play_send_cmd(CMD_A2DP_RESUME_BY_LE_AUDIO, le_audio_a2dp_preempted_addr, 6, 1);
 #endif
 
@@ -544,7 +567,7 @@ static int a2dp_bt_status_event_handler(int *event)
 #endif
             }
         } else {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
             if (is_cig_music_play()) {
 #if TCFG_A2DP_PREEMPTED_ENABLE
                 tws_a2dp_slience_detect(bt->args, 1);
@@ -638,7 +661,7 @@ static int a2dp_bt_status_event_handler(int *event)
         puts("A2DP BT_STATUS_SCO_CONNECTION_REQ\n");
         put_buf(bt->args, 6);
         a2dp_suspend_by_call(addr_b, device_b);
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         le_audio_unicast_play_remove_by_phone_call();
 #endif
         break;
@@ -696,7 +719,7 @@ static int a2dp_bt_status_event_handler(int *event)
         if (bt->value != 0xff) {
             a2dp_suspend_by_call(addr_b, device_b);
         } else {
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
             le_audio_unicast_try_resume_play_by_phone_call_remove();
 #endif
         }
@@ -706,7 +729,7 @@ static int a2dp_bt_status_event_handler(int *event)
         if (memcmp(a2dp_preempted_addr, bt->args, 6) == 0) {
             memset(a2dp_preempted_addr, 0xff, 6);
         }
-#if (TCFG_LE_AUDIO_APP_CONFIG&LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         memset(le_audio_a2dp_preempted_addr, 0xff, 6);
 #endif
         break;

@@ -11,6 +11,7 @@
 #include "system/spinlock.h"
 #include "media_bank.h"
 #include "fs/resfile.h"
+#include "jlstream_report.h"
 
 #define FADE_GAIN_MAX	16384
 
@@ -206,8 +207,8 @@ enum stream_node_state : u16 {
     NODE_STA_ENC_END                = 0x0400,
     NODE_STA_OUTPUT_TO_FAST         = 0x0800,   //解码输出太多主动挂起
     NODE_STA_OUTPUT_BLOCKED         = 0x1000,   //终端节点缓存满,数据写不进去
-    NODE_STA_OUTPUT_SPLIT           = 0x2000,
-    NODE_STA_DECODER_FADEOUT        = 0X4000,  //用来判断是否是解码节点的淡出
+    NODE_STA_SOURCE_STOP_PUSH       = 0x2000,
+    NODE_STA_DECODER_FADEOUT        = 0x4000,  //用来判断是否是解码节点的淡出
 };
 
 enum stream_node_type : u8 {
@@ -482,6 +483,7 @@ struct stream_note {
     u8 input_empty_check;
     u16 output_time;
     enum stream_node_state state;
+    enum stream_node_state prev_state;
 
     int delay;
     int sleep;
@@ -514,6 +516,7 @@ struct jlstream {
     enum stream_state state;
     enum stream_state pp_state;
     enum stream_coexist coexist;
+    enum stream_node_state thread_state;
 
     u16 max_delay;
     u16 dest_delay;         // 目标缓存大小
@@ -764,5 +767,18 @@ void jlstream_return_frame(struct stream_iport *iport, struct stream_frame *fram
 int jlstream_get_cpu_usage();
 
 void stream_mem_unfree_dump();
+
+struct jlsream_crossfade {
+    struct jlstream_fade fade[2]; //0:fade_out  1:fade_in
+    u32 sample_rate;
+    u16 msec;
+    u8 channel;
+    u8 bit_width;
+    u8 enable;
+};
+
+void jlstream_frames_cross_fade_init(struct jlsream_crossfade *crossfade);
+u8 jlstream_frames_cross_fade_run(struct jlsream_crossfade *crossfade, void *fadein_addr, void *fadeout_addr, void *output_addr, int len);
+
 #endif
 

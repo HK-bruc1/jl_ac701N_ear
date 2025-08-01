@@ -136,6 +136,12 @@ static const u16 gpio_uuid_table[][2] = {
 #ifdef IO_PORTD_07
     { IO_PORTD_07, 0x680b },
 #endif
+#ifdef IO_PORTD_08
+    { IO_PORTD_08, 0x680c },
+#endif
+#ifdef IO_PORTD_09
+    { IO_PORTD_09, 0x680d },
+#endif
 #ifdef IO_PORTE_00
     { IO_PORTE_00, 0xf465 },
 #endif
