@@ -114,42 +114,85 @@ const int config_audio_adc6_enable = 0;
 const int config_audio_adc7_enable = 0;
 
 //ADC input Mode:Single-Ended/Differential/Single-Ended Capless
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc0_input_mode = -1;
+#else
 #ifdef TCFG_ADC0_MODE
 const int config_audio_adc0_input_mode = TCFG_ADC0_MODE;
 #else
 const int config_audio_adc0_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc1_input_mode = -1;
+#else
 #ifdef TCFG_ADC1_MODE
 const int config_audio_adc1_input_mode = TCFG_ADC1_MODE;
 #else
 const int config_audio_adc1_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc2_input_mode = -1;
+#else
 #ifdef TCFG_ADC2_MODE
 const int config_audio_adc2_input_mode = TCFG_ADC2_MODE;
 #else
 const int config_audio_adc2_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc3_input_mode = -1;
+#else
 #ifdef TCFG_ADC3_MODE
 const int config_audio_adc3_input_mode = TCFG_ADC3_MODE;
 #else
 const int config_audio_adc3_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc4_input_mode = -1;
+#else
 #ifdef TCFG_ADC4_MODE
 const int config_audio_adc4_input_mode = TCFG_ADC4_MODE;
 #else
 const int config_audio_adc4_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc5_input_mode = -1;
+#else
 #ifdef TCFG_ADC5_MODE
 const int config_audio_adc5_input_mode = TCFG_ADC5_MODE;
 #else
 const int config_audio_adc5_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc6_input_mode = -1;
+#else
 #ifdef TCFG_ADC6_MODE
 const int config_audio_adc6_input_mode = TCFG_ADC6_MODE;
 #else
 const int config_audio_adc6_input_mode = 0;
 #endif
+#endif
+
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+const int config_audio_adc7_input_mode = -1;
+#else
+#ifdef TCFG_ADC7_MODE
+const int config_audio_adc7_input_mode = TCFG_ADC7_MODE;
+#else
 const int config_audio_adc7_input_mode = 0;
+#endif
+#endif
 
 /*
  *******************************************************************
@@ -446,6 +489,8 @@ const int voicechanger_effect_v_config = (0
 
 /*mb drc/limiter 3带使能(1.2k) */
 const int audio_crossover_3band_enable       = 1;
+const int config_audio_limiter_xfade_enable = 0;
+const int config_audio_mblimiter_xfade_enable = 0;
 
 /*Vocal Remover Configs*/
 const int audio_vocal_remover_low_cut_enable = 1;
@@ -461,13 +506,8 @@ const int spatial_imp_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
 const int spatial_imp_fft_mode = 2;     //1软件fft(浮点输入输出) 2硬件fft(定点输入输出)
 const int spatial_imp_run_points = 128; //运算点数
 
-/*
- * 若使能陀螺仪跟踪模式：azi_group 需要配置为-1，使能所有方向角/俯仰角信息表。此时 ele_group 配置无效。
- * 仅使能固定模式时，azi_group、ele_group 可根据调试情况配置，固定方位角/俯仰角，节省代码量。
- * 注：当 azi_group 设定为-1之外的值时，可视化参数界面"Bias Angle","Azimuth Angle","Elevation Angle"固化，配置无效。
- */
-const int spatial_imp_active_azi_group = -1; //方位角控制。范围：-1~359。
-const int spatial_imp_active_ele_group = 0;  //俯仰角控制。范围：0~359。
+const int spatial_imp_active_azi_group = -1;
+const int spatial_imp_active_ele_group = 0;
 
 /* 双耳压强差使能控制，关闭可节省代码量（关闭后可视化界面参数"ildenable"调试无效）。范围：0关，1开。*/
 const int spatial_imp_active_ild_group = 0;

@@ -655,6 +655,9 @@ int ll_vendor_close_latency(u16 conn_handle);
 
 int ll_vendor_rxmaxbuf(u16 conn_handle, u8 rxmaxbuf);
 
+int ll_vendor_leagcy_scan_priority(u16 param);
+int ll_vendor_leagcy_init_priority(u16 param);
+
 int ll_hci_encryption(u8 *key, u8 *plaintext_data);
 
 int ll_hci_get_le_rand(void);

@@ -39,7 +39,7 @@
 #include "effects/audio_spatial_adv.h"
 
 /* 左右声道按照不同比例混合参数更新 */
-int stero_mix_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+int stereo_mix_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 环绕声参数更新 */
 int surround_effect_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 分频器参数更新 */
@@ -55,7 +55,7 @@ int bass_treble_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 电音参数更新 */
 int autotune_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 合唱参数更新 */
-int chorus_udpate_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+int chorus_udpate_param(u8 mode_index, char *node_name, u8 cfg_index);
 /* 动态eq参数更新 */
 int dynamic_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 动态eq pro参数更新 */

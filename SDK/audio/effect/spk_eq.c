@@ -114,7 +114,7 @@ void spk_eq_seg_update_R(struct eq_seg_info *seg)
 void spk_eq_global_gain_udapte(float global_gain)
 {
     struct spk_eq_global_gain gparm;
-    gparm.type = UPDATE_SPK_EQ_GLOBAL_GIAN;
+    gparm.type = UPDATE_SPK_EQ_GLOBAL_GAIN;
     gparm.left_right = 0;
     gparm.global_gain = global_gain;
     printf("dbug 1\n");
@@ -128,7 +128,7 @@ void spk_eq_global_gain_udapte(float global_gain)
 void spk_eq_global_gain_udapte_R(float global_gain)
 {
     struct spk_eq_global_gain gparm;
-    gparm.type = UPDATE_SPK_EQ_GLOBAL_GIAN;
+    gparm.type = UPDATE_SPK_EQ_GLOBAL_GAIN;
     gparm.left_right = 1;
     gparm.global_gain = global_gain;
     int ret = jlstream_set_node_param(NODE_UUID_SPEAKER_EQ, "spk_eq", &gparm, sizeof(gparm));

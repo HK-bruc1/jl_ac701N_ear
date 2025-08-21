@@ -32,7 +32,7 @@
                 "__GCC_PI32V2__",
                 "CONFIG_NEW_ECC_ENABLE",
                 "CONFIG_CODE_MOVABLE_ENABLE",
-                "EXPORT_FNMA_ENABLE=0",
+                "EXPORT_FNMA_ENABLE=1",
                 "EXPORT_TENCENT_LL_ENABLE=1",
                 "CONFIG_EFFECT_CORE_V2_ENABLE",
                 "EXPORT_CONFIG_USB_ENABLE=1",

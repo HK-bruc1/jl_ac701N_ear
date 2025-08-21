@@ -52,7 +52,7 @@ struct music_plc *music_plc_open(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
         plc->datatype.OutdataInc = (ch_num == 2) ? 2 : 1;
         plc->plc_ops = get_lfaudioPLC_api();
         int plc_mem_size = plc->plc_ops->need_buf(ch_num, &plc->datatype); // 3660bytes，请衡量是否使用该空间换取PLC处理
-        plc->plc_mem = malloc(plc_mem_size);
+        plc->plc_mem = media_malloc(AUD_MODULE_MUSIC_PLC, plc_mem_size);
         if (!plc->plc_mem) {
             plc->plc_ops = NULL;
             free(plc);
@@ -60,7 +60,7 @@ struct music_plc *music_plc_open(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
         }
         int ret = plc->plc_ops->open(plc->plc_mem, ch_num, sr, tws_api_get_low_latency_state() ? 4 : 0, &plc->datatype); //4是延时最低 16个点
         if (ret) { //低于 16k采样率,不支持做plc
-            free(plc->plc_mem);
+            media_free(plc->plc_mem);
             plc->plc_mem = NULL;
             plc->plc_ops = NULL;
             free(plc);
@@ -88,7 +88,7 @@ void music_plc_close(struct music_plc *plc)
 {
     if (plc) {
         if (plc->plc_mem) {
-            free(plc->plc_mem);
+            media_free(plc->plc_mem);
             plc->plc_mem = NULL;
         }
         free(plc);

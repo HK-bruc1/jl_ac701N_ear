@@ -18,6 +18,7 @@
 #include "rcsp_manage.h"
 #include "rcsp_bt_manage.h"
 #include "rcsp_config.h"
+#include "app_main.h"
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
@@ -51,6 +52,27 @@ void *rcsp_server_edr_att_hdl1 = NULL;
 #define EDR_ATT_HDL_UUID \
 	(((u8)('E' + 'D' + 'R') << (1 * 8)) | \
 	 ((u8)('A' + 'T' + 'T') << (0 * 8)))
+
+static OS_MUTEX rcsp_mutex;
+static inline void rcsp_mutex_pend(OS_MUTEX *mutex, u32 line)
+{
+    int os_ret;
+    os_ret = os_mutex_pend(mutex, 0);
+    if (os_ret != OS_NO_ERR) {
+        rcsp_lib_printf("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
+        ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
+    }
+}
+
+static inline void rcsp_mutex_post(OS_MUTEX *mutex, u32 line)
+{
+    int os_ret;
+    os_ret = os_mutex_post(mutex);
+    if (os_ret != OS_NO_ERR) {
+        rcsp_lib_printf("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
+        ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
+    }
+}
 
 /*****************************************
                  RCSP PROTOCOL
@@ -240,6 +262,7 @@ void rcsp_interface_tws_sync_buf_content_free()
     if (tws_sync_buf) {
         free(tws_sync_buf);
         tws_sync_buf = NULL;
+        rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
     }
 }
 
@@ -250,6 +273,10 @@ void rcsp_interface_tws_sync_buf_content_free()
  */
 void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
 {
+    rcsp_mutex_pend(&rcsp_mutex, __LINE__);
+    uint32_t rets_addr;
+    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    rcsp_lib_printf("%s, rets=0x%x\n", __FUNCTION__, rets_addr);
     rcsp_interface_tws_sync_buf_content_free();
     u16 buf_size = rcsp_interface_tws_sync_buf_size();
     if (buf_size < 1) {
@@ -267,6 +294,10 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     u8 *ble_hdl = zalloc(ble_hdl_size);
     ASSERT(ble_hdl, "rcsp tws sync, ble_buf malloc fail!");
     app_ble_hdl_core_data_get(rcsp_server_ble_hdl, ble_hdl);
+    /* rcsp_lib_printf("%s, %s, %d, 0x%x, %d, 0x%x, %d\n", __FILE__, __FUNCTION__, __LINE__, (unsigned int)tws_sync_buf, buf_size, (unsigned int)&ble_hdl, ble_hdl_size); */
+    /* if (tws_sync_buf) { */
+    /* 	put_buf(tws_sync_buf, buf_size); */
+    /* } */
     /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
     /* put_buf((u8 *)&ble_hdl, ble_hdl_size); */
     memcpy(tws_sync_buf, ble_hdl, ble_hdl_size);
@@ -320,6 +351,7 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     /* rcsp_lib_printf_buf(tws_sync_buf, buf_size); */
     memcpy(send_buf, tws_sync_buf, buf_size);
     rcsp_interface_tws_sync_buf_content_free();
+    rcsp_mutex_post(&rcsp_mutex, __LINE__);
 }
 
 /**
@@ -822,6 +854,11 @@ static void cbk_sm_packet_handler(void *hdl, uint8_t packet_type, uint16_t chann
                     SPP
  *****************************************/
 
+/**
+ * @brief 主机入仓会收到断开spp信息，但从机没入仓不会断开，
+ * 这时候不能同步断开信息给从机
+ */
+
 void bt_rcsp_spp_state_callback(void *hdl, void *remote_addr, u8 state)
 {
     switch (state) {
@@ -834,7 +871,11 @@ void bt_rcsp_spp_state_callback(void *hdl, void *remote_addr, u8 state)
     case SPP_USER_ST_DISCONN:
         printf("bt_rcsp spp comm disconnect#########\n");
 
-        bt_rcsp_set_conn_info(0, remote_addr, false);
+        // 主机入仓关机会收到断开spp信息，但从机没入仓不会断开，
+        // 这时候不能同步断开信息给从机
+        if (!app_var.goto_poweroff_flag) {
+            bt_rcsp_set_conn_info(0, remote_addr, false);
+        }
 
         break;
     };
@@ -855,6 +896,12 @@ void app_spp_callback_register(void *bt_rcsp_spp_hdl);
 void bt_rcsp_interface_init(const uint8_t *rcsp_profile_data)
 {
     rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+
+    int os_ret = os_mutex_create(&rcsp_mutex);
+    if (os_ret != OS_NO_ERR) {
+        ASSERT(0, "%s %d err, os_ret:0x%x", __FUNCTION__, __LINE__, os_ret);
+    }
+
     // spp init
     if (bt_rcsp_spp_hdl == NULL) {
         bt_rcsp_spp_hdl = app_spp_hdl_alloc(0x0);
@@ -932,7 +979,6 @@ void bt_rcsp_interface_init(const uint8_t *rcsp_profile_data)
 
     // protocol init
     JL_rcsp_auth_init(bt_rcsp_data_send, (u8 *)rcsp_link_key_data, NULL);
-
 }
 
 
@@ -977,6 +1023,12 @@ void bt_rcsp_interface_exit(void)
             rcsp_server_edr_att_hdl1 = NULL;
         }
     }
+
+    int os_ret = os_mutex_del(&rcsp_mutex, OS_DEL_NO_PEND);
+    if (os_ret != OS_NO_ERR) {
+        printf("%s %d err, os_ret:0x%x", __FUNCTION__, __LINE__, os_ret);
+    }
+
 }
 
 

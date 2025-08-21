@@ -30,7 +30,7 @@ void audio_voice_changer_mode_switch(u16 uuid, char *name, VOICE_CHANGER_MODE mo
 {
     voice_changer_param_tool_set cfg = {0};
     cfg.is_bypass = 0;
-    if (mode > ARRAY_SIZE(vparm)) {
+    if (mode >= ARRAY_SIZE(vparm)) {
         return;
     }
     memcpy(&cfg.parm, &vparm[mode], sizeof(struct voice_changer_update_parm));

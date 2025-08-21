@@ -297,11 +297,9 @@ static void rcsp_bt_tws_event_handler(int *msg)
     switch (evt->event) {
     case TWS_EVENT_CONNECTED:
         printf("rcsp_bt_tws_event_handler rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
+        if (role != TWS_ROLE_SLAVE) {
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
-        if ((role == TWS_ROLE_MASTER) && (bt_rcsp_device_conn_num() > 0)) {
-            // 新耳机出仓的时候，原耳机如果已经与手机建立连接，则tws连接后，
-            // 需要同步rcsp相关信息给刚出仓的新耳机
-            // 不存在左右耳未配对时分别连接手机app后，tws还会配对的情况
+            // 主机需要同步rcsp相关信息给新从耳机
 #if (0 == BT_CONNECTION_VERIFY)
             JL_rcsp_auth_flag_tws_sync();
 #endif
@@ -311,10 +309,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
 #if TCFG_RCSP_DUAL_CONN_ENABLE
             rcsp_1t2_setting_tws_sync();
 #endif
-        }
 #endif
-        if (role != TWS_ROLE_SLAVE) {
-            //master enable
             log_info("master do icon_open\n");
             if (phone_link_connection) {
                 bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_CONNECTED, 1);
@@ -340,7 +335,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
             //slave disable
             printf("\nConnect Slave!!!222\n\n");
             /*从机ble关掉*/
-            ble_app_disconnect();
+            /* ble_app_disconnect(); */
             rcsp_bt_ble_adv_enable(0);
         }
         send_version_to_sibling();
@@ -374,6 +369,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
         rcsp_ble_adv_enable_with_con_dev();
         break;
     case TWS_EVENT_CONNECTION_DETACH:
+        printf("rcsp TWS_EVENT_CONNECTION_DETACH: %d\n", reason);
         /*
          * TWS连接断开
          */
@@ -385,11 +381,23 @@ static void rcsp_bt_tws_event_handler(int *msg)
             deal_adv_setting_gain_time_stamp();
         }
 #endif
-#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
-        if (bt_rcsp_device_conn_num() < 1) {
+        if (reason == TWS_DETACH_BY_SUPER_TIMEOUT) {
+            printf("rcsp reset ble by TWS_EVENT_CONNECTION_DETACH\n");
+            ble_module_enable(0);
+            rcsp_clear_ble_hdl_and_tws_sync();
             ble_module_enable(1);
-        }
+        } else {
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+            if (bt_rcsp_device_conn_num() < 1) {
+                ble_module_enable(1);
+            }
 #endif
+        }
+        /* bt_rcsp_reset_ble_info_for_tws_sw(); */
+        /* rcsp_ble_adv_enable_with_con_dev(); */
+        /* if (bt_rcsp_device_conn_num() > 0) { */
+        /*     bt_ble_adv_ioctl(BT_ADV_SET_NOTIFY_EN, 1, 1); */
+        /* } */
         break;
     case TWS_EVENT_ROLE_SWITCH:
         if (role == TWS_ROLE_MASTER) {	// 切换后触发
@@ -709,7 +717,7 @@ APP_MSG_HANDLER(rcsp_bt_msg_entry) = {
 
 static void rcsp_auth_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
-    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+    if (rx) {
         /* printf("auth %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
         u16 auth_hdl_size = sizeof(JL_rcsp_auth_hdl);
@@ -765,7 +773,7 @@ void JL_rcsp_auth_flag_tws_sync(void)
 
 static void rcsp_bound_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
-    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE) && rcsp_handle_get()) {
+    if (rx && rcsp_handle_get()) {
         /* printf("bound %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
         u16 auth_hdl_size = sizeof(JL_rcsp_bound_hdl);
@@ -830,7 +838,7 @@ static void rcsp_interface_bt_handle_tws_sync_in_task(u8 *data, int len)
 
 static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
-    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+    if (rx) {
         /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
         u8 *rx_data = malloc(len);
@@ -884,6 +892,7 @@ void rcsp_interface_bt_handle_tws_sync(void)
  */
 void rcsp_clear_ble_hdl_and_tws_sync(void)
 {
+    printf("%s\n", __FUNCTION__);
     u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
     bt_rcsp_set_conn_info(ble_con_handle, NULL, 0);
     u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
@@ -895,4 +904,4 @@ void rcsp_clear_ble_hdl_and_tws_sync(void)
 
 #endif // TCFG_USER_TWS_ENABLE
 
-#endif
+#endif // RCSP_MODE

@@ -589,9 +589,9 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
 #if TCFG_AEC_SIMPLEX
     aec_param->wn_en = 1;
-    aec_param.EnableBit = AEC_MODE_SIMPLEX;
-    if (sr == 8000) {
-        aec_param.SimplexTail = aec_param.SimplexTail / 2;
+    aec_param->EnableBit = AEC_MODE_SIMPLEX;
+    if (sample_rate == 8000) {
+        aec_param->SimplexTail = aec_param->SimplexTail / 2;
     }
 #else
     aec_param->wn_en = 0;

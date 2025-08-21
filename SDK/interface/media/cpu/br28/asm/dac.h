@@ -37,9 +37,6 @@ Notes:以下为芯片规格定义，不可修改，仅供引用
 #define PCM_PHASE_BIT           8
 #endif
 
-#define DA_LEFT        0
-#define DA_RIGHT       1
-
 /************************************
  *              DAC模式
  *************************************/
@@ -53,10 +50,6 @@ Notes:以下为芯片规格定义，不可修改，仅供引用
 
 #define DACR32_DEFAULT		8192
 
-#define DAC_ANALOG_OPEN_PREPARE         (1)
-#define DAC_ANALOG_OPEN_FINISH          (2)
-#define DAC_ANALOG_CLOSE_PREPARE        (3)
-#define DAC_ANALOG_CLOSE_FINISH         (4)
 //void audio_dac_power_state(u8 state)
 //在应用层重定义 audio_dac_power_state 函数可以获取dac模拟开关的状态
 
@@ -139,34 +132,31 @@ struct audio_dac_fade {
 struct audio_dac_hdl {
     u8 analog_inited;
     volatile u8 state;
-    u8 ng_threshold;
     u8 gain;
     u8 channel;
-	u8 dvol_mute;             //DAC数字音量是否mute
+	u8 dvol_mute;             	//DAC数字音量是否mute
     u8 power_on;
     u8 need_close;
     u8 protect_fadein;
     u8 vol_set_en;
-    u8 dec_channel_num;
     u8 anc_dac_open;
-    u8 dac_read_flag;	//AEC可读取DAC参考数据的标志
+    u8 dac_read_flag;			//AEC可读取DAC参考数据的标志
     u16 d_volume[2];
     u16 start_ms;
     u16 delay_ms;
     u16 start_points;
     u16 delay_points;
-    u16 prepare_points;//未开始让DAC真正跑之前写入的PCM点数
+    u16 prepare_points;			//未开始让DAC真正跑之前写入的PCM点数
     u16 irq_points;
     s16 protect_time;
     s16 protect_pns;
     s16 fadein_frames;
     s16 fade_vol;
-    u16 unread_samples;             /*未读样点个数*/
+    u16 unread_samples;    		//未读样点个数
     s16 *output_buf;
     u32 sample_rate;
     u32 digital_gain_limit;
     u32 output_buf_len;
-
     OS_SEM *sem;
     OS_MUTEX mutex;
     spinlock_t lock;

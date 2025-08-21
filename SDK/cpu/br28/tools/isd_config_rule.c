@@ -99,6 +99,7 @@
 #endif
 
 [EXTRA_CFG_PARAM]
+OTP_CFG_SIZE = 128;
 #if CONFIG_DOUBLE_BANK_ENABLE
 BR22_TWS_DB = YES;	//dual bank flash framework enable
 FLASH_SIZE = CONFIG_FLASH_SIZE;		//flash_size cfg
@@ -392,6 +393,7 @@ CAT2(CONFIG_RESERVED_AREA2, FILE) = CONFIG_RESERVED_AREA2_FILE;
 #endif
 
 #endif
+
 /*
  ****************************************************************************
  *								ANC配置区
@@ -494,8 +496,8 @@ REALME_LEN = 0x1000;
 REALME_OPT = 0;
 #endif
 
-[RESERVED_EXPAND_CONFIG]
 #if CONFIG_FINDMY_INFO_ENABLE
+[RESERVED_EXPAND_CONFIG]
 //INI里面有个规则是VM一定会放到最前面
 
 #if (CONFIG_FLASH_SIZE == 0x100000)
@@ -515,6 +517,9 @@ FINDMY_OPT = CONFIG_FINDMY_INFO_OPT;
 [FW_ADDITIONAL]
 FILE_LIST = (file = file_authrunFindmy.tkn: type = 0xec);
 #endif
+
+[BURNER_PASSTHROUGH_CFG]
+FLASH_WRITE_PROTECT = YES;
 
 [BURNER_CONFIG]
 SIZE = CONFIG_BURNER_INFO_SIZE;

@@ -6,8 +6,6 @@
 struct packet_ctrl {
     void *node_hdl;
     s16 *remain_buf;
-    u8 *pack_frame;
-    struct stream_frame *out_frame;
     void (*effect_run)(void *, s16 *, s16 *, u32);
     u32 sample_rate;    //采样率
     u16 remain_len;     //记录算法消耗的剩余的数据长度

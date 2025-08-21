@@ -58,6 +58,7 @@
 #include "rcsp_ch_loader_download.h"
 #include "update.h"
 #include "JL_rcsp_protocol.h"
+#include "app_main.h"
 
 #if ASSISTED_HEARING_CUSTOM_TRASNDATA
 #include "adv_hearing_aid_setting.h"
@@ -116,6 +117,9 @@ static u8 gap_device_name_len = 0;
 //加密设置
 static const uint8_t sm_min_key_size = 7;
 
+// 注：iPhone App同时BLE连接耳机和仓的时候，
+// 不允许给APP发送连接参数，会导致iPhone系统数据传输出错
+// 如：iPhone App给耳机升级的时候会相同命令一直重发触发升级失败
 //连接参数设置
 static const uint8_t connection_update_enable = 1; ///0--disable, 1--enable
 static uint8_t connection_update_cnt = 0; //
@@ -466,6 +470,10 @@ void rcsp_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *pac
                 hci_con_handle_t con_handle = little_endian_read_16(packet, 4);
                 printf("RCSP HCI_SUBEVENT_LE_CONNECTION_COMPLETE: %0x\n", con_handle);
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+                if (app_var.goto_poweroff_flag) {
+                    printf("HCI_SUBEVENT_LE_CONNECTION_COMPLETE, power_off\n");
+                    break;
+                }
                 bt_rcsp_set_conn_info(con_handle, NULL, true);
 #else
                 rcsp_ble_con_handle = little_endian_read_16(packet, 4);
@@ -500,7 +508,9 @@ void rcsp_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *pac
             hci_con_handle_t dis_con_handle = little_endian_read_16(packet, 3);
             log_info("RCSP HCI_EVENT_DISCONNECTION_COMPLETE: %0x\n", dis_con_handle);
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
-            bt_rcsp_set_conn_info(dis_con_handle, NULL, false);
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+                bt_rcsp_set_conn_info(dis_con_handle, NULL, false);
+            }
 #else
             rcsp_protocol_reset_bound(dis_con_handle, NULL);
             if (rcsp_get_auth_support()) {

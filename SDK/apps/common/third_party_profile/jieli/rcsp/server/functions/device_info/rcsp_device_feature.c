@@ -56,8 +56,10 @@ static u32 target_feature_attr_sys_info(void *priv, u8 attr, u8 *buf, u16 buf_si
 #if 1//(RCSP_MODE != RCSP_MODE_EARPHONE)
     extern u8 get_vbat_percent(void);
     sys_info.bat_lev = get_vbat_percent(); //get_battery_level() / 10;
+#if (RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
     rcsp_get_max_vol_info(&sys_info.max_vol);
     rcsp_get_cur_dev_vol_info(&sys_info.sys_vol);
+#endif
 #endif
 #if BT_SUPPORT_MUSIC_VOL_SYNC || TCFG_BT_VOL_SYNC_ENABLE
     extern u8 avctp_get_remote_vol_sync(bd_addr_t addr);

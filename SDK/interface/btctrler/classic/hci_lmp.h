@@ -307,4 +307,5 @@ void lmp_jl_dongle_mic_set_rx_notify(u8 *addr, void *priv, void (*notify)(void *
 int check_a2dp_source_send_packet_limit_cnt(u8 *addr, u8 dump_limit);
 
 u8 lmp_get_rssi_end_per_for_edr_address(u8 *edr_address, u8 *per, s8 *phone_rssi, s8 *tws_rssi);
+u8 lmp_get_conn_num(void);
 #endif

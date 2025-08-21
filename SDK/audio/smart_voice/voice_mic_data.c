@@ -46,7 +46,7 @@ struct main_adc_context {
     struct audio_adc_output_hdl dma_output;
     struct adc_mic_ch mic_ch;
     s16 *dma_buf;
-    s16 *mic_sample_data;;
+    s16 *mic_sample_data;
     u8 adc_ch_num;  //打开的adc ch数量
     u8 adc_seq;     //记录当前用的那个mic
     u8 bit_width;

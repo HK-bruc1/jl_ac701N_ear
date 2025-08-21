@@ -600,7 +600,7 @@ static void update_init_common_handle(int type)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
-        if ((BT_UPDATA != type) || (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
+        if ((BT_UPDATA != type) && (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
             // 关闭page_scan
             lmp_hci_write_scan_enable((0 << 1) | 0);
             // 退出sniff并关闭sniff

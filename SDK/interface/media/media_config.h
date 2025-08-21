@@ -117,6 +117,10 @@ extern const int virtualbass_noisegate_hold_time;
 extern const float virtualbass_noisegate_threshold;
 extern const int spatial_imp_run_points;
 extern const int CONFIG_SPATIAL_EFFECT_VERSION;
+extern const int config_audio_limiter_xfade_enable;
+extern const int config_audio_mblimiter_xfade_enable;
+
+
 /*
  *******************************************************************
  *						Audio Codec Configs

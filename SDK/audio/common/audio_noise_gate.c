@@ -125,6 +125,7 @@ void audio_noise_gate_close()
     NoiseGate.state = NG_STA_CLOSE;
     if (NoiseGate.run_buf) {
         free(NoiseGate.run_buf);
+        NoiseGate.run_buf = NULL;
     }
     os_mutex_post(&NoiseGate.mutex);
     NG_LOG("audio_noise_gate_close succ");

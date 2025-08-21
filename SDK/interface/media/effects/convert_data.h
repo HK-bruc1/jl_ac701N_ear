@@ -110,6 +110,7 @@ extern void audio_data_sat_s24(s32 *data, u32 len);
  * */
 void audio_mix_3t1_data_sat_s24(int *indata1, int *indata2, int *indata3, int *outdata, int npoint);
 
+void data_satuation_run(void *data, int len, u16 bit_wide);
 //type
 #define CONVERT_32_TO_16 0
 #define CONVERT_16_TO_32 1

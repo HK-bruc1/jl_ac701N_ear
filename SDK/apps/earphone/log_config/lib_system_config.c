@@ -109,7 +109,7 @@ const int FATFS_LONG_NAME_ENABLE = 1; //是否支持长文件名
 const int FATFS_RENAME_ENABLE = 1; //是否支持重命名
 const int FATFS_FGET_PATH_ENABLE = 1; //是否支持获取路径
 const int FATFS_SAVE_FAT_TABLE_ENABLE = 1; //是否支持seek加速
-const int FATFS_SUPPORT_OVERSECTOR_RW = 0; //是否支持超过一个sector向设备拿数
+const int FATFS_SUPPORT_OVERSECTOR_RW = 1; //是否支持超过一个sector向设备拿数
 const int FATFS_TIMESORT_TURN_ENABLE = 1; //按时排序翻转，由默认从小到大变成从大到小
 const int FATFS_TIMESORT_NUM = 128; //按时间排序,记录文件数量, 每个占用14 byte
 

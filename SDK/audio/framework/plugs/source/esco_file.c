@@ -11,8 +11,12 @@
 #include "reference_time.h"
 #include "system/timer.h"
 #include "app_config.h"
+#include "effects/effects_adj.h"
 
 #define ESCO_DISCONNECTED_FILL_PACKET_NUMBER    5 //esco 链路断开时，补包的数量
+
+#define ESCO_REFERENCE_EDR_TIME         0
+#define ESCO_REFERENCE_LOCAL_TIME       1
 
 struct esco_file_hdl {
     u8 start;
@@ -22,6 +26,7 @@ struct esco_file_hdl {
     u8 frame_time;
     u8 reference;
     u8 fill_packet_num; //记录断连时的补包数量
+    u8 reference_time;
     u16 timer;
     u32 clkn;
     u32 coding_type;
@@ -47,6 +52,10 @@ static void esco_frame_pack_timestamp(struct esco_file_hdl *hdl, struct stream_f
         }
     }
     frame->timestamp = esco_audio_timestamp_update(hdl->ts_handle, frame_clkn);
+    if (hdl->reference_time == ESCO_REFERENCE_LOCAL_TIME) {
+        u32 timestamp = bt_edr_conn_master_to_local_time(hdl->bt_addr, frame->timestamp);
+        frame->timestamp = timestamp * TIMESTAMP_US_DENOMINATOR;
+    }
     frame->flags |= FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP;
     hdl->clkn = clkn;
 }
@@ -153,6 +162,8 @@ static void *esco_init(void *priv, struct stream_node *node)
     struct esco_file_hdl *hdl = zalloc(sizeof(*hdl));
     hdl->node = node;
     node->type |= NODE_TYPE_IRQ;
+    jlstream_read_node_data_by_cfg_index(get_source_node_plug_uuid(priv),
+                                         hdl->node->subid, 0, (void *)&hdl->reference_time, NULL);
     return hdl;
 }
 
@@ -206,11 +217,18 @@ void esco_ts_handle_create(struct esco_file_hdl *hdl)
     /* } */
 
     if (!hdl->ts_handle) {
-        hdl->reference = audio_reference_clock_select(hdl->bt_addr, 0);//0 - a2dp主机，1 - tws, 2 - BLE
+        if (hdl->reference_time == ESCO_REFERENCE_LOCAL_TIME) {
+            bt_edr_conn_system_clock_init(hdl->bt_addr, 1);
+            hdl->ts_handle = esco_audio_timestamp_create(hdl->frame_time, delay_time, 1);
+        } else {
+            if (!hdl->reference) {
+                hdl->reference = audio_reference_clock_select(hdl->bt_addr, 0);//0 - a2dp主机，1 - tws, 2 - BLE
+            }
+            hdl->ts_handle = esco_audio_timestamp_create(hdl->frame_time, delay_time, TIME_US_FACTOR);
+        }
 
         hdl->frame_time = (lmp_private_get_esco_packet_type() >> 8) & 0xff;
 
-        hdl->ts_handle = esco_audio_timestamp_create(hdl->frame_time, delay_time, TIME_US_FACTOR);
     }
     hdl->first_timestamp = 1;
 }
@@ -223,7 +241,10 @@ void esco_ts_handle_release(struct esco_file_hdl *hdl)
     if (hdl->ts_handle) {
         esco_audio_timestamp_close(hdl->ts_handle);
         hdl->ts_handle = NULL;
-        audio_reference_clock_exit(hdl->reference);
+        if (hdl->reference) {
+            audio_reference_clock_exit(hdl->reference);
+            hdl->reference = 0;
+        }
     }
 }
 
@@ -252,7 +273,7 @@ static int esco_ioctl(void *_hdl, int cmd, int arg)
         break;
     case NODE_IOC_GET_FMT:
         esco_ioc_get_fmt(hdl, (struct stream_fmt *)arg);
-        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, AUDIO_NETWORK_BT2_1);
+        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, hdl->reference_time == ESCO_REFERENCE_LOCAL_TIME ? AUDIO_NETWORK_LOCAL : AUDIO_NETWORK_BT2_1);
         break;
     case NODE_IOC_SUSPEND:
         lmp_esco_set_rx_notify(hdl->bt_addr, NULL, NULL);

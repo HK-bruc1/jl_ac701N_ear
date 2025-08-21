@@ -328,7 +328,7 @@ static int tws_switch_get_status()
 }
 
 #if RCSP_MODE && RCSP_ADV_TRANSLATOR
-static int esco_switch_get_status()
+static int esco_trans_switch_get_status()
 {
     int trans = 0; //获取翻译状态
     struct translator_mode_info minfo;
@@ -336,22 +336,15 @@ static int esco_switch_get_status()
     if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
         trans = 1;
     }
-    if (trans) {
-        return 0;
-    } else {
-        return 1;
-    }
-
+    return trans;
 }
 
-
-static int esco_trans_switch_get_status()
+static int esco_switch_get_status()
 {
-    return !esco_switch_get_status();
-
+    return !esco_trans_switch_get_status();
 }
 
-static int media_switch_get_status()
+static int media_trans_switch_get_status()
 {
     int trans = 0;//获取翻译状态
     struct translator_mode_info minfo;
@@ -359,19 +352,12 @@ static int media_switch_get_status()
     if (minfo.mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
         trans = 1;
     }
-    if (trans) {
-        return 0;
-    } else {
-        return 1;
-    }
-
+    return trans;
 }
 
-
-static int media_trans_switch_get_status()
+static int media_switch_get_status()
 {
-    return !media_switch_get_status();
-
+    return !media_trans_switch_get_status();
 }
 #endif
 

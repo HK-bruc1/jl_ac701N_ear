@@ -164,6 +164,7 @@ static void ns_handle_frame(struct stream_iport *iport, struct stream_note *note
         if (out_frame_len) {
             hdl->out_frame = jlstream_get_frame(node->oport, out_frame_len);
             if (!hdl->out_frame) {
+                jlstream_return_frame(iport, in_frame);
                 return;
             }
         }

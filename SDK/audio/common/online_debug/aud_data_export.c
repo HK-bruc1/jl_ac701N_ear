@@ -228,5 +228,8 @@ int aud_data_export_open(void)
 
 int aud_data_export_close(void)
 {
+    if (aud_de) {
+        audio_data_export_stop();
+    }
     return 0;
 }

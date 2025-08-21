@@ -35,6 +35,7 @@ void effect_dev_init(struct packet_ctrl *hdl, u32 process_points_per_ch)
 void effect_dev_process(struct packet_ctrl *hdl, struct stream_iport *iport,  struct stream_note *note)
 {
     struct stream_frame *frame;
+    struct stream_frame *out_frame;
     struct stream_node *node = iport->node;
 
     if (hdl->remain_buf) {
@@ -44,59 +45,59 @@ void effect_dev_process(struct packet_ctrl *hdl, struct stream_iport *iport,  st
         }
 
         /*算法出来一帧的数据长度，byte*/
-        hdl->remain_len += frame->len;  //记录目前还有多少数据
-        u16 tmp_remain = 0;             //记录上一次剩余多少
-        u8 pack_frame_num = hdl->remain_len / hdl->frame_len;//每次数据需要跑多少帧
+        int total_len = hdl->remain_len + frame->len;  //记录目前还有多少数据
+        u8 pack_frame_num = total_len / hdl->frame_len;//每次数据需要跑多少帧
         u16 pack_frame_len = pack_frame_num * hdl->frame_len;       //记录本次需要跑多少数据
         u16 out_frame_len = hdl->out_ch_num * pack_frame_len / hdl->in_ch_num;
-        u16 offset = 0;
-        u16 out_offset = 0;
 
         if (pack_frame_num) {
-            if (!hdl->pack_frame) {
-                /*申请资源存储输入*/
-                hdl->pack_frame = malloc(pack_frame_len);
-                if (!hdl->pack_frame) {
+            if (!out_frame) {
+                out_frame = jlstream_get_frame(node->oport, out_frame_len);
+                if (!out_frame) {
                     return;
                 }
             }
-            if (!hdl->out_frame) {
-                /*申请资源存储输出输出*/
-                hdl->out_frame = jlstream_get_frame(node->oport, out_frame_len);
-                if (!hdl->out_frame) {
-                    return;
+            int out_offset = 0;
+            if (hdl->remain_len) {
+                int need_size = hdl->frame_len - hdl->remain_len;
+                /*拷贝上一次剩余的数据*/
+                memcpy((u8 *)hdl->remain_buf + hdl->remain_len, frame->data, need_size);
+                if (hdl->out_ch_num == hdl->in_ch_num) {
+                    memcpy(out_frame->data, hdl->remain_buf, hdl->frame_len);
                 }
-            }
-            tmp_remain = hdl->remain_len - frame->len;//上一次剩余的数据大小
-            /*拷贝上一次剩余的数据*/
-            memcpy(hdl->pack_frame, hdl->remain_buf, tmp_remain);
-            /*拷贝本次数据*/
-            memcpy((void *)((int)hdl->pack_frame + tmp_remain), frame->data, pack_frame_len - tmp_remain);
-            if (hdl->out_ch_num == hdl->in_ch_num) {
-                memcpy(hdl->out_frame->data, hdl->pack_frame, pack_frame_len);
+                hdl->effect_run(hdl->node_hdl, (s16 *)hdl->remain_buf, (s16 *)out_frame->data,
+                                hdl->frame_len);
+                hdl->remain_len = 0;
+                frame->offset += need_size;
+                out_offset = hdl->frame_len * hdl->out_ch_num / hdl->in_ch_num;
+                pack_frame_num--;
             }
             while (pack_frame_num--) {
-                hdl->effect_run(hdl->node_hdl, (s16 *)((int)hdl->pack_frame + offset), (s16 *)((int)hdl->out_frame->data + out_offset), hdl->frame_len);
-                offset += hdl->frame_len;
-                out_offset = hdl->out_ch_num * offset / hdl->in_ch_num;
+                if (hdl->out_ch_num == hdl->in_ch_num) {
+                    memcpy(out_frame->data + out_offset, frame->data + frame->offset,
+                           hdl->frame_len);
+                }
+                hdl->effect_run(hdl->node_hdl, (s16 *)(frame->data + frame->offset),
+                                (s16 *)(out_frame->data + out_offset), hdl->frame_len);
+                frame->offset += hdl->frame_len;
+                out_offset += hdl->frame_len * hdl->out_ch_num  / hdl->in_ch_num;
             }
-            hdl->remain_len -= pack_frame_len;//剩余数据长度
-            hdl->out_frame->len = out_frame_len;
-            jlstream_push_frame(node->oport, hdl->out_frame);	//将数据推到oport
-            hdl->out_frame = NULL;
-            free(hdl->pack_frame);
-            hdl->pack_frame = NULL;
-
-            /*保存剩余不够一帧的数据*/
-            memcpy(hdl->remain_buf, (void *)((int)frame->data + frame->len - hdl->remain_len), hdl->remain_len);
+            if (frame->offset < frame->len) {
+                memcpy(hdl->remain_buf, frame->data + frame->offset, frame->len - frame->offset);
+                hdl->remain_len = frame->len - frame->offset;
+            }
+            out_frame->len = out_frame_len;
+            jlstream_push_frame(node->oport, out_frame);	//将数据推到oport
             jlstream_free_frame(frame);	//释放iport资源
         } else {
             /*当前数据不够跑一帧算法时*/
-            memcpy((void *)((int)hdl->remain_buf + hdl->remain_len - frame->len), frame->data, frame->len);
+            memcpy((void *)((int)hdl->remain_buf + hdl->remain_len), frame->data, frame->len);
+            hdl->remain_len += frame->len;
             jlstream_free_frame(frame);	//释放iport资源
         }
+
+
     } else {
-        struct stream_frame *out_frame;
         frame = jlstream_pull_frame(iport, note);		//从iport读取数据
         if (!frame) {
             return;

@@ -185,7 +185,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         break;
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK)
         le_audio_unicast_play_stop_by_a2dp();
 #endif
         memset(le_audio_a2dp_preempted_addr, 0xff, 6);
@@ -253,7 +253,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         share_a2dp_preempted_resume(bt_addr);
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK)
         le_audio_unicast_play_resume_by_a2dp();
 #endif
         memset(le_audio_a2dp_preempted_addr, 0xff, 6);
@@ -458,7 +458,7 @@ u8 try_a2dp_resume_by_le_audio_preempted()
     if (memcmp(le_audio_a2dp_preempted_addr, addr_b, 6) == 0) {
         return 0;
     }
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
     void *device = btstack_get_conn_device(le_audio_a2dp_preempted_addr);
     if (device) {
         btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);

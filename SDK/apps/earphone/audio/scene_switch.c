@@ -490,6 +490,43 @@ void effect_scene_switch()
     }
     effect_scene_set(music_scene);
 }
+static u8 mb_limiter_mark = 0xff;
+static u8 limiter_mark = 0xff;
+void mb_limiter_switch(char *limiter_node_name) //控制节点的名字
+{
+#if TCFG_MULTI_BAND_LIMITER_NODE_ENABLE
+    struct multiband_limiter_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(0, limiter_node_name, 0, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, limiter_node_name);
+        return;
+    }
+    if (mb_limiter_mark == 0xff) {
+        mb_limiter_mark = cfg.common_param.is_bypass;
+    }
+    mb_limiter_mark ^= 1;
+    cfg.common_param.is_bypass = mb_limiter_mark | USER_CTRL_BYPASS;
+    jlstream_set_node_param(NODE_UUID_MULTIBAND_LIMITER, limiter_node_name, &cfg, sizeof(cfg));
+#endif
+}
+
+void limiter_switch(char *limiter_node_name) //控制节点的名字
+{
+#if TCFG_LIMITER_NODE_ENABLE
+    struct limiter_param_tool_set  cfg = {0};
+    int ret = jlstream_read_form_data(0, limiter_node_name, 0, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, limiter_node_name);
+        return;
+    }
+    if (limiter_mark == 0xff) {
+        limiter_mark = cfg.is_bypass;
+    }
+    limiter_mark ^= 1;
+    cfg.is_bypass = limiter_mark | USER_CTRL_BYPASS;
+    jlstream_set_node_param(NODE_UUID_LIMITER, limiter_node_name, &cfg, sizeof(cfg));
+#endif
+}
 
 static u8 vocla_remove_mark = 0xff;//
 //实时更新media数据流中人声消除bypass参数,启停人声消除功能

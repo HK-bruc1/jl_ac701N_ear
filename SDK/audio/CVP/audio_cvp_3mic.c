@@ -262,7 +262,7 @@ static int audio_aec_post(s16 *data, u16 len)
             cvp_tms->spp_cnt = 0;
             memset(cvp_tms->spp_tmpbuf, 0x20, sizeof(cvp_tms->spp_tmpbuf));
             jlsp_tms_get_wind_detect_info(&cvp_tms->wd_flag, &cvp_tms->wd_val, &cvp_tms->wd_lev);
-            sprintf(cvp_tms->spp_tmpbuf, "falg:%d, val:%d, lev:%d", cvp_tms->wd_flag, cvp_tms->wd_val, cvp_tms->wd_lev);
+            sprintf(cvp_tms->spp_tmpbuf, "flag:%d, val:%d, lev:%d", cvp_tms->wd_flag, cvp_tms->wd_val, cvp_tms->wd_lev);
             cvp_tms->spp_opt->send_data(NULL, cvp_tms->spp_tmpbuf, sizeof(cvp_tms->spp_tmpbuf));
             printf("wd_flag:%d, wd_val:%d, wd_lev:%d", cvp_tms->wd_flag, cvp_tms->wd_val, cvp_tms->wd_lev);
         }
@@ -673,7 +673,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 #if TCFG_AEC_SIMPLEX
     aec_param->wn_en = 1;
     aec_param->EnableBit = AEC_MODE_SIMPLEX;
-    if (sr == 8000) {
+    if (sample_rate == 8000) {
         aec_param->SimplexTail = aec_param->SimplexTail / 2;
     }
 #else

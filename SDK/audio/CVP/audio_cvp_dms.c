@@ -633,6 +633,8 @@ void *read_dms_hybrid_mic_coeff()
     int rlen = resfile_read(fp, cvp_dms->transfer_func, param_len);
     if (rlen != param_len) {
         printf("[error] read dms_hybrid.bin err !!! %d =! %d", rlen, param_len);
+        free(cvp_dms->transfer_func);
+        cvp_dms->transfer_func = NULL;
         resfile_close(fp);
         return NULL;
     }

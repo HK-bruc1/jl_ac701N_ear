@@ -10,6 +10,7 @@
 #include "adv_time_stamp_setting.h"
 #include "rcsp_bt_manage.h"
 #include "rcsp_manage.h"
+#include "ble_rcsp_server.h"
 
 #if (RCSP_MODE && TCFG_USER_TWS_ENABLE)
 #include "btstack/avctp_user.h"
@@ -62,11 +63,25 @@ REGISTER_TWS_FUNC_STUB(adv_time_stamp_sync) = {
     .func    = adv_sync_time_stamp_func_t,
 };
 
+static void adv_sync_reset_sync_func_t_in_task(int args, int err)
+{
+    bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
+    ble_module_enable(0);
+    cpu_reset();
+}
 
 static void adv_sync_reset_sync_func_t(int args, int err)
 {
-    extern void cpu_reset();
-    cpu_reset();
+    int argv[4];
+    argv[0] = (int)adv_sync_reset_sync_func_t_in_task;
+    argv[1] = 2;
+    argv[2] = (int)args;
+    argv[3] = (int)err;
+    int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
+    if (ret) {
+        printf("%s taskq post err \n", __func__);
+        cpu_reset();
+    }
 }
 
 TWS_SYNC_CALL_REGISTER(adv_reset_sync) = {

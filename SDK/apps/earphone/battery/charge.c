@@ -253,14 +253,14 @@ void charge_ldo5v_off_deal(void)
 #endif
 #if TCFG_CHARGE_OFF_POWERON_EN
             log_info("ldo5v off,task switch to BT\n");
-            if (app_var.goto_poweroff_flag == 0) {
-                if (!is_bt_mode) {
-                    if (lowpower_flag == FALSE) {
-                        off_type = LDO5V_OFF_TYPE_NORMAL_ON;//正常拔出开机
-                    } else {
-                        log_info("ldo5v off,lowpower,need enter softpoweroff\n");
-                        off_type = LDO5V_OFF_TYPE_LOWPOWER_OFF;//拔出低电关机
-                    }
+            app_var.goto_poweroff_flag = 0;
+            if (!is_bt_mode) {
+                if (lowpower_flag == FALSE) {
+                    log_info("ldo5v off,lowpower,task switch to BT LDO5V_OFF_TYPE_NORMAL_ON\n");
+                    off_type = LDO5V_OFF_TYPE_NORMAL_ON;//正常拔出开机
+                } else {
+                    log_info("ldo5v off,lowpower,need enter softpoweroff\n");
+                    off_type = LDO5V_OFF_TYPE_LOWPOWER_OFF;//拔出低电关机
                 }
             }
 #else //TCFG_CHARGE_OFF_POWERON_EN
@@ -309,7 +309,6 @@ void charge_ldo5v_off_deal(void)
         break;
     case LDO5V_OFF_TYPE_NORMAL_ON:
         app_var.play_poweron_tone = 0;
-        app_var.goto_poweroff_flag = 0;
         if (app_in_mode(APP_MODE_IDLE)) { //开机充电的时候,不在IDLE模式,充电拔出的时候不需要退出当前模式到蓝牙模式
             app_send_message(APP_MSG_GOTO_MODE, APP_MODE_BT);
         }

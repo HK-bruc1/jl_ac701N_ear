@@ -431,7 +431,7 @@ void aec_cfg_close(AEC_CFG *aec_cfg)
     }
 
     free(aec_cfg);
-    aec_cfg = NULL;
+    p_aec_cfg = NULL;
 }
 
 aec_tool_cfg aec_tool_tab[] = {

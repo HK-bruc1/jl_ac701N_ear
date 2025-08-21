@@ -611,6 +611,12 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 static int adc_ioc_set_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     hdl->sample_rate = fmt->sample_rate;
+    if (hdl->ch_num != AUDIO_CH_NUM(fmt->channel_mode)) {
+        //节点配置的声道类型与协商输出的声道类型不一致。
+        printf("adc channel number set error, %d, %d\n", hdl->ch_num, AUDIO_CH_NUM(fmt->channel_mode));
+        return -1;
+    }
+
     return 0;
 }
 

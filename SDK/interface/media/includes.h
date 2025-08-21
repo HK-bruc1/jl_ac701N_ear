@@ -14,7 +14,7 @@
 #include "media/audio_dac.h"
 #include "media/audio_adc.h"
 #include "media_bank.h"
-
+#include "media/audio_stdlog.h"
 #include "asm/cpu_includes.h"
 #include "effects/eq_func_define.h"
 

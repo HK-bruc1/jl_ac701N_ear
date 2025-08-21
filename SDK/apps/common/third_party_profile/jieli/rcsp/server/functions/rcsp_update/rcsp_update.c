@@ -16,7 +16,6 @@
 #include "rcsp_manage.h"
 #include "rcsp_bt_manage.h"
 #include "update_loader_download.h"
-#include "ble_rcsp_server.h"
 #include "classic/tws_api.h"
 #include "rcsp_task.h"
 #include "rcsp_config.h"
@@ -277,7 +276,6 @@ static void rcsp_wait_reboot_dev(void *priv)
         return;
     }
     bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
-    extern void ble_module_enable(u8 en);
     ble_module_enable(0);
 #if CONFIG_UPDATE_JUMP_TO_MASK
     void latch_reset();

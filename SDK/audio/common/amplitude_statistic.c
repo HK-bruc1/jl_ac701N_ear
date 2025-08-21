@@ -113,7 +113,7 @@ void loudness_meter_short(LOUDNESS_M_STRUCT *loud_obj, short *data, int len)
                 }
 
                 {
-                    int compi = 0, found = 0;;
+                    int compi = 0, found = 0;
                     while (compi < 31) {
                         if (rmsval >= rms_va_tab[compi]) {
 //							float  upval = (0 - compi) * 0.5;
@@ -137,7 +137,7 @@ void loudness_meter_short(LOUDNESS_M_STRUCT *loud_obj, short *data, int len)
                 }
 
                 {
-                    int compi = 0, found = 0;;
+                    int compi = 0, found = 0;
                     while (compi < 31) {
                         if (loud_obj->maxval_print >= am_va_tab[compi]) {
 //							float  upval = (0 - compi) * 0.5;

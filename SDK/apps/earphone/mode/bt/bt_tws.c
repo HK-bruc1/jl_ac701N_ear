@@ -34,6 +34,7 @@
 #include "in_ear_detect/in_ear_manage.h"
 #include "multi_protocol_main.h"
 #include "phone_call.h"
+#include "btstack_rcsp_user.h"
 
 #include "multi_protocol_main.h"
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
@@ -593,9 +594,51 @@ void bt_page_scan_for_test(u8 inquiry_en)
     gtws.state = 0;
 }
 
+/**
+ * @brief 入仓没有连接edr需要主动调用ble主从切换
+ * 功能：入仓关盖tws主从切换
+ * 条件：入仓+没连edr+有ble连接+主机
+ */
+void soft_poweroff_tws_role_switch()
+{
+    if (!get_bt_tws_connect_status()) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+    if (!get_charge_online_flag()) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+#if RCSP_MODE
+    if (bt_rcsp_ble_conn_num() <= 0) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+#endif
+
+    /* 连上手机后，软关机流程会触发主从切 */
+    // if (BT_STATUS_CONNECTING == bt_get_connect_status()) {
+    //     return;
+    // }
+
+    printf("soft_poweroff_tws_role_switch\n");
+    tws_api_role_switch();
+}
+
 int bt_tws_poweroff()
 {
     log_info("bt_tws_poweroff\n");
+
+#if TCFG_USER_BLE_ENABLE
+    soft_poweroff_tws_role_switch();
+#endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     multi_protocol_bt_tws_poweroff_handler();
@@ -619,6 +662,7 @@ int bt_tws_poweroff()
 
 void tws_page_scan_deal_by_esco(u8 esco_flag)
 {
+    return;
     if (gtws.state & BT_TWS_UNPAIRED) {
         return;
     }

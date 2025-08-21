@@ -55,7 +55,7 @@
 <Add option="-D__GCC_PI32V2__" />
 <Add option="-DCONFIG_NEW_ECC_ENABLE" />
 <Add option="-DCONFIG_CODE_MOVABLE_ENABLE" />
-<Add option="-DEXPORT_FNMA_ENABLE=0" />
+<Add option="-DEXPORT_FNMA_ENABLE=1" />
 <Add option="-DEXPORT_TENCENT_LL_ENABLE=1" />
 <Add option="-DCONFIG_EFFECT_CORE_V2_ENABLE" />
 <Add option="-DEXPORT_CONFIG_USB_ENABLE=1" />
@@ -661,6 +661,16 @@
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_sink_api.h" />
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_source_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/auracast_app/auracast_app_source_api.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_cfg.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_modet.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_modet.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_profile.h" />
 <Unit filename="apps/common/third_party_profile/common/3th_profile_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/common/3th_profile_api.h" />
 <Unit filename="apps/common/third_party_profile/common/custom_cfg.c"><Option compilerVer="CC"/></Unit>
@@ -689,6 +699,7 @@
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_ota.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_ota.h" />
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_tme.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/jieli/gatt_common/le_gatt_common.h" />
 <Unit filename="apps/common/third_party_profile/jieli/le_client_demo.h" />
 <Unit filename="apps/common/third_party_profile/jieli/le_common.h" />
 <Unit filename="apps/common/third_party_profile/jieli/online_db/online_db_deal.c"><Option compilerVer="CC"/></Unit>
@@ -898,6 +909,8 @@
 <Unit filename="apps/common/third_party_profile/mma_protocol/mma_platform_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/mma_protocol/mma_platform_api.h" />
 <Unit filename="apps/common/third_party_profile/mma_protocol/mma_protocol.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/multi_ble_client/ble_multi_client.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/multi_ble_client/ble_multi_client.h" />
 <Unit filename="apps/common/third_party_profile/multi_protocol_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/multi_protocol_event.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/multi_protocol_main.c"><Option compilerVer="CC"/></Unit>
@@ -1301,6 +1314,7 @@
 <Unit filename="audio/cpu/br28/audio_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_config.h" />
 <Unit filename="audio/cpu/br28/audio_config_def.h" />
+<Unit filename="audio/cpu/br28/audio_configs_dump.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_dai/audio_link.h" />
 <Unit filename="audio/cpu/br28/audio_dai/audio_pdm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_dai/audio_pdm.h" />
@@ -1580,6 +1594,7 @@
 <Unit filename="interface/btstack/third_party/common/spp_config.h" />
 <Unit filename="interface/btstack/third_party/common/spp_user.h" />
 <Unit filename="interface/btstack/third_party/dma/dma_api.h" />
+<Unit filename="interface/btstack/third_party/fmna/fmna_api.h" />
 <Unit filename="interface/btstack/third_party/le_audio/big.h" />
 <Unit filename="interface/btstack/third_party/le_audio/cig.h" />
 <Unit filename="interface/btstack/third_party/rcsp/JL_rcsp_api.h" />
@@ -1706,6 +1721,7 @@
 <Unit filename="interface/media/audio_splicing.h" />
 <Unit filename="interface/media/audio_src.h" />
 <Unit filename="interface/media/audio_src_base.h" />
+<Unit filename="interface/media/audio_stdlog.h" />
 <Unit filename="interface/media/audio_time.h" />
 <Unit filename="interface/media/automute.h" />
 <Unit filename="interface/media/bt_audio_timestamp.h" />

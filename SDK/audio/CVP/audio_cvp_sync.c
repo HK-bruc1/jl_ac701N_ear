@@ -79,6 +79,8 @@ int audio_cvp_sync_open(u16 sr)
     }
     hdl->hw_src = zalloc(sizeof(struct audio_src_handle));
     if (!hdl->hw_src) {
+        free(hdl);
+        hdl = NULL;
         return 1;
     }
     hdl->ch_num = 1;

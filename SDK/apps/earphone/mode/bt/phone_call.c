@@ -322,7 +322,7 @@ int bt_phone_esco_play(u8 *bt_addr)
     esco_smart_voice_detect_handler();
 #endif
     int ret = 0;
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
     ret = le_audio_unicast_play_stop_by_esco();
 #endif
 
@@ -370,7 +370,7 @@ int bt_phone_esco_play(u8 *bt_addr)
     phone_income_num_check(NULL);
 #endif
     pbg_user_mic_fixed_deal(1);
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
     if (ret) {
         le_audio_unicast_play_resume_by_esco();
     }

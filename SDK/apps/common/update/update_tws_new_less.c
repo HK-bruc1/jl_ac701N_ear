@@ -214,6 +214,57 @@ int tws_ota_data_send_m_to_s(u8 *buf, u16 len)
     return 0;
 }
 
+static u32 g_tws_ota_peer_crc_info = 0;
+static u32 tws_ota_request_peer_crc_info(void)
+{
+    int ret = 0;
+    os_sem_set(&tws_ota_sem, 0);
+    u8 data[2];
+    if (tws_api_get_tws_state() & TWS_STA_SIBLING_DISCONNECTED) {
+        log_info("tws_disconn exit req crc_info\n");
+        return 0;
+    }
+
+    data[0] = OTA_TWS_REQ_PEER_CRC_INFO;
+    data[1] = ++ sync_update_sn;
+    ret = tws_ota_trans_to_sibling(data, 2);
+    if (ret) {
+        return (u32) - 1;
+    }
+    if (os_sem_pend(&tws_ota_sem, 300) ==  OS_TIMEOUT) {
+        return 0;
+    }
+    return g_tws_ota_peer_crc_info;
+}
+
+static int tws_ota_respone_self_crc_info(void)
+{
+    int ret = 0;
+    struct crc_info lcrc;
+    u32 len;
+    u8 retry = 5;
+    u8 *data;
+
+    len = sizeof(u32) + 2;
+    data = malloc(len);
+    db_update_local_crc_info(&lcrc);
+    log_info("lc_crc: 0x%x, 0x%x\n", lcrc.crc32, lcrc.crc16);
+
+    data[0] = OTA_TWS_REQ_PEER_CRC_INFO_RSP;
+    data[1] = ++ sync_update_sn;
+    memcpy(&data[2], (u8 *) & (lcrc.crc32), sizeof(u32));
+    while (retry --) {
+        ret = tws_ota_trans_to_sibling(data, len + 2);
+        if (ret < 0 && ret != -1) {
+            os_time_dly(5);
+        } else {
+            break;
+        }
+    }
+    free(data);
+    return 0;
+}
+
 static u32 g_tws_ota_addr_recore = 0;
 static int tws_ota_data_send_with_crc_m_to_s(u8 *buf, u16 len, u16 pack_crc, void *priv)
 {
@@ -745,6 +796,13 @@ static void deal_sibling_tws_ota_trans(void *data, u16 len)
             user_chip_tws_update_handle(recv_data + 2, len - 2);
         }
         break;
+    case OTA_TWS_REQ_PEER_CRC_INFO:
+        tws_ota_respone_self_crc_info();
+        break;
+    case OTA_TWS_REQ_PEER_CRC_INFO_RSP:
+        memcpy(&g_tws_ota_peer_crc_info, &recv_data[2], sizeof(u32));
+        os_sem_post(&tws_ota_sem);
+        break;
     }
     free(data);
 }
@@ -801,6 +859,8 @@ update_op_tws_api_t update_tws_api = {
     //for user_chip
     .tws_ota_user_chip_update_send = tws_ota_user_chip_update_send_m_to_s,
     .tws_ota_user_chip_update_send_data = tws_ota_data_send_with_crc_m_to_s,
+
+    .tws_ota_request_peer_crc_info_hdl = tws_ota_request_peer_crc_info,
 };
 
 update_op_tws_api_t *get_tws_update_api(void)

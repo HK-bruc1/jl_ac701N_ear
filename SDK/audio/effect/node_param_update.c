@@ -110,7 +110,7 @@ int autotune_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_AUTOTUNE, node_name, &cfg, sizeof(cfg));
 }
-int chorus_udpate_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+int chorus_udpate_param(u8 mode_index, char *node_name, u8 cfg_index)
 {
     chorus_param_tool_set cfg = {0};
     int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);

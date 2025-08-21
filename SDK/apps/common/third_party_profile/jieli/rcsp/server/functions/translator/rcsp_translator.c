@@ -260,7 +260,7 @@ static int translator_recv_ch_start(u8 source)
         param.frame_dms = 200;  //20ms一帧
         param.channel_mode = AUDIO_CH_MIX;
         param.bit_rate = 16000;
-        int frame_size = param.frame_dms * param.bit_rate / 8 / 10000 + 2;
+        int frame_size = param.frame_dms * param.bit_rate / 8 / 10000 + (JLA_V2_CODEC_WITH_FRAME_HEADER == 0 ? 0 : 2);
         channel->frame_size = frame_size; //一帧编码输出的大小;
         channel->frame_dms = param.frame_dms;
         channel->bit_rate =  param.bit_rate;
@@ -976,6 +976,12 @@ u32 JL_rcsp_translator_get_status()
 void JL_rcsp_translator_get_mode_info(struct translator_mode_info *minfo)
 {
     memcpy(minfo, &tlr_hdl.mode_info, sizeof(*minfo));
+    if (minfo->mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
+        //通话翻译模式，参数未设置完成时，先不通知应用流程已进入通话翻译
+        if (tlr_hdl.esco_param_is_set == 0) {
+            minfo->mode = RCSP_TRANSLATOR_MODE_IDLE;
+        }
+    }
 }
 
 int JL_rcsp_translator_manual_record_start()

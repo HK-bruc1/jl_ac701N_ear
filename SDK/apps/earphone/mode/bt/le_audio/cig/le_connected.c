@@ -24,13 +24,17 @@
 #include "le_audio_player.h"
 #include "le_audio_recorder.h"
 #include "btstack/le/ble_api.h"
+#include "app_le_connected.h"
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
-#if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L) || (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_R)
-#define UNICAST_SINK_CIS_NUMS               (1)			// 单声道
+#if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L) || (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_R) || (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+#define UNICAST_SINK_CIS_NUMS               		(1)			// 单声道
+#define UNICAST_SINK_CIS_LR_BUF_MAX_NUMS			0
 #else
-#define UNICAST_SINK_CIS_NUMS               (2)			// 立体声
+#define UNICAST_SINK_CIS_NUMS               		(2)			// 立体声
+#define UNICAST_SINK_CIS_LR_BUF_MAX_NUMS			20			// 手机cis立体声的错位拼包重发容错最大次数，对应flush_timeout_C_to_P
+#define UNICAST_SINK_CIS_LR_TS_ALLOW_DIFF_VAL		1000		// 立体声buf时间允许相差1ms
 #endif
 
 /**************************************************************************************************
@@ -89,11 +93,24 @@ struct acl_recv_hdl {
     struct list_head entry;
     void (*recv_handle)(u16 conn_handle, const void *const buf, size_t length, void *priv);
 };
-static u16 multi_cis_rx_temp_buf_len = 0;
-static u8 *multi_cis_rx_buf = NULL;
-static u16 multi_cis_data_offect = {0};
-static bool multi_cis_plc_flag = false;
 static bool rcsp_update_flag  = false;
+
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
+typedef struct __JL_CIS_LR_BUF_LIST {
+    struct list_head entry;						// 组包链表项，用于链表管理
+    u32 ts;										// 时间戳
+    u8 index;									// 缓存index，对应multi_cis_rx_buf
+    u8 l_save;									// 左声道是否存储
+    u8 r_save;									// 右声道是否存储
+} JL_CIS_LR_BUF_LIST;
+struct list_head _cis_lr_buf_list_head = LIST_HEAD_INIT(_cis_lr_buf_list_head);	// 组包时间戳-缓存index链表
+static u16 multi_cis_rx_temp_buf_len = 0; // 组包大小
+static u8 *multi_cis_rx_buf[UNICAST_SINK_CIS_LR_BUF_MAX_NUMS]; // 组包buf
+static u8 multi_cis_rx_buf_used[UNICAST_SINK_CIS_LR_BUF_MAX_NUMS] = {0}; // 组包buf是否已被使用
+static u16 multi_cis_data_offect[UNICAST_SINK_CIS_LR_BUF_MAX_NUMS] = {0}; // 组包偏移
+static u8 multi_cis_plc_flag[UNICAST_SINK_CIS_LR_BUF_MAX_NUMS] = {0}; // 组包丢包修复
+static u8 multi_cis_buf_arr_count = 0; // 一般是flush_timeout_C_to_P的2倍
+#endif
 
 /**************************************************************************************************
   Static Prototypes
@@ -351,6 +368,10 @@ int connected_perip_connect_deal(void *priv)
         params.fmt.sample_rate = get_cig_audio_coding_sample_rate();
     }
     params.fmt.coding_type = LE_AUDIO_CODEC_TYPE;
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+    params.fmt.coding_type = le_audio_get_dongle_codec_type();
+    ASSERT(params.fmt.coding_type, "codec_type not defined");
+#endif
     params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
     params.fmt.flush_timeout = hdl->flush_timeout_C_to_P;
     params.fmt.isoIntervalUs = hdl->isoIntervalUs;
@@ -366,18 +387,27 @@ int connected_perip_connect_deal(void *priv)
     g_printf("nch:%d, coding_type:0x%x, dec_ch_mode:%d, conn:%d, dms:%d, sdu_period:%d, br:%d, sr:%d\n",
              params.fmt.nch, params.fmt.coding_type, params.fmt.dec_ch_mode, params.conn, params.fmt.frame_dms, params.fmt.sdu_period, params.fmt.bit_rate, params.fmt.sample_rate);
 
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
     if (connected_hdl->rx_cis_num > 1) {
-        if (multi_cis_rx_buf) {
-            free(multi_cis_rx_buf);
-            multi_cis_rx_buf = NULL;
+        clock_alloc("le_connected_lr", 80 * 1000000UL);
+        spin_lock(&connected_lock);
+        multi_cis_buf_arr_count = hdl->flush_timeout_C_to_P * 2; // 只对重发周期内的数据进行错位组包
+        ASSERT(multi_cis_buf_arr_count < UNICAST_SINK_CIS_LR_BUF_MAX_NUMS);
+        for (u8 m = 0; m < multi_cis_buf_arr_count; m++) {
+            if (multi_cis_rx_buf[m]) {
+                free(multi_cis_rx_buf[m]);
+                multi_cis_rx_buf[m] = 0;
+            }
+            if (!multi_cis_rx_buf[m]) {
+                multi_cis_rx_temp_buf_len = params.fmt.bit_rate * params.fmt.frame_dms / 8 / 1000 / 10;
+                multi_cis_rx_buf[m] = zalloc(multi_cis_rx_temp_buf_len);
+                printf("multi_cis_rx_temp_buf_len:%d, m:%d, BN_C_To_P:%d, 0x%x\n", multi_cis_rx_temp_buf_len, m, hdl->BN_C_To_P, (unsigned int)multi_cis_rx_buf[m]);
+                ASSERT(multi_cis_rx_buf[m], "multi_cis_rx_buf is NULL");
+            }
         }
-        if (!multi_cis_rx_buf) {
-            multi_cis_rx_temp_buf_len = params.fmt.bit_rate * params.fmt.frame_dms / 8 / 1000 / 10;
-            multi_cis_rx_buf = zalloc(multi_cis_rx_temp_buf_len);
-            printf("multi_cis_rx_temp_buf_len:%d, BN_C_To_P:%d, 0x%x\n", multi_cis_rx_temp_buf_len, hdl->BN_C_To_P, (unsigned int)multi_cis_rx_buf);
-            ASSERT(multi_cis_rx_buf, "multi_cis_rx_buf is NULL");
-        }
+        spin_unlock(&connected_lock);
     }
+#endif
 
     if (!le_audio_player_is_playing()) {
 
@@ -571,10 +601,26 @@ int connected_perip_disconnect_deal(void *priv)
                 if (le_audio_switch_ops && le_audio_switch_ops->rx_le_audio_close) {
                     le_audio_switch_ops->rx_le_audio_close(&player);
                 }
-                if (multi_cis_rx_buf) {
-                    free(multi_cis_rx_buf);
-                    multi_cis_rx_buf = 0;
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
+                clock_free("le_connected_lr");
+                for (u8 m = 0; m < UNICAST_SINK_CIS_LR_BUF_MAX_NUMS; m++) {
+                    if (multi_cis_rx_buf[m]) {
+                        free(multi_cis_rx_buf[m]);
+                        multi_cis_rx_buf[m] = 0;
+                    }
+                    multi_cis_rx_buf_used[m] = 0;
+                    multi_cis_plc_flag[m] = 0;
+                    multi_cis_data_offect[m] = 0;
                 }
+                JL_CIS_LR_BUF_LIST *list_buf_1 = NULL, *list_buf_2 = NULL;
+                list_for_each_entry_safe(list_buf_1, list_buf_2, &_cis_lr_buf_list_head, entry) {
+                    if (list_buf_1) {
+                        list_del(&list_buf_1->entry);
+                        free(list_buf_1);
+                    }
+                }
+                multi_cis_buf_arr_count = 0;
+#endif
             }
 
             spin_lock(&connected_lock);
@@ -776,14 +822,56 @@ static void connected_iso_recv_handle(u16 conn_handle, const void *const buf, si
     }
 }
 
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
+static void connected_reset_multi_cis_info(u8 index, JL_CIS_LR_BUF_LIST *list_buf)
+{
+    multi_cis_data_offect[index] = 0;
+    multi_cis_plc_flag[index] = 0;
+    multi_cis_rx_buf_used[index] = 0;
+    if (list_buf) {
+        list_del(&list_buf->entry);
+        free(list_buf);
+    }
+}
+/**
+ * @brief 发送需要发送的早期err数据
+ * 			这里的err数据：泛指后续已经组成了lr的数据包，当起码还有没有组成lr的数据包
+ * 			这里就直接当做错包push给音频流了
+ *
+ * @param list_buf 一定是即将发送的数据包，要把这个数据前面未发送的数据包发送
+ * @param rx_stream
+ */
+static void connected_send_first_in_lr_err_buf(JL_CIS_LR_BUF_LIST *list_buf, void *rx_stream)
+{
+    if (!rx_stream || !list_buf) {
+        ASSERT(0);
+        return;
+    }
+    JL_CIS_LR_BUF_LIST *list_buf_1 = NULL, *list_buf_2 = NULL;
+    u8 index = 0;
+    list_for_each_entry_safe(list_buf_1, list_buf_2, &_cis_lr_buf_list_head, entry) {
+        // 先进先出
+        if (list_buf_1 != list_buf) {
+            index = list_buf_1->index;
+            if (multi_cis_rx_buf[index]) {
+                memcpy(multi_cis_rx_buf[index], errpacket, 2);
+                /* printf("RE:%d\n", list_buf_1->ts); */
+                le_audio_stream_rx_frame(rx_stream, (void *)multi_cis_rx_buf, 2, list_buf_1->ts);
+                connected_reset_multi_cis_info(index, list_buf_1);
+            }
+        } else {
+            break;
+        }
+    }
+}
+#endif
+
 /*
  * CIS通道收到数据回连到上层处理
  * */
 static void connected_iso_callback(const void *const buf, size_t length, void *priv)
 {
     u8 i = 0;
-    static u8 j = 0;
-    s8 index = -1;
     bool plc_flag = 0;
     cig_stream_param_t *param;
     struct connected_hdl *hdl;
@@ -797,8 +885,6 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
         return;
     }
 
-    //为了兼容配置了间隔20ms，连续两包CIS的时候timestamp一样，临时处理使用
-    /* log_info("<<- cis Data Out <<- TS:%d,%d", param->ts, (int)length); */
     spin_lock(&connected_lock);
     list_for_each_entry(hdl, &connected_list_head, entry) {
         if (hdl->del) {
@@ -806,9 +892,10 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
             continue;
         }
         if ((!hdl->rx_player.le_audio) || (!hdl->rx_player.rx_stream)) {
-            /* log_error("%s, %d\n", __FUNCTION__, __LINE__); */
+            log_error("%s, %d\n", __FUNCTION__, __LINE__);
             continue;
         }
+
 #if CIS_AUDIO_PLC_ENABLE
         if (length == 0) {
             plc_flag = 1;
@@ -819,83 +906,125 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
 
         for (i = 0; i < hdl->rx_cis_num; i++) {
             if (hdl->cis_hdl_info[i].cis_hdl == param->cis_hdl) {
-                index = i;
+                break;
+            }
+            if (i == (hdl->rx_cis_num - 1)) {
+                continue;
+            }
+        }
+
+        /* printf("r1[%d][%d][%d]\n", i, param->cis_hdl, param->ts); */
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
+        u8 is_left = (i == 0) ? 1 : 0;
+        if (!multi_cis_buf_arr_count) {
+            // 只允许接收立体声数据
+            continue;
+        }
+        // UNICAST_SINK_CIS_LR_BUF_MAX_NUMS's code description
+        // 1、根据时间戳去找到链表中对应的buf index
+        // 		时间戳容错需要在UNICAST_SINK_CIS_LR_TS_ALLOW_DIFF_VAL之内
+        // 2、检查缓存中是否存入lr数据
+        // 		lr数据都缓存完毕则push到audio
+        // 3、丢弃早期的lr没存够的buf到丢包修复
+        u8 index = 0, find = 0;
+        JL_CIS_LR_BUF_LIST *list_buf = NULL;
+        list_for_each_entry(list_buf, &_cis_lr_buf_list_head, entry) {
+            u32 diff_val = ABS_DIFF(param->ts, list_buf->ts);
+            if (diff_val < UNICAST_SINK_CIS_LR_TS_ALLOW_DIFF_VAL) {
+                find = 1;
+                index = list_buf->index;
                 break;
             }
         }
-
-        if (index == -1) {
-            continue;
-        }
-
-        j++;
-        if (j >= hdl->cis_hdl_info[i].BN_C_To_P) {
-            j = 0;
-        }
-
-        /* printf("[%d][%d][%d][%d]\n", i, j, param->cis_hdl, (int)length); */
-        if (plc_flag || multi_cis_plc_flag) {
-            if (multi_cis_rx_buf) {
-                multi_cis_plc_flag = 1;
-                for (i = 0; i < hdl->rx_cis_num; i++) {
-                    if (hdl->cis_hdl_info[i].cis_hdl == param->cis_hdl) {
-                        break;
-                    }
+        if (!find && multi_cis_buf_arr_count) {
+            // 寻找空闲的组包buf及index
+            for (i = 0; i < multi_cis_buf_arr_count; i++) {
+                if (!multi_cis_rx_buf_used[i]) {
+                    index = i;
+                    multi_cis_rx_buf_used[index] = 1;
+                    break;
                 }
-                /* printf("[%d][%d][%d][0x%x]\n", i, param->cis_hdl, (int)length, (unsigned int)multi_cis_rx_buf); */
-                if (i == (hdl->rx_cis_num - 1)) {
-                    memcpy(multi_cis_rx_buf, errpacket, 2);
-                    /* putchar('r'); */
-                    le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)multi_cis_rx_buf, 2, param->ts);
-                    multi_cis_data_offect = 0;
-                    multi_cis_plc_flag = 0;
+                if (i == multi_cis_buf_arr_count) {
+                    // 需要检查为什么multi_cis_rx_buf_used没有被释放
+                    ASSERT(0, "need to checkout multi_cis_buf_arr_count\n");
                 }
-            } else {
-                /* putchar('r'); */
-
-                /* printf("r:%d, %d\n", (int)length, (int)param->ts); */
-                int frame_num = 1;
-                if (get_le_audio_jl_dongle_device_type()) {
-                    frame_num = hdl->cis_hdl_info[i].Max_PDU_C_To_P / get_lc3_decoder_info_octets_per_frame();
-                }
-                u32 timestamp = 0;
-                for (int k = 0; k < frame_num; k++) {
-                    le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)errpacket, 2, param->ts + timestamp);
-                    timestamp += get_cig_audio_coding_frame_duration() * 100;
-                }
-                /* r_printf("r=%d,%d\n",get_lc3_decoder_info_octets_per_frame(),frame_num ); */
             }
-        } else {
-            if (multi_cis_rx_buf) {
-                /* printf("[%d][%d][%d][%d][%d][0x%x]\n", i, param->cis_hdl, multi_cis_data_offect, (int)length, multi_cis_rx_temp_buf_len, (unsigned int)multi_cis_rx_buf); */
-
-                //区分左右耳填buffer
-                if (i == 0) {
-                    memcpy(multi_cis_rx_buf, buf, length);
-                    multi_cis_data_offect += length;
-                } else if (i == 1) {
-                    memcpy(multi_cis_rx_buf + (multi_cis_rx_temp_buf_len / UNICAST_SINK_CIS_NUMS), buf, length);
-                    multi_cis_data_offect += length;
+            list_buf = (JL_CIS_LR_BUF_LIST *)zalloc(sizeof(JL_CIS_LR_BUF_LIST));
+            ASSERT(list_buf, "list_buf is NULL");
+            list_buf->ts = param->ts;
+            list_buf->index = index;
+            list_add_tail(&list_buf->entry, &_cis_lr_buf_list_head);
+        }
+        if (plc_flag || multi_cis_plc_flag[index]) {
+            if (multi_cis_rx_buf[index]) {
+                multi_cis_plc_flag[index] = 1;
+                if (is_left) {
+                    list_buf->l_save = 1;
                 } else {
-                    //TODO 多声道继续叠加
-                    putchar('+');
+                    list_buf->r_save = 1;
                 }
-                ASSERT(multi_cis_data_offect <= multi_cis_rx_temp_buf_len);
-                if (multi_cis_data_offect >= multi_cis_rx_temp_buf_len) {
-                    /* put_buf((void *)multi_cis_rx_buf, multi_cis_rx_temp_buf_len); */
-                    /* putchar('R'); */
-                    /* printf("R:%d\n", param->ts); */
-                    le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)multi_cis_rx_buf, multi_cis_rx_temp_buf_len, param->ts);
-                    multi_cis_data_offect = 0;
+                /* printf("r[%d][%d][%d][%d]\n", index, (int)length, list_buf->l_save, list_buf->r_save); */
+                if (list_buf->l_save && list_buf->r_save) {
+                    // 查找有没有老的数据没有发出去的
+                    connected_send_first_in_lr_err_buf(list_buf, hdl->rx_player.rx_stream);
+                    memcpy(multi_cis_rx_buf[index], errpacket, 2);
+                    /* putchar('r'); */
+                    /* printf("r2:%d\n", list_buf->ts); */
+                    le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)multi_cis_rx_buf, 2, list_buf->ts);
+                    connected_reset_multi_cis_info(index, list_buf);
                 }
             } else {
-                /* putchar('R'); */
-                /* printf("R:%d, %d\n", (int)length, (int)param->ts); */
-                le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)buf, length, param->ts);
+                connected_send_first_in_lr_err_buf(list_buf, hdl->rx_player.rx_stream);
+                /* putchar('r'); */
+                /* printf("r3:%d, %d\n", (int)length, (int)param->ts); */
+                le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)errpacket, 2, param->ts);
+                connected_reset_multi_cis_info(index, list_buf);
             }
-            /* extern uint32_t bb_le_clk_get_time_us(void); */
-            /* u32 local = bb_le_clk_get_time_us(); */
-            /* printf("[%d, %d, %d]\n", local, param->ts, local - param->ts); */
+#else
+        if (plc_flag) {
+            /* putchar('r'); */
+            /* printf("r:%d, %d\n", (int)length, (int)param->ts); */
+            le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)errpacket, 2, param->ts);
+#endif
+        } else {
+#if UNICAST_SINK_CIS_LR_BUF_MAX_NUMS
+            if (multi_cis_rx_buf[index]) {
+                // 区分左右耳填buffer
+                if (is_left) {
+                    memcpy(multi_cis_rx_buf[index], buf, length);
+                    multi_cis_data_offect[index] += length;
+                    list_buf->l_save = 1;
+                } else {
+                    memcpy(multi_cis_rx_buf[index] + (multi_cis_rx_temp_buf_len / UNICAST_SINK_CIS_NUMS), buf, length);
+                    multi_cis_data_offect[index] += length;
+                    list_buf->r_save = 1;
+                }
+                /* printf("R[%d][%d][%d][%d]\n", index, multi_cis_data_offect[index], list_buf->l_save, list_buf->r_save); */
+                ASSERT(multi_cis_data_offect[index] <= multi_cis_rx_temp_buf_len);
+                if (multi_cis_data_offect[index] >= multi_cis_rx_temp_buf_len) {
+                    // 查找有没有老的数据没有发出去的
+                    connected_send_first_in_lr_err_buf(list_buf, hdl->rx_player.rx_stream);
+                    /* put_buf((void *)multi_cis_rx_buf[index], multi_cis_rx_temp_buf_len); */
+                    /* putchar('R'); */
+                    /* printf("R1:%d\n", list_buf->ts); */
+                    le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)multi_cis_rx_buf[index], multi_cis_rx_temp_buf_len, list_buf->ts);
+                    /* extern uint32_t bb_le_clk_get_time_us(void); */
+                    /* u32 local = bb_le_clk_get_time_us(); */
+                    /* printf("[%d, %d, %d]\n", local, list_buf->ts, local - list_buf->ts); */
+                    connected_reset_multi_cis_info(index, list_buf);
+                }
+            } else {
+                connected_send_first_in_lr_err_buf(list_buf, hdl->rx_player.rx_stream);
+                /* putchar('R'); */
+                /* printf("R2:%d, %d\n", (int)length, (int)param->ts); */
+                le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)buf, length, param->ts);
+                connected_reset_multi_cis_info(index, list_buf);
+            }
+#else
+            /* putchar('R'); */
+            /* printf("R:%d, %d\n", (int)length, (int)param->ts); */
+            le_audio_stream_rx_frame(hdl->rx_player.rx_stream, (void *)buf, length, param->ts);
+#endif
         }
     }
     spin_unlock(&connected_lock);

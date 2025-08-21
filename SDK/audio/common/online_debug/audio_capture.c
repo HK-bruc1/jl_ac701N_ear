@@ -440,6 +440,7 @@ static void adc_mic_output(void *priv, s16 *data, int len)
 {
     //printf("<%x,%x,%d>",adc_dm->adc_buf,data,len);
     u16 wlen;
+    /*len = 1ch adc data len*/
 #if (ADC_DM_CH_NUM == 2)
     /*
      *这里先把mic0的数据取出来放在临时buf，mic1的数据就可以

@@ -19,6 +19,7 @@
 #include "app_charge.h"
 #include "bt_slience_detect.h"
 #include "poweroff.h"
+#include "ble_rcsp_server.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
@@ -200,7 +201,7 @@ static void wait_exit_btstack_flag(void *_reason)
 {
     int reason = (int)_reason;
 
-    if (!a2dp_player_runing() && !esco_player_runing() && !g_user_wait_timer) {
+    if (!a2dp_player_runing() && !esco_player_runing() && !g_user_wait_timer && !lmp_get_conn_num()) {
         lmp_hci_reset();
         os_time_dly(2);
         sys_timer_del(g_bt_detach_timer);
@@ -319,6 +320,10 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
     app_var.goto_poweroff_cnt = 0;
     sys_auto_shut_down_disable();
 
+#if RCSP_MODE
+    rcsp_bt_ble_adv_enable(0);
+#endif
+
 #if (THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN)
     extern void gfps_need_adv_close_icon_set(u8 en);
     extern void gfps_poweroff_adv_close_icon();
@@ -352,7 +357,7 @@ void sys_enter_soft_poweroff(enum poweroff_reason reason)
     /* TWS同时关机,先断开手机  */
     if (reason == POWEROFF_NORMAL_TWS) {
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
-            bt_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL);
+            bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
         }
         g_bt_detach_timer = sys_timer_add(NULL, power_off_at_same_time, 50);
         return;

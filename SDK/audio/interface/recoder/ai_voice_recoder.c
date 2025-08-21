@@ -128,9 +128,7 @@ int ai_voice_recoder_open(u32 code_type, u8 ai_type)
     u32 ref_sr = audio_dac_get_sample_rate(&dac_hdl);
     if (node_uuid) {
 #if !(TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE))
-#if (TCFG_ESCO_DL_CVSD_SR_USE_16K > 1)
         jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_FMT, (int)ref_sr);
-#endif
 #endif
         err = jlstream_node_ioctl(recoder->stream, node_uuid, NODE_IOC_SET_PRIV_FMT, source_uuid);
         if (err && (err != -ENOENT)) {	//兼容没有cvp节点的情况

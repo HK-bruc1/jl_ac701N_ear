@@ -99,7 +99,7 @@ const struct task_info task_info_table[] = {
     {"file_cache",          6,     0,  512 - 128,   0 },
     {"write_file",		    5,	   0,  512,   0 },
     {"aec_dbg",				3,	   0,   512,   128 },
-    {"update",				1,	   0,   256,   0   },
+    {"update",				1,	   0,   512,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
     {"tws_ota_msg",			2,	   0,   256,   128 },
     {"dw_update",		 	1,	   0,   256,   128 },

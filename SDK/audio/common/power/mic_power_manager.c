@@ -3,6 +3,7 @@
 #include "gpio_config.h"
 #include "audio_adc.h"
 #include "adc_file.h"
+#include "audio_config_def.h"
 
 /*
  *MIC电源管理
@@ -21,6 +22,15 @@ void audio_mic_pwr_ctl(audio_mic_pwr_t state)
         }
         printf("MIC_IO_PWR close\n");
     case MIC_PWR_INIT:
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+#if !ANC_ADC0_BIAS_SEL
+        gpio_set_mode(IO_PORT_SPILT(ANC_ADC0_POWER_IO), PORT_OUTPUT_LOW);
+#endif
+#if !ANC_ADC1_BIAS_SEL
+        gpio_set_mode(IO_PORT_SPILT(ANC_ADC1_POWER_IO), PORT_OUTPUT_LOW);
+#endif
+        break;
+#endif
         /*mic供电IO配置：输出0*/
         for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
             if (cfg->mic_en_map & BIT(i)) {
@@ -42,6 +52,15 @@ void audio_mic_pwr_ctl(audio_mic_pwr_t state)
         break;
 
     case MIC_PWR_ON:
+#if defined(ANC_MIC_REUSE_ENABLE) && ANC_MIC_REUSE_ENABLE
+#if !ANC_ADC0_BIAS_SEL
+        gpio_set_mode(IO_PORT_SPILT(ANC_ADC0_POWER_IO), PORT_OUTPUT_HIGH);
+#endif
+#if !ANC_ADC1_BIAS_SEL
+        gpio_set_mode(IO_PORT_SPILT(ANC_ADC1_POWER_IO), PORT_OUTPUT_HIGH);
+#endif
+        break;
+#endif
         /*mic供电IO配置：输出1*/
         for (i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
             if (cfg->mic_en_map & BIT(i)) {

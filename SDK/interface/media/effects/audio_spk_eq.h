@@ -48,7 +48,7 @@ float spk_eq_read_global_gain(u8 ch);
 void spk_eq_test(void);
 
 #define UPDATE_SPK_EQ_SEG         0
-#define UPDATE_SPK_EQ_GLOBAL_GIAN 1
+#define UPDATE_SPK_EQ_GLOBAL_GAIN 1
 #define GET_SPK_EQ_SEG_TAB        2
 #define GET_SPK_EQ_GLOBAL_GAIN    3
 #define GET_SPK_EQ_VM_DATA        4

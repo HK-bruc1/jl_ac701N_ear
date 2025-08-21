@@ -20,6 +20,7 @@
 #include "media/codec/sbc_codec.h"
 
 #define A2DP_TIMESTAMP_ENABLE       1
+#define A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE	0
 
 struct a2dp_file_params {
     u8 edr_to_local_time;
@@ -382,11 +383,25 @@ __again:
         /* u8 ch = ((frame[5] & 0x3) << 2) | ((frame[6] & 0xC0) >> 6); */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate  = aac_sample_rates[sr];
+        printf("AAC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
+#if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
+        if (strcmp(code_type, "AAC")) {
+            printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
+            put_buf(packet, head_len + 8);
+        }
+#endif
     } else if (frame[0] == 0x20) {			//特殊LATM aac格式
         u8 sr = ((frame[2] & 0x7) << 1) | ((frame[3] & 0x80) >> 7);
         /* u8 ch = ((frame[3] & 0x78) >> 3) ; */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate = aac_sample_rates[sr];
+        printf("LATM AAC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
+#if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
+        if (strcmp(code_type, "AAC")) {
+            printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
+            put_buf(packet, head_len + 8);
+        }
+#endif
 #endif
     } else if (frame[0] == 0x9C) {          //sbc 格式
         /*
@@ -409,6 +424,13 @@ __again:
             fmt->channel_mode = AUDIO_CH_LR;
         }
         fmt->sample_rate  = sbc_sample_rates[sr];
+        printf("SBC param,sr=%d,channel_mode:%x", fmt->sample_rate, fmt->channel_mode);
+#if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
+        if (strcmp(code_type, "SBC")) {
+            printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
+            put_buf(packet, head_len + 8);
+        }
+#endif
 #if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
     } else if (frame[1] == 0xAA) {
         u8 sr = (frame[2] >> (8 - 3)) & 0x7;
