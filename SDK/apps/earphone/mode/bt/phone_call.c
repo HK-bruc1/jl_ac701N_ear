@@ -550,7 +550,6 @@ static int bt_phone_status_event_handler(int *msg)
 #if TCFG_BT_SUPPORT_PBAP_LIST
         bt_cmd_prepare(USER_CTRL_PBAP_READ_LIST, 0, NULL);
 #endif
-#if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
         printf("phone_number = %s\n", phone_number);
         if (g_bt_hdl.phone_num_flag == 1) {
@@ -573,7 +572,6 @@ static int bt_phone_status_event_handler(int *msg)
         } else {
             log_info("PHONE_NUMBER len err\n");
         }
-#endif
         break;
     case BT_STATUS_PHONE_NAME:
         log_info("BT_STATUS_PHONE_NAME\n");

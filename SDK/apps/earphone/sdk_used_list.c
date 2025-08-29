@@ -221,6 +221,10 @@ ns_node_lite_adapter
 dns_node_adapter
 #endif
 
+#if TCFG_AUDIO_CVP_V3_MODE
+cvp_v3_node_adapter
+#endif
+
 #if TCFG_DEC_WTG_ENABLE || TCFG_TONE_WTG_ENABLE
 g729_dec_plug
 #endif
@@ -614,5 +618,9 @@ lhdc_x_node_adapter
 
 #if TCFG_MUTE_NODE_ENABLE
 mute_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE
+virtual_surround_hp_node_adapter
 #endif
 

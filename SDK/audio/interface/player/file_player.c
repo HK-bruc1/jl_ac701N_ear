@@ -202,10 +202,10 @@ static int music_file_close(void *file)
 
 static int music_file_get_fmt(void *file, struct stream_fmt *fmt)
 {
-    u8 name[16];
+    u8 name[12 + 1] = {0}; //8.3+\0
     struct file_player *player = (struct file_player *)file;
 
-    fget_name(player->file, name, 16);
+    fget_name(player->file, name, sizeof(name));
     struct stream_file_info info = {
         .file = player,
         .fname = (char *)name,

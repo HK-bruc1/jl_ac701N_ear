@@ -98,7 +98,8 @@ struct dac_platform_data dac_data = {
     .power_on_mode      = TCFG_AUDIO_DAC_POWER_ON_MODE,
     .vcm_cap_en         = TCFG_AUDIO_VCM_CAP_EN,
     .dma_buf_time_ms    = TCFG_AUDIO_DAC_BUFFER_TIME_MS,
-    .pa_isel            = TCFG_AUDIO_DAC_PA_ISEL, //DAC电流挡位，范围：0~6
+    .pa_isel0           = TCFG_AUDIO_DAC_PA_ISEL0, //DAC电流挡位0，范围：3~7
+    .pa_isel1           = TCFG_AUDIO_DAC_PA_ISEL1, //DAC电流挡位1，范围：2~7
     .l_ana_gain         = TCFG_AUDIO_L_CHANNEL_GAIN,
     .r_ana_gain         = TCFG_AUDIO_R_CHANNEL_GAIN,
 #if (defined(TCFG_CLOCK_SYS_SRC) && (TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL))
@@ -106,6 +107,7 @@ struct dac_platform_data dac_data = {
 #else
     .clk_sel            = AUDIO_COMMON_CLK_DIF_XOSC,
 #endif
+    .dcc_level          = 14,
 };
 
 void audio_fade_in_fade_out(u8 left_vol, u8 right_vol);

@@ -59,3 +59,26 @@ void audio_config_trace_setup(int interval)
 {
     sys_timer_add(NULL, audio_config_trace, interval);
 }
+
+#define DAC_POP_UP_NOISE_DEBUG_DISABLE	0
+#define DAC_POWER_ON_POP_DBG			1
+#define DAC_MUTE_POP_DBG				2
+#define DAC_POP_UP_NOISE_DEBUG_CFG		DAC_POP_UP_NOISE_DEBUG_DISABLE
+static void dac_power_on_pop_debug(void *priv)
+{
+
+}
+
+static void dac_mute_pop_debug(void *priv)
+{
+
+}
+
+void audio_dac_pop_up_noise_debug(void)
+{
+#if (DAC_POP_UP_NOISE_DEBUG_CFG ==  DAC_POWER_ON_POP_DBG)
+    sys_timer_add(NULL, dac_power_on_pop_debug, 3000);
+#elif (DAC_POP_UP_NOISE_DEBUG_CFG ==  DAC_MUTE_POP_DBG)
+    sys_timer_add(NULL, dac_mute_pop_debug, 3000);
+#endif
+}

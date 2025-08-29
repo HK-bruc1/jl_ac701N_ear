@@ -66,16 +66,17 @@
 #endif // TCFG_CFG_TOOL_ENABLE
 
 #define CONFIG_SPI_DATA_WIDTH 2 // flash通信
-#define CONFIG_FLASH_SIZE 1048576 // flash容量
+#define CONFIG_FLASH_SIZE 0x100000 // flash容量
 #define TCFG_VM_SIZE 40 // VM大小(K)
+#define TCFG_JLSTREAM_EFFICIENT_MODE 0 // 音频流高效模式
 
 #define TCFG_PWMLED_ENABLE 1 // LED配置
 #if TCFG_PWMLED_ENABLE
 #define TCFG_LED_LAYOUT ONE_IO_TWO_LED // 连接方式
-#define TCFG_LED_RED_ENABLE 1 // 红灯(Red)
+#define TCFG_LED_RED_ENABLE 1 // 红灯
 #define TCFG_LED_RED_GPIO IO_PORTC_02 // IO
 #define TCFG_LED_RED_LOGIC BRIGHT_BY_HIGH // 点亮方式
-#define TCFG_LED_BLUE_ENABLE 1 // 蓝灯(Blue)
+#define TCFG_LED_BLUE_ENABLE 1 // 蓝灯
 #define TCFG_LED_BLUE_GPIO IO_PORTC_02 // IO
 #define TCFG_LED_BLUE_LOGIC BRIGHT_BY_LOW // 点亮方式
 #endif // TCFG_PWMLED_ENABLE
@@ -179,7 +180,6 @@
 #define TCFG_A2DP_DELAY_TIME_LHDC 300 // A2DP延时LHDC(msec)
 #define TCFG_A2DP_DELAY_TIME_LHDC_LO 300 // A2DP低延时LHDC(msec)
 #define TCFG_BT_DUAL_CONN_ENABLE 1 // 一拖二
-#define TCFG_BT_SUPPORT_PAN 0
 #define TCFG_A2DP_PREEMPTED_ENABLE 1 // A2DP抢播
 #define TCFG_BT_VOL_SYNC_ENABLE 1 // 音量同步
 #define TCFG_BT_DISPLAY_BAT_ENABLE 1 // 电量显示
@@ -196,6 +196,7 @@
 #define TCFG_BT_SUPPORT_A2DP 1 // A2DP
 #define TCFG_BT_SUPPORT_HID 1 // HID
 #define TCFG_BT_SUPPORT_SPP 1 // SPP
+#define TCFG_BT_SUPPORT_PAN 0 // 蓝牙共享网络
 #define TCFG_BT_BACKGROUND_ENABLE 0 // 蓝牙后台
 #define TCFG_BT_BACKGROUND_GOBACK 1 // 蓝牙后台连接断开返回
 #define TCFG_BT_BACKGROUND_DETECT_TIME 750 // 音乐检测时间
@@ -241,16 +242,15 @@
 #define TCFG_THIRD_PARTY_PROTOCOLS_ENABLE 0 // 第三方协议配置
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #define TCFG_RCSP_DUAL_CONN_ENABLE 0 // 支持连接两路RCSP
+#define TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED 0 // 三方协议轻量化
 #define TCFG_THIRD_PARTY_PROTOCOLS_SEL 0 // 第三方协议选择
 #endif // TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 
 #define TCFG_LE_AUDIO_APP_CONFIG 0 // LE_AUDIO 应用选择（选择后自动开启LC3编解码）
 #define TCFG_LE_AUDIO_PLAY_LATENCY 30000 // LE_AUDIO延时（us）
 #define TCFG_JL_UNICAST_BOUND_PAIR_EN 0 // JL_UNICAST绑定配对
-#define TCFG_BT_DONGLE_ENABLE 0 // 支持dongle连接
-#define TCFG_JL_DONGLE_PLAYBACK_LATENCY 40 // dongle下行播放延时(msec)
-#define TCFG_BT_DONGLE_A2DP_PHONE_A2DP_MIX_ENABLE 0 // dongle游戏声音和手机蓝牙播歌声音叠加
-#define TCFG_BT_DONGLE_A2DP_PHONE_ESCO_MIX_ENABLE 0 // dongle游戏声音和手机蓝牙通话声音叠加
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_SWITCH 0 // 使能
+#define LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK // JL_UNICAST声音叠加
 // ------------蓝牙配置.json------------
 
 // ------------功能配置.json------------
@@ -282,6 +282,7 @@
 #define TCFG_UPDATE_UART_IO_EN 0 // 普通io串口升级
 #define TCFG_UPDATE_UART_ROLE 0 // 串口升级主从机选择
 #define TCFG_DUAL_BANK_ENABLE 0 // 双备份
+#define TCFG_UPDATE_COMPRESS 0 // 压缩双备份
 #endif // TCFG_UPDATE_ENABLE
 // ------------升级配置.json------------
 
@@ -292,7 +293,8 @@
 #define TCFG_AUDIO_DAC_POWER_ON_MODE 0X0 // DAC开启模式
 #define TCFG_AUDIO_VCM_CAP_EN 0x1 // VCM电容
 #define TCFG_AUDIO_DAC_BUFFER_TIME_MS 50 // 缓冲长度（ms）
-#define TCFG_AUDIO_DAC_PA_ISEL 4 // 电流档位
+#define TCFG_AUDIO_DAC_PA_ISEL0 4 // PA_ISEL0
+#define TCFG_AUDIO_DAC_PA_ISEL1 3 // PA_ISEL1
 #define TCFG_AUDIO_DAC_POWER_BOOST 0 // 音量增强模式
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x03 // L Channel
 #define TCFG_AUDIO_R_CHANNEL_GAIN 0x03 // R Channel
@@ -336,7 +338,7 @@
 #if CONFIG_ANC_ENABLE
 #define TCFG_AUDIO_ANC_TRAIN_MODE ANC_FF_EN // ANC类型
 #define TCFG_ANC_TOOL_DEBUG_ONLINE 1 // 蓝牙调试/产测
-#define TCFG_ANC_BOX_ENABLE 1 // 串口调试/产测
+#define TCFG_ANC_BOX_ENABLE 0 // 串口调试/产测
 #define TCFG_AUDIO_ANC_MULT_ORDER_ENABLE 0 // 多场景滤波器
 #define TCFG_AUDIO_ANC_ON_AUTO_SHUT_DOWN 1 // ANC_ON允许自动关机
 #define TCFG_ANC_MODE_ANC_EN 1 // 降噪
@@ -372,7 +374,7 @@
 #define TCFG_AUDIO_DMS_GLOBAL_VERSION DMS_GLOBAL_V200 // 2micDNS算法选择
 #define TCFG_3MIC_MODE_SEL JLSP_3MIC_MODE2 // 3mic算法选择
 #define TCFG_MUSIC_PLC_TYPE 0 // PLC 类型选择
-#define TCFG_AUDIO_DUT_ENABLE 1 // 音频/通话产测
+#define TCFG_AUDIO_DUT_ENABLE 0 // 音频/通话产测
 #define TCFG_AUDIO_MIC_ARRAY_TRIM_ENABLE 0 // 麦克风阵列校准
 #define TCFG_ANC_HAT_DUT 0 // JL自研ANC产测
 #define AUDIO_ENC_MPT_SELF_ENABLE 0 // JL自研ENC产测
@@ -393,12 +395,18 @@
 #define TCFG_DEC_APE_ENABLE 0 // APE
 #define TCFG_DEC_AAC_ENABLE 0 // AAC
 #define TCFG_DEC_OPUS_ENABLE 0 // OPUS
+#define TCFG_DEC_SBC_ENABLE 1 // SBC
+#define TCFG_DEC_MSBC_ENABLE 1 // MSBC
 #define TCFG_DEC_F2A_ENABLE 0 // F2A
 #define TCFG_DEC_WTG_ENABLE 0 // WTG
 #define TCFG_DEC_MTY_ENABLE 0 // MTY
 #define TCFG_DEC_WTS_ENABLE 0 // WTS
 #define TCFG_DEC_JLA_ENABLE 0 // JLA
+#define TCFG_DEC_JLA_V2_ENABLE 0 // JLA_V2
 #define TCFG_ENC_OPUS_ENABLE 0 // OPUS
+#define TCFG_ENC_JLA_V2_ENABLE 0 // JLA_V2
+#define TCFG_ENC_SBC_ENABLE 0 // SBC
+#define TCFG_ENC_MSBC_ENABLE 1 // MSBC
 
 #define TCFG_AUDIO_HEARING_AID_ENABLE 0 // 辅听配置
 #if TCFG_AUDIO_HEARING_AID_ENABLE
@@ -418,8 +426,5 @@
 #define TCFG_DATA_EXPORT_UART_BAUDRATE 2000000 // 串口波特率
 #define TCFG_AUDIO_SOMATOSENSORY_ENABLE 0 // 头部姿态检测
 // ------------音频配置.json------------
-
-
-
 #endif
 

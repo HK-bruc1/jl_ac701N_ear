@@ -36,6 +36,7 @@
 #include "esco_player.h"
 #include "clock_manager/clock_manager.h"
 #include "dual_a2dp_play.h"
+#include "bt_tws.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"

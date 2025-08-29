@@ -86,7 +86,11 @@ const struct lp_ws_t lp_winsize = {
 
 u16 bt_get_tws_device_indicate(u8 *tws_device_indicate)
 {
-    return bt_cfg.tws_device_indicate;
+    u16 crc = 0;
+#if CONFIG_TWS_DIFF_NAME_NOT_MATCH
+    crc = CRC16(bt_get_local_name(), strlen(bt_get_local_name()));
+#endif
+    return bt_cfg.tws_device_indicate + crc;
 }
 
 const u8 *bt_get_mac_addr()

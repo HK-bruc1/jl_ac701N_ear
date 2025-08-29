@@ -15,6 +15,7 @@
 #include "app_main.h"
 #include "adc_file.h"
 #include "audio_cvp.h"
+#include "lib_h/jlsp_v3_ns.h"
 
 #if 1
 extern void put_float(double fv);
@@ -77,6 +78,38 @@ int dns_coeff_param_updata(const char *coeff_file, void *data, int len)
     printf("coeff_len %d", coeff_len);
     printf("mic_mode %d, eq_sel %d , bypass: %d, fft_points %d, sample_rate %d",
            data_hdl->mic_mode, data_hdl->eq_sel, data_hdl->bypass, data_hdl->fft_points, data_hdl->sample_rate);
+
+#if TCFG_AUDIO_CVP_V3_MODE
+    extern void *get_cvp_v3_init_handler();
+    int type = lmp_private_get_esco_packet_type();
+    extern int cvp_get_algo_type();
+    int port_type = cvp_get_algo_type();
+    if (port_type & CVP_ALGO_1MIC) {
+        port_type = SINGLE_TYPE;
+    } else if (port_type & CVP_ALGO_2MIC_BF) {
+        port_type = DUAL_BF_TYPE;
+    } else if (port_type & CVP_ALGO_2MIC_HYBRID) {
+        port_type = DUAL_HYBRID_TYPE;
+    } else if (port_type & CVP_ALGO_3MIC) {
+        port_type = TRI_FUSION_TYPE;
+    }
+    printf("effect port_type %d", port_type);
+    int media_type = type & 0xff;
+    u32 coding_type = (media_type == 0) ? AUDIO_CODING_CVSD : AUDIO_CODING_MSBC;
+    void *handler = get_cvp_v3_init_handler();
+    static float eq_temp[257];
+    memcpy(eq_temp, data_hdl, 257 * sizeof(float));
+    for (int i = 0; i < 257; i++) {
+        eq_temp[i] = eq_db2mag(eq_temp[i]);
+    }
+    if (handler) {
+        static JLSP_set_wbornb_eq eq_cfg;
+        eq_cfg.is_wb = (coding_type == AUDIO_CODING_MSBC) ? 1 : 0; // 宽带/窄带设置
+        //eq_cfg.eqCoeffs = (float *)data_hdl->data;
+        eq_cfg.eqCoeffs = eq_temp;
+        JLSP_EncApi_FuncInfoPort_Cfg(handler, SET_WBORNB_EQ, &eq_cfg, port_type);
+    }
+#endif
 
 #if TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE
     //在线更新fb eq曲线参数

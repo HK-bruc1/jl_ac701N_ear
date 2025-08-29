@@ -198,8 +198,6 @@ void app_audio_bt_volume_save_mac(u8 *addr);
 int audio_digital_vol_default_init(void);
 
 void volume_up_down_direct(s16 value);
-void audio_combined_vol_init(u8 cfg_en);
-void audio_volume_list_init(u8 cfg_en);
 
 void dac_power_on(void);
 void dac_power_off(void);

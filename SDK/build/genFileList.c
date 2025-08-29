@@ -2,53 +2,6 @@
 
 // *INDENT-OFF*
 
-#if 0
-c_SRC_FILES += \
-	  cpu/periph_demo/iic_master_demo.c \
-	  cpu/periph_demo/iic_slave_demo.c \
-	  cpu/periph_demo/ledc_test.c \
-	  cpu/periph_demo/sd_test.c \
-	  cpu/periph_demo/led_api_test.c \
-	  cpu/periph_demo/pwm_led_test.c \
-	  cpu/periph_demo/two_io_led_test.c \
-	  cpu/periph_demo/spi_test.c \
-	  cpu/periph_demo/uart_test.c \
-	  cpu/periph_demo/gptimer_demo.c \
-	  cpu/periph_demo/rdec_soft_demo.c \
-	  cpu/periph_demo/ir_encoder_decoder_demo.c \
-
-#endif
-
-// *INDENT-OFF*
-
-c_SRC_FILES += \
-    cpu/config/gpio_file_parse.c \
-    cpu/config/lib_power_config.c \
-
-// *INDENT-OFF*
-
-c_SRC_FILES += \
-	  cpu/components/iic_soft.c \
-	  cpu/components/iic_api.c \
-	  cpu/components/ir_encoder.c \
-	  cpu/components/ir_decoder.c \
-	  cpu/components/rdec_soft.c \
-
-#if TCFG_PWMLED_ENABLE
-c_SRC_FILES += \
-	  cpu/components/led_api.c \
-	  cpu/components/two_io_led.c \
-
-#endif
-
-#if TCFG_LP_TOUCH_KEY_ENABLE
-c_SRC_FILES += \
-	  cpu/components/touch/lp_touch_key_tool.c \
-
-#endif
-
-// *INDENT-OFF*
-
 
 
 c_SRC_FILES += \
@@ -169,6 +122,11 @@ c_SRC_FILES += \
 #if TCFG_UART_NODE_ENABLE
 c_SRC_FILES += \
       audio/framework/nodes/uart_node.c
+#endif
+
+#if TCFG_AUDIO_CVP_V3_MODE
+c_SRC_FILES += \
+      audio/framework/nodes/cvp_v3_node.c
 #endif
 
 #if TCFG_DNS_NODE_ENABLE
@@ -485,6 +443,7 @@ c_SRC_FILES += \
 	  audio/CVP/audio_cvp.c \
 	  audio/CVP/audio_cvp_dms.c \
 	  audio/CVP/audio_cvp_3mic.c \
+	  audio/CVP/audio_cvp_v3.c \
 	  audio/CVP/audio_cvp_online.c \
 	  audio/CVP/audio_cvp_demo.c \
 	  audio/CVP/audio_cvp_develop.c \
@@ -611,6 +570,197 @@ c_SRC_FILES += \
 c_SRC_FILES += \
 	audio/cpu/common.c \
 
+
+
+
+// *INDENT-OFF*
+
+#if EXPORT_LE_AUDIO_SUPPORT
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN))
+c_SRC_FILES += \
+	apps/common/le_audio/big.c
+#endif
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SOURCE_EN | LE_AUDIO_JL_UNICAST_SOURCE_EN | LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+c_SRC_FILES += \
+	apps/common/le_audio/cig.c
+#endif
+
+#if TCFG_LE_AUDIO_APP_CONFIG
+c_SRC_FILES += \
+	apps/common/le_audio/wireless_trans_manager.c
+#endif
+
+#endif
+
+
+// *INDENT-OFF*
+
+c_SRC_FILES += \
+	apps/common/config/bt_profile_config.c \
+
+
+//------
+#if TCFG_CFG_TOOL_ENABLE
+c_SRC_FILES += \
+	apps/common/config/new_cfg_tool.c \
+	apps/common/config/cfg_tool_statistics_functions/cfg_tool_statistics.c
+#if (TCFG_COMM_TYPE == TCFG_USB_COMM)
+c_SRC_FILES += \
+	apps/common/config/cfg_tool_cdc.c
+#endif
+#endif
+
+
+
+#if (TCFG_ONLINE_ENABLE || TCFG_CFG_TOOL_ENABLE)
+c_SRC_FILES += \
+	apps/common/config/app_config.c
+
+#if (TCFG_COMM_TYPE == TCFG_UART_COMM)
+c_SRC_FILES += \
+	apps/common/config/ci_transport_uart.c
+#endif
+#endif
+
+
+
+#if TCFG_BT_NAME_SEL_BY_AD_ENABLE
+c_SRC_FILES += \
+	apps/common/config/bt_name_parse.c
+#endif
+
+
+#if 0
+c_SRC_FILES += \
+	apps/common/fat_nor/cfg_private.c
+
+#endif
+
+
+#if TCFG_DEBUG_DLOG_ENABLE
+c_SRC_FILES += \
+	apps/common/debug/dlog_config.c \
+    apps/common/debug/dlog_output_config.c
+#endif
+
+
+
+#if TCFG_UPDATE_ENABLE
+c_SRC_FILES += \
+	apps/common/update/update.c \
+	apps/common/update/testbox_update.c \
+	apps/common/update/testbox_uart_update.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && !OTA_TWS_SAME_TIME_NEW)
+c_SRC_FILES += \
+	apps/common/update/update_tws.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
+c_SRC_FILES += \
+	apps/common/update/update_tws_new.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && OTA_TWS_SAME_TIME_NEW_LESS)
+c_SRC_FILES += \
+	apps/common/update/update_tws_new_less.c
+#endif
+
+#ifdef CONFIG_UPDATE_MUTIL_CPU_UART
+#if CONFIG_UPDATE_MUTIL_CPU_UART
+c_SRC_FILES += \
+	apps/common/update/uart_update_driver.c \
+	apps/common/update/update_interactive_uart.c
+#endif
+
+#if (TCFG_UPDATE_UART_IO_EN) && (!TCFG_UPDATE_UART_ROLE)
+c_SRC_FILES += \
+	apps/common/update/uart_update.c
+#endif
+
+#if (TCFG_UPDATE_UART_IO_EN) && (TCFG_UPDATE_UART_ROLE)
+c_SRC_FILES += \
+	apps/common/update/uart_update_master.c
+#endif
+#endif
+
+#if defined(TCFG_NORFLASH_DEV_ENABLE) && TCFG_NORFLASH_DEV_ENABLE
+c_SRC_FILES += \
+    apps/common/device/storage_device/norflash/norflash.c
+#endif
+
+
+// *INDENT-OFF*
+
+// 注意：仅在BR27和BR28的soundbox工程开始才使用这个UI结构
+//
+// 其它工程和CPU使用原来的UI代码结构，后续逐渐再转到这里
+//
+// 防止出现兼容性问题导致客户SDK无法维护
+//
+
+// $(info make project ---> $(CPU) $(APP_CASE))
+
+
+#if TCFG_PWMLED_ENABLE
+c_SRC_FILES += \
+	apps/common/ui/pwm_led/led_ui_api.c \
+	apps/common/ui/pwm_led/led_ui_tws_sync.c
+#endif
+
+
+
+
+#if defined CONFIG_SOUNDBOX_CASE || defined CONFIG_DONGLE_CASE
+#if (TCFG_UI_ENABLE && (CONFIG_UI_STYLE == STYLE_JL_LED7))
+c_SRC_FILES += \
+	apps/common/ui/led7/led7_ui_api.c
+#endif
+
+
+#if (TCFG_UI_ENABLE && (TCFG_SPI_LCD_ENABLE || TCFG_LCD_OLED_ENABLE) && (!TCFG_SIMPLE_LCD_ENABLE))
+c_SRC_FILES += \
+    apps/common/ui/lcd/lcd_ui_api.c
+#endif
+
+#if EXPORT_DOT_UI_ENABLE
+#if TCFG_UI_ENABLE
+
+#if TCFG_SPI_LCD_ENABLE
+// SPI屏的驱动代码
+#if TCFG_LCD_SPI_SH8601A_ENABLE
+c_SRC_FILES += \
+	apps/common/ui/lcd_drive/lcd_spi/lcd_spi_sh8601a_454x454.c
+#endif
+
+#if TCFG_LCD_SPI_ST7789V_ENABLE
+c_SRC_FILES += \
+	apps/common/ui/lcd_drive/lcd_spi/lcd_spi_st7789v_240x240.c
+#endif
+
+#if TCFG_OLED_SPI_SSD1306_ENABLE
+c_SRC_FILES += \
+	apps/common/ui/lcd_drive/lcd_spi/oled_spi_ssd1306_128x64.c
+#endif
+#endif
+
+
+#if (TCFG_LCD_OLED_ENABLE || TCFG_SPI_LCD_ENABLE)
+c_SRC_FILES += \
+    apps/common/ui/interface/ui_platform.c \
+    apps/common/ui/interface/ui_pushScreen_manager.c \
+    apps/common/ui/interface/ui_resources_manager.c \
+    apps/common/ui/interface/ui_synthesis_manager.c \
+    apps/common/ui/interface/ui_synthesis_oled.c \
+    apps/common/ui/interface/watch_bgp.c
+#endif
+
+#endif
+#endif // EXPORT_DOT_UI_ENABLE
+#endif // CONFIG_SOUNDBOX_CASE
 
 
 
@@ -1140,6 +1290,91 @@ c_SRC_FILES += \
 
 // *INDENT-OFF*
 
+#ifdef CONFIG_SOUNDBOX_CASE
+#if TCFG_USB_APPLE_DOCK_EN
+c_SRC_FILES += \
+    apps/common/iap/iAP_chip.c \
+    apps/common/iap/iAP_des.c \
+    apps/common/iap/iAP_device.c \
+    apps/common/iap/iAP_iic.c \
+
+#endif
+#endif
+
+
+
+// *INDENT-OFF*
+
+
+#if TCFG_EAR_DETECT_ENABLE
+c_SRC_FILES += \
+	apps/common/device/in_ear_detect/in_ear_detect.c \
+	apps/common/device/in_ear_detect/in_ear_manage.c
+#endif
+
+
+
+#ifdef CONFIG_EARPHONE_CASE
+#if TCFG_OUTSIDE_EARTCH_ENABLE
+c_SRC_FILES += \
+	apps/common/device/eartouch/eartouch_manage.c \
+	apps/common/device/eartouch/eartouch_iic_interface.c
+#if (TCFG_EARTCH_SENSOR_SEL == EARTCH_HX300X)
+c_SRC_FILES += \
+	apps/common/device/eartouch/hx300x/hx300x_driver.c
+#endif
+#endif
+
+#if CFG_EARTCH_OUTSIDE_TOUCH_ENABLE
+c_SRC_FILES += \
+	apps/common/device/eartouch/outside_tch_driver.c
+#endif
+#endif
+
+
+#ifdef CONFIG_SOUNDBOX_CASE
+#if TCFG_NANDFLASH_DEV_ENABLE
+c_SRC_FILES += \
+	apps/common/device/storage_device/nandflash/nandflash.c \
+	apps/common/device/storage_device/nandflash/ftl_device.c
+#endif
+#endif
+
+
+#ifdef CONFIG_SOUNDBOX_CASE
+#if TCFG_APP_FM_EN
+c_SRC_FILES += \
+	apps/common/device/fm/fm_manage.c
+
+#if TCFG_FM_INSIDE_ENABLE
+c_SRC_FILES += \
+	apps/common/device/fm/fm_inside/fm_inside.c
+#endif
+
+#if TCFG_FM_OUTSIDE_ENABLE
+
+#if TCFG_FM_BK1080_ENABLE
+c_SRC_FILES += \
+	apps/common/device/fm/bk1080/Bk1080.c
+#endif
+
+#if TCFG_FM_QN8035_ENABLE
+c_SRC_FILES += \
+	apps/common/device/fm/qn8035/QN8035.c
+#endif
+
+#if TCFG_FM_RDA5807_ENABLE
+c_SRC_FILES += \
+	apps/common/device/fm/rda5807/RDA5807.c
+#endif
+
+#endif
+#endif
+#endif
+
+
+// *INDENT-OFF*
+
 #if NTC_DET_EN
 c_SRC_FILES += \
 	apps/common/device/sensor/ntc/ntc_det.c
@@ -1396,278 +1631,88 @@ c_SRC_FILES += \
 
 // *INDENT-OFF*
 
-
-#if TCFG_EAR_DETECT_ENABLE
 c_SRC_FILES += \
-	apps/common/device/in_ear_detect/in_ear_detect.c \
-	apps/common/device/in_ear_detect/in_ear_manage.c
-#endif
-
-
-
-#ifdef CONFIG_EARPHONE_CASE
-#if TCFG_OUTSIDE_EARTCH_ENABLE
-c_SRC_FILES += \
-	apps/common/device/eartouch/eartouch_manage.c \
-	apps/common/device/eartouch/eartouch_iic_interface.c
-#if (TCFG_EARTCH_SENSOR_SEL == EARTCH_HX300X)
-c_SRC_FILES += \
-	apps/common/device/eartouch/hx300x/hx300x_driver.c
-#endif
-#endif
-
-#if CFG_EARTCH_OUTSIDE_TOUCH_ENABLE
-c_SRC_FILES += \
-	apps/common/device/eartouch/outside_tch_driver.c
-#endif
-#endif
-
-
-#ifdef CONFIG_SOUNDBOX_CASE
-#if TCFG_NANDFLASH_DEV_ENABLE
-c_SRC_FILES += \
-	apps/common/device/storage_device/nandflash/nandflash.c \
-	apps/common/device/storage_device/nandflash/ftl_device.c
-#endif
-#endif
-
-
-#ifdef CONFIG_SOUNDBOX_CASE
-#if TCFG_APP_FM_EN
-c_SRC_FILES += \
-	apps/common/device/fm/fm_manage.c
-
-#if TCFG_FM_INSIDE_ENABLE
-c_SRC_FILES += \
-	apps/common/device/fm/fm_inside/fm_inside.c
-#endif
-
-#if TCFG_FM_OUTSIDE_ENABLE
-
-#if TCFG_FM_BK1080_ENABLE
-c_SRC_FILES += \
-	apps/common/device/fm/bk1080/Bk1080.c
-#endif
-
-#if TCFG_FM_QN8035_ENABLE
-c_SRC_FILES += \
-	apps/common/device/fm/qn8035/QN8035.c
-#endif
-
-#if TCFG_FM_RDA5807_ENABLE
-c_SRC_FILES += \
-	apps/common/device/fm/rda5807/RDA5807.c
-#endif
-
-#endif
-#endif
-#endif
-
-// *INDENT-OFF*
-
-// 注意：仅在BR27和BR28的soundbox工程开始才使用这个UI结构
-//
-// 其它工程和CPU使用原来的UI代码结构，后续逐渐再转到这里
-//
-// 防止出现兼容性问题导致客户SDK无法维护
-//
-
-// $(info make project ---> $(CPU) $(APP_CASE))
-
+	  cpu/components/iic_soft.c \
+	  cpu/components/iic_api.c \
+	  cpu/components/ir_encoder.c \
+	  cpu/components/ir_decoder.c \
+	  cpu/components/rdec_soft.c \
 
 #if TCFG_PWMLED_ENABLE
 c_SRC_FILES += \
-	apps/common/ui/pwm_led/led_ui_api.c \
-	apps/common/ui/pwm_led/led_ui_tws_sync.c
+	  cpu/components/led_api.c \
+	  cpu/components/two_io_led.c \
+
 #endif
 
-
-
-
-#if defined CONFIG_SOUNDBOX_CASE || defined CONFIG_DONGLE_CASE
-#if (TCFG_UI_ENABLE && (CONFIG_UI_STYLE == STYLE_JL_LED7))
+#if TCFG_LP_TOUCH_KEY_ENABLE
 c_SRC_FILES += \
-	apps/common/ui/led7/led7_ui_api.c
-#endif
-
-
-#if (TCFG_UI_ENABLE && (TCFG_SPI_LCD_ENABLE || TCFG_LCD_OLED_ENABLE) && (!TCFG_SIMPLE_LCD_ENABLE))
-c_SRC_FILES += \
-    apps/common/ui/lcd/lcd_ui_api.c
-#endif
-
-#if EXPORT_DOT_UI_ENABLE
-#if TCFG_UI_ENABLE
-
-#if TCFG_SPI_LCD_ENABLE
-// SPI屏的驱动代码
-#if TCFG_LCD_SPI_SH8601A_ENABLE
-c_SRC_FILES += \
-	apps/common/ui/lcd_drive/lcd_spi/lcd_spi_sh8601a_454x454.c
-#endif
-
-#if TCFG_LCD_SPI_ST7789V_ENABLE
-c_SRC_FILES += \
-	apps/common/ui/lcd_drive/lcd_spi/lcd_spi_st7789v_240x240.c
-#endif
-
-#if TCFG_OLED_SPI_SSD1306_ENABLE
-c_SRC_FILES += \
-	apps/common/ui/lcd_drive/lcd_spi/oled_spi_ssd1306_128x64.c
-#endif
-#endif
-
-
-#if (TCFG_LCD_OLED_ENABLE || TCFG_SPI_LCD_ENABLE)
-c_SRC_FILES += \
-    apps/common/ui/interface/ui_platform.c \
-    apps/common/ui/interface/ui_pushScreen_manager.c \
-    apps/common/ui/interface/ui_resources_manager.c \
-    apps/common/ui/interface/ui_synthesis_manager.c \
-    apps/common/ui/interface/ui_synthesis_oled.c \
-    apps/common/ui/interface/watch_bgp.c
-#endif
+	  cpu/components/touch/lp_touch_key_tool.c \
 
 #endif
-#endif // EXPORT_DOT_UI_ENABLE
-#endif // CONFIG_SOUNDBOX_CASE
-
-
-
-// *INDENT-OFF*
-
-#ifdef CONFIG_SOUNDBOX_CASE
-#if TCFG_USB_APPLE_DOCK_EN
-c_SRC_FILES += \
-    apps/common/iap/iAP_chip.c \
-    apps/common/iap/iAP_des.c \
-    apps/common/iap/iAP_device.c \
-    apps/common/iap/iAP_iic.c \
-
-#endif
-#endif
-
-
-
-// *INDENT-OFF*
-
-#if EXPORT_LE_AUDIO_SUPPORT
-
-#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN))
-c_SRC_FILES += \
-	apps/common/le_audio/big.c
-#endif
-
-#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SOURCE_EN | LE_AUDIO_JL_UNICAST_SOURCE_EN | LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
-c_SRC_FILES += \
-	apps/common/le_audio/cig.c
-#endif
-
-#if TCFG_LE_AUDIO_APP_CONFIG
-c_SRC_FILES += \
-	apps/common/le_audio/wireless_trans_manager.c
-#endif
-
-#endif
-
 
 // *INDENT-OFF*
 
 c_SRC_FILES += \
-	apps/common/config/bt_profile_config.c \
+    cpu/config/gpio_file_parse.c \
+    cpu/config/lib_power_config.c \
 
-
-//------
-#if TCFG_CFG_TOOL_ENABLE
-c_SRC_FILES += \
-	apps/common/config/new_cfg_tool.c \
-	apps/common/config/cfg_tool_statistics_functions/cfg_tool_statistics.c
-#if (TCFG_COMM_TYPE == TCFG_USB_COMM)
-c_SRC_FILES += \
-	apps/common/config/cfg_tool_cdc.c
-#endif
-#endif
-
-
-
-#if (TCFG_ONLINE_ENABLE || TCFG_CFG_TOOL_ENABLE)
-c_SRC_FILES += \
-	apps/common/config/app_config.c
-
-#if (TCFG_COMM_TYPE == TCFG_UART_COMM)
-c_SRC_FILES += \
-	apps/common/config/ci_transport_uart.c
-#endif
-#endif
-
-
-
-#if TCFG_BT_NAME_SEL_BY_AD_ENABLE
-c_SRC_FILES += \
-	apps/common/config/bt_name_parse.c
-#endif
-
+// *INDENT-OFF*
 
 #if 0
 c_SRC_FILES += \
-	apps/common/fat_nor/cfg_private.c
+	  cpu/periph_demo/iic_master_demo.c \
+	  cpu/periph_demo/iic_slave_demo.c \
+	  cpu/periph_demo/ledc_test.c \
+	  cpu/periph_demo/sd_test.c \
+	  cpu/periph_demo/led_api_test.c \
+	  cpu/periph_demo/pwm_led_test.c \
+	  cpu/periph_demo/two_io_led_test.c \
+	  cpu/periph_demo/spi_test.c \
+	  cpu/periph_demo/uart_test.c \
+	  cpu/periph_demo/gptimer_demo.c \
+	  cpu/periph_demo/rdec_soft_demo.c \
+	  cpu/periph_demo/ir_encoder_decoder_demo.c \
 
 #endif
 
 
-#if TCFG_DEBUG_DLOG_ENABLE
+// *INDENT-OFF*
+
 c_SRC_FILES += \
-	apps/common/debug/dlog_config.c \
-    apps/common/debug/dlog_output_config.c
-#endif
+	  audio/cpu/br28/audio_setup.c \
+	  audio/cpu/br28/audio_mic_capless.c \
+	  audio/cpu/br28/audio_dai/audio_pdm.c \
+	  audio/cpu/br28/audio_config.c \
+	  audio/cpu/br28/audio_configs_dump.c \
 
-
-
-#if TCFG_UPDATE_ENABLE
+#if CONFIG_ANC_ENABLE
 c_SRC_FILES += \
-	apps/common/update/update.c \
-	apps/common/update/testbox_update.c \
-	apps/common/update/testbox_uart_update.c
+	  audio/cpu/br28/audio_anc.c \
+	  audio/cpu/br28/icsd_anc_user.c
 #endif
 
-#if (OTA_TWS_SAME_TIME_ENABLE && !OTA_TWS_SAME_TIME_NEW)
+
+//Audio Accelerator
 c_SRC_FILES += \
-	apps/common/update/update_tws.c
-#endif
+	  audio/cpu/br28/audio_accelerator/hw_fft.c \
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
+#if TCFG_SMART_VOICE_ENABLE
 c_SRC_FILES += \
-	apps/common/update/update_tws_new.c
+	audio/cpu/br28/audio_vad/vad_mic.c \
+	audio/cpu/br28/audio_vad/vad_clock_trim.c
 #endif
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && OTA_TWS_SAME_TIME_NEW_LESS)
+//Audio Demo Files
 c_SRC_FILES += \
-	apps/common/update/update_tws_new_less.c
-#endif
+	  audio/cpu/br28/audio_demo/audio_adc_demo.c \
 
-#ifdef CONFIG_UPDATE_MUTIL_CPU_UART
-#if CONFIG_UPDATE_MUTIL_CPU_UART
+#if 1
 c_SRC_FILES += \
-	apps/common/update/uart_update_driver.c \
-	apps/common/update/update_interactive_uart.c
+	  audio/cpu/br28/audio_demo/audio_dac_demo.c \
+	  audio/cpu/br28/audio_demo/audio_fft_demo.c \
+	  audio/cpu/br28/audio_demo/audio_pdm_demo.c
 #endif
-
-#if (TCFG_UPDATE_UART_IO_EN) && (!TCFG_UPDATE_UART_ROLE)
-c_SRC_FILES += \
-	apps/common/update/uart_update.c
-#endif
-
-#if (TCFG_UPDATE_UART_IO_EN) && (TCFG_UPDATE_UART_ROLE)
-c_SRC_FILES += \
-	apps/common/update/uart_update_master.c
-#endif
-#endif
-
-#if defined(TCFG_NORFLASH_DEV_ENABLE) && TCFG_NORFLASH_DEV_ENABLE
-c_SRC_FILES += \
-    apps/common/device/storage_device/norflash/norflash.c
-#endif
-
 
 
 // *INDENT-OFF*
@@ -1753,45 +1798,6 @@ c_SRC_FILES += \
 
 #endif
 #endif
-
-
-// *INDENT-OFF*
-
-c_SRC_FILES += \
-	  audio/cpu/br28/audio_setup.c \
-	  audio/cpu/br28/audio_mic_capless.c \
-	  audio/cpu/br28/audio_dai/audio_pdm.c \
-	  audio/cpu/br28/audio_config.c \
-	  audio/cpu/br28/audio_configs_dump.c \
-
-#if CONFIG_ANC_ENABLE
-c_SRC_FILES += \
-	  audio/cpu/br28/audio_anc.c \
-	  audio/cpu/br28/icsd_anc_user.c
-#endif
-
-
-//Audio Accelerator
-c_SRC_FILES += \
-	  audio/cpu/br28/audio_accelerator/hw_fft.c \
-
-#if TCFG_SMART_VOICE_ENABLE
-c_SRC_FILES += \
-	audio/cpu/br28/audio_vad/vad_mic.c \
-	audio/cpu/br28/audio_vad/vad_clock_trim.c
-#endif
-
-//Audio Demo Files
-c_SRC_FILES += \
-	  audio/cpu/br28/audio_demo/audio_adc_demo.c \
-
-#if 1
-c_SRC_FILES += \
-	  audio/cpu/br28/audio_demo/audio_dac_demo.c \
-	  audio/cpu/br28/audio_demo/audio_fft_demo.c \
-	  audio/cpu/br28/audio_demo/audio_pdm_demo.c
-#endif
-
 
 // *INDENT-OFF*
 

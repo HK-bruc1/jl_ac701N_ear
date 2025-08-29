@@ -119,6 +119,7 @@ extern const int spatial_imp_run_points;
 extern const int CONFIG_SPATIAL_EFFECT_VERSION;
 extern const int config_audio_limiter_xfade_enable;
 extern const int config_audio_mblimiter_xfade_enable;
+extern const int virtual_surround_hp_run_points;
 
 
 /*

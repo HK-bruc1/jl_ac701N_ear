@@ -39,6 +39,7 @@
 #define NODE_UUID_CVP_DMS_HYBRID_DNS            0X5DF0
 #define NODE_UUID_CVP_DMS_AWN_DNS               0XF0C3
 #define NODE_UUID_CVP_DEVELOP		0X76EF
+#define NODE_UUID_CVP_V3			0X5FF6
 #define NODE_UUID_AI_TX		      	0xDFDA
 #define NODE_UUID_AI_RX		      	0xDF98
 #define NODE_UUID_NOISE_SUPPRESSOR 	0x3BC9
@@ -199,5 +200,7 @@
 #define NODE_UUID_SPATIAL_ADV              0xA64E//空间音频封装
 #define NODE_UUID_LHDC_X                   0x65C5//LHDC-X空间音效
 #define NODE_UUID_VIRTUAL_BASS_PRO         0x02E6//虚拟低音pro算法内部集成，封装节点换成普通节点
+#define NODE_UUID_VIRTUAL_SURROUND_HP      0XDCD4//虚拟环绕音（耳机适用）
+
 
 #endif

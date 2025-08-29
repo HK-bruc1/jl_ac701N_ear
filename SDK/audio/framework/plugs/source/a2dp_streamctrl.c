@@ -48,7 +48,6 @@ _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LHDC = 300;
 _WEAK_ const int CONFIG_A2DP_DELAY_TIME_LHDC_LO = 300;
 #endif
 extern const int CONFIG_BTCTLER_TWS_ENABLE;
-extern u32 bt_audio_reference_clock_time(u8 network);
 
 #define A2DP_ADAPTIVE_DELAY_ENABLE          1
 #define ADAPTIVE_PREDICTION_LATENCY_ENABLE  1
@@ -171,6 +170,7 @@ struct a2dp_tws_letency_data {
 };
 
 static LIST_HEAD(g_a2dp_stream_list);
+extern u32 bt_audio_conn_clock_time(void *addr);
 
 #define A2DP_TWS_LATENCY_SYNC \
 	((int)((u8 )('A' + '2' + 'D' + 'P') << (3 * 8)) | \
@@ -732,7 +732,7 @@ static int a2dp_audio_is_underrun(struct a2dp_stream_control *ctrl)
 {
     int underrun_time = ctrl->low_latency ? 6 : 20;
     if (ctrl->next_timestamp) {
-        u32 reference_clock = bt_audio_reference_clock_time(0);
+        u32 reference_clock = bt_audio_conn_clock_time(ctrl->bt_addr);
         if (reference_clock == (u32) - 1) {
             return true;
         }

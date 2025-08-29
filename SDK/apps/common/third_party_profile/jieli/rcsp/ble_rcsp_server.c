@@ -281,6 +281,7 @@ void notify_update_connect_parameter(u8 table_index)
 
 
 #if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+
 static void connection_update_complete_success(u8 *packet)
 {
     int con_handle, conn_interval, conn_latency, conn_timeout;
@@ -294,7 +295,78 @@ static void connection_update_complete_success(u8 *packet)
     log_info("conn_latency = %d\n", conn_latency);
     log_info("conn_timeout = %d\n", conn_timeout);
 }
+
+#else
+
+/**
+ * @brief 断开指定的ble
+ *
+ * @param ble_con_handle ble_con_handle
+ */
+void rcsp_disconn_designated_ble(u16 ble_con_handle)
+{
+    printf("%s, %s, %d, dis_con_handle:%0x\n", __FILE__, __FUNCTION__, __LINE__, ble_con_handle);
+    if (ble_con_handle) {
+        u16 ble_con_hdl = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
+        u16 ble_con_hdl1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
+        if (ble_con_handle == ble_con_hdl) {
+            app_ble_disconnect(rcsp_server_ble_hdl);
+        } else if (ble_con_handle == ble_con_hdl1) {
+            app_ble_disconnect(rcsp_server_ble_hdl1);
+        }
+    }
+}
+
+#if TCFG_RCSP_DUAL_CONN_ENABLE
+/**
+ * @brief 断开另一个ble
+ *
+ * @param ble_con_handle 保留的ble_con_handle，输入为0的时候，全部断开
+ */
+void rcsp_disconn_other_ble(u16 ble_con_handle)
+{
+    if (ble_con_handle) {
+        u16 ble_con_hdl = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
+        u16 ble_con_hdl1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
+        u16 dis_con_handle = (ble_con_handle == ble_con_hdl) ? ble_con_hdl1 : ble_con_hdl;
+        if (dis_con_handle == ble_con_hdl) {
+            app_ble_disconnect(rcsp_server_ble_hdl);
+        } else if (dis_con_handle == ble_con_hdl1) {
+            app_ble_disconnect(rcsp_server_ble_hdl1);
+        }
+    } else {
+        app_ble_disconnect(rcsp_server_ble_hdl);
+        app_ble_disconnect(rcsp_server_ble_hdl1);
+    }
+}
 #endif
+
+#if TCFG_USER_TWS_ENABLE
+
+static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool rx)
+{
+    u16 *u16_data = (u16 *)_data;
+    u16 dis_con_handle = (u16) * u16_data;
+    printf("rcsp_interface_bt_handle_tws_sync_in_irq:%0x\n", dis_con_handle);
+    int argv[3];
+    argv[0] = (int)rcsp_disconn_designated_ble;
+    argv[1] = 1;
+    argv[2] = (int)dis_con_handle;
+    int ret = os_taskq_post_type("app_core", Q_CALLBACK, 3, argv);
+    if (ret) {
+        printf("%s taskq post err \n", __func__);
+        rcsp_disconn_designated_ble(dis_con_handle);
+    }
+}
+
+REGISTER_TWS_FUNC_STUB(tws_rcsp_ble_disconn_sync) = {
+    .func_id = 0x123482C0,
+    .func = rcsp_interface_bt_handle_tws_sync_in_irq,
+};
+
+#endif
+
+#endif // TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
 static void rcsp_set_ble_work_state(ble_state_e state)
 {
@@ -470,10 +542,17 @@ void rcsp_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *pac
                 hci_con_handle_t con_handle = little_endian_read_16(packet, 4);
                 printf("RCSP HCI_SUBEVENT_LE_CONNECTION_COMPLETE: %0x\n", con_handle);
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+#if TCFG_USER_TWS_ENABLE
                 if (app_var.goto_poweroff_flag) {
-                    printf("HCI_SUBEVENT_LE_CONNECTION_COMPLETE, power_off\n");
+                    printf("HCI_SUBEVENT_LE_CONNECTION_COMPLETE, power_off, role:%d\n", tws_api_get_role());
+                    // 处理无edr连接下ble主从切换，可能BLE的中间层或底层链路无法同时同步给从机的问题
+                    if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) {
+                        rcsp_bt_ble_adv_enable(0);
+                        tws_api_send_data_to_sibling((void *)&con_handle, sizeof(u16), 0x123482C0);
+                    }
                     break;
                 }
+#endif
                 bt_rcsp_set_conn_info(con_handle, NULL, true);
 #else
                 rcsp_ble_con_handle = little_endian_read_16(packet, 4);
@@ -1011,6 +1090,11 @@ static int set_adv_enable(void *priv, u32 en)
         }
     }
 
+    if (app_var.goto_poweroff_flag) {
+        printf("%s, poweroff\n", __FUNCTION__);
+        en = 0;
+    }
+
     if (en) {
         next_state = BLE_ST_ADV;
     } else {
@@ -1229,50 +1313,6 @@ u16 rcsp_ble_con_handle_get()
     return rcsp_ble_con_handle;
 }
 
-#endif
-
-#if TCFG_RCSP_DUAL_CONN_ENABLE
-/**
- * @brief 断开指定的ble
- *
- * @param ble_con_handle ble_con_handle
- */
-void rcsp_disconn_designated_ble(u16 ble_con_handle)
-{
-    printf("%s, %s, %d, dis_con_handle:%d\n", __FILE__, __FUNCTION__, __LINE__, ble_con_handle);
-    if (ble_con_handle) {
-        u16 ble_con_hdl = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
-        u16 ble_con_hdl1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-        u16 dis_con_handle = (ble_con_handle == ble_con_hdl) ? ble_con_hdl : ble_con_hdl1;
-        if (dis_con_handle == ble_con_hdl) {
-            app_ble_disconnect(rcsp_server_ble_hdl);
-        } else if (dis_con_handle == ble_con_hdl1) {
-            app_ble_disconnect(rcsp_server_ble_hdl1);
-        }
-    }
-}
-
-/**
- * @brief 断开另一个ble
- *
- * @param ble_con_handle 保留的ble_con_handle，输入为0的时候，全部断开
- */
-void rcsp_disconn_other_ble(u16 ble_con_handle)
-{
-    if (ble_con_handle) {
-        u16 ble_con_hdl = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
-        u16 ble_con_hdl1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);
-        u16 dis_con_handle = (ble_con_handle == ble_con_hdl) ? ble_con_hdl1 : ble_con_hdl;
-        if (dis_con_handle == ble_con_hdl) {
-            app_ble_disconnect(rcsp_server_ble_hdl);
-        } else if (dis_con_handle == ble_con_hdl1) {
-            app_ble_disconnect(rcsp_server_ble_hdl1);
-        }
-    } else {
-        app_ble_disconnect(rcsp_server_ble_hdl);
-        app_ble_disconnect(rcsp_server_ble_hdl1);
-    }
-}
 #endif
 
 #if TRANS_ANCS_EN

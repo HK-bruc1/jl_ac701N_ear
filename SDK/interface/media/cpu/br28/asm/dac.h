@@ -62,7 +62,8 @@ struct dac_platform_data {
     u16 max_dig_vol;
     u8 ldo_id;
     u8 ldo_volt;                // 电压 0:1.2V    1:1.25V    2:1.3V    3:1.35V
-    u8 pa_isel;                 // 电流 范围：0 ~ 6
+    u8 pa_isel0;                // 电流 范围：3 ~ 7
+    u8 pa_isel1;                // 电流 范围：2 ~ 7
     u8 pa_mute_port;
     u8 pa_mute_value;
     u8 vcmo_en;
@@ -78,6 +79,7 @@ struct dac_platform_data {
     u8 power_boost;             // 输出功率增强
     u8 clk_sel;                 // 时钟源选择：单端数字时钟/差分晶振时钟
     u8 pa_en_slow;              // PA上电速度控制 0：快上电 1：缓上电 (power_on_mode == 1时有效)
+    u8 dcc_level;
 };
 
 

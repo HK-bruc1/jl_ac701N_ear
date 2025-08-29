@@ -109,11 +109,11 @@ SECTIONS
 		*(.res_code)
 		*(.res_const)
         *(.bark_const)
-		*(.fft_code)
-		*(.fft_const)
         *(.der_code)
         *(.der_const)
 #endif
+		*(.fft_code)
+		*(.fft_const)
 #if AUDIO_CVP_DNS_AT_RAM == 0
 	    . = ALIGN(4);
         *(.dns_common_data)
@@ -156,6 +156,12 @@ SECTIONS
         *(.jlsp_tri_code)
         *(.jlsp_tri_const)
 #endif
+		
+		. = ALIGN(4);
+		*(.conv_params)
+		*(.seq_params)
+		. = ALIGN(4);
+
 		. = ALIGN(4);
 		cvp_code_end = . ;
 		cvp_code_size = cvp_code_end - cvp_code_begin ;

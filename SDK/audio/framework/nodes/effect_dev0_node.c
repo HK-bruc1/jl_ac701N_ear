@@ -66,6 +66,10 @@ static void audio_effect_dev0_init(struct effect_dev0_node_hdl *hdl)
  * */
 static void audio_effect_dev0_run(struct effect_dev0_node_hdl *hdl, s16 *indata, s16 *outdata, u32 indata_len)
 {
+#if EFFECT_DEV_MULTI_TASK_ENABLE
+    effect_dev_task_inbuf(indata, indata_len);
+#endif
+
 #if 0
     //test 2to4
     if (hdl->dev.bit_width && ((hdl->dev.out_ch_num == 4) && (hdl->dev.in_ch_num == 2))) {
@@ -205,6 +209,9 @@ static void effect_dev0_ioc_start(struct effect_dev0_node_hdl *hdl)
     hdl->dev.effect_run = (void (*)(void *, s16 *, s16 *, u32))audio_effect_dev0_run;
     effect_dev_init(&hdl->dev, EFFECT_DEV0_FRAME_POINTS);
     audio_effect_dev0_init(hdl);
+#if EFFECT_DEV_MULTI_TASK_ENABLE
+    effect_dev_task_open();
+#endif
 }
 
 
@@ -213,6 +220,9 @@ static void effect_dev0_ioc_stop(struct effect_dev0_node_hdl *hdl)
 {
     audio_effect_dev0_exit(hdl);
     effect_dev_close(&hdl->dev);
+#if EFFECT_DEV_MULTI_TASK_ENABLE
+    effect_dev_task_close();
+#endif
 }
 
 static int effect_dev0_ioc_update_parm(struct effect_dev0_node_hdl *hdl, int parm)

@@ -39,5 +39,11 @@ extern void gfps_rfcomm_connect_state_set(u8 state);
 
 extern void gfps_sync_info_to_new_master(void);
 
+#define GFPS_RING_STOP_ALL                              0X00
+#define GFPS_RING_RIGHT                                 0X01
+#define GFPS_RING_LEFT                                  0X02
+#define GFPS_RING_ALL                                   0X03
+extern int gfps_notify_ring_status(u8 status);
+
 #endif
 

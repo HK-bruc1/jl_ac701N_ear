@@ -257,6 +257,7 @@ static void custom_spp_state_callback(void *hdl, void *remote_addr, u8 state)
         break;
     case SPP_USER_ST_DISCONN:
         printf("custom spp disconnect#########\n");
+        app_spp_clean_filter_remote_addr(custom_demo_spp_hdl);
         break;
     };
 }

@@ -311,6 +311,9 @@
 #endif
 
 #define CONFIG_MEDIA_LIB_USE_MALLOC    1
+#ifndef TCFG_JLSTREAM_EFFICIENT_MODE
+#define TCFG_JLSTREAM_EFFICIENT_MODE	0 		// 音频流高效模式
+#endif
 
 ///USB 配置重定义
 // #undef USB_DEVICE_CLASS_CONFIG
@@ -434,6 +437,7 @@
 #define CONFIG_TWS_PAIR_BY_BOX              2      /* 测试盒/充电仓配对 */
 #define CONFIG_TWS_PAIR_MODE                TCFG_BT_TWS_PAIR_MODE
 
+#define CONFIG_TWS_DIFF_NAME_NOT_MATCH      1      /*tws 不同名字不进行配对*/
 
 /* 声道确定方式选择 */
 #define CONFIG_TWS_MASTER_AS_LEFT               0 //主机作为左耳
@@ -766,20 +770,22 @@
 #undef TCFG_IMUSENSOR_ENABLE
 #undef TCFG_MPU6887P_ENABLE
 #undef TCFG_ICM42670P_ENABLE
-#undef TCFG_QMI8658_ENABLE
 #undef TCFG_LSM6DSL_ENABLE
-#undef TCFG_TP_MPU9250_ENABLE
-#undef TCFG_SH3001_ENABLE
-#undef TCFG_MPU6050_EN
 #define TCFG_IMUSENSOR_ENABLE              		0
 #define TCFG_MPU6887P_ENABLE                  	0
 #define TCFG_ICM42670P_ENABLE                  	0
-#define TCFG_QMI8658_ENABLE                     0
 #define TCFG_LSM6DSL_ENABLE                     0
+#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE*/
+
+/*  device NOT supported */
+#undef TCFG_QMI8658_ENABLE
+#undef TCFG_TP_MPU9250_ENABLE
+#undef TCFG_SH3001_ENABLE
+#undef TCFG_MPU6050_EN
+#define TCFG_QMI8658_ENABLE                     0
 #define TCFG_TP_MPU9250_ENABLE                	0
 #define TCFG_SH3001_ENABLE                    	0
 #define TCFG_MPU6050_EN                     	0
-#endif/*TCFG_AUDIO_SPATIAL_EFFECT_ENABLE*/
 
 /*Audio Smart Voice*/
 #ifndef TCFG_SMART_VOICE_ENABLE

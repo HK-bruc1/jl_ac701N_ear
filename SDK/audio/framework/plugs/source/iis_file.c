@@ -266,6 +266,7 @@ void iis_rx_init(struct iis_file_hdl *hdl)
             params.ch_num = TDM_CH_NUM;
         }
 #endif
+        params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
         iis_hdl[hdl->module_idx] = audio_iis_init(params);
     }
     if (!iis_hdl[hdl->module_idx]) {

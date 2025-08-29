@@ -1,44 +1,6 @@
 #include "app_config.h"
 
 
-objs += \
-	  $(ROOT)/cpu/periph_demo/iic_master_demo.o \
-	  $(ROOT)/cpu/periph_demo/iic_slave_demo.o \
-	  $(ROOT)/cpu/periph_demo/ledc_test.o \
-	  $(ROOT)/cpu/periph_demo/sd_test.o \
-	  $(ROOT)/cpu/periph_demo/led_api_test.o \
-	  $(ROOT)/cpu/periph_demo/pwm_led_test.o \
-	  $(ROOT)/cpu/periph_demo/two_io_led_test.o \
-	  $(ROOT)/cpu/periph_demo/spi_test.o \
-	  $(ROOT)/cpu/periph_demo/uart_test.o \
-	  $(ROOT)/cpu/periph_demo/gptimer_demo.o \
-	  $(ROOT)/cpu/periph_demo/rdec_soft_demo.o \
-	  $(ROOT)/cpu/periph_demo/ir_encoder_decoder_demo.o \
-
-
-
-objs += \
-    $(ROOT)/cpu/config/gpio_file_parse.o \
-    $(ROOT)/cpu/config/lib_power_config.o \
-
-
-objs += \
-	  $(ROOT)/cpu/components/iic_soft.o \
-	  $(ROOT)/cpu/components/iic_api.o \
-	  $(ROOT)/cpu/components/ir_encoder.o \
-	  $(ROOT)/cpu/components/ir_decoder.o \
-	  $(ROOT)/cpu/components/rdec_soft.o \
-
-objs += \
-	  $(ROOT)/cpu/components/led_api.o \
-	  $(ROOT)/cpu/components/two_io_led.o \
-
-
-objs += \
-	  $(ROOT)/cpu/components/touch/lp_touch_key_tool.o \
-
-
-
 
 
 objs += \
@@ -112,6 +74,9 @@ objs += \
 
 objs += \
       $(ROOT)/audio/framework/nodes/uart_node.o
+
+objs += \
+      $(ROOT)/audio/framework/nodes/cvp_v3_node.o
 
 objs += \
       $(ROOT)/audio/framework/nodes/dns_node.o
@@ -367,6 +332,7 @@ objs += \
 	  $(ROOT)/audio/CVP/audio_cvp.o \
 	  $(ROOT)/audio/CVP/audio_cvp_dms.o \
 	  $(ROOT)/audio/CVP/audio_cvp_3mic.o \
+	  $(ROOT)/audio/CVP/audio_cvp_v3.o \
 	  $(ROOT)/audio/CVP/audio_cvp_online.o \
 	  $(ROOT)/audio/CVP/audio_cvp_demo.o \
 	  $(ROOT)/audio/CVP/audio_cvp_develop.o \
@@ -469,6 +435,131 @@ objs += \
 objs += \
 	$(ROOT)/audio/cpu/common.o \
 
+
+
+
+
+#if EXPORT_LE_AUDIO_SUPPORT
+
+objs += \
+	$(ROOT)/apps/common/le_audio/big.o
+
+objs += \
+	$(ROOT)/apps/common/le_audio/cig.o
+
+objs += \
+	$(ROOT)/apps/common/le_audio/wireless_trans_manager.o
+
+#endif
+
+
+
+objs += \
+	$(ROOT)/apps/common/config/bt_profile_config.o \
+
+
+objs += \
+	$(ROOT)/apps/common/config/new_cfg_tool.o \
+	$(ROOT)/apps/common/config/cfg_tool_statistics_functions/cfg_tool_statistics.o
+objs += \
+	$(ROOT)/apps/common/config/cfg_tool_cdc.o
+
+
+
+objs += \
+	$(ROOT)/apps/common/config/app_config.o
+
+objs += \
+	$(ROOT)/apps/common/config/ci_transport_uart.o
+
+
+
+objs += \
+	$(ROOT)/apps/common/config/bt_name_parse.o
+
+
+objs += \
+	$(ROOT)/apps/common/fat_nor/cfg_private.o
+
+
+
+objs += \
+	$(ROOT)/apps/common/debug/dlog_config.o \
+    $(ROOT)/apps/common/debug/dlog_output_config.o
+
+
+
+objs += \
+	$(ROOT)/apps/common/update/update.o \
+	$(ROOT)/apps/common/update/testbox_update.o \
+	$(ROOT)/apps/common/update/testbox_uart_update.o
+
+objs += \
+	$(ROOT)/apps/common/update/update_tws.o
+
+objs += \
+	$(ROOT)/apps/common/update/update_tws_new.o
+
+objs += \
+	$(ROOT)/apps/common/update/update_tws_new_less.o
+
+#ifdef CONFIG_UPDATE_MUTIL_CPU_UART
+objs += \
+	$(ROOT)/apps/common/update/uart_update_driver.o \
+	$(ROOT)/apps/common/update/update_interactive_uart.o
+
+objs += \
+	$(ROOT)/apps/common/update/uart_update.o
+
+objs += \
+	$(ROOT)/apps/common/update/uart_update_master.o
+#endif
+
+objs += \
+    $(ROOT)/apps/common/device/storage_device/norflash/norflash.o
+
+
+
+
+
+
+objs += \
+	$(ROOT)/apps/common/ui/pwm_led/led_ui_api.o \
+	$(ROOT)/apps/common/ui/pwm_led/led_ui_tws_sync.o
+
+
+
+
+#if defined CONFIG_SOUNDBOX_CASE || defined CONFIG_DONGLE_CASE
+objs += \
+	$(ROOT)/apps/common/ui/led7/led7_ui_api.o
+
+
+objs += \
+    $(ROOT)/apps/common/ui/lcd/lcd_ui_api.o
+
+#if EXPORT_DOT_UI_ENABLE
+
+objs += \
+	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/lcd_spi_sh8601a_454x454.o
+
+objs += \
+	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/lcd_spi_st7789v_240x240.o
+
+objs += \
+	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/oled_spi_ssd1306_128x64.o
+
+
+objs += \
+    $(ROOT)/apps/common/ui/interface/ui_platform.o \
+    $(ROOT)/apps/common/ui/interface/ui_pushScreen_manager.o \
+    $(ROOT)/apps/common/ui/interface/ui_resources_manager.o \
+    $(ROOT)/apps/common/ui/interface/ui_synthesis_manager.o \
+    $(ROOT)/apps/common/ui/interface/ui_synthesis_oled.o \
+    $(ROOT)/apps/common/ui/interface/watch_bgp.o
+
+#endif // EXPORT_DOT_UI_ENABLE
+#endif // CONFIG_SOUNDBOX_CASE
 
 
 
@@ -862,6 +953,65 @@ objs += \
 
 
 
+#ifdef CONFIG_SOUNDBOX_CASE
+objs += \
+    $(ROOT)/apps/common/iap/iAP_chip.o \
+    $(ROOT)/apps/common/iap/iAP_des.o \
+    $(ROOT)/apps/common/iap/iAP_device.o \
+    $(ROOT)/apps/common/iap/iAP_iic.o \
+
+#endif
+
+
+
+
+
+objs += \
+	$(ROOT)/apps/common/device/in_ear_detect/in_ear_detect.o \
+	$(ROOT)/apps/common/device/in_ear_detect/in_ear_manage.o
+
+
+
+#ifdef CONFIG_EARPHONE_CASE
+objs += \
+	$(ROOT)/apps/common/device/eartouch/eartouch_manage.o \
+	$(ROOT)/apps/common/device/eartouch/eartouch_iic_interface.o
+objs += \
+	$(ROOT)/apps/common/device/eartouch/hx300x/hx300x_driver.o
+
+objs += \
+	$(ROOT)/apps/common/device/eartouch/outside_tch_driver.o
+#endif
+
+
+#ifdef CONFIG_SOUNDBOX_CASE
+objs += \
+	$(ROOT)/apps/common/device/storage_device/nandflash/nandflash.o \
+	$(ROOT)/apps/common/device/storage_device/nandflash/ftl_device.o
+#endif
+
+
+#ifdef CONFIG_SOUNDBOX_CASE
+objs += \
+	$(ROOT)/apps/common/device/fm/fm_manage.o
+
+objs += \
+	$(ROOT)/apps/common/device/fm/fm_inside/fm_inside.o
+
+
+objs += \
+	$(ROOT)/apps/common/device/fm/bk1080/Bk1080.o
+
+objs += \
+	$(ROOT)/apps/common/device/fm/qn8035/QN8035.o
+
+objs += \
+	$(ROOT)/apps/common/device/fm/rda5807/RDA5807.o
+
+#endif
+
+
+
 objs += \
 	$(ROOT)/apps/common/device/sensor/ntc/ntc_det.o
 
@@ -1031,187 +1181,71 @@ objs += \
 
 
 
+objs += \
+	  $(ROOT)/cpu/components/iic_soft.o \
+	  $(ROOT)/cpu/components/iic_api.o \
+	  $(ROOT)/cpu/components/ir_encoder.o \
+	  $(ROOT)/cpu/components/ir_decoder.o \
+	  $(ROOT)/cpu/components/rdec_soft.o \
 
 objs += \
-	$(ROOT)/apps/common/device/in_ear_detect/in_ear_detect.o \
-	$(ROOT)/apps/common/device/in_ear_detect/in_ear_manage.o
-
-
-
-#ifdef CONFIG_EARPHONE_CASE
-objs += \
-	$(ROOT)/apps/common/device/eartouch/eartouch_manage.o \
-	$(ROOT)/apps/common/device/eartouch/eartouch_iic_interface.o
-objs += \
-	$(ROOT)/apps/common/device/eartouch/hx300x/hx300x_driver.o
-
-objs += \
-	$(ROOT)/apps/common/device/eartouch/outside_tch_driver.o
-#endif
-
-
-#ifdef CONFIG_SOUNDBOX_CASE
-objs += \
-	$(ROOT)/apps/common/device/storage_device/nandflash/nandflash.o \
-	$(ROOT)/apps/common/device/storage_device/nandflash/ftl_device.o
-#endif
-
-
-#ifdef CONFIG_SOUNDBOX_CASE
-objs += \
-	$(ROOT)/apps/common/device/fm/fm_manage.o
-
-objs += \
-	$(ROOT)/apps/common/device/fm/fm_inside/fm_inside.o
+	  $(ROOT)/cpu/components/led_api.o \
+	  $(ROOT)/cpu/components/two_io_led.o \
 
 
 objs += \
-	$(ROOT)/apps/common/device/fm/bk1080/Bk1080.o
+	  $(ROOT)/cpu/components/touch/lp_touch_key_tool.o \
+
+
 
 objs += \
-	$(ROOT)/apps/common/device/fm/qn8035/QN8035.o
+    $(ROOT)/cpu/config/gpio_file_parse.o \
+    $(ROOT)/cpu/config/lib_power_config.o \
+
 
 objs += \
-	$(ROOT)/apps/common/device/fm/rda5807/RDA5807.o
-
-#endif
-
+	  $(ROOT)/cpu/periph_demo/iic_master_demo.o \
+	  $(ROOT)/cpu/periph_demo/iic_slave_demo.o \
+	  $(ROOT)/cpu/periph_demo/ledc_test.o \
+	  $(ROOT)/cpu/periph_demo/sd_test.o \
+	  $(ROOT)/cpu/periph_demo/led_api_test.o \
+	  $(ROOT)/cpu/periph_demo/pwm_led_test.o \
+	  $(ROOT)/cpu/periph_demo/two_io_led_test.o \
+	  $(ROOT)/cpu/periph_demo/spi_test.o \
+	  $(ROOT)/cpu/periph_demo/uart_test.o \
+	  $(ROOT)/cpu/periph_demo/gptimer_demo.o \
+	  $(ROOT)/cpu/periph_demo/rdec_soft_demo.o \
+	  $(ROOT)/cpu/periph_demo/ir_encoder_decoder_demo.o \
 
 
 
 
 objs += \
-	$(ROOT)/apps/common/ui/pwm_led/led_ui_api.o \
-	$(ROOT)/apps/common/ui/pwm_led/led_ui_tws_sync.o
-
-
-
-
-#if defined CONFIG_SOUNDBOX_CASE || defined CONFIG_DONGLE_CASE
-objs += \
-	$(ROOT)/apps/common/ui/led7/led7_ui_api.o
-
+	  $(ROOT)/audio/cpu/br28/audio_setup.o \
+	  $(ROOT)/audio/cpu/br28/audio_mic_capless.o \
+	  $(ROOT)/audio/cpu/br28/audio_dai/audio_pdm.o \
+	  $(ROOT)/audio/cpu/br28/audio_config.o \
+	  $(ROOT)/audio/cpu/br28/audio_configs_dump.o \
 
 objs += \
-    $(ROOT)/apps/common/ui/lcd/lcd_ui_api.o
-
-#if EXPORT_DOT_UI_ENABLE
-
-objs += \
-	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/lcd_spi_sh8601a_454x454.o
-
-objs += \
-	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/lcd_spi_st7789v_240x240.o
-
-objs += \
-	$(ROOT)/apps/common/ui/lcd_drive/lcd_spi/oled_spi_ssd1306_128x64.o
+	  $(ROOT)/audio/cpu/br28/audio_anc.o \
+	  $(ROOT)/audio/cpu/br28/icsd_anc_user.o
 
 
 objs += \
-    $(ROOT)/apps/common/ui/interface/ui_platform.o \
-    $(ROOT)/apps/common/ui/interface/ui_pushScreen_manager.o \
-    $(ROOT)/apps/common/ui/interface/ui_resources_manager.o \
-    $(ROOT)/apps/common/ui/interface/ui_synthesis_manager.o \
-    $(ROOT)/apps/common/ui/interface/ui_synthesis_oled.o \
-    $(ROOT)/apps/common/ui/interface/watch_bgp.o
-
-#endif // EXPORT_DOT_UI_ENABLE
-#endif // CONFIG_SOUNDBOX_CASE
-
-
-
-
-#ifdef CONFIG_SOUNDBOX_CASE
-objs += \
-    $(ROOT)/apps/common/iap/iAP_chip.o \
-    $(ROOT)/apps/common/iap/iAP_des.o \
-    $(ROOT)/apps/common/iap/iAP_device.o \
-    $(ROOT)/apps/common/iap/iAP_iic.o \
-
-#endif
-
-
-
-
-#if EXPORT_LE_AUDIO_SUPPORT
+	  $(ROOT)/audio/cpu/br28/audio_accelerator/hw_fft.o \
 
 objs += \
-	$(ROOT)/apps/common/le_audio/big.o
+	$(ROOT)/audio/cpu/br28/audio_vad/vad_mic.o \
+	$(ROOT)/audio/cpu/br28/audio_vad/vad_clock_trim.o
 
 objs += \
-	$(ROOT)/apps/common/le_audio/cig.o
+	  $(ROOT)/audio/cpu/br28/audio_demo/audio_adc_demo.o \
 
 objs += \
-	$(ROOT)/apps/common/le_audio/wireless_trans_manager.o
-
-#endif
-
-
-
-objs += \
-	$(ROOT)/apps/common/config/bt_profile_config.o \
-
-
-objs += \
-	$(ROOT)/apps/common/config/new_cfg_tool.o \
-	$(ROOT)/apps/common/config/cfg_tool_statistics_functions/cfg_tool_statistics.o
-objs += \
-	$(ROOT)/apps/common/config/cfg_tool_cdc.o
-
-
-
-objs += \
-	$(ROOT)/apps/common/config/app_config.o
-
-objs += \
-	$(ROOT)/apps/common/config/ci_transport_uart.o
-
-
-
-objs += \
-	$(ROOT)/apps/common/config/bt_name_parse.o
-
-
-objs += \
-	$(ROOT)/apps/common/fat_nor/cfg_private.o
-
-
-
-objs += \
-	$(ROOT)/apps/common/debug/dlog_config.o \
-    $(ROOT)/apps/common/debug/dlog_output_config.o
-
-
-
-objs += \
-	$(ROOT)/apps/common/update/update.o \
-	$(ROOT)/apps/common/update/testbox_update.o \
-	$(ROOT)/apps/common/update/testbox_uart_update.o
-
-objs += \
-	$(ROOT)/apps/common/update/update_tws.o
-
-objs += \
-	$(ROOT)/apps/common/update/update_tws_new.o
-
-objs += \
-	$(ROOT)/apps/common/update/update_tws_new_less.o
-
-#ifdef CONFIG_UPDATE_MUTIL_CPU_UART
-objs += \
-	$(ROOT)/apps/common/update/uart_update_driver.o \
-	$(ROOT)/apps/common/update/update_interactive_uart.o
-
-objs += \
-	$(ROOT)/apps/common/update/uart_update.o
-
-objs += \
-	$(ROOT)/apps/common/update/uart_update_master.o
-#endif
-
-objs += \
-    $(ROOT)/apps/common/device/storage_device/norflash/norflash.o
-
+	  $(ROOT)/audio/cpu/br28/audio_demo/audio_dac_demo.o \
+	  $(ROOT)/audio/cpu/br28/audio_demo/audio_fft_demo.o \
+	  $(ROOT)/audio/cpu/br28/audio_demo/audio_pdm_demo.o
 
 
 
@@ -1272,36 +1306,6 @@ objs += \
     $(ROOT)/cpu/$(CPU_DIR)/ui_driver/lcd_drive/lcd_spi/lcd_spi_gc9b71_320x386.o
 
 #endif
-
-
-
-objs += \
-	  $(ROOT)/audio/cpu/br28/audio_setup.o \
-	  $(ROOT)/audio/cpu/br28/audio_mic_capless.o \
-	  $(ROOT)/audio/cpu/br28/audio_dai/audio_pdm.o \
-	  $(ROOT)/audio/cpu/br28/audio_config.o \
-	  $(ROOT)/audio/cpu/br28/audio_configs_dump.o \
-
-objs += \
-	  $(ROOT)/audio/cpu/br28/audio_anc.o \
-	  $(ROOT)/audio/cpu/br28/icsd_anc_user.o
-
-
-objs += \
-	  $(ROOT)/audio/cpu/br28/audio_accelerator/hw_fft.o \
-
-objs += \
-	$(ROOT)/audio/cpu/br28/audio_vad/vad_mic.o \
-	$(ROOT)/audio/cpu/br28/audio_vad/vad_clock_trim.o
-
-objs += \
-	  $(ROOT)/audio/cpu/br28/audio_demo/audio_adc_demo.o \
-
-objs += \
-	  $(ROOT)/audio/cpu/br28/audio_demo/audio_dac_demo.o \
-	  $(ROOT)/audio/cpu/br28/audio_demo/audio_fft_demo.o \
-	  $(ROOT)/audio/cpu/br28/audio_demo/audio_pdm_demo.o
-
 
 
 objs += \

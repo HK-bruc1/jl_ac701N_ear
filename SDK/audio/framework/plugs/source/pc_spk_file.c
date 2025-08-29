@@ -65,12 +65,14 @@ struct pc_spk_fmt_t {
     u8 channel;
     u8 bit;
     u32 sample_rate;
+    u32 iso_data_len;
 };
 struct pc_spk_fmt_t pc_spk_fmt = {
     .init = 0,
     .channel = SPK_CHANNEL,
     .bit = SPK_AUDIO_RES,
     .sample_rate = SPK_AUDIO_RATE,
+    .iso_data_len = SPK_CHANNEL * SPK_AUDIO_RATE * (SPK_AUDIO_RES / 8) / 1000,
 };
 
 
@@ -105,6 +107,10 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         return;
     }
 #endif
+    if ((len % pc_spk_fmt.iso_data_len) != 0) {
+        log_error("uac iso error : %d, %d\n", len, pc_spk_fmt.iso_data_len);
+        return;
+    }
     struct stream_node  *source_node = hdl->source_node;
     if (!hdl->cache_buf) {
         int cache_buf_len = len * SPK_PUSH_FRAME_NUM * 4; //4块输出buf
@@ -337,6 +343,7 @@ void pc_spk_set_fmt(u8 channel, u8 bit, u32 sample_rate)
     if (sample_rate != 0) {
         pc_spk_fmt.sample_rate = sample_rate;
     }
+    pc_spk_fmt.iso_data_len = channel * sample_rate * (bit / 8) / 1000;
 }
 
 u32 pc_spk_get_fmt_sample_rate(void)

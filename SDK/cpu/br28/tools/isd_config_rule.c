@@ -99,7 +99,7 @@
 #endif
 
 [EXTRA_CFG_PARAM]
-OTP_CFG_SIZE = 128;
+OTP_CFG_SIZE = 256;
 #if CONFIG_DOUBLE_BANK_ENABLE
 BR22_TWS_DB = YES;	//dual bank flash framework enable
 FLASH_SIZE = CONFIG_FLASH_SIZE;		//flash_size cfg
@@ -498,12 +498,14 @@ REALME_OPT = 0;
 
 #if CONFIG_FINDMY_INFO_ENABLE
 [RESERVED_EXPAND_CONFIG]
-//INI里面有个规则是VM一定会放到最前面
-
 #if (CONFIG_FLASH_SIZE == 0x100000)
-#define CONFIG_FINDMY_INFO_ADDR	                0xFD000 //config user space
-#else
-#define CONFIG_FINDMY_INFO_ADDR	                0x1FD000 //config user space
+#define CONFIG_FINDMY_INFO_ADDR                 0xFC000 //config user space
+
+#elif (CONFIG_FLASH_SIZE == 0x200000)
+#define CONFIG_FINDMY_INFO_ADDR                 0x1FC000 //config user space
+
+#elif (CONFIG_FLASH_SIZE == 0x400000)
+#define CONFIG_FINDMY_INFO_ADDR                 0x3FC000 //config user space
 #endif
 
 #define CONFIG_FINDMY_INFO_LEN	                0x2000  //need 8K

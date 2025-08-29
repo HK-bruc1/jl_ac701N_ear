@@ -571,25 +571,6 @@
 #define TCFG_ICM42670P_USER_IIC_INDEX          	0 //IIC 序号
 #define TCFG_ICM42670P_DETECT_IO               	(-1) //传感器中断io
 #define TCFG_ICM42670P_AD0_SELETE_IO            (-1) //iic地址选择io
-//mpu9250 cfg
-#define TCFG_TP_MPU9250_ENABLE                	0
-#define TCFG_MPU9250_INTERFACE_TYPE           	0 //不支持.0:iic, 1:spi
-#define TCFG_MPU9250_USER_IIC_TYPE            	0 //iic有效:1:硬件iic, 0:软件iic
-#define TCFG_MPU9250_USER_IIC_INDEX           	0 //IIC 序号
-#define TCFG_MPU9250_DETECT_IO              	IO_PORTB_03 //传感器中断io
-//sh3001 cfg
-#define TCFG_SH3001_ENABLE                    	0
-#define TCFG_SH3001_INTERFACE_TYPE            	0 //0:iic, 1:spi
-#define TCFG_SH3001_USER_IIC_TYPE		      	0 //1:硬件iic, 0:软件iic
-#define TCFG_SH3001_USER_IIC_INDEX            	0 //IIC 序号
-#define TCFG_SH3001_DETECT_IO                 	IO_PORTB_03 //传感器中断io
-//qmi8658 cfg
-#define TCFG_QMI8658_ENABLE                     0
-#define TCFG_QMI8658_INTERFACE_TYPE             0 //0:iic, 1:spi, 2:i3c
-#define TCFG_QMI8658_USER_IIC_TYPE              0 //1:硬件iic, 0:软件iic
-#define TCFG_QMI8658_USER_IIC_INDEX          	0 //IIC 序号
-#define TCFG_QMI8658_DETECT_IO               	(-1) //传感器中断io
-#define TCFG_QMI8658_AD0_SELETE_IO              (-1) //iic地址选择io
 //lsm6dsl cfg
 #define TCFG_LSM6DSL_ENABLE                     0
 #define TCFG_LSM6DSL_INTERFACE_TYPE             0 //0:iic, 1:spi
@@ -598,8 +579,6 @@
 #define TCFG_LSM6DSL_DETECT_IO               	(-1) //传感器中断io
 #define TCFG_LSM6DSL_AD0_SELETE_IO              (-1) //iic地址选择io
 //mpu6050 cfg
-#define TCFG_MPU6050_EN                     	0
-//qmc5883 cfg
 
 /*
  *imu-sensor power manager

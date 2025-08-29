@@ -593,6 +593,7 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
                 hdl->syncts_mount_en = 1;
             } else {
                 hdl->syncts_mount_en = 0;
+                ASSERT(config_dev_sync_enable);
             }
         }
 
@@ -610,6 +611,7 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
                 params.ch_num = TDM_CH_NUM;
             }
 #endif
+            params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
             iis_hdl[hdl->module_idx] = audio_iis_init(params);
         }
         if (!iis_hdl[hdl->module_idx]) {

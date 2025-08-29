@@ -198,6 +198,7 @@ LFLAGS := \
 	cpu/br28/liba/lib_wma_dec.a \
 	cpu/br28/liba/agreement.a \
 	cpu/br28/liba/libjlsp.a \
+	cpu/br28/liba/lib_nn_v3.a \
 	cpu/br28/liba/libjlsp_kws.a \
 	cpu/br28/liba/libkwscommon.a \
 	cpu/br28/liba/JL_Phone_Call.a \
@@ -268,6 +269,9 @@ LFLAGS := \
 	cpu/br28/liba/lib_frequency_compressor.a \
 	cpu/br28/liba/lib_gain_mix.a \
 	cpu/br28/liba/liblhdc_x_edge.a \
+	cpu/br28/liba/libStereoToLCR_pi32v2_OnChip.a \
+	cpu/br28/liba/sbsbrir.a \
+	cpu/br28/liba/spatial_brir.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \
@@ -275,6 +279,7 @@ LFLAGS := \
 	cpu/br28/liba/lib_bt_aac_dec.a \
 	cpu/br28/liba/crypto_toolbox_Osize.a \
 	cpu/br28/liba/lib_dns.a \
+	cpu/br28/liba/lib_dns_v3.a \
 	apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a \
 	cpu/br28/liba/update.a \
 	cpu/br28/liba/cbuf.a \

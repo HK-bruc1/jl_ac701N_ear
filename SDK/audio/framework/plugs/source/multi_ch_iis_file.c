@@ -274,6 +274,7 @@ static void iis_rx_init(struct iis_file_hdl *hdl)
         aparams.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, IIS_CH_NUM, AUDIO_DAC_MAX_SAMPLE_RATE);
         aparams.sr         = hdl->sample_rate;
         aparams.bit_width  = hdl->bit_width;
+        params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
         iis_hdl[hdl->module_idx] = audio_iis_init(aparams);
     }
     if (!iis_hdl[hdl->module_idx]) {

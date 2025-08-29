@@ -384,7 +384,9 @@ static void rcsp_bt_tws_event_handler(int *msg)
         if (reason == TWS_DETACH_BY_SUPER_TIMEOUT) {
             printf("rcsp reset ble by TWS_EVENT_CONNECTION_DETACH\n");
             ble_module_enable(0);
+#if TCFG_USER_TWS_ENABLE && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             rcsp_clear_ble_hdl_and_tws_sync();
+#endif
             ble_module_enable(1);
         } else {
 #if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED

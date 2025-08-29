@@ -44,6 +44,7 @@
 #include "rcsp_user_api.h"
 #include "pwm_led/led_ui_api.h"
 #include "dual_bank_updata_api.h"
+#include "effect/effects_dev.h"
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
 #include "icsd_adt_app.h"
 #endif
@@ -92,6 +93,9 @@ const struct task_info task_info_table[] = {
 #endif
 
     {"aec",					2,	   1,   768,   128 },
+#if (defined(EFFECT_DEV_MULTI_TASK_ENABLE) && EFFECT_DEV_MULTI_TASK_ENABLE)
+    {"eff_mtask",					6,	   1,   768,   0 },
+#endif
     /*
      *file dec任务不打断jlstream任务运行,故优先级低于jlstream
      */
@@ -665,11 +669,14 @@ static void app_task_loop(void *p)
 #endif /* #if (VFS_ENABLE == 1) */
 
 #else
+    extern void flash_w_protected_check_en(u8 en);
     extern const int support_dual_bank_update_no_erase;
     if (support_dual_bank_update_no_erase) {
         if (0 == dual_bank_update_bp_info_get()) {
             norflash_set_write_protect_remove();
+            flash_w_protected_check_en(0);
             dual_bank_check_flash_update_area(0);
+            flash_w_protected_check_en(1);
             norflash_set_write_protect_en();
         }
     }

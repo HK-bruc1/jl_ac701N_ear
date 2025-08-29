@@ -329,6 +329,7 @@
 <Add option="cpu/br28/liba/lib_wma_dec.a" />
 <Add option="cpu/br28/liba/agreement.a" />
 <Add option="cpu/br28/liba/libjlsp.a" />
+<Add option="cpu/br28/liba/lib_nn_v3.a" />
 <Add option="cpu/br28/liba/libjlsp_kws.a" />
 <Add option="cpu/br28/liba/libkwscommon.a" />
 <Add option="cpu/br28/liba/JL_Phone_Call.a" />
@@ -399,6 +400,9 @@
 <Add option="cpu/br28/liba/lib_frequency_compressor.a" />
 <Add option="cpu/br28/liba/lib_gain_mix.a" />
 <Add option="cpu/br28/liba/liblhdc_x_edge.a" />
+<Add option="cpu/br28/liba/libStereoToLCR_pi32v2_OnChip.a" />
+<Add option="cpu/br28/liba/sbsbrir.a" />
+<Add option="cpu/br28/liba/spatial_brir.a" />
 <Add option="cpu/br28/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br28/liba/lib_wtg_dec.a" />
 <Add option="cpu/br28/liba/bfilterfun_lib.a" />
@@ -406,6 +410,7 @@
 <Add option="cpu/br28/liba/lib_bt_aac_dec.a" />
 <Add option="cpu/br28/liba/crypto_toolbox_Osize.a" />
 <Add option="cpu/br28/liba/lib_dns.a" />
+<Add option="cpu/br28/liba/lib_dns_v3.a" />
 <Add option="apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a" />
 <Add option="cpu/br28/liba/update.a" />
 <Add option="cpu/br28/liba/cbuf.a" />
@@ -1179,6 +1184,7 @@
 <Unit filename="audio/CVP/audio_cvp_online.h" />
 <Unit filename="audio/CVP/audio_cvp_ref_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_sync.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/CVP/audio_cvp_v3.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.h" />
 <Unit filename="audio/anc/audio_anc_common_plug.c"><Option compilerVer="CC"/></Unit>
@@ -1399,6 +1405,7 @@
 <Unit filename="audio/framework/nodes/cvp_develop_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_dms_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_sms_node.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/nodes/cvp_v3_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/data_export_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/dns_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/effect_dev0_node.c"><Option compilerVer="CC"/></Unit>
@@ -1751,13 +1758,16 @@
 <Unit filename="interface/media/cvp/cvp_ns.h" />
 <Unit filename="interface/media/cvp/cvp_sms.h" />
 <Unit filename="interface/media/cvp/cvp_tms.h" />
+<Unit filename="interface/media/cvp/cvp_v3.h" />
 <Unit filename="interface/media/cvp/lib_h/jlsp_ns.h" />
+<Unit filename="interface/media/cvp/lib_h/jlsp_v3_ns.h" />
 <Unit filename="interface/media/effects/AudioEffect_DataType.h" />
 <Unit filename="interface/media/effects/DynamicEQPro_api.h" />
 <Unit filename="interface/media/effects/DynamicEQ_Detection_api.h" />
 <Unit filename="interface/media/effects/DynamicEQ_api.h" />
 <Unit filename="interface/media/effects/Effect_delay_api.h" />
 <Unit filename="interface/media/effects/HowlingGate_api.h" />
+<Unit filename="interface/media/effects/StereoToLCR_Lib.h" />
 <Unit filename="interface/media/effects/UpmixSystem.h" />
 <Unit filename="interface/media/effects/VirtualBass_api.h" />
 <Unit filename="interface/media/effects/audio_autoduck.h" />
@@ -1800,6 +1810,7 @@
 <Unit filename="interface/media/effects/audio_vbass.h" />
 <Unit filename="interface/media/effects/audio_virtual_bass_classic.h" />
 <Unit filename="interface/media/effects/audio_virtual_bass_pro.h" />
+<Unit filename="interface/media/effects/audio_virtual_surround_hp.h" />
 <Unit filename="interface/media/effects/audio_virtual_surround_pro.h" />
 <Unit filename="interface/media/effects/audio_vocal_remove.h" />
 <Unit filename="interface/media/effects/audio_voice_changer.h" />
@@ -1838,6 +1849,7 @@
 <Unit filename="interface/media/effects/reverb_api.h" />
 <Unit filename="interface/media/effects/reverb_v2_api.h" />
 <Unit filename="interface/media/effects/spatial_adv_api.h" />
+<Unit filename="interface/media/effects/spatial_brir_ctrl.h" />
 <Unit filename="interface/media/effects/spectrum/SpectrumShow_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_eq.h" />

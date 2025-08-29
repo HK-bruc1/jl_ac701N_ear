@@ -386,6 +386,11 @@
 	*(.convert.text.cache.L2.code)
 	*(.VocalRemove.text.cache.L2.code)
 
+#if AFx_STEREO_TO_LCR_AT_RAM
+    *(.StereoToLCR.text.cache.L2.const.cpp)
+    *(.StereoToLCR.text.cache.L2.code.cpp)
+#endif
+
     . = ALIGN(4);
     media_data_code_end = .;
     media_data_code_size = media_data_code_end - media_data_code_start;

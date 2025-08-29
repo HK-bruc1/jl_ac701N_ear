@@ -67,6 +67,7 @@ extern int _norflash_read(u32 addr, u8 *buf, u32 len, u8 cache);
 extern int _norflash_write(u32 addr, void *buf, u32 len, u8 cache);
 extern int _norflash_eraser(u8 eraser, u32 addr);
 extern int _norflash_close(void);
+extern int _norflash_ioctl(u32 cmd, u32 arg, u32 unit, void *_part);
 
 u8 dlog_use_ex_flash = 0;
 
@@ -447,6 +448,18 @@ u16 dlog_read_log_data(u8 *buf, u16 len, u32 offset)
 
     return ret;
 }
+
+u8 dlog_get_flash_exsit(void)
+{
+    u32 flash_id = 0;
+    _norflash_ioctl(IOCTL_GET_ID, (u32)&flash_id, 0, NULL);
+    if ((flash_id == 0) || (flash_id == 0xffffff))  {
+        return 0;
+    }
+
+    return 1;
+}
+
 
 
 #if 0  // dlog demo

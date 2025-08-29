@@ -649,6 +649,7 @@ static void iis_ioc_start(struct iis_node_hdl *hdl, struct stream_iport *iport)
         params.sr         = hdl->sample_rate;
         params.bit_width  = hdl->bit_width;
         params.fixed_pns  = const_out_dev_pns_time_ms;
+        params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
         iis_hdl[hdl->module_idx] = audio_iis_init(params);
     }
 

@@ -8,6 +8,7 @@
 #include "cvp_sms.h"
 #include "cvp_dms.h"
 #include "cvp_tms.h"
+#include "cvp_v3.h"
 
 #define AEC_DEBUG_ONLINE	0
 #define AEC_READ_CONFIG		1

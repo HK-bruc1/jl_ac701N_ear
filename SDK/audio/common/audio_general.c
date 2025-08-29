@@ -512,6 +512,17 @@ const int spatial_imp_active_ele_group = 0;
 /* 双耳压强差使能控制，关闭可节省代码量（关闭后可视化界面参数"ildenable"调试无效）。范围：0关，1开。*/
 const int spatial_imp_active_ild_group = 0;
 
+// Virtual Surround Headphone 2t4
+#ifdef TCFG_AUDIO_EFX_DCD4_RUN_MODE
+const int spatial_brir_run_mode = TCFG_AUDIO_EFX_DCD4_RUN_MODE;
+const int StereoToLCR_run_mode = TCFG_AUDIO_EFX_DCD4_RUN_MODE;
+#else
+const int spatial_brir_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
+const int StereoToLCR_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
+#endif
+const int virtual_surround_hp_run_points = 512; //运算点数
+const int StereoToLCR_24bit_sat = 1;             /* 跑24bit数据流是否对数据进行饱和处理 */
+const int spatial_brir_azimuth = -1;    /* -1加载所有brir，角度调试模式下使用 */
 /*
  *******************************************************************
  *						Audio Mic Capless Config

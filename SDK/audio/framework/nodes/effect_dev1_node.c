@@ -67,6 +67,9 @@ static void audio_effect_dev1_init(struct effect_dev1_node_hdl *hdl)
  * */
 static void audio_effect_dev1_run(struct effect_dev1_node_hdl *hdl,  s16 *indata, s16 *outdata, u32 indata_len)
 {
+#if EFFECT_DEV_MULTI_TASK_ENABLE
+    effect_dev_process1(outdata, indata_len);
+#endif
 #if 0
     //test 2to4
     if (hdl->dev.bit_width && ((hdl->dev.out_ch_num == 4) && (hdl->dev.in_ch_num == 2))) {

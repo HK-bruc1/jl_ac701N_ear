@@ -31,8 +31,6 @@
     *(.res_code)
     *(.res_const)
     *(.bark_const)
-    *(.fft_code)
-    *(.fft_const)
     *(.der_code)
     *(.der_const)
 #endif

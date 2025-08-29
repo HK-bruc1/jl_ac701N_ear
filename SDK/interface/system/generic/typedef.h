@@ -129,6 +129,9 @@ Date：
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+// ABS_DIFF需谨慎使用
+// 易错案例：1、ABS_DIFF(++x, ++y); 2、ab的类型需要保证一致
+#define ABS_DIFF(a, b) ((a) > (b) ? (a) - (b) : (b) - (a))
 
 #define ARRAY_SIZE(array)  (sizeof(array)/sizeof(array[0]))
 

@@ -188,7 +188,7 @@ void free_mux(void *p)
 }
 
 #if !defined(TCFG_CVP_DEVELOP_ENABLE) || (TCFG_CVP_DEVELOP_ENABLE == 0)
-#if (TCFG_AUDIO_DUAL_MIC_ENABLE == 0) && (TCFG_AUDIO_TRIPLE_MIC_ENABLE == 0)
+#if (TCFG_AUDIO_DUAL_MIC_ENABLE == 0) && (TCFG_AUDIO_TRIPLE_MIC_ENABLE == 0) && (TCFG_AUDIO_CVP_V3_MODE == 0)
 #include "audio_cvp_debug.c"
 
 extern int esco_player_runing();
@@ -992,6 +992,12 @@ void cvp_node_context_setup(u16 uuid)
         g_cvp_context.read_ref_data =  cvp_tms_read_ref_data;
         break;
 #endif
+#if (TCFG_AUDIO_CVP_V3_MODE)
+    case NODE_UUID_CVP_V3:
+        g_cvp_context.read_ref_data = cvp_read_ref_data;
+        break;
+#endif
+
     default:
         printf("cvp node uuid process error:%x", g_cvp_context.active_node_uuid);
         break;
@@ -1004,8 +1010,10 @@ int cvp_param_cfg_read(void)
     return cvp_dms_param_cfg_read();
 #elif TCFG_AUDIO_TRIPLE_MIC_ENABLE
     return cvp_tms_param_cfg_read();
-#else
+#elif TCFG_AUDIO_SINGLE_MIC_ENABLE
     return cvp_sms_param_cfg_read();
+#else
+    return cvp_v3_param_cfg_read();
 #endif
 }
 
