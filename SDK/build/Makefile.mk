@@ -8,6 +8,16 @@ c_SRC_FILES := \
 	apps/common/debug/debug_lite.c \
 	apps/common/debug/debug_uart_config.c \
 	apps/common/dev_manager/dev_manager.c \
+	apps/common/device/sensor/app_sensor.c \
+	apps/common/device/sensor/gSensor/gSensor_manage.c \
+	apps/common/device/sensor/gSensor/stk832x.c \
+	apps/common/device/sensor/hr_sensor/hrSensor_manage.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_check_touch.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_factory_test.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrs_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrv_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_spo2_agc.c \
 	apps/common/device/storage_device/norflash/norflash_sfc.c \
 	apps/common/fat_nor/virfat_flash.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
@@ -272,6 +282,10 @@ LFLAGS := \
 	cpu/br28/liba/libStereoToLCR_pi32v2_OnChip.a \
 	cpu/br28/liba/sbsbrir.a \
 	cpu/br28/liba/spatial_brir.a \
+	cpu/br28/liba/lib_dvad.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a \
 	cpu/br28/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br28/liba/lib_wtg_dec.a \
 	cpu/br28/liba/bfilterfun_lib.a \

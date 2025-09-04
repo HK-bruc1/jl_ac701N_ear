@@ -131,6 +131,10 @@ static const char *mm_module[] = {
     "SpectrumAdv",
     "Indicator",
     "MusicPLC",
+    "StereoToLCR",
+    "StereoToLCRTmp",
+    "SpatialBRIR",
+    "SpatialBRIRTmp",
     //Codec Modules
     "AAC_Dec",
     "AACEnergy",

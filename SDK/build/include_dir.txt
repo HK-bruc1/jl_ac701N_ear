@@ -142,8 +142,11 @@
 -Iaudio/anc
 -Iaudio/cpu/br28/audio_dai
 -Iaudio/smart_voice
+-Iaudio/cpu/br28/audio_demo
+-Iaudio/cpu/br28/audio_vad
 -Iaudio/effect/spatial_effect
 -Iaudio/effect/somatosensory
 -Iinterface/media/aispeech/enc
+-Iapps/common/device/sensor/hr_sensor
 -Iinterface/system/math/cpu/br28
 

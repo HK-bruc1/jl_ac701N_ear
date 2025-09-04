@@ -53,6 +53,18 @@
 
 #if RCSP_MODE
 
+#ifdef RCSP_DEBUG_EN
+#define rcsp_puts(x)				puts(x)
+#define rcsp_putchar(x)				putchar(x)
+#define rcsp_printf					y_printf
+#define rcsp_printf_buf(x, y)		put_buf(x, y)
+#else
+#define rcsp_puts(...)
+#define rcsp_putchar(...)
+#define rcsp_printf(...)
+#define rcsp_printf_buf(...)
+#endif
+
 #define LOG_TAG             "[RCSP-ADV]"
 #define LOG_ERROR_ENABLE
 #define LOG_DEBUG_ENABLE
@@ -76,7 +88,7 @@ int rcsp_bt_state_set_page_scan_enable()
     bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_UNCONNECTED, 1);
 #elif (CONFIG_NO_DISPLAY_BUTTON_ICON || !TCFG_CHARGESTORE_ENABLE)
     if (tws_api_get_role() == TWS_ROLE_MASTER) {
-        printf("switch_icon_ctl11...\n");
+        rcsp_printf("switch_icon_ctl11...\n");
         bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_UNCONNECTED, 1);
     }
 #endif
@@ -93,7 +105,7 @@ int rcsp_bt_state_cancel_page_scan()
             ble_adv_miss_flag = 0;
             puts("ble_adv_miss_flag...\n");
         } else {
-            printf("switch_icon_ctl00...\n");
+            rcsp_printf("switch_icon_ctl00...\n");
             bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_UNCONNECTED, 1);
         }
     }
@@ -132,19 +144,19 @@ int rcsp_bt_state_tws_connected(int first_pair, u8 *comm_addr)
 #else
         bt_make_ble_address(tmp_ble_addr, comm_addr);
 #endif
-        /* printf("first_pait tmp_ble_addr:\n"); */
-        /* put_buf(tmp_ble_addr, 6); */
+        rcsp_printf("first_pait tmp_ble_addr:\n");
+        rcsp_printf_buf(tmp_ble_addr, 6);
 
         rcsp_app_ble_set_mac_addr(tmp_ble_addr);//将ble广播地址改成公共地址
 
         /*新的连接，公共地址改变了，要重新将新的地址广播出去*/
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
-            printf("\nNew Connect Master!!!\n\n");
+            rcsp_printf("\nNew Connect Master!!!\n\n");
             ble_app_disconnect();
             ble_module_enable(0);
             ble_module_enable(1);
         } else {
-            printf("\nConnect Slave!!!\n\n");
+            rcsp_printf("\nConnect Slave!!!\n\n");
             /*从机ble关掉*/
             ble_app_disconnect();
             rcsp_bt_ble_adv_enable(0);
@@ -220,7 +232,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
     case BT_STATUS_PHONE_INCOME:
     case BT_STATUS_PHONE_OUT:
     case BT_STATUS_PHONE_ACTIVE:
-        printf("BT_STATUS_PHONE_ACTIVE\n");
+        rcsp_printf("BT_STATUS_PHONE_ACTIVE\n");
 #if RCSP_ADV_FIND_DEVICE_ENABLE
         extern void rcsp_send_find_device_stop(void);
         rcsp_send_find_device_stop();
@@ -228,7 +240,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
         rcsp_device_status_update(COMMON_FUNCTION, BIT(RCSP_DEVICE_STATUS_ATTR_TYPE_PHONE_SCO_STATE_INFO));
         break;
     case BT_STATUS_PHONE_HANGUP:
-        printf("BT_STATUS_PHONE_HANGUP\n");
+        rcsp_printf("BT_STATUS_PHONE_HANGUP\n");
         rcsp_device_status_update(COMMON_FUNCTION, BIT(RCSP_DEVICE_STATUS_ATTR_TYPE_PHONE_SCO_STATE_INFO));
         break;
     }
@@ -296,7 +308,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
 
     switch (evt->event) {
     case TWS_EVENT_CONNECTED:
-        printf("rcsp_bt_tws_event_handler rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
+        rcsp_printf("rcsp_bt_tws_event_handler rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
         if (role != TWS_ROLE_SLAVE) {
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             // 主机需要同步rcsp相关信息给新从耳机
@@ -333,7 +345,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
             rcsp_ble_adv_enable_with_con_dev();
         } else {
             //slave disable
-            printf("\nConnect Slave!!!222\n\n");
+            rcsp_printf("\nConnect Slave!!!222\n\n");
             /*从机ble关掉*/
             /* ble_app_disconnect(); */
             rcsp_bt_ble_adv_enable(0);
@@ -369,7 +381,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
         rcsp_ble_adv_enable_with_con_dev();
         break;
     case TWS_EVENT_CONNECTION_DETACH:
-        printf("rcsp TWS_EVENT_CONNECTION_DETACH: %d\n", reason);
+        rcsp_printf("rcsp TWS_EVENT_CONNECTION_DETACH: %d\n", reason);
         /*
          * TWS连接断开
          */
@@ -382,7 +394,7 @@ static void rcsp_bt_tws_event_handler(int *msg)
         }
 #endif
         if (reason == TWS_DETACH_BY_SUPER_TIMEOUT) {
-            printf("rcsp reset ble by TWS_EVENT_CONNECTION_DETACH\n");
+            rcsp_printf("rcsp reset ble by TWS_EVENT_CONNECTION_DETACH\n");
             ble_module_enable(0);
 #if TCFG_USER_TWS_ENABLE && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             rcsp_clear_ble_hdl_and_tws_sync();
@@ -428,8 +440,8 @@ static void rcsp_bt_tws_event_handler(int *msg)
 static void rcsp_spp_state_in_task(u8 *data, int len)
 {
     u8 spp_state = *data;
-    /* printf("rcsp_spp_state_in_task:%d\n", spp_state); */
-    /* put_buf(data, len); */
+    rcsp_printf("rcsp_spp_state_in_task:%d\n", spp_state);
+    rcsp_printf_buf(data, len);
     rcsp_user_spp_state_specific(spp_state, data + 1);
     free(data);
 }
@@ -438,10 +450,10 @@ static void rcsp_spp_state_in_irq(void *_data, u16 len, bool rx)
 {
     u8 *rx_data = NULL;
     if (rx) {
-        /* u8 *data = (u8 *)_data; */
-        /* u8 spp_state = *data; */
-        /* printf("spp_state-----------------:%d\n", spp_state); */
-        /* put_buf(_data, len); */
+        u8 *data = (u8 *)_data;
+        u8 spp_state = *data;
+        rcsp_printf("spp_state-----------------:%d\n", spp_state);
+        rcsp_printf_buf(_data, len);
 
         rx_data = malloc(len);
         if (rx_data == NULL) {
@@ -456,7 +468,7 @@ static void rcsp_spp_state_in_irq(void *_data, u16 len, bool rx)
         argv[3] = (int)len;
         int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
         if (ret) {
-            printf("%s taskq post err \n", __func__);
+            rcsp_printf("%s taskq post err \n", __func__);
         }
     }
     //cppcheck-suppress memleak
@@ -478,14 +490,14 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
         if (spp_remote_addr) {
             memcpy(tws_buf + 1, spp_remote_addr, 6);
         }
-        /* printf("tws_buf-----------------:\n"); */
-        /* put_buf(tws_buf, 7); */
+        rcsp_printf("tws_buf-----------------:\n");
+        rcsp_printf_buf(tws_buf, 7);
         tws_api_send_data_to_sibling((void *)&tws_buf, sizeof(tws_buf), TWS_FUNC_ID_RCSP_SPP_STATE);
     }
 #endif
     switch (packet_type) {
     case SPP_USER_ST_CONNECT:
-        printf("rcsp_user_spp_state_specific SPP_USER_ST_CONNECT\n");
+        rcsp_printf("rcsp_user_spp_state_specific SPP_USER_ST_CONNECT\n");
         // spp 连接后会走这里
         clock_refurbish();
 
@@ -520,7 +532,7 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
 
         break;
     case SPP_USER_ST_DISCONN:
-        printf("rcsp_user_spp_state_specific SPP_USER_ST_DISCONN\n");
+        rcsp_printf("rcsp_user_spp_state_specific SPP_USER_ST_DISCONN\n");
 #if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
         if (spp_remote_addr) {
             rcsp_protocol_reset_bound(0, spp_remote_addr);
@@ -569,7 +581,7 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
 
 int jl_phone_app_init()
 {
-    printf("jl_phone_app_init\n");
+    rcsp_printf("jl_phone_app_init\n");
 #if RCSP_ADV_MUSIC_INFO_ENABLE
     bt_music_info_handle_register(rcsp_adv_music_info_deal);
 #endif
@@ -720,17 +732,17 @@ APP_MSG_HANDLER(rcsp_bt_msg_entry) = {
 static void rcsp_auth_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
     if (rx) {
-        /* printf("auth %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-        /* put_buf(_data, len); */
+        rcsp_printf("auth %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+        rcsp_printf_buf(_data, len);
         u16 auth_hdl_size = sizeof(JL_rcsp_auth_hdl);
         u8 *data = (u8 *)_data;
         JL_rcsp_auth_hdl h1, h2;
         memcpy((void *)&h1, data, auth_hdl_size);
         memcpy((void *)&h2, data + auth_hdl_size, auth_hdl_size);
-        /* printf("hdl1:%d, auth1:%d addr1:\n", (u32)h1.ble_con_handle, h1.rcsp_auth_flag); */
-        /* put_buf(h1.spp_remote_addr, 6); */
-        /* printf("hdl2:%d, auth2:%d addr2:\n", (u32)h2.ble_con_handle, h2.rcsp_auth_flag); */
-        /* put_buf(h2.spp_remote_addr, 6); */
+        rcsp_printf("hdl1:%d, auth1:%d addr1:\n", (u32)h1.ble_con_handle, h1.rcsp_auth_flag);
+        rcsp_printf_buf(h1.spp_remote_addr, 6);
+        rcsp_printf("hdl2:%d, auth2:%d addr2:\n", (u32)h2.ble_con_handle, h2.rcsp_auth_flag);
+        rcsp_printf_buf(h2.spp_remote_addr, 6);
         JL_rcsp_set_auth_hdl(&h1, &h2);
     }
 }
@@ -744,7 +756,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_auth_sync) = {
 void JL_rcsp_auth_flag_tws_sync(void)
 {
     if (IS_CHARGE_EN()) {
-        /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
+        rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
         return;
     }
     /* if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) { */
@@ -756,8 +768,8 @@ void JL_rcsp_auth_flag_tws_sync(void)
 
     memcpy(buf, (void *)&h1, auth_hdl_size);
     memcpy(buf + auth_hdl_size, (void *)&h2, auth_hdl_size);
-    /* printf("auth %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-    /* put_buf(buf, sizeof(buf)); */
+    rcsp_printf("auth %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+    rcsp_printf_buf(buf, sizeof(buf));
 
     // 通知从机同步状态
     tws_api_send_data_to_sibling(buf, sizeof(buf), TWS_FUNC_ID_RCSP_AUTH);
@@ -776,18 +788,18 @@ void JL_rcsp_auth_flag_tws_sync(void)
 static void rcsp_bound_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
     if (rx && rcsp_handle_get()) {
-        /* printf("bound %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-        /* put_buf(_data, len); */
+        rcsp_printf("bound %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+        rcsp_printf_buf(_data, len);
         u16 auth_hdl_size = sizeof(JL_rcsp_bound_hdl);
         u8 *data = (u8 *)_data;
         JL_rcsp_bound_hdl h1, h2;
         memcpy((void *)&h1, data, auth_hdl_size);
-        /* printf("hdl1:%d, addr1:\n", (u32)h1.ble_con_handle); */
-        /* put_buf(h1.spp_remote_addr, 6); */
+        rcsp_printf("hdl1:%d, addr1:\n", (u32)h1.ble_con_handle);
+        rcsp_printf_buf(h1.spp_remote_addr, 6);
 #if TCFG_RCSP_DUAL_CONN_ENABLE
         memcpy((void *)&h2, data + auth_hdl_size, auth_hdl_size);
-        /* printf("hdl2:%d, addr2:\n", (u32)h2.ble_con_handle); */
-        /* put_buf(h2.spp_remote_addr, 6); */
+        rcsp_printf("hdl2:%d, addr2:\n", (u32)h2.ble_con_handle);
+        rcsp_printf_buf(h2.spp_remote_addr, 6);
 #endif
         rcsp_protocol_set_bound_hdl(&h1, &h2);
     }
@@ -802,7 +814,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_bnd_sync) = {
 void rcsp_protocol_bound_tws_sync(void)
 {
     if (IS_CHARGE_EN() || (rcsp_handle_get() == NULL)) {
-        /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
+        rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
         return;
     }
     /* if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) { */
@@ -816,8 +828,8 @@ void rcsp_protocol_bound_tws_sync(void)
 #if TCFG_RCSP_DUAL_CONN_ENABLE
     memcpy(buf + hdl_size, (void *)&h2, hdl_size);
 #endif
-    /* printf("pro %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-    /* put_buf(buf, sizeof(buf)); */
+    rcsp_printf("pro %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+    rcsp_printf_buf(buf, sizeof(buf));
 
     // 通知从机同步状态
     tws_api_send_data_to_sibling(buf, sizeof(buf), TWS_FUNC_ID_RCSP_BOUND);
@@ -832,8 +844,8 @@ void rcsp_protocol_bound_tws_sync(void)
 
 static void rcsp_interface_bt_handle_tws_sync_in_task(u8 *data, int len)
 {
-    /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-    /* put_buf(data, len); */
+    rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+    rcsp_printf_buf(data, len);
     rcsp_interface_set_bt_hdl_with_tws_data(data, len);
     free(data);
 }
@@ -841,8 +853,8 @@ static void rcsp_interface_bt_handle_tws_sync_in_task(u8 *data, int len)
 static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
     if (rx) {
-        /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-        /* put_buf(_data, len); */
+        rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+        rcsp_printf_buf(_data, len);
         u8 *rx_data = malloc(len);
         if (rx_data == NULL) {
             return;
@@ -870,7 +882,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_bt_hdl_sync) = {
 void rcsp_interface_bt_handle_tws_sync(void)
 {
     if (IS_CHARGE_EN()) {
-        /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
+        rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
         return;
     }
     /* if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) { */
@@ -881,8 +893,8 @@ void rcsp_interface_bt_handle_tws_sync(void)
     u8 *buf = malloc(buf_size);
     ASSERT(buf, "rcsp_interface_bt_handle_tws_sync buf malloc fail!");
     rcsp_interface_tws_sync_buf_content(buf);
-    /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
-    /* put_buf(buf, buf_size); */
+    rcsp_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
+    rcsp_printf_buf(buf, buf_size);
 
     tws_api_send_data_to_sibling(buf, buf_size, TWS_FUNC_ID_RCSP_INTERFACE_HDL_TWS_SYNC);
     free(buf);
@@ -894,7 +906,7 @@ void rcsp_interface_bt_handle_tws_sync(void)
  */
 void rcsp_clear_ble_hdl_and_tws_sync(void)
 {
-    printf("%s\n", __FUNCTION__);
+    rcsp_printf("%s\n", __FUNCTION__);
     u16 ble_con_handle = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl);
     bt_rcsp_set_conn_info(ble_con_handle, NULL, 0);
     u16 ble_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1);

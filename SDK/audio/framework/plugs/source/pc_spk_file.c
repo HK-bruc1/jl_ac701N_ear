@@ -111,7 +111,6 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
         log_error("uac iso error : %d, %d\n", len, pc_spk_fmt.iso_data_len);
         return;
     }
-    struct stream_node  *source_node = hdl->source_node;
     if (!hdl->cache_buf) {
         int cache_buf_len = len * SPK_PUSH_FRAME_NUM * 4; //4块输出buf
         //申请cbuffer
@@ -136,7 +135,7 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
     }
     u32 cache_len = cbuf_get_data_len(&hdl->spk_cache_cbuffer);
     if (cache_len >= len * SPK_PUSH_FRAME_NUM) {
-        frame = source_plug_get_output_frame(source_node, cache_len);
+        frame = source_plug_get_output_frame(hdl->source_node, cache_len);
         if (!frame) {
             return;
         }
@@ -158,7 +157,7 @@ void pc_spk_data_isr_cb(void *buf, u32 len)
             memset(frame->data, frame->len, 0x0);
         }
 #endif
-        source_plug_put_output_frame(source_node, frame);
+        source_plug_put_output_frame(hdl->source_node, frame);
         hdl->data_run = 1;
     }
 }

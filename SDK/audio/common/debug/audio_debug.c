@@ -5,6 +5,7 @@
 #include "jlstream.h"
 #include "classic/hci_lmp.h"
 #include "media_memory.h"
+#include "audio_dac.h"
 
 
 #define AUD_CFG_DUMP_ENABLE				1	//音频配置跟踪使能
@@ -66,12 +67,21 @@ void audio_config_trace_setup(int interval)
 #define DAC_POP_UP_NOISE_DEBUG_CFG		DAC_POP_UP_NOISE_DEBUG_DISABLE
 static void dac_power_on_pop_debug(void *priv)
 {
-
+    static u8 dac_en;
+    dac_en ^= 1;
+    if (dac_en) {
+        audio_dac_try_power_on(&dac_hdl);
+    } else {
+        audio_dac_stop(&dac_hdl);
+        audio_dac_close(&dac_hdl);
+    }
 }
 
 static void dac_mute_pop_debug(void *priv)
 {
-
+    static u8 mute_en = 0;
+    mute_en ^= 1;
+    audio_dac_ch_mute(&dac_hdl, 0b11, mute_en);
 }
 
 void audio_dac_pop_up_noise_debug(void)

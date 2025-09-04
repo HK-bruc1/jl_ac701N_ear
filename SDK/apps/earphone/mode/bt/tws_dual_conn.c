@@ -18,6 +18,7 @@
 #include "esco_player.h"
 #include "app_testbox.h"
 #include "update.h"
+#include "btstack_rcsp_user.h"
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
@@ -1225,6 +1226,13 @@ bool tws_host_role_switch(int remote_info, int local_info)
         //tws超时断开同时与手机也超时断开，再次tws连接上后，还需要继续回连手机，有回连信息端要继续做回主机
         return TRUE;
     }
+#if RCSP_MODE
+    if (bt_rcsp_ble_conn_num()) {
+        //只连ble不连edr的情况下，tws重新连接后有ble连接的做主机
+        y_printf("tws_host_role_switch = 1, %s %d\n", __func__, __LINE__);
+        return TRUE;
+    }
+#endif
     return FALSE;
 
 }

@@ -286,11 +286,6 @@ void anc_mode_switch_lock_clean(void);
 /*获取anc记录的最新的目标ANC模式*/
 u8 anc_new_target_mode_get(void);
 
-#define ANC_DAC_CH_L	0
-#define ANC_DAC_CH_R	1
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch);
-
 /*获取anc模式，ref_mic的增益*/
 u8 anc_mic_gain_get(void);
 

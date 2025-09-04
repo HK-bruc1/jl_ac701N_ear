@@ -10,6 +10,8 @@
 #include "rcsp_cmd_user.h"
 #include "rcsp_task.h"
 
+//#define RCSP_DEBUG_EN //应用层rcsp调试打印开关
+
 void rcsp_init(void);
 void rcsp_exit(void);
 

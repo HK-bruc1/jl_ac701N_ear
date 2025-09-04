@@ -8,6 +8,7 @@
 #include "os/os_api.h"
 #include "system/init.h"
 #include "app_config.h"
+#include "audio_dac.h"
 
 #if TCFG_KEY_TONE_NODE_ENABLE
 
@@ -40,6 +41,7 @@ static void key_tone_player_callback(void *_player_id, int event)
         }
         g_player = NULL;
         jlstream_release(player->stream);
+        DAC_NOISEGATE_ON();
         free(player);
         break;
     }
@@ -62,6 +64,7 @@ static int key_tone_player_start(struct tone_player *player)
     jlstream_set_scene(player->stream, player->scene);
     jlstream_set_dec_file(player->stream, player, &tone_file_ops);
 
+    DAC_NOISEGATE_OFF();
     err = jlstream_start(player->stream);
     if (err) {
         goto __exit;
@@ -73,6 +76,7 @@ static int key_tone_player_start(struct tone_player *player)
 __exit:
     if (player->stream) {
         jlstream_release(player->stream);
+        DAC_NOISEGATE_ON();
     }
     if (player->file) {
         resfile_close(player->file);

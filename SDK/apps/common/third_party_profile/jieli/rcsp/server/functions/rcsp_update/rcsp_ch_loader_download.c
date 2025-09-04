@@ -23,6 +23,7 @@
 #include "rcsp_config.h"
 #include "le_connected.h"
 #include "btstack_rcsp_user.h"
+#include "app_ble_spp_api.h"
 
 #include <string.h>
 
@@ -513,8 +514,39 @@ static void rcsp_update_state_cbk(int type, u32 state, void *priv)
     }
 }
 
+#if TCFG_BT_SUPPORT_SPP
+static void *bt_dg_rcsp_spp_hdl = NULL;
+
+static void spp_rcsp_recieve_filter_callback(void *hdl, void *remote_addr, u8 *buf, u16 len)
+{
+    if (remote_addr) {
+        u8 custem_buf[] = {0x4A, 0x4C, 0xFF, 0xED};
+        if (0 == memcmp(buf, custem_buf, sizeof(custem_buf))) {
+            rcsp_update_ancs_disconn_handler();
+            rcsp_clear_all_buffer();
+        }
+    }
+}
+
+static void rcsp_spp_update_init(void)
+{
+    if (NULL == bt_dg_rcsp_spp_hdl) {
+        bt_dg_rcsp_spp_hdl = app_spp_hdl_alloc(0x0);
+        if (NULL == bt_dg_rcsp_spp_hdl) {
+            ASSERT(0, "err: %s alloc fail\n", __func__);
+            return;
+        }
+        app_spp_recieve_callback_register(bt_dg_rcsp_spp_hdl, spp_rcsp_recieve_filter_callback);
+    }
+}
+#endif
+
 void rcsp_update_loader_download_init(int update_type, void (*result_cbk)(void *priv, u8 type, u8 cmd))
 {
+#if TCFG_BT_SUPPORT_SPP
+    rcsp_spp_update_init();
+#endif
+
     update_mode_info_t info = {
         .type = update_type,
         .state_cbk = rcsp_update_state_cbk,

@@ -950,7 +950,6 @@ void anc_init(void)
     anc_hdl->param.howling_detect_toggle = ANC_HOWLING_DETECT_EN;
 
     anc_hdl->param.gains.version = ANC_GAINS_VERSION;
-    anc_hdl->param.gains.dac_gain = 3;
     anc_hdl->param.gains.l_ffmic_gain = 4;
     anc_hdl->param.gains.l_fbmic_gain = 4;
     anc_hdl->param.gains.r_ffmic_gain = 4;
@@ -1860,16 +1859,6 @@ u8 anc_new_target_mode_get(void)
     return 0;
 }
 
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch)
-{
-    u8 gain = 0;
-    if (anc_hdl) {
-        gain = anc_hdl->param.gains.dac_gain;
-    }
-    return gain;
-}
-
 /*获取anc模式，ff_mic的增益*/
 u8 audio_anc_ffmic_gain_get(void)
 {
@@ -2098,7 +2087,6 @@ int anc_cfg_online_deal(u8 cmd, anc_gain_t *cfg)
     anc_param_fill(cmd, cfg);
     if (cmd == ANC_CFG_WRITE) {
         /*实时更新ANC配置*/
-        audio_anc_dac_gain(gains->dac_gain, gains->dac_gain);
         audio_anc_mic_management(&anc_hdl->param);
         audio_anc_mic_gain(anc_hdl->param.mic_param, 0);
         anc_mix_out_audio_drc_thr(gains->audio_drc_thr);

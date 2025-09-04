@@ -548,10 +548,17 @@
 #define TCFG_GSENSOR_ENABLE                       0     //gSensor使能
 #define TCFG_DA230_EN                             0
 #define TCFG_SC7A20_EN                            0
-#define TCFG_STK8321_EN                           0
+#define TCFG_STK832x_EN                           0
 #define TCFG_IRSENSOR_ENABLE                      0
 #define TCFG_JSA1221_ENABLE                       0
 #define TCFG_GSENOR_USER_IIC_TYPE                 0     //0:软件IIC  1:硬件IIC
+
+//*********************************************************************************//
+//                                  hr-sensor配置                                   //
+//*********************************************************************************//
+#define TCFG_HRSENSOR_ENABLE                      0     //hr-sensor使能
+#define TCFG_HX3918_ENABLE                        0
+#define TCFG_HRSENOR_USER_IIC_TYPE                0     //0:软件IIC  1:硬件IIC
 
 //*********************************************************************************//
 //                                  imu-sensor配置                                   //

@@ -33,7 +33,7 @@
 #include "rcsp_translator.h"
 #endif
 
-#if TCFG_USER_TWS_ENABLE
+#if !TCFG_JLSTREAM_EFFICIENT_MODE
 extern const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT;
 #endif
 

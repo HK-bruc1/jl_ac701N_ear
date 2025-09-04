@@ -1,0 +1,1880 @@
+﻿{
+  "list": [{
+    "id": "id_1659318451001_0",
+    "name": "手机蓝牙电话抢占dongle的A2DP策略（断开A2DP方式，和下面断开A2DP方式二选一））",
+    "type": "division",
+    "enable": false
+  }, {
+    "id": "id_1662121847039_153",
+    "name": "设置抢占标记",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "设置音频被抢占标记",
+        "rid": "id_1662121799573_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/来电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/去电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/接通电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/SIRI打开"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/dongle开启mic"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1656932357390_6",
+    "name": "A电话-断开B的A2DP",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "fun": 128,
+        "rid": "id_1655109000469_21"
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/来电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "fun": 128,
+          "rid": "id_1655108582780_15"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/去电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "fun": 128,
+          "rid": "id_1655108582780_15"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/接通电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "fun": 128,
+          "rid": "id_1655108582780_15"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/SIRI打开"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "rid": "id_1655108582780_15",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": ["id_1655177289643_19"],
+    "mutex": []
+  }, {
+    "name": "A挂断-回连B的A2DP链路",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "回连A2DP链路",
+        "fun": 128,
+        "rid": "id_1655112289351_2"
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/挂断电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已断开",
+          "fun": 128,
+          "rid": "id_1655108610166_16"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/SIRI关闭"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已断开",
+          "rid": "id_1655108610166_16",
+          "fun": 128
+        }]
+      ]
+    }],
+    "id": "id_1655177289643_19",
+    "depend": ["id_1656932357390_6"],
+    "mutex": []
+  }, {
+    "name": "A挂断-恢复B播放-1",
+    "tasks": [
+      [{
+        "type": "定时器"
+      }, {
+        "type": "创建",
+        "fun": 3
+      }, {
+        "type": "a2dp_resume_timer",
+        "rid": "id_1653377044722_5",
+        "show": "show",
+        "arg": true,
+        "datatype": ["string", "16"],
+        "event": ["action", "event", "timer", "show"]
+      }, {
+        "type": 2500,
+        "rid": "id_1675824211287_148",
+        "show": "show",
+        "arg": true,
+        "datatype": ["32", "1"],
+        "event": ["show"]
+      }, {
+        "type": 1,
+        "rid": "id_1675824211287_150",
+        "show": "show",
+        "arg": true,
+        "datatype": ["1", "16"],
+        "event": ["show"]
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP连接成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频被抢占",
+          "fun": 128,
+          "rid": "id_1655108504290_13"
+        }]
+      ]
+    }],
+    "id": "id_1655177289643_17",
+    "mutex": [],
+    "depend": ["id_1658975754474_2", "id_1658975846163_3", "id_1658977105982_5"]
+  }, {
+    "id": "id_1658975754474_2",
+    "name": "A挂断-恢复B播放-2",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "清除音频被抢占标记",
+        "rid": "id_1658977065407_0",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "播放媒体音频",
+        "rid": "id_1655108964779_20",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "定时器"
+        }, {
+          "type": "",
+          "event": "event timer",
+          "fun": 2
+        }, {
+          "type": "a2dp_resume_timer",
+          "fun": 129,
+          "datatype": ["string", "16"],
+          "rid": "id_1653377044722_5"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "非通话状态"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "连接待机",
+          "fun": 128,
+          "rid": "id_1655108486783_12"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频被抢占",
+          "fun": 128,
+          "rid": "id_1655108504290_13"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "非优先设备dongle",
+          "rid": "id_1668145385188_1",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": ["id_1655177289643_17", "id_1658975846163_3", "id_1658977105982_5"],
+    "mutex": []
+  }, {
+    "id": "id_1658975846163_3",
+    "name": "A挂断-恢复B播放-3",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "清除音频被抢占标记",
+        "rid": "id_1658977065407_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "定时器"
+        }, {
+          "type": "",
+          "event": "event timer",
+          "fun": 2
+        }, {
+          "type": "a2dp_resume_timer",
+          "fun": 129,
+          "datatype": ["string", "16"],
+          "rid": "id_1653377044722_5"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "非通话状态"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "连接待机",
+          "fun": 128,
+          "rid": "id_1655108486783_12"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频被抢占",
+          "fun": 128,
+          "rid": "id_1655108504290_13"
+        }]
+      ]
+    }],
+    "depend": ["id_1655177289643_17", "id_1658975754474_2", "id_1658977105982_5"],
+    "mutex": []
+  }, {
+    "id": "id_1658977105982_5",
+    "name": "A挂断-恢复B播放-4",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "清除音频被抢占标记",
+        "fun": 128,
+        "rid": "id_1658977065407_0"
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/连接成功"
+        }]
+      ],
+      "conditions": []
+    }],
+    "depend": ["id_1655177289643_17", "id_1658975754474_2", "id_1658975846163_3"],
+    "mutex": []
+  }, {
+    "id": "id_1659928110740_0",
+    "name": "A检测回连A2DP",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "回连A2DP链路",
+        "fun": 128,
+        "rid": "id_1655112289351_2"
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP断开成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "非通话状态"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/挂断电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "非通话状态"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接1个设备"
+        }]
+      ]
+    }],
+    "depend": ["id_1656932357390_6"],
+    "mutex": []
+  }, {
+    "id": "id_1660893222908_152",
+    "name": "A连接-B通话-断开A的A2DP ",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "rid": "id_1655109000469_21",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP连接成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "响铃或通话",
+          "rid": "id_1655112162256_1",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1688028985662_1",
+    "name": "手机蓝牙通话抢占dongle的A2DP策略（非断开A2DP方式，和上面断开A2DP方式二选一）",
+    "type": "division",
+    "enable": true
+  }, {
+    "id": "id_1688030494258_3",
+    "name": "手机电话-暂停dongle的A2DP播放",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "媒体音频后台静音",
+        "rid": "id_1655108850325_18",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "停止媒体音频解码",
+        "rid": "id_1688460945909_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/来电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/去电"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/接通电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/SIRI打开"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/通话esco创建成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "播放媒体音频"
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1688031160664_7",
+    "name": "手机挂断电话-恢复dongle的A2DP播放",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "媒体音频退出后台静音",
+        "rid": "id_1685361266439_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/挂断电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频后台静音",
+          "rid": "id_1655111486850_0",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/通话esco断开"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频后台静音",
+          "rid": "id_1655111486850_0",
+          "fun": 128
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1688031001714_6",
+    "name": "dongle播放A2DP-手机通话中-暂停dongle播放",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "媒体音频后台静音",
+        "rid": "id_1655108850325_18",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "停止媒体音频解码",
+        "rid": "id_1688460945909_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/播放媒体音频"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "响铃或通话",
+          "rid": "id_1655112162256_1",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设置A/AVCTP_START"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "响铃或通话",
+          "rid": "id_1655112162256_1",
+          "fun": 128
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1688030797530_5",
+    "name": "手机电话挂断-恢复手机的A2DP播放",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "媒体音频退出后台静音",
+        "rid": "id_1685361266439_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/挂断电话"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频后台静音",
+          "rid": "id_1655111486850_0",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/通话esco断开"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "媒体音频后台静音",
+          "rid": "id_1655111486850_0",
+          "fun": 128
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1659318514368_1",
+    "name": "手机蓝牙和dongle连接时抢占策略-断开a2dp方式（和下面非断开a2dp 二选一）",
+    "type": "division",
+    "enable": false
+  }, {
+    "id": "id_1666832626249_153",
+    "name": "dongle连接-断开手机的A2DP",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "rid": "id_1655109000469_21",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP连接成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "rid": "id_1655108582780_15",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1666832780122_154",
+    "name": "手机连接时dongle存在-断开手机的A2DP",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "rid": "id_1655109000469_21",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP连接成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "rid": "id_1655108582780_15",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }]
+      ]
+    }],
+    "mutex": [],
+    "depend": []
+  }, {
+    "id": "id_1666833130932_156",
+    "name": "dongle断开A2DP-恢复手机的A2DP",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "回连A2DP链路",
+        "rid": "id_1655112289351_2",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP断开成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已断开",
+          "rid": "id_1655108610166_16",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "非优先设备dongle",
+          "rid": "id_1668145385188_1",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1688474274568_1",
+    "name": "A2DP播放",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "播放媒体音频",
+        "rid": "id_1655108964779_20",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接1个设备"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1684312952516_1",
+    "name": "手机蓝牙和dongle播歌抢占策略-非断开a2dp,能量检测抢占方式（和上面断开a2dp 二选一）",
+    "type": "division",
+    "enable": true
+  }, {
+    "id": "id_1684312752267_0",
+    "name": "A2DP抢占-手机抢占dongle-抢走",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "音频不抢占，继续能量检测",
+        "rid": "id_1684737334057_0",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "记录dongle音频等待暂停标志",
+        "rid": "id_1685602257606_0",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "播放媒体音频",
+        "rid": "id_1655108964779_20",
+        "fun": 128
+      }],
+      [{
+        "type": "定时器"
+      }, {
+        "type": "创建",
+        "fun": 3
+      }, {
+        "type": "a2dp_pause_timer",
+        "rid": "id_1653377044722_5",
+        "show": "show",
+        "arg": true,
+        "datatype": ["string", "16"],
+        "event": ["action", "event", "timer", "show"]
+      }, {
+        "type": 1500,
+        "rid": "id_1675824211287_148",
+        "show": "show",
+        "arg": true,
+        "datatype": ["32", "1"],
+        "event": ["show"]
+      }, {
+        "type": 1,
+        "rid": "id_1675824211287_150",
+        "show": "show",
+        "arg": true,
+        "datatype": ["1", "16"],
+        "event": ["show"]
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "非优先设备dongle",
+          "rid": "id_1668145385188_1",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1684501245197_23",
+    "name": "A2DP抢占-dongle抢占手机-不抢走",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "音频不抢占，继续能量检测",
+        "rid": "id_1684737334057_0",
+        "fun": 128
+      }]
+    ],
+    "enable": false,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": ["id_1685451634618_5"]
+  }, {
+    "id": "id_1685451634618_5",
+    "name": "A2DP抢占-dongle抢占手机-抢走1",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "暂停媒体音频",
+        "rid": "id_1655108909667_19",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "播放媒体音频",
+        "rid": "id_1655108964779_20",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停标志已清除",
+          "rid": "id_1685602312301_2",
+          "fun": 128
+        }]
+      ]
+    }],
+    "mutex": ["id_1684501245197_23"],
+    "depend": []
+  }, {
+    "id": "id_1685603423317_0",
+    "name": "A2DP抢占-dongle抢占手机-dongle状态还没暂停不抢走",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "音频不抢占，继续能量检测",
+        "rid": "id_1684737334057_0",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "播放媒体音频",
+          "rid": "id_1655108457928_11",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停中",
+          "rid": "id_1685602763844_3",
+          "fun": 128
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1685443544789_1",
+    "name": "A2DP抢占-手机抢占dongle-暂停dongle播放1",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "暂停媒体音频",
+        "rid": "id_1655108909667_19",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "清除dongle音频等待暂停标志",
+        "rid": "id_1685602291356_1",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "定时器"
+        }, {
+          "type": "",
+          "event": "event timer",
+          "fun": 2
+        }, {
+          "type": "a2dp_pause_timer",
+          "rid": "id_1653377044722_5",
+          "fun": 129,
+          "datatype": ["string", "16"]
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停中",
+          "rid": "id_1685602763844_3",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP断开成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接1个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停中",
+          "rid": "id_1685602763844_3",
+          "fun": 128
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP断开成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停中",
+          "rid": "id_1685602763844_3",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1685451265571_4",
+    "name": "A2DP抢占-手机抢占dongle-暂停dongle播放2",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "暂停媒体音频",
+        "rid": "id_1655108909667_19",
+        "fun": 128
+      }],
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "清除dongle音频等待暂停标志",
+        "rid": "id_1685602291356_1",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "定时器"
+        }, {
+          "type": "",
+          "event": "event timer",
+          "fun": 2
+        }, {
+          "type": "a2dp_pause_timer",
+          "rid": "id_1653377044722_5",
+          "fun": 129,
+          "datatype": ["string", "16"]
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle音频等待暂停中",
+          "rid": "id_1685602763844_3",
+          "fun": 128
+        }]
+      ]
+    }]
+  }, {
+    "id": "id_1684313064036_2",
+    "name": "A2DP抢占-case3",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "播放媒体音频",
+        "rid": "id_1655108964779_20",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接1个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "未播放媒体音频"
+        }]
+      ]
+    }, {
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/媒体音频非静音"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "已连接2个设备"
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "未播放媒体音频"
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1684327522298_8",
+    "name": "dongle开启mic-断开手机a2dp连连",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "rid": "id_1655109000469_21",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/dongle开启mic"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "rid": "id_1655108582780_15",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1684327611463_9",
+    "name": "dongle关闭mic-回连手机a2dp链路",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备B",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "回连A2DP链路",
+        "rid": "id_1655112289351_2",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/dongle关闭mic"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已断开",
+          "rid": "id_1655108610166_16",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }, {
+    "id": "id_1684328132648_11",
+    "name": "手机连接时-dongle mic已开启-断开手机的a2dp",
+    "tasks": [
+      [{
+        "type": "蓝牙"
+      }, {
+        "type": "设备A",
+        "event": "btAction",
+        "fun": 2
+      }, {
+        "type": "断开A2DP链路",
+        "rid": "id_1655109000469_21",
+        "fun": 128
+      }]
+    ],
+    "enable": true,
+    "eventsAndConditions": [{
+      "event": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A/A2DP连接成功"
+        }]
+      ],
+      "conditions": [
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备A",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "A2DP链路已连接",
+          "rid": "id_1655108582780_15",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "dongle设备已开启mic",
+          "rid": "id_1684326472713_0",
+          "fun": 128
+        }],
+        [{
+          "type": "蓝牙"
+        }, {
+          "type": "设备B",
+          "event": "btStatus",
+          "fun": 2
+        }, {
+          "type": "是优先设备dongle",
+          "rid": "id_1668145383822_0",
+          "fun": 128
+        }]
+      ]
+    }],
+    "depend": [],
+    "mutex": []
+  }]
+}

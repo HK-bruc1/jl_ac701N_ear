@@ -19,6 +19,7 @@
 #include "rcsp_bt_manage.h"
 #include "rcsp_config.h"
 #include "app_main.h"
+#include "rcsp.h"
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
@@ -27,10 +28,10 @@ static int g_rcsp_ble_conn_num = 0;
 static int g_rcsp_adt_conn_num = 0;
 static int g_rcsp_spp_conn_num = 0;
 
-#if 0
+#ifdef RCSP_DEBUG_EN
 #define rcsp_lib_puts(x)				puts(x)
 #define rcsp_lib_putchar(x)				putchar(x)
-#define rcsp_lib_printf					printf
+#define rcsp_lib_printf					y_printf
 #define rcsp_lib_printf_buf(x, y)		put_buf(x, y)
 #else
 #define rcsp_lib_puts(...)

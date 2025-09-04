@@ -215,4 +215,11 @@ void pcm_single_to_double_diff(u32 points, void *inbuf, void *outbuf);
 
 void pcm_single_to_double_diff_32bit(u32 points, void *inbuf, void *outbuf);
 
+/*
+ *立体声左右声道数据互换
+ *len:总的输入长度，单位byte
+ *bit_width: 0:16bit 1:32bit
+ * */
+void channel_swap_run(void *ptr, int len, int bit_width);
+
 #endif/*_AUDIO_SPLICING_H_*/

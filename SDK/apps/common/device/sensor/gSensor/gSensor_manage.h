@@ -32,7 +32,7 @@ typedef struct {
     u8   logo[20];
     u8(*gravity_sensor_init)(void);
     char (*gravity_sensor_check)(void);
-    void (*gravity_sensor_ctl)(u8 cmd, void *arg);
+    int (*gravity_sensor_ctl)(u8 cmd, void *arg);
 } G_SENSOR_INTERFACE;
 
 

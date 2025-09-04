@@ -55,3 +55,30 @@ void dac_power_off(void)
 #endif
 }
 
+/*
+ * DAC开关状态回调，需要的时候，"#if 0" 改成 "#if 1"
+ */
+#if 0
+void audio_dac_power_state(u8 state)
+{
+    switch (state) {
+    case DAC_ANALOG_OPEN_PREPARE:
+        //DAC打开前，即准备打开
+        printf("DAC power_on start\n");
+        break;
+    case DAC_ANALOG_OPEN_FINISH:
+        //DAC打开后，即打开完成
+        printf("DAC power_on end\n");
+        break;
+    case DAC_ANALOG_CLOSE_PREPARE:
+        //DAC关闭前，即准备关闭
+        printf("DAC power_off start\n");
+        break;
+    case DAC_ANALOG_CLOSE_FINISH:
+        //DAC关闭后，即关闭完成
+        printf("DAC power_off end\n");
+        break;
+    }
+}
+#endif
+

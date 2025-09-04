@@ -3,6 +3,7 @@
 
 #include "generic/typedef.h"
 #include "cvp_common.h"
+#include "lib_h/jlsp_v3_ns.h"
 
 //BIT[0:3]
 #define CVP_ALGO_1MIC   				BIT(0)
@@ -105,53 +106,9 @@ struct cvp_attr {
     u32 mic_sr;				/*麦克风数据采样率*/
     u32 ref_sr;				/*参考数据采样率*/
     u32 algo_type;
-    /*AEC*/
-    int aec_process_maxfrequency;	//default:8000,range[3000:8000]
-    int aec_process_minfrequency;	//default:0,range[0:1000]
-    /*NLP*/
-    int nlp_process_maxfrequency;	//default:8000,range[3000:8000]
-    int nlp_process_minfrequency;	//default:0,range[0:1000]
-    float overdrive;				//default:1,range[0:30]
-    /*ENC*/
-    int enc_process_maxfreq;		//default:8000,range[3000:8000]
-    int enc_process_minfreq;		//default:0,range[0:1000]
-    int sir_maxfreq;				//default:3000,range[1000:8000]
-    float mic_distance;				//default:0.015,range[0.035:0.015]
-    float target_signal_degradation;//default:1,range[0:1]
-    float enc_aggressfactor;		//default:4.f,range[0:4]
-    float enc_minsuppress;			//default:0.09f,range[0:0.1]
-    // steering vector param.
-    float *steer_vec1;
-    float *steer_vec2;
-    float *ds_steer_vec;
-    /*DNS*/
-    float aggressfactor;			//default:1.25,range[1:2]
-    float minsuppress;				//default:0.04,range[0.01:0.1]
-    /*DRC*/
-    float noisegatethresholdDb; 	//default:-50.f
-    float makeupGain;				//default:14.0f
-    float kneethresholdDb;  		//default:-6.0f
-    /*WN*/
-    float windProbHighTh;
-    float windProbLowTh;
-    float windEngDbTh;
-    /*MFDT Parameters*/
-    float detect_time;           // // 检测时间s，影响状态切换的速度
-    float detect_eng_diff_thr;   // 0~-90 dB 两个mic能量差异持续大于此阈值超过检测时间则会检测为故障
-    float detect_eng_lowerbound; // 0~-90 dB 当处于故障状态时，正常的mic能量大于此阈值才会检测能量差异，避免安静环境下误判切回正常状态
-    int MalfuncDet_MaxFrequency;// 检测信号的最大频率成分
-    int MalfuncDet_MinFrequency;// 检测信号的最小频率成分
-    int OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
     /*流程配置*/
-    float preGainDb;				//流程增益
     float CompenDb;					//流程补偿增益
-    float *WbEqVec;					//宽带EQ
-    float *NbEqVec;					//窄带EQ
-    float *dualPhaseCompenVec;		//双麦相位补偿
-    float *triPhaseCompenVec;		//双麦相位补偿
-    float trifbCompenDb;			//三麦FB增益补偿
-    float *FbTransferFuncOn; 			//fb -> main传递函数(anc on)
-    float *FbTransferFuncOff; 		//fb -> main传递函数(anc off)
+    JLSP_params_v3_cfg cvp_cfg;
     /*data handle*/
     int (*cvp_advanced_options)(void *aec,
                                 void *nlp,
@@ -160,10 +117,10 @@ struct cvp_attr {
                                 void *agc,
                                 void *wn,
                                 void *mfdt);
-    int (*aec_probe)(short *mic0, short *mic1, short *mic2, short *ref, u16 len);
-    int (*aec_post)(s16 *dat, u16 len);
-    int (*aec_update)(u8 EnableBit);
-    int (*output_handle)(s16 *dat, u16 len);
+    int (*cvp_probe)(short *mic0, short *mic1, short *mic2, short *ref, u16 len);
+    int (*cvp_post)(s16 *dat, u16 len);
+    int (*cvp_update)(u8 EnableBit);
+    int (*cvp_output)(s16 *dat, u16 len);
 };
 
 int cvp_init(struct cvp_attr *attr);

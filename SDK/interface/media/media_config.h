@@ -127,13 +127,30 @@ extern const int virtual_surround_hp_run_points;
  *						Audio Codec Configs
  *******************************************************************
  */
+//通用配置
+extern const int CONFIG_DEC_SUPPORT_CHANNELS;
+extern const int CONFIG_DEC_SUPPORT_SAMPLERATE;
+
+//id3 配置
 extern const u8 config_flac_id3_enable;
 extern const u8 config_ape_id3_enable;
 extern const u8 config_m4a_id3_enable;
 extern const u8 config_wav_id3_enable;
 extern const u8 config_wma_id3_enable;
 
-extern const int JLA_V2_CODEC_WITH_FRAME_HEADER ;
+//jla_v2 编解码配置
+extern const unsigned short JLA_V2_FRAMELEN_MASK;
+extern const int JLA_V2_PLC_EN;
+extern const int JLA_V2_PLC_FADE_OUT_START_POINT;
+extern const int JLA_V2_PLC_FADE_OUT_POINTS;
+extern const int JLA_V2_PLC_FADE_IN_POINTS;
+extern const int JLA_V2_CODEC_WITH_FRAME_HEADER;
+
+//bt_aac 解码配置
+extern const int AAC_DEC_MP4A_LATM_ANALYSIS;
+extern const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT;
+extern const char config_bt_aac_dec_pcm24_enable;
+extern const char config_bt_aac_dec_fifo_precision;
 
 
 

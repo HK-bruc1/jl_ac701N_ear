@@ -222,9 +222,12 @@
                 "${workspaceFolder}/audio/anc",
                 "${workspaceFolder}/audio/cpu/br28/audio_dai",
                 "${workspaceFolder}/audio/smart_voice",
+                "${workspaceFolder}/audio/cpu/br28/audio_demo",
+                "${workspaceFolder}/audio/cpu/br28/audio_vad",
                 "${workspaceFolder}/audio/effect/spatial_effect",
                 "${workspaceFolder}/audio/effect/somatosensory",
                 "${workspaceFolder}/interface/media/aispeech/enc",
+                "${workspaceFolder}/apps/common/device/sensor/hr_sensor",
                 "${workspaceFolder}/interface/system/math/cpu/br28",
                 "C:/JL/pi32/pi32v2-include"
             ],

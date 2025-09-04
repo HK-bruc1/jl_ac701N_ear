@@ -14,6 +14,7 @@ c_SRC_FILES += \
       audio/framework/nodes/plc_node.c \
       audio/framework/nodes/volume_node.c \
 
+
 #if TCFG_NS_NODE_ENABLE || TCFG_NS_NODE_LITE_ENABLE
 c_SRC_FILES += \
       audio/framework/nodes/ns_node.c
@@ -243,6 +244,7 @@ c_SRC_FILES += \
 	  audio/common/demo/codec_demo/audio_msbc_sw_codec_demo.c \
 	  audio/common/demo/codec_demo/audio_sbc_codec_demo.c \
 	  audio/common/demo/audio_alink_demo.c \
+	  audio/common/demo/audio_vad_demo.c \
 	  audio/common/demo/codec_demo/audio_speex_codec_demo.c \
 	  audio/common/demo/codec_demo/audio_opus_codec_demo.c \
 

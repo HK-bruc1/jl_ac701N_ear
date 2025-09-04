@@ -532,6 +532,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         }
 #endif
 
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
         if (dis_reason == ERROR_CODE_CONNECTION_TIMEOUT) {
             //测试播歌超距的时候，有一种状态是CIG超时了，ACL还没断开，
             //这个时候靠近手机没有重新建立CIG的。---主动断开等手机重连
@@ -539,6 +540,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             //le_audio_disconn_le_audio_link();
             ll_hci_disconnect(acl_handle_for_disconnect_cis, 0x13);
         }
+#endif
         //释放互斥量
         app_connected_mutex_post(&mutex, __LINE__);
 

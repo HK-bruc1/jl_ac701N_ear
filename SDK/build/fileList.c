@@ -13,6 +13,7 @@ objs += \
       $(ROOT)/audio/framework/nodes/plc_node.o \
       $(ROOT)/audio/framework/nodes/volume_node.o \
 
+
 objs += \
       $(ROOT)/audio/framework/nodes/ns_node.o
 
@@ -161,6 +162,7 @@ objs += \
 	  $(ROOT)/audio/common/demo/codec_demo/audio_msbc_sw_codec_demo.o \
 	  $(ROOT)/audio/common/demo/codec_demo/audio_sbc_codec_demo.o \
 	  $(ROOT)/audio/common/demo/audio_alink_demo.o \
+	  $(ROOT)/audio/common/demo/audio_vad_demo.o \
 	  $(ROOT)/audio/common/demo/codec_demo/audio_speex_codec_demo.o \
 	  $(ROOT)/audio/common/demo/codec_demo/audio_opus_codec_demo.o \
 
