@@ -777,7 +777,7 @@ const int audio_effect_nsgate_pro_enable = 0;
 //***********************
 const  int RS_FAST_MODE_QUALITY = 2;	//软件变采样 滤波阶数配置，范围2到8， 8代表16阶的变采样模式 ,速度跟它的大小呈正相关
 
-const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 0; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
+const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 1; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
 /*
  *******************************************************************
  *						Audio Smart Voice Config

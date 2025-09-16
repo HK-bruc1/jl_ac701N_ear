@@ -195,7 +195,7 @@ enum {
     APP_MSG_EARTCH_OUT_EAR,                     //耳机摘下
 
     APP_MSG_KEY_TONE,                           //播放按键音
-    APP_MSG_KEY_POWER_OFF,
+    APP_MSG_KEY_POWER_OFF,                      //按键关机
     APP_MSG_KEY_POWER_OFF_HOLD,
     APP_MSG_KEY_POWER_OFF_RELEASE,
     APP_MSG_KEY_POWER_OFF_INSTANTLY,

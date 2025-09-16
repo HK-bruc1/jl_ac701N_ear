@@ -120,12 +120,12 @@ struct cvp_hdl *cvp_v3 = NULL;
 
 static u8 global_output_way = 0;
 
-void audio_cvp_set_output_way(u8 en)
+void audio_cvp_v3_set_output_way(u8 en)
 {
     global_output_way = en;
 }
 
-int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg)
+int audio_cvp_v3_probe_param_update(struct audio_cvp_pre_param_t *cfg)
 {
     if (cvp_v3) {
         cvp_v3->pre = *cfg;
@@ -136,7 +136,7 @@ int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg)
 /*
 *********************************************************************
 *                  Audio CVP Process_Probe
-* Description: AEC模块数据前处理回调
+* Description: CVP模块数据前处理回调
 * Arguments  : data 数据地址
 *			   len	数据长度
 * Return	 : 0 成功 其他 失败
@@ -144,7 +144,7 @@ int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg)
 *********************************************************************
 */
 static LOUDNESS_M_STRUCT mic_loudness;
-static int audio_cvp_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_mic, short *ref, u16 len)
+static int audio_cvp_v3_probe(short *talk_mic, short *ff_mic, short *fb_mic, short *ref, u16 len)
 {
 #if TCFG_AUDIO_MIC_ARRAY_TRIM_ENABLE
     //表示使用主副麦差值计算，且仅减小增益
@@ -155,11 +155,11 @@ static int audio_cvp_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_
                 GainProcess_16Bit(talk_mic, talk_mic, mic0_gain, 1, 1, 1, len >> 1);
             } else {
                 float mic1_gain = app_var.audio_mic_array_diff_cmp;
-                GainProcess_16Bit(talk_ref_mic, talk_ref_mic, mic1_gain, 1, 1, 1, len >> 1);
+                GainProcess_16Bit(ff_mic, ff_mic, mic1_gain, 1, 1, 1, len >> 1);
             }
         } else {       //表示使用每个MIC与金机曲线的差值
             GainProcess_16Bit(talk_mic, talk_mic, app_var.audio_mic_cmp.talk, 1, 1, 1, len >> 1);
-            GainProcess_16Bit(talk_ref_mic, talk_ref_mic, app_var.audio_mic_cmp.ff, 1, 1, 1, len >> 1);
+            GainProcess_16Bit(ff_mic, ff_mic, app_var.audio_mic_cmp.ff, 1, 1, 1, len >> 1);
         }
     }
 #endif
@@ -180,11 +180,11 @@ static int audio_cvp_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_
             memset(talk_mic, 0, len);
         } else if (cvp_v3->algo_type & CVP_TYPE_2MIC) {
             memset(talk_mic, 0, len);
-            memset(talk_ref_mic, 0, len);
+            memset(ff_mic, 0, len);
         } else if (cvp_v3->algo_type & CVP_ALGO_3MIC) {
             memset(talk_mic, 0, len);
-            memset(talk_ref_mic, 0, len);
-            memset(talk_fb_mic, 0, len);
+            memset(ff_mic, 0, len);
+            memset(fb_mic, 0, len);
         }
     }
     return 0;
@@ -200,7 +200,7 @@ static int audio_cvp_probe(short *talk_mic, short *talk_ref_mic, short *talk_fb_
 * Note(s)    : 在数据处理完毕，可以增加自定义后处理
 *********************************************************************
 */
-static int audio_cvp_post(s16 *data, u16 len)
+static int audio_cvp_v3_post(s16 *data, u16 len)
 {
     //后处理获取风噪信息
 #if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
@@ -259,21 +259,17 @@ void wind_band_trace(void *priv)
 }
 */
 
-int audio_aec_sync_buffer_set(s16 *data, int len)
-{
-    return cvp_v3_node_output_handle(data, len);
-}
 /*
  *********************************************************************
  *                  Audio CVP Output Handle
- * Description: AEC模块数据输出回调
+ * Description: CVP模块数据输出回调
  * Arguments  : data 输出数据地址
  *			   len	输出数据长度
  * Return	 : 数据输出消耗长度
  * Note(s)    : None.
  *********************************************************************
  */
-static int audio_cvp_output(s16 *data, u16 len)
+static int audio_cvp_v3_output(s16 *data, u16 len)
 {
 #if (((defined TCFG_KWS_VOICE_RECOGNITION_ENABLE) && TCFG_KWS_VOICE_RECOGNITION_ENABLE) || \
      ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE))
@@ -398,7 +394,7 @@ float *cvp_coeff_file_parse(enum cvp_coeff_type type)
 *********************************************************************
 */
 __CVP_BANK_CODE
-static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
+static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
 {
     JLSP_params_v3_cfg *cvp_cfg = &p->cvp_cfg;
     cvp_cfg->mic_cfg        	= mic_init_cfg;
@@ -431,25 +427,47 @@ static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
     if (ret == sizeof(CVP_CONFIG)) {
         log_info("CVP_V3 read cfg ok\n");
         p->EnableBit = cfg.enable_module;
+
+        cvp_cfg->single_cfg.enableBit 		= cfg.enable_module;
+        cvp_cfg->dual_cfg.enableBit 		= cfg.enable_module;
+        cvp_cfg->tri_cfg.enableBit 			= cfg.enable_module;
+        cvp_cfg->single_aecnlp_cfg.enableBit = cfg.enable_module;
+
         p->ul_eq_en = cfg.ul_eq_en;
         p->output_sel = cfg.output_sel;
         p->adc_ref_en = cfg.adc_ref_en;
+
         //aecnlp流程无流程补偿
         if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
-            p->CompenDb = cfg.CompenDb;
+            cvp_cfg->single_cfg.singleCompenDb = cfg.CompenDb;
+            cvp_cfg->dual_cfg.dualCompenDb     = cfg.CompenDb;
+            cvp_cfg->tri_cfg.triCompenDb       = cfg.CompenDb;
         }
         // aec
         cvp_cfg->aec1_cfg.aecProcessMaxFrequency = cfg.aec_process_maxfrequency;
         cvp_cfg->aec1_cfg.aecProcessMinFrequency = cfg.aec_process_minfrequency;
-        cvp_cfg->aec2_cfg.aecProcessMaxFrequency = cfg.aec_process_maxfrequency;
-        cvp_cfg->aec2_cfg.aecProcessMinFrequency = cfg.aec_process_minfrequency;
+
+        if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
+            cvp_cfg->aec2_cfg.aecProcessMaxFrequency = cfg.aec_process_maxfrequency;
+            cvp_cfg->aec2_cfg.aecProcessMinFrequency = cfg.aec_process_minfrequency;
+            cvp_cfg->aec3_cfg.aecProcessMaxFrequency = cfg.aec_process_maxfrequency;
+            cvp_cfg->aec3_cfg.aecProcessMinFrequency = cfg.aec_process_minfrequency;
+        }
+
         //nlp
         cvp_cfg->nlp1_cfg.nlpProcessMaxFrequency = cfg.nlp_process_maxfrequency;
         cvp_cfg->nlp1_cfg.nlpProcessMinFrequency = cfg.nlp_process_minfrequency;
         cvp_cfg->nlp1_cfg.overDrive = cfg.overdrive;
-        cvp_cfg->nlp2_cfg.nlpProcessMaxFrequency = cfg.nlp_process_maxfrequency;
-        cvp_cfg->nlp2_cfg.nlpProcessMinFrequency = cfg.nlp_process_minfrequency;
-        cvp_cfg->nlp2_cfg.overDrive = cfg.overdrive;
+
+        if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
+            cvp_cfg->nlp2_cfg.nlpProcessMaxFrequency = cfg.nlp_process_maxfrequency;
+            cvp_cfg->nlp2_cfg.nlpProcessMinFrequency = cfg.nlp_process_minfrequency;
+            cvp_cfg->nlp2_cfg.overDrive = cfg.overdrive;
+            cvp_cfg->nlp3_cfg.nlpProcessMaxFrequency = cfg.nlp_process_maxfrequency;
+            cvp_cfg->nlp3_cfg.nlpProcessMinFrequency = cfg.nlp_process_minfrequency;
+            cvp_cfg->nlp3_cfg.overDrive = cfg.overdrive;
+        }
+
         if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
             //dns
             cvp_cfg->single_cfg.aggressFactor = cfg.aggressfactor;
@@ -471,8 +489,8 @@ static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
             cvp_cfg->bf_cfg.micDistance = cfg.mic_distance;
             cvp_cfg->bf_cfg.sirMaxFreq = cfg.sir_maxfreq;
             cvp_cfg->bf_cfg.targetSignalDegradation = cfg.target_signal_degradation;
-            cvp_cfg->bf_cfg.aggressfactor = cfg.enc_aggressfactor;
-            cvp_cfg->bf_cfg.minsuppress = cfg.enc_minsuppress;
+            cvp_cfg->bf_cfg.aggressFactor = cfg.enc_aggressfactor;
+            cvp_cfg->bf_cfg.minSuppress = cfg.enc_minsuppress;
         }
         //双麦三麦有wnc mfdt
         if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
@@ -488,21 +506,19 @@ static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
             cvp_cfg->micSel_cfg.detectEngLowerBound = cfg.detect_eng_lowerbound; // 0~-90 dB start detect when mic energy lower than this
             cvp_cfg->micSel_cfg.detMaxFrequency = cfg.MalfuncDet_MaxFrequency;  //检测频率上限
             cvp_cfg->micSel_cfg.detMinFrequency = cfg.MalfuncDet_MinFrequency;   //检测频率下限
-            cvp_cfg->micSel_cfg.OnlyDetect = cfg.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+            cvp_cfg->micSel_cfg.onlyDetect = cfg.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
         }
 #endif
         //flow
         cvp_cfg->single_cfg.preGainDb = cfg.preGainDb;
         cvp_cfg->dual_cfg.dualPreGainDb = cfg.preGainDb;
         cvp_cfg->tri_cfg.triPreGainDb = cfg.preGainDb;
+        cvp_cfg->single_aecnlp_cfg.preGainDb = cfg.preGainDb;
     } else {
         log_error("CVP-V3 read cfg error,use default param\n");
         p->EnableBit = AEC_EN | NLP_EN; //读取cfg配置文件失败，默认使能AEC和NLP避免选择当前模式时传EnableBit错误
         p->ul_eq_en = 1;
         p->output_sel = DMS_OUTPUT_SEL_DEFAULT;
-        if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
-            p->CompenDb = 0.f;
-        }
     }
 
     if (!(cvp_v3->algo_type & CVP_ALGO_1MIC_AECNLP)) {
@@ -517,8 +533,10 @@ static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
     if (cvp_v3->algo_type & CVP_ALGO_3MIC) {
         cvp_cfg->tri_cfg.triFbTransferFuncOn  = cvp_coeff_file_parse(FB_ANC_ON);
         cvp_cfg->tri_cfg.triFbTransferFuncOff = cvp_coeff_file_parse(FB_ANC_OFF);
-        cvp_cfg->nlp1_cfg.preEnhance = 1;
-        cvp_cfg->nlp2_cfg.preEnhance = 1;
+    }
+
+    if ((cvp_v3->algo_type & CVP_ALGO_3MIC) || (cvp_v3->algo_type & CVP_ALGO_2MIC_HYBRID)) {
+        cvp_cfg->nlp2_cfg.preEnhance = 1; 	// 控制双麦hybrid和三麦时fb那一路回声强先做一次
     }
 
     p->algo_type = cvp_v3->algo_type;
@@ -538,16 +556,15 @@ static void audio_cvp_param_init(struct cvp_attr *p, u16 node_uuid)
 *			   enablebit	使能模块(AEC/NLP/AGC/ANS...)
 *			   out_hdl		自定义回调函数，NULL则用默认的回调
 * Return	 : 0 成功 其他 失败
-* Note(s)    : 该接口是对audio_aec_init的扩展，支持自定义使能模块以及
+* Note(s)    : 该接口是对audio_cvp_v3_init的扩展，支持自定义使能模块以及
 *			   数据输出回调函数
 *********************************************************************
 */
 __CVP_BANK_CODE
-int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len))
+int audio_cvp_v3_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len))
 {
     u32 mic_sr = init_param->sample_rate;
     u32 ref_sr = init_param->ref_sr;
-    u8 ref_channel = init_param->ref_channel;
     struct cvp_attr *cvp_param;
     printf("audio_cvp_v3_open\n");
     mem_stats();
@@ -568,9 +585,11 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     cvp_v3->output_fade_in = 1;
     cvp_v3->output_fade_in_gain = 0;
     cvp_param = &cvp_v3->attr;
-    cvp_param->cvp_probe = audio_cvp_probe;
-    cvp_param->cvp_post = audio_cvp_post;
-    cvp_param->cvp_output = audio_cvp_output;
+    cvp_param->cvp_probe = audio_cvp_v3_probe;
+    cvp_param->cvp_post = audio_cvp_v3_post;
+    cvp_param->cvp_output = audio_cvp_v3_output;
+    cvp_param->wn_en = 0;
+    cvp_param->ref_channel = (init_param->ref_channel > 2) ? 1 : init_param->ref_channel;
     if (ref_sr) {
         cvp_param->ref_sr  = ref_sr;
     } else {
@@ -584,12 +603,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
         }
     }
 
-    if (ref_channel != 2) {
-        ref_channel = 1;
-    }
-    cvp_param->ref_channel = ref_channel;
-
-    audio_cvp_param_init(cvp_param, init_param->node_uuid);
+    audio_cvp_v3_param_init(cvp_param, init_param->node_uuid);
 
     if (enablebit >= 0) {
         cvp_param->EnableBit = enablebit;
@@ -606,16 +620,6 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     } else {
         cvp_param->ref_bit_width = DATA_BIT_WIDE_16BIT;
     }
-
-#if TCFG_AEC_SIMPLEX
-    cvp_param->wn_en = 1;
-    cvp_param->EnableBit = AEC_MODE_SIMPLEX;
-    if (sr == 8000) {
-        cvp_param->SimplexTail = cvp_param->SimplexTail / 2;
-    }
-#else
-    cvp_param->wn_en = 0;
-#endif/*TCFG_AEC_SIMPLEX*/
 
     cvp_param->mic_sr = mic_sr;
     if (mic_sr == 16000) { //WideBand宽带
@@ -661,7 +665,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
 #endif
 
-    printf("cvp_v3_open:%x\n", init_param->node_uuid);
+    printf("cvp_v3_open\n");
 #if CVP_TOGGLE
     int ret = cvp_init(cvp_param);
     ASSERT(ret == 0, "cvp_v3 open err %d!!", ret);
@@ -674,8 +678,8 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
 /*
 *********************************************************************
-*                  Audio AEC Init
-* Description: 初始化AEC模块
+*                  Audio CVP Init
+* Description: 初始化CVP模块
 * Arguments  : sample_rate 采样率(8000/16000)
 *              ref_sr 参考采样率
 * Return	 : 0 成功 其他 失败
@@ -683,24 +687,24 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 *********************************************************************
 */
 __CVP_BANK_CODE
-int audio_aec_init(struct audio_aec_init_param_t *init_param)
+int audio_cvp_v3_init(struct audio_aec_init_param_t *init_param)
 {
-    return audio_aec_open(init_param, -1, NULL);
+    return audio_cvp_v3_open(init_param, -1, NULL);
 }
 
 /*
 *********************************************************************
-*                  Audio AEC Reboot
-* Description: AEC模块复位接口
+*                  Audio CVP Reboot
+* Description: CVP模块复位接口
 * Arguments  : reduce 复位/恢复标志
 * Return	 : None.
 * Note(s)    : None.
 *********************************************************************
 */
-void audio_aec_reboot(u8 reduce)
+void audio_cvp_v3_reboot(u8 reduce)
 {
     if (cvp_v3) {
-        printf("audio_aec_dms_reboot:%x,%x,start:%d", cvp_v3->EnableBit, cvp_v3->attr.EnableBit, cvp_v3->start);
+        printf("audio_cvp_v3_reboot:%x,%x,start:%d", cvp_v3->EnableBit, cvp_v3->attr.EnableBit, cvp_v3->start);
         if (cvp_v3->start) {
             if (reduce) {
                 cvp_v3->attr.EnableBit = AEC_EN;
@@ -720,7 +724,7 @@ void audio_aec_reboot(u8 reduce)
 
 /*
 *********************************************************************
-*                  Audio AEC Output Select
+*                  Audio CVP Output Select
 * Description: 输出选择
 * Arguments  : sel = DMS_OUTPUT_SEL_DEFAULT 默认输出算法处理结果
 *				   = DMS_OUTPUT_SEL_MASTER	输出主mic(通话mic)的原始数据
@@ -730,7 +734,7 @@ void audio_aec_reboot(u8 reduce)
 * Note(s)    : 可以通过选择不同的输出，来测试mic的频响和ENC指标
 *********************************************************************
 */
-void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
+void audio_cvp_v3_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 {
     if (cvp_v3)	{
         printf("cvp_output_sel:%d\n", sel);
@@ -745,17 +749,17 @@ void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 
 /*
 *********************************************************************
-*                  Audio AEC Close
-* Description: 关闭AEC模块
+*                  Audio CVP Close
+* Description: 关闭CVP模块
 * Arguments  : None.
 * Return	 : None.
 * Note(s)    : None.
 *********************************************************************
 */
 __CVP_BANK_CODE
-void audio_aec_close(void)
+void audio_cvp_v3_close(void)
 {
-    printf("audio_aec_close:%x", (u32)cvp_v3);
+    printf("audio_cvp_v3_close:%x", (u32)cvp_v3);
     if (cvp_v3) {
         cvp_v3->start = 0;
 
@@ -789,14 +793,14 @@ void audio_aec_close(void)
 
 /*
 *********************************************************************
-*                  Audio AEC Status
-* Description: AEC模块当前状态
+*                  Audio CVP Status
+* Description: CVP模块当前状态
 * Arguments  : None.
 * Return	 : 0 关闭 其他 打开
 * Note(s)    : None.
 *********************************************************************
 */
-u8 audio_aec_status(void)
+u8 audio_cvp_v3_status(void)
 {
     if (cvp_v3) {
         return cvp_v3->start;
@@ -806,15 +810,15 @@ u8 audio_aec_status(void)
 
 /*
 *********************************************************************
-*                  Audio AEC Input
-* Description: AEC源数据输入
+*                  Talk-Mic Data Push
+* Description: TALK-MIC数据输入到CVP
 * Arguments  : buf	输入源数据地址
 *			   len	输入源数据长度(Byte)
 * Return	 : None.
 * Note(s)    : 输入一帧数据，唤醒一次运行任务处理数据，默认帧长256点
 *********************************************************************
 */
-void audio_aec_inbuf(s16 *buf, u16 len)
+void audio_cvp_v3_talk_mic_push(s16 *buf, u16 len)
 {
     if (len != 512) {
         printf("[error] aec point fault\n"); //aec一帧长度需要256 points,需修改文件(esco_recorder.c/pc_mic_recorder.c)的ADC中断点数
@@ -825,10 +829,10 @@ void audio_aec_inbuf(s16 *buf, u16 len)
             memset(buf, 0, len);
         }
 #if CVP_TOGGLE
-        int ret = cvp_fill_in_data(buf, len);
+        int ret = cvp_talk_mic_push(buf, len);
         if (ret == -1) {
         } else if (ret == -2) {
-            log_error("aec inbuf full\n");
+            log_error("talk-mic input full\n");
         }
 #else
         cvp_v3->attr.output_handle(buf, len);
@@ -838,25 +842,35 @@ void audio_aec_inbuf(s16 *buf, u16 len)
 
 /*
 *********************************************************************
-*                  Audio AEC Input Reference
-* Description: AEC源参考数据输入
+*                  FF-Mic Data Push
+* Description: FF-MIC数据输入到CVP
 * Arguments  : buf	输入源数据地址
 *			   len	输入源数据长度
 * Return	 : None.
-* Note(s)    : 双mic ENC的参考mic数据输入,单mic的无须调用该接口
+* Note(s)    :
 *********************************************************************
 */
-void audio_aec_inbuf_ref(s16 *buf, u16 len)
+void audio_cvp_v3_ff_mic_push(s16 *buf, u16 len)
 {
     if (cvp_v3 && cvp_v3->start) {
-        cvp_fill_in_ref_data(buf, len);
+        cvp_ff_mic_push(buf, len);
     }
 }
+/*
+*********************************************************************
+*                  FB-Mic Data Push
+* Description: FB-MIC数据输入到CVP
+* Arguments  : buf	输入源数据地址
+*			   len	输入源数据长度
+* Return	 : None.
+* Note(s)    :
+*********************************************************************
+*/
 
-void audio_aec_inbuf_ref_1(s16 *buf, u16 len)
+void audio_cvp_v3_fb_mic_push(s16 *buf, u16 len)
 {
     if (cvp_v3 && cvp_v3->start) {
-        cvp_fill_in_ref_1_data(buf, len);
+        cvp_fb_mic_push(buf, len);
     }
 }
 /*
@@ -869,11 +883,11 @@ void audio_aec_inbuf_ref_1(s16 *buf, u16 len)
 * Note(s)    : 声卡设备是DAC，默认不用外部提供参考数据
 *********************************************************************
 */
-void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
+void audio_cvp_v3_spk_data_push(s16 *data0, s16 *data1, u16 len)
 {
     if (cvp_v3 && cvp_v3->start) {
 #if CVP_TOGGLE
-        cvp_fill_ref_data(data0, data1, len);
+        cvp_spk_data_push(data0, data1, len);
 #endif/*CVP_TOGGLE*/
     }
 }
@@ -929,11 +943,11 @@ int audio_cvp_v3_get_mic_state_info(int mic_state)
 *		       priv 	操作内存地址
 * Return	 : 0 成功 其他 失败
 * Note(s)    : (1)比如动态开关降噪NS模块:
-*				audio_cvp_ioctl(CVP_NS_SWITCH,1,NULL);	//降噪关
-*				audio_cvp_ioctl(CVP_NS_SWITCH,0,NULL);  //降噪开
+*				audio_cvp_v3_ioctl(CVP_NS_SWITCH,1,NULL);	//降噪关
+*				audio_cvp_v3_ioctl(CVP_NS_SWITCH,0,NULL);  //降噪开
 *********************************************************************
 */
-int audio_cvp_ioctl(int cmd, int value, void *priv)
+int audio_cvp_v3_ioctl(int cmd, int value, void *priv)
 {
     if (cvp_v3 && cvp_v3->start) {
         return cvp_ioctl(cmd, value, priv);
@@ -952,7 +966,7 @@ int audio_cvp_ioctl(int cmd, int value, void *priv)
 * Note(s)    : None.
 *********************************************************************
 */
-int audio_cvp_toggle_set(u8 toggle)
+int audio_cvp_v3_toggle_set(u8 toggle)
 {
     if (cvp_v3) {
         cvp_toggle(toggle);
@@ -965,7 +979,7 @@ int audio_cvp_toggle_set(u8 toggle)
  * 以下为用户层扩展接口
  */
 //pbg profile use it,don't delete
-void aec_input_clear_enable(u8 enable)
+void audio_cvp_v3_input_clear_enable(u8 enable)
 {
     if (cvp_v3) {
         cvp_v3->input_clear = enable;

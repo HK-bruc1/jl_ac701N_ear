@@ -595,7 +595,7 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
     } else {
         fmt->channel_mode   = AUDIO_CH_MIX;
     }
-    printf("adc num: %d , channel_mode: %x", hdl->ch_num, fmt->channel_mode);
+    printf("adc num:%d, channel_mode:0x%x, bit_width:%dbit", hdl->ch_num, fmt->channel_mode, (adc_hdl.bit_width) ? 24 : 16);
     if (adc_hdl.bit_width == ADC_BIT_WIDTH_24) {
         fmt->bit_wide = DATA_BIT_WIDE_24BIT;
     } else {
@@ -605,7 +605,6 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 
     hdl->channel_mode = fmt->channel_mode;
     hdl->sample_rate = fmt->sample_rate;
-
 }
 
 static int adc_ioc_set_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)

@@ -17,17 +17,20 @@
 #define CVP_ALGO_3MIC   				BIT(16)
 
 #define CVP_TYPE_2MIC					(CVP_ALGO_2MIC_BF | CVP_ALGO_2MIC_HYBRID | CVP_ALGO_2MIC_AWN |CVP_ALGO_2MIC_FLEXIBLE)
+
 #define CVP_V3_1MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0x00000F)
 #define CVP_V3_2MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0x00FFF0)
 #define CVP_V3_3MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0xFF0000)
 
+
+
 typedef struct {
-    u8 ver;						//Ver:01
-    u8 mic_again;			//MIC增益,default:3(0~14)
-    u8 fb_mic_again;			//FB MIC增益,default:3(0~14)
-    u8 dac_again;			//DAC增益,default:22(0~31)
-    u8 enable_module;       //使能模块
-    u8 ul_eq_en;        	//上行EQ使能,default:enable(disable(0), enable(1))
+    u8 ver;							//Ver:01
+    u8 mic_again;					//MIC增益,default:3(0~14)
+    u8 fb_mic_again;				//FB MIC增益,default:3(0~14)
+    u8 dac_again;					//DAC增益,default:22(0~31)
+    u8 enable_module;       		//使能模块
+    u8 ul_eq_en;        			//上行EQ使能,default:enable(disable(0), enable(1))
     /*
     float mic0PreGain;
     float mic1PreGain;
@@ -65,12 +68,12 @@ typedef struct {
     float windProbLowTh;
     float windEngDbTh;
     /*MFDT Parameters*/
-    float detect_time;           // // 检测时间s，影响状态切换的速度
-    float detect_eng_diff_thr;   // 0~-90 dB 两个mic能量差异持续大于此阈值超过检测时间则会检测为故障
-    float detect_eng_lowerbound; // 0~-90 dB 当处于故障状态时，正常的mic能量大于此阈值才会检测能量差异，避免安静环境下误判切回正常状态
-    int MalfuncDet_MaxFrequency;// 检测信号的最大频率成分
-    int MalfuncDet_MinFrequency;// 检测信号的最小频率成分
-    int OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+    float detect_time;           	// // 检测时间s，影响状态切换的速度
+    float detect_eng_diff_thr;   	// 0~-90 dB 两个mic能量差异持续大于此阈值超过检测时间则会检测为故障
+    float detect_eng_lowerbound; 	// 0~-90 dB 当处于故障状态时，正常的mic能量大于此阈值才会检测能量差异，避免安静环境下误判切回正常状态
+    int MalfuncDet_MaxFrequency;	// 检测信号的最大频率成分
+    int MalfuncDet_MinFrequency;	// 检测信号的最小频率成分
+    int OnlyDetect;					// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
     /*fusion 不支持在线调试 */
     int fusionFreq;
     float MagTh1;
@@ -117,7 +120,7 @@ struct cvp_attr {
                                 void *agc,
                                 void *wn,
                                 void *mfdt);
-    int (*cvp_probe)(short *mic0, short *mic1, short *mic2, short *ref, u16 len);
+    int (*cvp_probe)(short *talk_mic, short *ff_mic, short *fb_mic, short *ref, u16 len);
     int (*cvp_post)(s16 *dat, u16 len);
     int (*cvp_update)(u8 EnableBit);
     int (*cvp_output)(s16 *dat, u16 len);
@@ -125,10 +128,10 @@ struct cvp_attr {
 
 int cvp_init(struct cvp_attr *attr);
 int cvp_exit();
-int cvp_fill_in_data(void *dat, u16 len);
-int cvp_fill_in_ref_data(void *dat, u16 len);
-int cvp_fill_in_ref_1_data(void *dat, u16 len);
-int cvp_fill_ref_data(void *data0, void *data1, u16 len);
+int cvp_talk_mic_push(void *dat, u16 len);
+int cvp_ff_mic_push(void *dat, u16 len);
+int cvp_fb_mic_push(void *dat, u16 len);
+int cvp_spk_data_push(void *data0, void *data1, u16 len);
 int cvp_cfg_update(CVP_CONFIG *cfg);
 int cvp_reboot(u8 enablebit);
 u8 get_cvp_rebooting();

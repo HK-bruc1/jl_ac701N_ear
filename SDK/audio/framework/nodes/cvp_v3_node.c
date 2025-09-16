@@ -181,9 +181,9 @@ void cvp_v3_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
             g_cvp_hdl->ref_mic_num = audio_get_mic_num(g_cvp_hdl->ref_mic.ref_mic_ch);
             g_cvp_hdl->buf_3 = zalloc(CVP_INPUT_SIZE * sizeof(short));
         }
-        printf("talk_mic %d, talk_ref_mic %d, talk_fb_mic %d", g_cvp_hdl->mic_sel.talk_mic, g_cvp_hdl->mic_sel.talk_ref_mic, g_cvp_hdl->mic_sel.talk_fb_mic);
-        printf("ref mic en %d, ref_mic_ch %d", g_cvp_hdl->ref_mic.en, g_cvp_hdl->ref_mic.ref_mic_ch);
-        printf("algo type %d", g_cvp_hdl->algo_sel.algo_type);
+        printf("talk_mic=%d, ff_mic=%d, fb_mic=%d", g_cvp_hdl->mic_sel.talk_mic, g_cvp_hdl->mic_sel.talk_ref_mic, g_cvp_hdl->mic_sel.talk_fb_mic);
+        printf("ref_mic_en=%d, ref_mic_ch=%d", g_cvp_hdl->ref_mic.en, g_cvp_hdl->ref_mic.ref_mic_ch);
+        printf("algo type=%d", g_cvp_hdl->algo_sel.algo_type);
     }
     p->adc_ref_en = cfg->ref_mic.en;
     //更新预处理参数
@@ -192,7 +192,7 @@ void cvp_v3_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
     pre_cfg.talk_mic_gain = eq_db2mag(cfg->pre_gain.talk_mic_gain);
     pre_cfg.talk_ref_mic_gain = eq_db2mag(cfg->pre_gain.talk_ref_mic_gain);
     pre_cfg.talk_fb_mic_gain = eq_db2mag(cfg->pre_gain.talk_fb_mic_gain);
-    audio_cvp_probe_param_update(&pre_cfg);
+    audio_cvp_v3_probe_param_update(&pre_cfg);
     //更新算法参数
     if (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_1MIC_AECNLP) {		//AEC和NLP流程一般离线识别使用
         p->enable_module = cfg->aec.en | (cfg->nlp.en << 1) ;
@@ -288,17 +288,17 @@ int cvp_v3_param_cfg_read(void)
     return 0;
 }
 
-u8 cvp_get_talk_mic_ch(void)
+u8 cvp_v3_get_talk_mic_ch(void)
 {
     return global_cvp_cfg.mic_sel.talk_mic;
 }
 
-u8 cvp_get_talk_ref_mic_ch(void)
+u8 cvp_v3_get_talk_ref_mic_ch(void)
 {
     return global_cvp_cfg.mic_sel.talk_ref_mic;
 }
 
-u8 cvp_get_talk_fb_mic_ch(void)
+u8 cvp_v3_get_talk_fb_mic_ch(void)
 {
     return global_cvp_cfg.mic_sel.talk_fb_mic;
 }
@@ -322,9 +322,9 @@ int cvp_v3_node_param_cfg_read(void *priv, u8 ignore_subid, u16 algo_uuid)
     /*
      *解析配置文件内效果配置
      * */
-    int len = 0;
     struct node_param ncfg = {0};
-    len = jlstream_read_node_data(NODE_UUID_CVP_V3, subid, (u8 *)&ncfg);
+    printf("cvp_v3_node read,subid=0x%x\n", subid);
+    int len = jlstream_read_node_data(NODE_UUID_CVP_V3, subid, (u8 *)&ncfg);
     if (len != sizeof(ncfg)) {
         printf("cvp_v3_node read ncfg err\n");
         return 0;
@@ -336,8 +336,8 @@ int cvp_v3_node_param_cfg_read(void *priv, u8 ignore_subid, u16 algo_uuid)
     if (!jlstream_read_form_node_info_base(mode_index, ncfg.name, cfg_index, &info)) {
         len = jlstream_read_form_cfg_data(&info, &cfg);
     }
-    printf(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(cfg));
     if (len != sizeof(cfg)) {
+        printf("%s error, len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(cfg));
         return 0 ;
     }
 
@@ -437,8 +437,8 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                         ref_buf[2 * i + 1]  = dat[3 * i + ref_index[1]];
                     }
                 }
-                audio_aec_refbuf(ref_buf, NULL, wlen << hdl->ref_mic_num);
-                audio_aec_inbuf(mic_buf, wlen << 1);
+                audio_cvp_v3_spk_data_push(ref_buf, NULL, wlen << hdl->ref_mic_num);
+                audio_cvp_v3_talk_mic_push(mic_buf, wlen << 1);
                 hdl->unlock();
             }
 #endif
@@ -459,7 +459,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 mic_data[2] = tbuf_2;
                 for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
                     if ((mic_ch & BIT(i)) == hdl->ref_mic.ref_mic_ch) {
-                        audio_aec_refbuf(mic_data[cnt++], NULL, wlen << 1);
+                        audio_cvp_v3_spk_data_push(mic_data[cnt++], NULL, wlen << 1);
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_mic) {
@@ -467,12 +467,12 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_ref_mic) {
-                        audio_aec_inbuf_ref(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_ff_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                 }
                 /*通话MIC数据需要最后传进算法*/
-                audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+                audio_cvp_v3_talk_mic_push(mic_data[talk_data_num], wlen << 1);
                 hdl->unlock();
             }
 #endif
@@ -495,7 +495,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 mic_data[3] = tbuf_3;
                 for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
                     if ((mic_ch & BIT(i)) == hdl->ref_mic.ref_mic_ch) {
-                        audio_aec_refbuf(mic_data[cnt++], NULL, wlen << 1);
+                        audio_cvp_v3_spk_data_push(mic_data[cnt++], NULL, wlen << 1);
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_mic) {
@@ -503,16 +503,16 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_fb_mic) {
-                        audio_aec_inbuf_ref_1(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_fb_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_ref_mic) {
-                        audio_aec_inbuf_ref(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_ff_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                 }
                 /*通话MIC数据需要最后传进算法*/
-                audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+                audio_cvp_v3_talk_mic_push(mic_data[talk_data_num], wlen << 1);
                 hdl->unlock();
             }
 #endif
@@ -521,7 +521,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             if ((g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_1MIC) || (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_1MIC_AECNLP)) { 	//1mic or aecnlp
                 dat = hdl->buf + (in_frame->len / 2 * hdl->buf_cnt);
                 memcpy((u8 *)dat, in_frame->data, in_frame->len);
-                audio_aec_inbuf(dat, in_frame->len);
+                audio_cvp_v3_talk_mic_push(dat, in_frame->len);
                 if (++hdl->buf_cnt > ((CVP_INPUT_SIZE / 256) - 1)) {
                     hdl->buf_cnt = 0;
                 }
@@ -554,12 +554,12 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_ref_mic) {
-                        audio_aec_inbuf_ref(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_ff_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                 }
                 /*通话MIC数据需要最后传进算法*/
-                audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+                audio_cvp_v3_talk_mic_push(mic_data[talk_data_num], wlen << 1);
                 hdl->unlock();
             }
 #endif
@@ -592,16 +592,16 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_fb_mic) {
-                        audio_aec_inbuf_ref_1(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_fb_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                     if ((mic_ch & BIT(i)) == hdl->mic_sel.talk_ref_mic) {
-                        audio_aec_inbuf_ref(mic_data[cnt++], wlen << 1);
+                        audio_cvp_v3_ff_mic_push(mic_data[cnt++], wlen << 1);
                         continue;
                     }
                 }
                 /*通话MIC数据需要最后传进算法*/
-                audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+                audio_cvp_v3_talk_mic_push(mic_data[talk_data_num], wlen << 1);
                 hdl->unlock();
             }
 #endif
@@ -702,7 +702,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     init_param.node_uuid = hdl_node(hdl)->uuid;
     u8 mic_num; //算法需要使用的MIC个数
 
-    audio_aec_init(&init_param);
+    audio_cvp_v3_init(&init_param);
 
     if (hdl->source_uuid == NODE_UUID_ADC) {
         if (hdl->ref_mic.en) {
@@ -748,7 +748,7 @@ __CVP_BANK_CODE
 static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
 {
     if (hdl) {
-        audio_aec_close();
+        audio_cvp_v3_close();
     }
 }
 

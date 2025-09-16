@@ -188,7 +188,7 @@ void free_mux(void *p)
 }
 
 #if !defined(TCFG_CVP_DEVELOP_ENABLE) || (TCFG_CVP_DEVELOP_ENABLE == 0)
-#if (TCFG_AUDIO_DUAL_MIC_ENABLE == 0) && (TCFG_AUDIO_TRIPLE_MIC_ENABLE == 0) && (TCFG_AUDIO_CVP_V3_MODE == 0)
+#if (TCFG_AUDIO_DUAL_MIC_ENABLE == 0) && (TCFG_AUDIO_TRIPLE_MIC_ENABLE == 0)
 #include "audio_cvp_debug.c"
 
 extern int esco_player_runing();
@@ -928,13 +928,14 @@ void aec_input_clear_enable(u8 enable)
 
 struct cvp_context_setup {
     u16 active_node_uuid;
+    u8(*aec_status)(void);
     int (*read_ref_data)(void);
 };
 struct cvp_context_setup g_cvp_context = {0};
 
 int audio_cvp_phase_align(void)
 {
-    if ((audio_aec_status() == 0) || (g_cvp_context.read_ref_data == NULL)) {
+    if ((g_cvp_context.aec_status() == 0)  || (g_cvp_context.read_ref_data == NULL)) {
         return 0;
     }
     return g_cvp_context.read_ref_data();
@@ -963,38 +964,46 @@ void cvp_node_context_setup(u16 uuid)
 #else
         g_cvp_context.read_ref_data = cvp_sms_read_ref_data;
 #endif
+        g_cvp_context.aec_status = audio_aec_status;
 #endif
         break;
 #if (TCFG_AUDIO_CVP_DMS_ANS_MODE || TCFG_AUDIO_CVP_DMS_DNS_MODE)
     case NODE_UUID_CVP_DMS_ANS:
     case NODE_UUID_CVP_DMS_DNS:
         g_cvp_context.read_ref_data = cvp_dms_read_ref_data;
+        g_cvp_context.aec_status = audio_aec_status;
         break;
 #endif
 #if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE || TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
     case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
     case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
         g_cvp_context.read_ref_data = cvp_dms_flexible_read_ref_data;
+        g_cvp_context.aec_status = audio_aec_status;
+        break;
         break;
 #endif
 #if TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE
     case NODE_UUID_CVP_DMS_HYBRID_DNS:
         g_cvp_context.read_ref_data = cvp_dms_hybrid_read_ref_data;
+        g_cvp_context.aec_status = audio_aec_status;
         break;
 #endif
 #if TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE
     case NODE_UUID_CVP_DMS_AWN_DNS:
         g_cvp_context.read_ref_data = cvp_dms_awn_read_ref_data;
+        g_cvp_context.aec_status = audio_aec_status;
         break;
 #endif
 #if TCFG_AUDIO_CVP_3MIC_MODE
     case NODE_UUID_CVP_3MIC:
         g_cvp_context.read_ref_data =  cvp_tms_read_ref_data;
+        g_cvp_context.aec_status = audio_aec_status;
         break;
 #endif
 #if (TCFG_AUDIO_CVP_V3_MODE)
     case NODE_UUID_CVP_V3:
         g_cvp_context.read_ref_data = cvp_read_ref_data;
+        g_cvp_context.aec_status = audio_cvp_v3_status;
         break;
 #endif
 

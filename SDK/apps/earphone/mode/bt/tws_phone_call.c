@@ -481,7 +481,7 @@ int bt_phone_esco_play(u8 *bt_addr)
     puts("<<<<<<<<<<<esco_dec_stat\n");
     mem_stats();
     u8 temp_btaddr[6];
-    if (esco_player_get_btaddr(temp_btaddr)) {
+    if (esco_player_get_btaddr(temp_btaddr) || !lmp_get_esco_link_addr()) {
         //已经有设备在用了，不能重复初始化
         printf("CMD_OPEN_ESCO_PLAYER error\n");
         return 1;

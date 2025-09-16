@@ -54,26 +54,6 @@ void *rcsp_server_edr_att_hdl1 = NULL;
 	(((u8)('E' + 'D' + 'R') << (1 * 8)) | \
 	 ((u8)('A' + 'T' + 'T') << (0 * 8)))
 
-static OS_MUTEX rcsp_mutex;
-static inline void rcsp_mutex_pend(OS_MUTEX *mutex, u32 line)
-{
-    int os_ret;
-    os_ret = os_mutex_pend(mutex, 0);
-    if (os_ret != OS_NO_ERR) {
-        rcsp_lib_printf("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
-        ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
-    }
-}
-
-static inline void rcsp_mutex_post(OS_MUTEX *mutex, u32 line)
-{
-    int os_ret;
-    os_ret = os_mutex_post(mutex);
-    if (os_ret != OS_NO_ERR) {
-        rcsp_lib_printf("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
-        ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
-    }
-}
 
 /*****************************************
                  RCSP PROTOCOL
@@ -269,12 +249,12 @@ void rcsp_interface_tws_sync_buf_content_free()
 
 /**
  * @brief rcsp主机同步bt handle数据给从机
+ * 注：该任务需保证在app_core任务中执行
  *
  * @param send_buf 外部malloc的一个指针，size根据rcsp_interface_tws_sync_buf_size获取
  */
 void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
 {
-    rcsp_mutex_pend(&rcsp_mutex, __LINE__);
     uint32_t rets_addr;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
     rcsp_lib_printf("%s, rets=0x%x\n", __FUNCTION__, rets_addr);
@@ -352,7 +332,6 @@ void rcsp_interface_tws_sync_buf_content(u8 *send_buf)
     /* rcsp_lib_printf_buf(tws_sync_buf, buf_size); */
     memcpy(send_buf, tws_sync_buf, buf_size);
     rcsp_interface_tws_sync_buf_content_free();
-    rcsp_mutex_post(&rcsp_mutex, __LINE__);
 }
 
 /**
@@ -454,6 +433,7 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
         /* u16 ble_con_hdl1 = app_ble_get_hdl_con_handle(rcsp_server_ble_hdl1); */
         /* rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* rcsp_lib_printf("ble_con_handle:%d, ble_con_handle1:%d\n", ble_con_hdl, ble_con_hdl1); */
+        rcsp_interface_bt_handle_tws_sync();
 
     } else if (remote_addr) {
         u8 *spp_remote_addr = app_spp_get_hdl_remote_addr(bt_rcsp_spp_hdl);
@@ -511,10 +491,8 @@ void bt_rcsp_set_conn_info(u16 con_handle, void *remote_addr, bool isconn)
             rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
             g_rcsp_spp_conn_num = 0;
         }
+        rcsp_interface_bt_handle_tws_sync();
     }
-
-    rcsp_interface_bt_handle_tws_sync();
-
 }
 
 /**
@@ -898,11 +876,6 @@ void bt_rcsp_interface_init(const uint8_t *rcsp_profile_data)
 {
     rcsp_lib_printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
 
-    int os_ret = os_mutex_create(&rcsp_mutex);
-    if (os_ret != OS_NO_ERR) {
-        ASSERT(0, "%s %d err, os_ret:0x%x", __FUNCTION__, __LINE__, os_ret);
-    }
-
     // spp init
     if (bt_rcsp_spp_hdl == NULL) {
         bt_rcsp_spp_hdl = app_spp_hdl_alloc(0x0);
@@ -1023,11 +996,6 @@ void bt_rcsp_interface_exit(void)
             app_ble_hdl_free(rcsp_server_edr_att_hdl1);
             rcsp_server_edr_att_hdl1 = NULL;
         }
-    }
-
-    int os_ret = os_mutex_del(&rcsp_mutex, OS_DEL_NO_PEND);
-    if (os_ret != OS_NO_ERR) {
-        printf("%s %d err, os_ret:0x%x", __FUNCTION__, __LINE__, os_ret);
     }
 
 }

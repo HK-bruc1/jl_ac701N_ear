@@ -75,6 +75,8 @@ MEMORY
 	//ram1(rwx)         : ORIGIN = RAM1_BEG,  LENGTH = RAM1_SIZE
 
 	psr_ram(rwx)        : ORIGIN = 0x2000000,  LENGTH = 8*1024*1024
+
+    dlog0(r)     	  : ORIGIN = 0x20000000, LENGTH = 0x100000
 }
 
 

@@ -239,15 +239,22 @@ c_SRC_FILES += \
 	  audio/common/demo/codec_demo/audio_enc_file_demo.c \
 	  audio/common/demo/codec_demo/audio_file_dec_demo.c \
 	  audio/common/demo/codec_demo/audio_frame_codec_demo.c \
-	  audio/common/demo/audio_eq_demo.c \
 	  audio/common/demo/codec_demo/audio_msbc_hw_codec_demo.c \
 	  audio/common/demo/codec_demo/audio_msbc_sw_codec_demo.c \
 	  audio/common/demo/codec_demo/audio_sbc_codec_demo.c \
-	  audio/common/demo/audio_alink_demo.c \
-	  audio/common/demo/audio_vad_demo.c \
 	  audio/common/demo/codec_demo/audio_speex_codec_demo.c \
 	  audio/common/demo/codec_demo/audio_opus_codec_demo.c \
+	  audio/common/demo/audio_alink_demo.c \
+	  audio/common/demo/audio_eq_demo.c \
 
+#endif
+
+#if EXPORT_PLATFORM_AUDIO_HW_VAD_ENABLE
+#if 0
+c_SRC_FILES += \
+	  audio/common/demo/audio_vad_demo.c
+
+#endif
 #endif
 
 #if EXPORT_PLATFORM_HW_MATH_VERSION == 2

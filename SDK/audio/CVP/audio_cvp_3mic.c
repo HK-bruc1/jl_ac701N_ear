@@ -45,7 +45,7 @@
 #include "icsd_adt_app.h"
 #endif
 
-#if !defined(TCFG_CVP_DEVELOP_ENABLE) || (TCFG_CVP_DEVELOP_ENABLE == 0) || (TCFG_AUDIO_CVP_V3_MODE == 0)
+#if !defined(TCFG_CVP_DEVELOP_ENABLE) || (TCFG_CVP_DEVELOP_ENABLE == 0)
 
 #if TCFG_AUDIO_TRIPLE_MIC_ENABLE
 #define LOG_TAG_CONST       AEC_USER

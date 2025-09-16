@@ -294,7 +294,7 @@ static u8 a2dp_rf_quality(struct a2dp_stream_control *ctrl)
     }
 
     ctrl->link_rssi = link_rssi;
-    if (CONFIG_BTCTLER_TWS_ENABLE) {
+    if (CONFIG_BTCTLER_TWS_ENABLE && (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
         if (tws_rssi <= RF_RSSI_BAD_LEVEL0) {
             quality -= 1;
         }

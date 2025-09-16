@@ -96,6 +96,7 @@ struct translator_meta_t {
     u8 ch_state;
     u8 record_state;
     u8 esco_param_is_set;
+    u8 charge_state;
     u16 ble_con_handle;
     u8 ble_remote_addr[6];
     u8 spp_remote_addr[6];
@@ -699,6 +700,9 @@ static int translator_send_ch_send(u8 source, u8 *buf, u32 len)
     if (!tlr_hdl.state) {
         return 0;
     }
+    if (tlr_hdl.charge_state) {
+        return 0;
+    }
     ch = source_to_ch_remap(source);
     if (OS_NO_ERR != os_mutex_pend(&tlr_hdl.tx_ch[ch].mutex, 10)) {
         return -1;
@@ -784,7 +788,7 @@ static int translator_send_ch_set_esco_stream_param()
         s_enc_fmt.channel = 1;
         break;
     }
-    remote_bt_addr = translator_get_remote_bt_addr();
+    remote_bt_addr = bt_get_current_remote_addr();
     if (remote_bt_addr == NULL) {
         ret = -EFAULT;
         goto __err_exit;
@@ -979,6 +983,10 @@ void JL_rcsp_translator_get_mode_info(struct translator_mode_info *minfo)
     if (minfo->mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
         //通话翻译模式，参数未设置完成时，先不通知应用流程已进入通话翻译
         if (tlr_hdl.esco_param_is_set == 0) {
+            minfo->mode = RCSP_TRANSLATOR_MODE_IDLE;
+        }
+        //tws从机不通知应用流程已进入通话翻译
+        if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             minfo->mode = RCSP_TRANSLATOR_MODE_IDLE;
         }
     }
@@ -1207,31 +1215,48 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
             translator_stop_a2dp_player();
         }
         if (tlr_hdl.state == 0) {
-            tlr_hdl.esco_param_is_set = 0;
-            ret = translator_send_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM);
-            if (ret) {
-                ret = -TRANS_SET_MODE_STATUS_FAIL;
-                goto __err_exit;
+            u8 start = 0;
+            if (tws_api_get_role() == TWS_ROLE_MASTER) {
+                //固定通话翻译左耳播原声，右耳播译文
+                if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
+                    if (tws_api_get_local_channel() == 'L') {
+                        tws_api_role_switch();
+                        start = 0;
+                    } else if (tws_api_get_local_channel() == 'R') {
+                        tws_api_auto_role_switch_disable();
+                        start = 1;
+                    }
+                } else {
+                    start = 1;
+                }
             }
-            source_tx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
-            ret = translator_recv_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM);
-            if (ret) {
-                ret = -TRANS_SET_MODE_STATUS_FAIL;
-                goto __err_exit;
+            if (start) {
+                tlr_hdl.esco_param_is_set = 0;
+                ret = translator_send_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM);
+                if (ret) {
+                    ret = -TRANS_SET_MODE_STATUS_FAIL;
+                    goto __err_exit;
+                }
+                source_tx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
+                ret = translator_recv_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM);
+                if (ret) {
+                    ret = -TRANS_SET_MODE_STATUS_FAIL;
+                    goto __err_exit;
+                }
+                source_rx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
+                ret = translator_send_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
+                if (ret) {
+                    ret = -TRANS_SET_MODE_STATUS_FAIL;
+                    goto __err_exit;
+                }
+                source_tx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
+                ret = translator_recv_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
+                if (ret) {
+                    ret = -TRANS_SET_MODE_STATUS_FAIL;
+                    goto __err_exit;
+                }
+                source_rx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
             }
-            source_rx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
-            ret = translator_send_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
-            if (ret) {
-                ret = -TRANS_SET_MODE_STATUS_FAIL;
-                goto __err_exit;
-            }
-            source_tx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
-            ret = translator_recv_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
-            if (ret) {
-                ret = -TRANS_SET_MODE_STATUS_FAIL;
-                goto __err_exit;
-            }
-            source_rx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
             tlr_hdl.state = 1;
         }
     } else if (minfo->mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
@@ -1273,10 +1298,6 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
 #endif
         }
         if (tlr_hdl.state == 0) {
-            //ret = ai_mic_rec_start();
-            //if (ret) {
-            //    goto __err_exit;
-            //}
 #if TRANSLATION_RECV_CHANNEL_ENABLE
             ret = translator_recv_ch_start(RCSP_TRANSLATOR_AUDIO_SOURCE_PHONE_MIC);
             if (ret) {
@@ -1301,6 +1322,9 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
             source_rx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
             source_tx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
             source_rx[1] = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM;
+#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+            tws_api_auto_role_switch_enable();
+#endif
             goto __err_exit;
         } else if (last_mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
             source_tx[0] = RCSP_TRANSLATOR_AUDIO_SOURCE_MSBC;
@@ -1321,9 +1345,7 @@ static int _translator_op_set_mode(u8 *buf, u32 len)
     if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             translator_sync_remote_bt_addr();
-            if (minfo->mode != RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
-                translator_tws_send_cmd(TWS_TRANS_CMD_SET_MODE, 0, buf, len);
-            }
+            translator_tws_send_cmd(TWS_TRANS_CMD_SET_MODE, 0, buf, len);
         }
     }
     return 0;
@@ -1342,19 +1364,14 @@ __err_exit:
     if (source_rx[0] != 0xff) {
         translator_recv_ch_stop(source_rx[0]);
     }
-#if MIC_REC_METHOD_NEW == 0
-    if (ai_mic_is_busy()) {
-        ai_mic_rec_close();
-    }
-#endif
     tlr_hdl.state = 0;
     if (ret != 0) {
         minfo->mode = RCSP_TRANSLATOR_MODE_IDLE;
     } else {
         //退出模式通知tws从机
         if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
-            translator_sync_remote_bt_addr();
             if (tws_api_get_role() == TWS_ROLE_MASTER) {
+                translator_sync_remote_bt_addr();
                 translator_tws_send_cmd(TWS_TRANS_CMD_SET_MODE, 0, buf, len);
             }
         }
@@ -1569,6 +1586,9 @@ static int _translator_op_send_audio_data(u8 *buf, u32 len, u8 source, u8 count)
     if (tlr_hdl.state == 0) {
         return -1;
     }
+    if (tlr_hdl.charge_state) {
+        return -1;
+    }
     switch (minfo->mode) {
     case RCSP_TRANSLATOR_MODE_RECORD:
     case RCSP_TRANSLATOR_MODE_RECORD_TRANSLATION:
@@ -1774,16 +1794,25 @@ static int translator_charge_event_handler(int *msg)
     int ret = false;
     switch (msg[0]) {
     case CHARGE_EVENT_LDO5V_IN:
-        if (tws_api_get_role() == TWS_ROLE_MASTER) {
-            _translator_op_record_mode_stop(0);
-        }
+        //暂停发数，让tws切换可以执行
+        //通话翻译模式，面对面翻译的发送不走record，用
+        //_translator_op_record_mode_stop()不能关掉，tws还是切换不了，
+        //需要从更下层控制暂停蓝牙发数，tws切换的地方会控制mic主从切换，不需
+        //要这里处理
+        //if (tws_api_get_role() == TWS_ROLE_MASTER) {
+        //    if (tlr_hdl.record_state) {
+        //        _translator_op_record_mode_stop(0);
+        //    }
+        //}
+        tlr_hdl.charge_state = 1;
         break;
     case CHARGE_EVENT_LDO5V_OFF:
-        if (tws_api_get_role() == TWS_ROLE_MASTER) {
-            if (tlr_hdl.record_state) {
-                _translator_op_record_mode_start(0);
-            }
-        }
+        //if (tws_api_get_role() == TWS_ROLE_MASTER) {
+        //    if (tlr_hdl.record_state) {
+        //        _translator_op_record_mode_start(0);
+        //    }
+        //}
+        tlr_hdl.charge_state = 0;
         break;
     }
     return ret;
@@ -1799,6 +1828,18 @@ static void translator_bt_event_set_volume(void *arg)
 {
     JL_rcsp_translator_set_play_volume(g_bt_volume);
     tlr_hdl.volume_timer_id = 0;
+}
+
+static void translator_bt_event_close_call_translator(void *arg)
+{
+    struct translator_mode_info minfo;
+    memcpy(&minfo, &tlr_hdl.mode_info, sizeof(minfo));
+    if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
+        minfo.mode = RCSP_TRANSLATOR_MODE_IDLE;
+        JL_rcsp_translator_op_inform_mode_info(&minfo);
+        minfo.sr = READ_BIG_U32(&minfo.sr);
+        _translator_op_set_mode((u8 *)&minfo, sizeof(minfo));
+    }
 }
 
 static int translator_bt_event_handler(int *event)
@@ -1853,15 +1894,11 @@ static int translator_bt_event_handler(int *event)
                 _translator_op_record_mode_start(0);
             }
         }
-#if TRANSLATION_CALL_CONTROL_BY_DEVICE
-        //挂断电话关闭通话录音模式
+#if 1//TRANSLATION_CALL_CONTROL_BY_DEVICE
+        //挂断电话关闭通话翻译模式
         switch (tlr_hdl.mode_info.mode) {
         case RCSP_TRANSLATOR_MODE_CALL_TRANSLATION:
-            memcpy(&minfo, &tlr_hdl.mode_info, sizeof(minfo));
-            minfo.mode = RCSP_TRANSLATOR_MODE_IDLE;
-            JL_rcsp_translator_op_inform_mode_info(&minfo);
-            minfo.sr = READ_BIG_U32(&minfo.sr);
-            _translator_op_set_mode((u8 *)&minfo, sizeof(minfo));
+            sys_timeout_add(NULL, translator_bt_event_close_call_translator, 600);
             break;
         }
 #endif
@@ -2145,20 +2182,17 @@ static int translator_tws_event_handler(int *_msg)
             //连接上tws的时候将主机的状态同步给从机
             memcpy(&minfo, &tlr_hdl.mode_info, sizeof(minfo));
             minfo.sr = READ_BIG_U32(&minfo.sr);
-#if 1
-            mode = minfo.mode;
-            minfo.mode = RCSP_TRANSLATOR_MODE_IDLE;
-            _translator_op_set_mode((u8 *)&minfo, sizeof(minfo));
-            if (mode != RCSP_TRANSLATOR_MODE_IDLE) {
+            if (minfo.mode != RCSP_TRANSLATOR_MODE_IDLE) {
+                mode = minfo.mode;
+                minfo.mode = RCSP_TRANSLATOR_MODE_IDLE;
+                _translator_op_set_mode((u8 *)&minfo, sizeof(minfo));
                 minfo.mode = mode;
                 _translator_op_set_mode((u8 *)&minfo, sizeof(minfo));
-                if (tlr_hdl.record_state) {
-                    _translator_op_record_mode_start(1);
-                }
             }
-#else
-            translator_tws_send_cmd(TWS_TRANS_CMD_SET_MODE, 0, (u8 *)&minfo, sizeof(struct translator_mode_info));
-#endif
+            if (tlr_hdl.record_state) {
+                _translator_op_record_mode_stop(1);
+                _translator_op_record_mode_start(1);
+            }
         } else {
             JL_rcsp_translator_init();
         }
@@ -2210,6 +2244,7 @@ void JL_rcsp_translator_init()
     tlr_hdl.mode_info.encode = RCSP_TRANSLATOR_ENCODE_TYPE_OPUS;
     tlr_hdl.mode_info.ch = 1;
     tlr_hdl.mode_info.sr = 16000;
+    tlr_hdl.charge_state = get_charge_online_flag();
     for (int i = 0; i < AUDIO_CH_MAX; i++) {
         os_mutex_create(&tlr_hdl.rx_ch[i].mutex);
         os_mutex_create(&tlr_hdl.tx_ch[i].mutex);
@@ -2225,9 +2260,8 @@ void JL_rcsp_translator_deinit()
     struct translator_mode_info minfo;
     translator_todo_list_clear();
     _translator_op_get_info((u8 *)&minfo, sizeof(minfo));
-    if (minfo.mode == RCSP_TRANSLATOR_MODE_RECORD ||
-        minfo.mode == RCSP_TRANSLATOR_MODE_RECORD_TRANSLATION) {
-        _translator_op_record_mode_stop(0);
+    if (tlr_hdl.record_state) {
+        _translator_op_record_mode_stop(1);
     }
     minfo.mode = RCSP_TRANSLATOR_MODE_IDLE;
     JL_rcsp_translator_set_decode_resume_handler(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM, NULL, NULL);

@@ -18,6 +18,7 @@
 #include "effects/effects_adj.h"
 #include "app_config.h"
 #include "media/codec/sbc_codec.h"
+#include "debug/audio_debug.h"
 
 #define A2DP_TIMESTAMP_ENABLE       1
 #define A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE	0
@@ -752,6 +753,23 @@ void a2dp_ts_handle_release(struct a2dp_file_hdl *hdl)
 #endif
 }
 
+#if AUD_BT_DELAY_INFO_DUMP_ENABLE
+static u32 frame_delay_debug;
+static u32 delay_time_debug;
+static int d_sample_rate_debug;
+static void a2dp_delay_mark(u32 frame_delay, u32 delay_time, int d_sample_rate)
+{
+    frame_delay_debug = frame_delay;
+    delay_time_debug = delay_time;
+    d_sample_rate_debug = d_sample_rate;
+}
+
+void a2dp_delay_dump()
+{
+    printf("latency=[cur dly:%dms tar dly:%dms d_sample:%d]\n", frame_delay_debug, delay_time_debug, d_sample_rate_debug);
+}
+#endif
+
 static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_frame *frame, u8 *data, int pcm_frames)
 {
     if (CONFIG_DONGLE_SPEAK_ENABLE) {
@@ -790,6 +808,17 @@ static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_f
     }
     frame->timestamp = timestamp;
     frame->d_sample_rate = sample_rate - hdl->sample_rate;
+
+#if AUD_BT_DELAY_INFO_DUMP_ENABLE
+    a2dp_delay_mark(frame_delay, delay_time, frame->d_sample_rate);
+#endif
+    /* static u32 cnt = 0; */
+    /* if (cnt == 10 || cnt == 0) { */
+    /* cnt = 0; */
+    /* printf("latency=[cur dly:%dms tar dly:%dms d_sample:%d]\n", frame_delay, delay_time, frame->d_sample_rate); */
+    /* } */
+    /* cnt++; */
+
     /*printf("drift : %d\n", frame->d_sample_rate);*/
     /*printf("-%u, %u, %u-\n", timestamp, bt_edr_conn_master_to_local_time(hdl->bt_addr, timestamp), local_time);*/
     hdl->dts += pcm_frames;

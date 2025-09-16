@@ -149,6 +149,7 @@ extern const int JLA_V2_CODEC_WITH_FRAME_HEADER;
 //bt_aac 解码配置
 extern const int AAC_DEC_MP4A_LATM_ANALYSIS;
 extern const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT;
+extern const int AAC_DEC_STKBUF_RELEASE_ENABLE;
 extern const char config_bt_aac_dec_pcm24_enable;
 extern const char config_bt_aac_dec_fifo_precision;
 

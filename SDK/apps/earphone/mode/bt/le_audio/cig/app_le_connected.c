@@ -764,9 +764,13 @@ static int app_connected_conn_status_event_handler(int *msg)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        tws_play_tone_file(get_tone_files()->bt_disconnect, 400);
+        if (app_var.goto_poweroff_flag == 0) {
+            tws_play_tone_file(get_tone_files()->bt_disconnect, 400);
+        }
 #else
-        play_tone_file(get_tone_files()->bt_disconnect);
+        if (app_var.goto_poweroff_flag == 0) {
+            play_tone_file(get_tone_files()->bt_disconnect);
+        }
 #endif
         if (!g_le_audio_hdl.le_audio_profile_ok) {
             app_connected_close_in_other_mode();

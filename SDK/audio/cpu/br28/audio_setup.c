@@ -107,7 +107,7 @@ struct dac_platform_data dac_data = {
 #else
     .clk_sel            = AUDIO_COMMON_CLK_DIF_XOSC,
 #endif
-    .dcc_level          = 14,
+    .dcc_level          = 15,
 };
 
 void audio_fade_in_fade_out(u8 left_vol, u8 right_vol);

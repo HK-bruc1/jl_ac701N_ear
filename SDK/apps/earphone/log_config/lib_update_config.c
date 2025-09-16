@@ -24,7 +24,12 @@ const int support_dual_bank_less_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
 
 // 是否支持双备份升级前和升级失败对升级区域全擦，升级过程只写的功能
+// 即允许边升级边播歌
+#ifdef TCFG_DUAL_BANK_UPDATE_NO_ERASE
+const int support_dual_bank_update_no_erase = TCFG_DUAL_BANK_UPDATE_NO_ERASE;
+#else
 const int support_dual_bank_update_no_erase = 0;
+#endif
 
 // 是否支持双备份断点续传升级
 const int support_dual_bank_update_breakpoint = 0;

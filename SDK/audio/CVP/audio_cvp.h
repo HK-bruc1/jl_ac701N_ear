@@ -88,10 +88,8 @@ struct audio_cvp_pre_param_t {
 *********************************************************************
 */
 void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc);
-
 s8 aec_debug_online(void *buf, u16 size);
 void aec_input_clear_enable(u8 enable);
-
 int audio_aec_init(struct audio_aec_init_param_t *init_param);
 void audio_aec_close(void);
 void audio_aec_inbuf(s16 *buf, u16 len);
@@ -128,6 +126,7 @@ int audio_cvp_ref_data_align_reset(void);
 
 void audio_cvp_ref_start(u8 en);
 void audio_cvp_set_output_way(u8 en);
+
 /*可写长度*/
 int get_audio_cvp_output_way_writable_len();
 void audio_cvp_develop_lock();
@@ -192,5 +191,21 @@ int audio_tms_mode_choose(enum cvp_tms_mode mode);
 
 void cvp_node_context_setup(u16 uuid);
 u16 get_cvp_node_uuid();
+
+int audio_cvp_v3_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len));
+int audio_cvp_v3_init(struct audio_aec_init_param_t *init_param);
+void audio_cvp_v3_close(void);
+void audio_cvp_v3_talk_mic_push(s16 *buf, u16 len);
+void audio_cvp_v3_ff_mic_push(s16 *buf, u16 len);
+void audio_cvp_v3_fb_mic_push(s16 *buf, u16 len);
+void audio_cvp_v3_spk_data_push(s16 *data0, s16 *data1, u16 len);
+void audio_cvp_v3_input_clear_enable(u8 enable);
+void audio_cvp_v3_output_sel(CVP_OUTPUT_ENUM sel, u8 agc);
+u8 audio_cvp_v3_status(void);
+void audio_cvp_v3_reboot(u8 reduce);
+int audio_cvp_v3_probe_param_update(struct audio_cvp_pre_param_t *cfg);
+int audio_cvp_v3_toggle_set(u8 toggle);
+int audio_cvp_v3_ioctl(int cmd, int value, void *priv);
+void audio_cvp_v3_set_output_way(u8 en);
 
 #endif

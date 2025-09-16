@@ -13,7 +13,7 @@ static const char *ModuleEnable_Name[ModuleEnable_Max] = {
 };
 
 // #define put_float(a) printf("%d / 1000", (int)(a * 1000))
-
+#if (!TCFG_AUDIO_CVP_V3_MODE)
 #if TCFG_AUDIO_TRIPLE_MIC_ENABLE
 void aec_param_dump(struct tms_attr *param)
 {
@@ -319,3 +319,4 @@ void aec_param_dump(struct aec_s_attr *param)
 #endif/*CONFIG_DEBUG_ENABLE*/
 }
 #endif/*CONFIG_DEBUG_ENABLE*/
+#endif/*TCFG_AUDIO_CVP_V3_MODE*/

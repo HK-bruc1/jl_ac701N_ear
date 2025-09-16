@@ -22,8 +22,11 @@ int cvp_tms_param_cfg_read(void);
 int cvp_v3_param_cfg_read(void);
 int cvp_param_cfg_read(void);
 u8 cvp_get_talk_mic_ch(void);
+u8 cvp_v3_get_talk_mic_ch(void);
 u8 cvp_get_talk_ref_mic_ch(void);
+u8 cvp_v3_get_talk_ref_mic_ch(void);
 u8 cvp_get_talk_fb_mic_ch(void);
+u8 cvp_v3_get_talk_fb_mic_ch(void);
 int cvp_get_algo_type(void);
 
 #endif/*CVP_NODE_H*/

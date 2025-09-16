@@ -11,6 +11,7 @@
 #include "ai_rx_player.h"
 #include "rcsp_translator.h"
 #include "classic/tws_api.h"
+#include "audio_dac.h"
 
 #if  TCFG_AI_RX_NODE_ENABLE
 
@@ -40,6 +41,9 @@ static void ai_rx_player_callback(void *private_data, int event)
 #if RCSP_MODE && RCSP_ADV_TRANSLATOR
         JL_rcsp_translator_update_play_volume((u8)player->source);
 #endif
+        //清除AEC参考DAC数据缓存，否则AEC采集到上次的DAC数据缓存，超出了算法
+        //允许的缓存时间
+        audio_dac_read_reset();
         break;
     }
 }
