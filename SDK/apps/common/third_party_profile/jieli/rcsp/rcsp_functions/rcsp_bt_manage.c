@@ -677,6 +677,12 @@ static int rcsp_app_msg_handler(int *msg)
         log_info("APP_MSG_TWS_CONNECTED");
         rcsp_bt_state_tws_connected(0, NULL);
         break;
+    case APP_MSG_TWS_POWERON_CONN_TIMEOUT:
+    case APP_MSG_TWS_POWERON_PAIR_TIMEOUT:
+    case APP_MSG_TWS_START_CONN_TIMEOUT:
+        log_info("tws connect timeout,open adv");
+        rcsp_ble_adv_enable_with_con_dev();
+        break;
 #endif
     case APP_MSG_POWER_OFF://1
         log_info("APP_MSG_POWER_OFF");

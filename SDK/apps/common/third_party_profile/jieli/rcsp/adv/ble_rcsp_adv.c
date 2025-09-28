@@ -971,7 +971,11 @@ void adv_role_switch_handle(u8 role)
             u8 adv_cmd = 0x4;
             adv_info_device_request(&adv_cmd, sizeof(adv_cmd));             //让手机来请求固件信息
         }
-
+        // 主从切换后, 新主机重新推送一次电量信息
+        if (role == TWS_ROLE_MASTER) {
+            set_ble_adv_notify(1);
+            bt_ble_rcsp_adv_enable();
+        }
         // 如果还需要开广播 并且 一拖二的时候ble还没有连接
         if (bt_rcsp_device_conn_num() < rcsp_max_support_con_dev_num()) {
             if (role == TWS_ROLE_MASTER) {
@@ -996,6 +1000,11 @@ void adv_role_switch_handle(u8 role)
         if (!bt_rcsp_spp_conn_num() && (tws_api_get_role() != TWS_ROLE_SLAVE)) {
             // 新主机开广播
             ble_module_enable(1);
+        }
+        // 主从切换后, 新主机重新推送一次电量信息
+        if (role == TWS_ROLE_MASTER) {
+            set_ble_adv_notify(1);
+            bt_ble_rcsp_adv_enable();
         }
         if (rcsp_ble_con_handle_get() && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
             // 旧主机让手机回连同时断开ble

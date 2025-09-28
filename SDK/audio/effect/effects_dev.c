@@ -35,7 +35,7 @@ void effect_dev_init(struct packet_ctrl *hdl, u32 process_points_per_ch)
 void effect_dev_process(struct packet_ctrl *hdl, struct stream_iport *iport,  struct stream_note *note)
 {
     struct stream_frame *frame;
-    struct stream_frame *out_frame;
+    struct stream_frame *out_frame = NULL;
     struct stream_node *node = iport->node;
 
     if (hdl->remain_buf) {
@@ -126,16 +126,6 @@ void effect_dev_close(struct packet_ctrl *hdl)
         free(hdl->remain_buf);
         hdl->remain_buf = NULL;
     }
-    if (hdl->pack_frame) {
-        free(hdl->pack_frame);
-        hdl->pack_frame = NULL;
-    }
-
-    if (hdl->out_frame) {
-        jlstream_free_frame(hdl->out_frame);
-        hdl->out_frame = NULL;
-    }
-
 }
 
 #if EFFECT_DEV_MULTI_TASK_ENABLE

@@ -63,11 +63,13 @@ struct le_audio_var {
     u8 peer_address[6];					// cig 当前连接的设备地址
     u8 le_audio_tws_role;				// 当前tws主从角色，0:tws主机，1:tws从机
     u8 le_audio_adv_connected;			// leaudio广播连接状态，0xAA:已连上，0:已断开
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    u8 jl_unicast_mode;					// JL_UNICAST_MODE
+#endif
 };
 static struct le_audio_var g_le_audio_hdl;
 extern void ble_vendor_priv_cmd_handle_register(u16(*handle)(u16 hdl, u8 *cmd, u8 len, u8 *rsp));
 extern int ll_hci_vendor_send_priv_cmd(u16 conn_handle, u8 *data, u16 size); //通过hci命令发
-extern void le_audio_adv_api_enable(u8 en);
 extern u8 lmp_get_esco_conn_statu(void);
 
 /**************************************************************************************************
@@ -595,7 +597,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         //提前不进power down，page scan时间太少可能影响手机连接---lihaihua
 #if TCFG_USER_TWS_ENABLE
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
-            puts("role save bread\n");
+            puts("role slave break\n");
             break;
         }
 #endif
@@ -1214,6 +1216,10 @@ u8 le_audio_need_requesting_phone_connection()  //20250618 优化操作进配对
     return 0;   // 1：需要手机回连    0：不需要手机回连
 }
 
+/**
+ * @brief le_audio广播开关设置
+ * @param en 1：开启；0：关闭
+ */
 void le_audio_adv_api_enable(u8 en)
 {
     if (!get_bt_le_audio_config()) {
@@ -1223,6 +1229,11 @@ void le_audio_adv_api_enable(u8 en)
         //退出状态不操作LEA广播
         return;
     }
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (jl_unicast_edr_mode_get() != JL_UNICAST_MODE_DEFAULT) {
+        en = 0;
+    }
+#endif
     if (en) {
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
         if (is_cig_phone_conn()) {
@@ -1559,7 +1570,7 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
 void le_audio_profile_init()
 {
     printf("le_audio_profile_init:%d\n", g_le_audio_hdl.le_audio_profile_ok);
-    if (get_bt_le_audio_config() && g_le_audio_hdl.le_audio_profile_ok == 0) {
+    if (get_bt_le_audio_config() && (g_le_audio_hdl.le_audio_profile_ok == 0)) {
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         le_audio_user_server_profile_init(rcsp_profile_data);
 #endif
@@ -1567,6 +1578,9 @@ void le_audio_profile_init()
         char le_audio_name[LOCAL_NAME_LEN] = "le_audio_";     //le_audio蓝牙名
         u8 tem_len = 0;//strlen(le_audio_name);
         memcpy(&le_audio_name[tem_len], (u8 *)bt_get_local_name(), LOCAL_NAME_LEN - tem_len);
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        jl_unicast_edr_mode_get();
+#endif
 
         le_audio_name_reset((u8 *)le_audio_name, strlen(le_audio_name));
         le_audio_init(1);
@@ -1610,7 +1624,7 @@ static int le_audio_app_msg_handler(int *msg)
     switch (msg[0]) {
     case APP_MSG_STATUS_INIT_OK:
         log_info("APP_MSG_STATUS_INIT_OK");
-#if (TCFG_USER_TWS_ENABLE==0)
+#if (TCFG_USER_TWS_ENABLE == 0)
         le_audio_profile_init();
         le_audio_adv_open_discover_mode();
 #endif
@@ -1768,34 +1782,6 @@ static int le_audio_app_hci_event_handler(int *_event)
 
 
 
-#if TCFG_USER_TWS_ENABLE
-/*一些tws线程消息按需处理*/
-int le_audio_tws_connction_status_event_handler(int *msg)
-{
-    struct tws_event *evt = (struct tws_event *)msg;
-    int role = evt->args[0];
-    int phone_link_connection = evt->args[1];
-    int reason = evt->args[2];
-
-    log_info("le_audo tws-user: role= %d, phone_link_connection %d, reason=%d,event= %d\n",
-             role, phone_link_connection, reason, evt->event);
-
-    switch (evt->event) {
-    case TWS_EVENT_CONNECTED:
-        break;
-    case TWS_EVENT_CONNECTION_DETACH:
-        g_le_audio_hdl.cig_phone_other_conn_status = 0;
-        memset(le_audio_adv_slave_mac, 0xff, 6);
-        break;
-    }
-    return 0;
-}
-APP_MSG_HANDLER(le_audio_tws_msg_handler) = {
-    .owner      = APP_MODE_BT,
-    .from       = MSG_FROM_TWS,
-    .handler    = le_audio_tws_connction_status_event_handler,
-};
-#endif
 APP_MSG_HANDLER(le_audio_hci_msg_entry) = {
     .owner      = 0xff,
     .from       = MSG_FROM_BT_HCI,
@@ -1904,7 +1890,35 @@ u8  le_audio_get_adv_conn_success()
 void le_audio_profile_connected_for_cig_peripheral(u8 status, u16 acl_handle, u8 *addr)
 {
 }
+
 #if TCFG_USER_TWS_ENABLE
+/*一些tws线程消息按需处理*/
+int le_audio_tws_connction_status_event_handler(int *msg)
+{
+    struct tws_event *evt = (struct tws_event *)msg;
+    int role = evt->args[0];
+    int phone_link_connection = evt->args[1];
+    int reason = evt->args[2];
+
+    log_info("le_audo tws-user: role= %d, phone_link_connection %d, reason=%d,event= %d\n",
+             role, phone_link_connection, reason, evt->event);
+
+    switch (evt->event) {
+    case TWS_EVENT_CONNECTED:
+        break;
+    case TWS_EVENT_CONNECTION_DETACH:
+        g_le_audio_hdl.cig_phone_other_conn_status = 0;
+        memset(le_audio_adv_slave_mac, 0xff, 6);
+        break;
+    }
+    return 0;
+}
+APP_MSG_HANDLER(le_audio_tws_msg_handler) = {
+    .owner      = APP_MODE_BT,
+    .from       = MSG_FROM_TWS,
+    .handler    = le_audio_tws_connction_status_event_handler,
+};
+
 /*
  *有些le audio信息TWS之间的同步流程
  * */
@@ -1918,7 +1932,13 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         } else {
             g_le_audio_hdl.le_audio_en_config = 0;
         }
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        g_le_audio_hdl.jl_unicast_mode = data[3];
+        log_debug("set_le_audio_surport_config cpu_reset=%d, jl_unicast_mode=%d\n", g_le_audio_hdl.le_audio_en_config, g_le_audio_hdl.jl_unicast_mode);
+        syscfg_write(CFG_JL_UNICAST_EDR_MODE, &(g_le_audio_hdl.jl_unicast_mode), 1);
+#else
         log_debug("set_le_audio_surport_config cpu_reset=%d\n", g_le_audio_hdl.le_audio_en_config);
+#endif
         syscfg_write(CFG_LE_AUDIO_EN, &(g_le_audio_hdl.le_audio_en_config), 1);
         le_audio_surport_config_change_addr(data[2]);
         bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
@@ -1999,11 +2019,16 @@ REGISTER_TWS_FUNC_STUB(app_vol_sync_stub) = {
  * */
 void tws_sync_le_audio_en_info(u8 random)
 {
-    u8 data[3];
+    u8 data[4];
     data[0] = LE_AUDIO_CONFIG_EN;
     data[1] = g_le_audio_hdl.le_audio_en_config;
     data[2] = random;
-    tws_api_send_data_to_slave(data, 3, 0x23782C5B);
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    data[3] = g_le_audio_hdl.jl_unicast_mode;
+#else
+    data[3] = 0;
+#endif
+    tws_api_send_data_to_slave(data, 4, 0x23782C5B);
 
 }
 /*
@@ -2073,22 +2098,113 @@ static void tws_sync_le_audio_adv_mac_to_master()
     }
 }
 #endif
+
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+
+/**
+ * @brief 获取当前JLUNICAST模式的状态
+ *
+ * @return JL_UNICAST_MODE
+ */
+u8 jl_unicast_edr_mode_get()
+{
+    int ret = syscfg_read(CFG_JL_UNICAST_EDR_MODE, &(g_le_audio_hdl.jl_unicast_mode), 1);
+    if (ret != 1) {
+        g_le_audio_hdl.jl_unicast_mode = JL_UNICAST_MODE_EDR;
+        printf("jl_unicast_edr_mode_get fail:%d\n", g_le_audio_hdl.jl_unicast_mode);
+    } else {
+        printf("jl_unicast_edr_mode_get:%d\n", g_le_audio_hdl.jl_unicast_mode);
+    }
+    return g_le_audio_hdl.jl_unicast_mode;
+}
+
+static void jl_unicast_edr_mode_switch_in_app_core()
+{
+#if TCFG_USER_TWS_ENABLE
+    if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
+        printf("jl_unicast_edr_mode_switch_in_app_core fail, tws disconnect\n");
+        return;
+    }
+#endif
+    jl_unicast_edr_mode_get();
+    u8 _jl_unicast_mode = g_le_audio_hdl.jl_unicast_mode + 1;     // dongle模式和手机模式轮流切换
+    if (_jl_unicast_mode >= JL_UNICAST_MODE_UNKNOW) {
+        _jl_unicast_mode = JL_UNICAST_MODE_DEFAULT;
+    }
+    y_printf("jl_unicast_edr_mode_switch_in_app_core = %d\n", _jl_unicast_mode);
+
+    if (_jl_unicast_mode == JL_UNICAST_MODE_DEFAULT) {    // jlunicast模式
+        le_audio_surport_config(1);
+    } else {
+        le_audio_surport_config(0);
+    }
+    sys_enter_soft_poweroff(POWEROFF_RESET);
+}
+
+/**
+ * @brief 控制dongle模式和手机模式切换，切换后复位生效
+ */
+void jl_unicast_edr_mode_switch(void)
+{
+    printf("jl_unicast_edr_mode_switch\n");
+#if TCFG_USER_TWS_ENABLE
+    int ret = tws_api_sync_call_by_uuid(0X1979EF3B, 0, 400);
+    if (ret != 0) {
+        printf("jl_unicast_edr_mode_switch fail, ret=%d\n", ret);
+    }
+#else
+    jl_unicast_edr_mode_switch_in_app_core();
+#endif
+}
+
+#if TCFG_USER_TWS_ENABLE
+
+static void jl_unicast_edr_mode_switch_tws_sync_in_app_core(int args, int err)
+{
+    printf("jl_unicast_edr_mode_switch_tws_sync_in_app_core\n");
+    jl_unicast_edr_mode_switch_in_app_core();
+}
+
+TWS_SYNC_CALL_REGISTER(jl_unicast_edr_mode_switch_tws_sync) = {
+    .uuid = 0X1979EF3B,
+    .task_name = "app_core",
+    .func = jl_unicast_edr_mode_switch_tws_sync_in_app_core,
+};
+
+#endif
+
+#endif // TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+
+
 /* ----------------------------------------------------------------------------*/
 /**
  * @brief  一开始设计是用于app动态配置le audio的功能开关，配置会记录在VM
  *
- * @param   le_auido_en  1-enable   0-disable
+ * @param   le_audio_en  1-enable   0-disable
  * @return  void
  */
 /* ----------------------------------------------------------------------------*/
-void le_audio_surport_config(u8 le_auido_en)
+void le_audio_surport_config(u8 le_audio_en)
 {
+#if TCFG_USER_TWS_ENABLE
+    if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
+        printf("le_audio_surport_config fail, tws disconnect\n");
+        return;
+    }
+#endif
     u8 addr[6] = {0};
-#if TCFG_BT_DUAL_CONN_ENABLE
-    set_dual_conn_config(addr, !le_auido_en);//le_audio en close dual_conn
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (le_audio_en) {
+        g_le_audio_hdl.jl_unicast_mode = JL_UNICAST_MODE_DEFAULT;
+    } else {
+        g_le_audio_hdl.jl_unicast_mode = JL_UNICAST_MODE_EDR;
+    }
+    syscfg_write(CFG_JL_UNICAST_EDR_MODE, &(g_le_audio_hdl.jl_unicast_mode), 1);
+    log_debug("le_audio_surport_config jl_unicast_mode=%d\n", g_le_audio_hdl.jl_unicast_mode);
 #endif
 #if TCFG_BT_DUAL_CONN_ENABLE
-    if (le_auido_en) {
+    set_dual_conn_config(addr, !le_audio_en);//le_audio en close dual_conn
+    if (le_audio_en) {
         g_le_audio_hdl.le_audio_en_config = 1;
     } else {
         g_le_audio_hdl.le_audio_en_config = 0;
@@ -2096,7 +2212,7 @@ void le_audio_surport_config(u8 le_auido_en)
     syscfg_write(CFG_LE_AUDIO_EN, &(g_le_audio_hdl.le_audio_en_config), 1);
     bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
     bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
-    log_debug("set_le_audio_surport_config=%d\n", g_le_audio_hdl.le_audio_en_config);
+    log_debug("le_audio_surport_config le_audio_en_config=%d\n", g_le_audio_hdl.le_audio_en_config);
     u8 random = (u8)rand32();
     le_audio_surport_config_change_addr(random);
 #if TCFG_USER_TWS_ENABLE
@@ -2106,9 +2222,9 @@ void le_audio_surport_config(u8 le_auido_en)
 
 }
 
-void set_le_audio_surport_config(u8 le_auido_en)
+void set_le_audio_surport_config(u8 le_audio_en)
 {
-    app_send_message(APP_MSG_LE_AUDIO_MODE, le_auido_en);
+    app_send_message(APP_MSG_LE_AUDIO_MODE, le_audio_en);
 }
 
 /**
@@ -2145,15 +2261,17 @@ u8 get_bt_le_audio_config()
 /* ----------------------------------------------------------------------------*/
 u8 get_bt_le_audio_config_for_vm()
 {
-#if 1//default support le_audio
+#if !TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    //default support le_audio
     g_le_audio_hdl.le_audio_en_config = 1;
-    return 1;
+    return g_le_audio_hdl.le_audio_en_config;
 #else
     int ret = syscfg_read(CFG_LE_AUDIO_EN, &(g_le_audio_hdl.le_audio_en_config), 1);
     if (ret == 1) {
         log_debug("get_bt_le_audio_config_for_vm=%d\n", g_le_audio_hdl.le_audio_en_config);
         return g_le_audio_hdl.le_audio_en_config;
     }
+    log_debug("get_bt_le_audio_config_for_vm fail\n");
     return 0;
 #endif
 }

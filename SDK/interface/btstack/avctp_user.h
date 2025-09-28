@@ -140,6 +140,9 @@ typedef enum {
     USER_CTRL_HFP_CMD_FUNCTION1,            //预留HFP命令位置
     USER_CTRL_HFP_CMD_FUNCTION2,            //预留HFP命令位置
     USER_CTRL_HFP_CMD_END,
+    USER_CTRL_HFP_MIC_VOLUME_UP,
+    USER_CTRL_HFP_MIC_VOLUME_DOWN,
+    USER_CTRL_HFP_MIC_SET_VOLUME,
 
     //音乐控制部分
     USER_CTRL_AVCTP_CMD_BEGIN       = 0x40,
@@ -451,6 +454,7 @@ typedef enum {
 
     BT_STATUS_TRIM_OVER,        /*测试盒TRIM完成*/
     BT_STATUS_PHONE_NAME,   /*获取来电号码name*/
+    BT_STATUS_CALL_MIC_VOL_CHANGE,
 } STATUS_FOR_USER;
 
 typedef enum {

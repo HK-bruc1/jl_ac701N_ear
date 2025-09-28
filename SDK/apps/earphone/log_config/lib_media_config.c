@@ -17,6 +17,7 @@
 #include "audio_config.h"
 #include "media/audio_def.h"
 #include "audio_config_def.h"
+#include "jlstream.h"
 
 
 /*
@@ -49,6 +50,7 @@ const int CONFIG_STREAM_BIN_ENC_ENABLE = 0;
 #endif
 
 const int config_jlstream_node_report_enable = TCFG_CFG_TOOL_ENABLE;
+const int CONFIG_JLSTREAM_SCENE_DEBUG = STREAM_SCENE_NONE;
 
 //音频流位宽配置
 #ifndef MEDIA_24BIT_ENABLE

@@ -8,7 +8,7 @@
 struct virtual_surround_hp_udpate {
     //环境声渲染
     int render_angle;
-    int no_crosstalk_mode;
+    int crosstalk_mode;
     float input_gain;
     float output_gain;
     float float_rev1;

@@ -164,7 +164,12 @@ RESFILE *cfg_open_file(u32 file_id)
     } else if (file_id == CFG_EFFECT_CFG_FILEID) {
         cfg_fp = resfile_open(CFG_EFFECT_CFG_FILE);
     } else if (file_id == CFG_DNSFB_COEFF_FILEID) {
+        /*目前工具共用一个ID,不支持3mic和cvp_v3 3mic同时存在一个流程且在无aec流程启动时，读取bin文件*/
+#if TCFG_AUDIO_CVP_V3_MODE
+        cfg_fp = resfile_open(CFG_CVP_V3_COEFF_FILE);
+#else
         cfg_fp = resfile_open(CFG_DNSFB_COEFF_FILE);
+#endif
     }
     return cfg_fp;
 }
@@ -707,7 +712,11 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"stream.bin");
         } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+#if TCFG_AUDIO_CVP_V3_MODE
+            app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"CVP_V3_CFG.bin");
+#else
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"DNSFB_Coeff.bin");
+#endif
         }
         break;
 
@@ -798,7 +807,11 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             }
         } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
             if (a >= b) {
+#if TCFG_AUDIO_CVP_V3_MODE
+                app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"CVP_V3_CFG.bin");
+#else
                 app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"DNSFB_Coeff.bin");
+#endif
             }
         }
         break;

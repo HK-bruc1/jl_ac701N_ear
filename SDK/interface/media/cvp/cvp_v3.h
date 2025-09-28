@@ -22,7 +22,9 @@
 #define CVP_V3_2MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0x00FFF0)
 #define CVP_V3_3MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0xFF0000)
 
-
+/* Beamforming 版本控制*/
+#define JLSP_BF_V100					0xA1
+#define JLSP_BF_V200					0xA2
 
 typedef struct {
     u8 ver;							//Ver:01

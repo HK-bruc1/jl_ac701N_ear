@@ -1191,6 +1191,12 @@ void rcsp_bt_ble_adv_enable(u8 enable)
             return;
         }
     }
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (jl_unicast_edr_mode_get() == JL_UNICAST_MODE_DEFAULT) {
+        enable = 0;
+        y_printf("JL_UNICAST_MODE_DEFAULT dont support ble\n");
+    }
+#endif
 #endif
     set_adv_enable(0, enable);
 }

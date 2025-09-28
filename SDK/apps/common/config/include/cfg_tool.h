@@ -51,6 +51,7 @@
 /*可视化配置工具DNSFB_Coeff.bin文件所属文件ID为4*/
 #define CFG_DNSFB_COEFF_FILEID	0x00000004
 #define CFG_DNSFB_COEFF_FILE    FLASH_RES_PATH"DNSFB_Coeff.bin"
+#define CFG_CVP_V3_COEFF_FILE   FLASH_RES_PATH"CVP_V3_CFG.bin"
 #define CFG_DNSTALK_COEFF_FILE  FLASH_RES_PATH"DNSTK_Coeff.bin"
 
 #define CFG_TOOL_READ_LIT_U16(a)   (*((u8*)(a))  + (*((u8*)(a)+1)<<8))

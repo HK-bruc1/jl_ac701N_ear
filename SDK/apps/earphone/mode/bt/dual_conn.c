@@ -107,6 +107,16 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         conn_enable = 0;
     }
 #endif
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (jl_unicast_edr_mode_get() == JL_UNICAST_MODE_DEFAULT) {
+        scan_enable = 0;
+        conn_enable = 0;
+        y_printf("JL_UNICAST_MODE_DEFAULT disbale scan conn\n");
+    } else if (jl_unicast_edr_mode_get() == JL_UNICAST_MODE_EDR) {
+        le_audio_adv_api_enable(0);
+        y_printf("JL_UNICAST_MODE_EDR disbale le_audio_adv\n");
+    }
+#endif
 #endif
     if (classic_update_task_exist_flag_get()) {
         g_printf("bt dual close for update\n");

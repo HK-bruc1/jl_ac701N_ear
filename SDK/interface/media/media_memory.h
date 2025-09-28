@@ -66,6 +66,7 @@ enum audio_module {
     AUD_MODULE_SPATIAL_BRIR_TMPBUF,
     //Codec Modules
     AUD_MODULE_AAC,
+    AUD_MODULE_AAC_TMP,
     AUD_MODULE_AAC_ENERGY,
     AUD_MODULE_LC3_DEC,
     AUD_MODULE_LC3_ENC,
@@ -137,6 +138,7 @@ static const char *mm_module[] = {
     "SpatialBRIRTmp",
     //Codec Modules
     "AAC_Dec",
+    "AAC_Dec_Tmp",
     "AACEnergy",
     "LC3_Dec",
     "LC3_Enc",

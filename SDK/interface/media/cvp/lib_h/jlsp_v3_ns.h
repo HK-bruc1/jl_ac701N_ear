@@ -29,6 +29,7 @@ typedef enum  {
     TRI_FUSION_TYPE = BIT(16),	//三麦融合
     TRI_TELE_TYPE = BIT(17),	//三麦话务
     TRI_BONE_TYPE = BIT(18),	//三麦骨传
+
 } enum_seType;
 
 
@@ -43,6 +44,14 @@ typedef enum {
     FB_FUSION_TYPE_V5,
     FB_FUSION_TYPE_V6,
 } enum_fbFusion;
+
+
+
+//bf类型
+typedef enum {
+    BF_TYPE_V1,
+    BF_TYPE_V2,
+} enum_bfType;
 
 
 
@@ -61,6 +70,8 @@ typedef struct {
     int micEnNum;
 } JLSP_mic_v3_cfg_t;
 
+
+
 //出现单个麦掩蔽参数配置
 typedef struct {
     float detectTime; //
@@ -71,6 +82,7 @@ typedef struct {
     int onlyDetect;
 
 } JLSP_micsel_v3_cfg_t;
+
 
 
 //beamforming参数配置
@@ -84,7 +96,7 @@ typedef struct {
     float aggressFactor;
     float minSuppress;
 
-    // steering vector param.
+    //steering vector param.
     float *steer_vec1;
     float *steer_vec2;
     float *ds_steer_vec;
@@ -96,19 +108,23 @@ typedef struct {
     u8 bfMainLobeMic;
     u8 bfSideLobeMic;
 
+    //beamforming类型
+    enum_bfType type;
+
+    float supressFactor;
+
+    // post directional enhancement enable bit
+    int bfPost_en;
+
 } JLSP_bf_v3_cfg_t;
 
 
 
-
-
-
 //三麦降噪参数配置
-
 typedef struct {
     int fusionFreq;
-    float snrDbTh;
-    float magDbTh;
+    float dBTh1;
+    float dBTh2;
     enum_fbFusion type;
 
 } JLSP_fusion_cfg_t;
@@ -151,8 +167,6 @@ typedef struct {
 } JLSP_wind_v3_cfg_t;
 
 
-
-
 //drc参数配置
 typedef struct {
     float compressAttackTime;
@@ -176,7 +190,11 @@ typedef struct {
 } JLSP_drc_v3_cfg_t;
 
 
-//===============================流程控制结构体
+
+
+//=========================================================================
+//===========================流程控制结构体================================
+//=========================================================================
 
 //单麦降噪参数配置
 typedef struct {
@@ -191,7 +209,7 @@ typedef struct {
     int externalEnableBit;
 
     int spe_att_en;		// SPE_ATT enable/disenable
-    int mcra_en;		// MCRA enable/disenable
+    int post_pro_en;		// MCRA enable/disenable
 
     float preGainDb;
     float singleCompenDb;
@@ -217,13 +235,14 @@ typedef struct {
     float dualCompenDb; //mic增益补偿
 
     int spe_att_en;		// SPE_ATT enable/disenable
-    int mcra_en;		// MCRA enable/disenable
+    int post_pro_en;		// MCRA enable/disenable
     int noise_est_en;	// NOISE_EST enable/disenable
 
     float aggressFactor;
     float minSupress;
 
     int externalEnableBit;
+
 
 } JLSP_dual_bf_v3_cfg_t;
 
@@ -248,7 +267,7 @@ typedef struct {
     float triCompenDb; 	// mic增益补偿
 
     int spe_att_en;		// SPE_ATT enable/disenable
-    int mcra_en;		// MCRA enable/disenable
+    int post_pro_en;		// MCRA enable/disenable
     int noise_est_en;	// NOISE_EST enable/disenable
 
     float aggressFactor;
@@ -354,8 +373,9 @@ typedef struct {
 } JLSP_params_v3_cfg;
 
 
-
-//==================函数接口参数配置=====================
+//=========================================================================
+//===========================函数接口参数配置==============================
+//=========================================================================
 typedef enum {
     // common function port
     SET_WBORNB_EQ,           // set EQ
@@ -377,26 +397,31 @@ typedef enum {
     TRI_GET_MIC_STATE,       // get micsel state: `0` for dual_mic, `1` for mic0, `2` for mic1
 } enum_portName;
 
+
 typedef struct {
     u8 is_wb;
     float *eqCoeffs;
 } JLSP_set_wbornb_eq;
+
 
 typedef struct {
     u8 isAncOn;        // 1 for anc off, 2/3 for anc on
     u8 ancMode;        // Not inplement for the moment
 } JLSP_set_anc_state_mode;
 
+
 typedef struct {
     u8 isAncon;        // 1 for anc off, 2/3 for anc on
     float *fb2main_eq; // Corresponding fb2main_eq
 } JLSP_set_fb2main_eq;
+
 
 typedef struct {
     float attThreshold;
     float keepSilenceTime;
     float attTime;
 } JLSP_set_att_time_th;
+
 
 typedef struct {
     int wd_flag;

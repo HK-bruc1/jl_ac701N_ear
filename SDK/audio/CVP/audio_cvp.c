@@ -926,6 +926,20 @@ void aec_input_clear_enable(u8 enable)
 #endif/*TCFG_AUDIO_DUAL_MIC_ENABLE == 0) && TCFG_AUDIO_TRIPLE_MIC_ENABLE == 0*/
 #endif /*TCFG_CVP_DEVELOP_ENABLE*/
 
+const u16 audio_cvp_uuid_table[10] = {
+    NODE_UUID_CVP_SMS_ANS,
+    NODE_UUID_CVP_SMS_DNS,
+    NODE_UUID_CVP_DMS_ANS,
+    NODE_UUID_CVP_DMS_DNS,
+    NODE_UUID_CVP_DMS_FLEXIBLE_DNS,
+
+    NODE_UUID_CVP_DMS_FLEXIBLE_ANS,
+    NODE_UUID_CVP_DMS_HYBRID_DNS,
+    NODE_UUID_CVP_DMS_AWN_DNS,
+    NODE_UUID_CVP_3MIC,
+    NODE_UUID_CVP_V3
+};
+
 struct cvp_context_setup {
     u16 active_node_uuid;
     u8(*aec_status)(void);
@@ -1031,3 +1045,13 @@ u16 get_cvp_node_uuid()
     y_printf("get cvp node uuid:%x\n", g_cvp_context.active_node_uuid);
     return g_cvp_context.active_node_uuid;
 }
+
+u8 get_cvp_context_status(void)
+{
+    if (g_cvp_context.aec_status != NULL) {
+        return g_cvp_context.aec_status();
+    }
+    return 0;
+}
+
+

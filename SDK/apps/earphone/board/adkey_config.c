@@ -103,7 +103,7 @@ bool is_adkey_press_down()
         return false;
     }
 
-    if (adc_get_value(g_adkey_platform_data.ad_channel) < 10) {
+    if (adc_get_value_blocking(g_adkey_platform_data.ad_channel) < 10) {
         return true;
     }
 #endif

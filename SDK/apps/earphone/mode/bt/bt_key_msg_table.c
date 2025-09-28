@@ -14,7 +14,7 @@
 #include "poweroff.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 #include "app_le_connected.h"
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
@@ -183,7 +183,7 @@ int bt_key_power_msg_remap(int *msg)
         }
     } else {
         /* 非通话相关场景下按键流程 */
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
         int tws_cig_state = is_cig_phone_conn();
         if ((tws_state & TWS_STA_PHONE_CONNECTED) || tws_cig_state) { //已连接手机经典蓝牙或者cig
 #elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
@@ -258,13 +258,17 @@ int bt_key_power_msg_remap(int *msg)
         app_msg = APP_MSG_KEY_POWER_OFF;
 #endif
         break;
-#if (TCFG_USER_TWS_ENABLE && (CONFIG_TWS_PAIR_MODE == CONFIG_TWS_PAIR_BY_CLICK))
     case KEY_ACTION_FOURTH_CLICK:
+#if (TCFG_USER_TWS_ENABLE && (CONFIG_TWS_PAIR_MODE == CONFIG_TWS_PAIR_BY_CLICK))
         if (tws_state & TWS_STA_TWS_UNPAIRED) { // TWS未配对，按键配对
             app_msg = APP_MSG_TWS_START_PAIR;
-            break;
         }
+#else
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN) && TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        jl_unicast_edr_mode_switch();
 #endif
+#endif
+        break;
     default:
         break;
     }

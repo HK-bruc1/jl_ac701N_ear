@@ -47,6 +47,40 @@ int esco_recoder_open(u8 link_type, void *bt_addr)
     return esco_recoder_open_extended(bt_addr, ext_type, NULL);
 }
 
+
+struct jlstream *esco_recoder_stream_search(u16 *source_uuid)
+{
+    struct jlstream *stream = NULL;
+    u16 uuid_temp;
+
+    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"esco");
+    if (uuid == 0) {
+        return NULL;
+    }
+
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    stream = jlstream_pipeline_parse_by_node_name(uuid, "esco_adc");
+    if (!stream) {
+        stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+    }
+#else
+    stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
+#endif
+    uuid_temp = NODE_UUID_ADC;
+    if (!stream) {
+        stream = jlstream_pipeline_parse(uuid, NODE_UUID_PDM_MIC);
+        uuid_temp = NODE_UUID_PDM_MIC;
+    }
+    if (!stream) {
+        stream = jlstream_pipeline_parse(uuid, NODE_UUID_IIS0_RX);
+        uuid_temp = NODE_UUID_IIS0_RX;
+    }
+    if (source_uuid) {
+        *source_uuid = uuid_temp;
+    }
+    return stream;
+}
+
 int esco_recoder_open_extended(void *bt_addr, int ext_type, void *ext_param)
 {
     int err;
@@ -57,34 +91,13 @@ int esco_recoder_open_extended(void *bt_addr, int ext_type, void *ext_param)
     if (g_esco_recoder) {
         return -EBUSY;
     }
-    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"esco");
-    if (uuid == 0) {
-        return -EFAULT;
-    }
-
     recoder = malloc(sizeof(*recoder));
     if (!recoder) {
         return -ENOMEM;
     }
 
+    recoder->stream = esco_recoder_stream_search(&source_uuid);
 
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    recoder->stream = jlstream_pipeline_parse_by_node_name(uuid, "esco_adc");
-    if (!recoder->stream) {
-        recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
-    }
-#else
-    recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_ADC);
-#endif
-    source_uuid = NODE_UUID_ADC;
-    if (!recoder->stream) {
-        recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_PDM_MIC);
-        source_uuid = NODE_UUID_PDM_MIC;
-    }
-    if (!recoder->stream) {
-        recoder->stream = jlstream_pipeline_parse(uuid, NODE_UUID_IIS0_RX);
-        source_uuid = NODE_UUID_IIS0_RX;
-    }
     if (!recoder->stream) {
         err = -ENOMEM;
         goto __exit0;

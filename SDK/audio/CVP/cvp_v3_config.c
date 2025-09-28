@@ -25,7 +25,7 @@ const JLSP_micsel_v3_cfg_t micsel_init_cfg = {
 const JLSP_bf_v3_cfg_t bf_init_cfg = {
     .encProcessMaxFrequency = 8000,
     .encProcessMinFrequency = 0,
-    .micDistance = 0.025f,
+    .micDistance = 0.015f,
     .sirMaxFreq = 3000,
     .targetSignalDegradation = 1.0f,
     .aggressFactor = 1.0f,
@@ -38,13 +38,24 @@ const JLSP_bf_v3_cfg_t bf_init_cfg = {
     .bfDualAdaptiveFilter = 0,
     .bfDrvTypeHyper = 0,
     .bfMainLobeMic = 1,
-    .bfSideLobeMic = 0
+    .bfSideLobeMic = 0,
+    /*可配用宏*/
+    //V1 + post_en = 1<==>1代bf    V2 + post_en<==> 3代算法且无需配置ENCMIC补偿值
+    .supressFactor = 0.6f,
+#if (CVP_BF_VERSION == JLSP_BF_V100)
+    .type = BF_TYPE_V1,
+    .bfPost_en = 1
+#else
+    .type = BF_TYPE_V2,
+    .bfPost_en = 0
+#endif
 };
+
 
 const JLSP_fusion_cfg_t fusion_init_cfg = {
     .fusionFreq = 2000,
-    .snrDbTh = 1,
-    .magDbTh = 105,
+    .dBTh1 = 1,
+    .dBTh2 = 105,
     .type = FB_FUSION_TYPE_V5,
 };
 
@@ -137,7 +148,7 @@ const JLSP_single_v3_cfg_t single_init_cfg = {
     .singleNbEq = NULL,
     .samplerate = 16000,
     .spe_att_en = 0,	// 1 for enable, else for disable.
-    .mcra_en = 0,		// 1 for enable, else for disable.
+    .post_pro_en = 0,		// 1 for enable, else for disable.
     .processMaxFrequency = 8000,
     .processMinFrequency = 0,
     .preGainDb = 0.0f,
@@ -163,7 +174,7 @@ const JLSP_dual_bf_v3_cfg_t dual_bf_init_cfg = {
 
 
     .spe_att_en = 0,	// 1 for enable, else for disable.
-    .mcra_en = 0,		// 1 for enable, else for disable.
+    .post_pro_en = 0,		// 1 for enable, else for disable.
     .noise_est_en = 0,		// 1 for enable, else for disable.
 
     .aggressFactor = 1.0f,
@@ -185,7 +196,7 @@ const JLSP_tri_v3_cfg_t tri_init_cfg = {
     .triFbCompenDb = 0.0f,	//fb增益补偿
     //.Tri_TransferMode = 0,
     .spe_att_en = 0,	// 1 for enable, else for disable.
-    .mcra_en = 0,		// 1 for enable, else for disable.
+    .post_pro_en = 0,		// 1 for enable, else for disable.
     .noise_est_en = 0,		// 1 for enable, else for disable.
 
     .samplerate = 16000,

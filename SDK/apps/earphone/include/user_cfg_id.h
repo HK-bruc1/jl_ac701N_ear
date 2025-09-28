@@ -83,5 +83,8 @@
 #define     CFG_FMNA_SOFTWARE_AUTH_FLAG      181
 #define     CFG_FMY_INFO                     182
 
+// le_audio
+#define		CFG_JL_UNICAST_EDR_MODE			 186 // jlunicast模式切换
+
 
 #endif /* #ifndef _USER_CFG_ID_H_ */

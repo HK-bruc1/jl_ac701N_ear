@@ -34,6 +34,11 @@ enum {
     APP_CONNECTED_STATUS_PHONE_CALL = 0x40, // 通话状态
 }; // CIG状态
 
+typedef enum {
+    JL_UNICAST_MODE_DEFAULT = 0,			// JLUNICAST模式
+    JL_UNICAST_MODE_EDR,					// 手机模式
+    JL_UNICAST_MODE_UNKNOW,
+} JL_UNICAST_MODE; // JL_UNICAST和EDR独立模式切换
 
 /**************************************************************************************************
   Function Declarations
@@ -109,6 +114,14 @@ void app_connected_open_in_other_mode();
  */
 /* ----------------------------------------------------------------------------*/
 void app_connected_close_in_other_mode();
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief le_audio广播开关设置
+ * @param en 1：开启；0：关闭
+ */
+/* ----------------------------------------------------------------------------*/
+void le_audio_adv_api_enable(u8 en);
 
 /* ----------------------------------------------------------------------------*/
 /**
@@ -189,11 +202,11 @@ void tws_sync_le_audio_conn_info();
 /**
  * @brief  一开始设计是用于app动态配置le audio的功能开关，配置会记录在VM
  *
- * @param   le_auido_en  1-enable   0-disable
+ * @param   le_audio_en  1-enable   0-disable
  * @return  void
  */
 /* ----------------------------------------------------------------------------*/
-void le_audio_surport_config(u8 le_auido_en);
+void le_audio_surport_config(u8 le_audio_en);
 
 /* --------------------------------------------------------------------------*/
 /**
@@ -291,6 +304,22 @@ int le_audio_unicast_play_stop_by_esco();
 /* @brief   获取dongle耳机的编解码类型 */
 /* ----------------------------------------------------------------------------*/
 u32 le_audio_get_dongle_codec_type(void);
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief 获取当前JLUNICAST模式的状态
+ *
+ * @return JL_UNICAST_MODE
+ */
+/* ----------------------------------------------------------------------------*/
+u8 jl_unicast_edr_mode_get();
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief 控制dongle模式和手机模式切换，切换后复位生效
+ */
+/* ----------------------------------------------------------------------------*/
+void jl_unicast_edr_mode_switch();
 
 #ifdef __cplusplus
 };
