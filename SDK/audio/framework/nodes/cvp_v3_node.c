@@ -98,12 +98,6 @@ struct CVP_MFDT_CONFIG {
     int OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
 }  __attribute__((packed));
 
-struct CVP_FLUSION_CONFIG {
-    int fusionFreq;
-    float MagTh1;
-    float MagTh2;
-} __attribute__((packed));
-
 struct CVP_FLOW_CONFIG {
     float preGainDb;	//ADC前级增益， default:0dB(0 ~ 30dB)
     float CompenDb;		//流程补偿增益，default:0dB(0 ~ 30dB)
@@ -220,29 +214,31 @@ void cvp_v3_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
     }
 #if (TCFG_CVP_ALGO_TYPE > 0xF)
     //双麦 三麦
-    if ((g_cvp_hdl->algo_sel.algo_type & CVP_TYPE_2MIC) || (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_3MIC)) {
-        //enc
-        p->enc_process_maxfreq = cfg->enc.enc_process_maxfreq;
-        p->enc_process_minfreq = cfg->enc.enc_process_minfreq;
-        p->sir_maxfreq = cfg->enc.sir_maxfreq;
-        p->mic_distance = cfg->enc.mic_distance / 1000.0f;	//mm换算成m
-        p->target_signal_degradation = eq_db2mag(cfg->enc.target_signal_degradation);	//dB转浮点
-        p->enc_aggressfactor = cfg->enc.enc_aggressfactor;
-        p->enc_minsuppress = cfg->enc.enc_minsuppress;
-    }
-    //双麦三麦有wnc mfdt
-    if ((g_cvp_hdl->algo_sel.algo_type & CVP_TYPE_2MIC) || (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_3MIC)) {
-        //wnc
-        p->windProbHighTh = cfg->wnc.windProbHighTh;
-        p->windProbLowTh = cfg->wnc.windProbLowTh;
-        p->windEngDbTh = cfg->wnc.windEngDbTh;
-        //mfdt
-        p->detect_time = cfg->mfdt.detect_time;            // in second
-        p->detect_eng_diff_thr = cfg->mfdt.detect_eng_diff_thr;     //  dB
-        p->detect_eng_lowerbound = cfg->mfdt.detect_eng_lowerbound; // 0~-90 dB start detect when mic energy lower than this
-        p->MalfuncDet_MaxFrequency = cfg->mfdt.MalfuncDet_MaxFrequency;  //检测频率上限
-        p->MalfuncDet_MinFrequency = cfg->mfdt.MalfuncDet_MinFrequency;   //检测频率下限
-        p->OnlyDetect = cfg->mfdt.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+    if (!(g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_2MIC_FLEXIBLE)) {
+        if ((g_cvp_hdl->algo_sel.algo_type & CVP_TYPE_2MIC) || (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_3MIC)) {
+            //enc
+            p->enc_process_maxfreq = cfg->enc.enc_process_maxfreq;
+            p->enc_process_minfreq = cfg->enc.enc_process_minfreq;
+            p->sir_maxfreq = cfg->enc.sir_maxfreq;
+            p->mic_distance = cfg->enc.mic_distance / 1000.0f;	//mm换算成m
+            p->target_signal_degradation = eq_db2mag(cfg->enc.target_signal_degradation);	//dB转浮点
+            p->enc_aggressfactor = cfg->enc.enc_aggressfactor;
+            p->enc_minsuppress = cfg->enc.enc_minsuppress;
+        }
+        //双麦三麦有wnc mfdt
+        if ((g_cvp_hdl->algo_sel.algo_type & CVP_TYPE_2MIC) || (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_3MIC)) {
+            //wnc
+            p->windProbHighTh = cfg->wnc.windProbHighTh;
+            p->windProbLowTh = cfg->wnc.windProbLowTh;
+            p->windEngDbTh = cfg->wnc.windEngDbTh;
+            //mfdt
+            p->detect_time = cfg->mfdt.detect_time;            // in second
+            p->detect_eng_diff_thr = cfg->mfdt.detect_eng_diff_thr;     //  dB
+            p->detect_eng_lowerbound = cfg->mfdt.detect_eng_lowerbound; // 0~-90 dB start detect when mic energy lower than this
+            p->MalfuncDet_MaxFrequency = cfg->mfdt.MalfuncDet_MaxFrequency;  //检测频率上限
+            p->MalfuncDet_MinFrequency = cfg->mfdt.MalfuncDet_MinFrequency;   //检测频率下限
+            p->OnlyDetect = cfg->mfdt.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+        }
     }
 #endif
     //flow

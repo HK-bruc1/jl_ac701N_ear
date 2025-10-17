@@ -1039,6 +1039,9 @@ void anc_init(void)
     anc_hdl->param.gains.adaptive_ref_fb_q = 0.4;
 #if ANC_COEFF_SAVE_ENABLE
     anc_db_init();
+#if ANC_COEFF_OTA_UPDATE_ENABLE
+    anc_config_rsfile_read(&anc_hdl->param);
+#endif
     audio_anc_db_cfg_read();
 #endif/*ANC_COEFF_SAVE_ENABLE*/
 

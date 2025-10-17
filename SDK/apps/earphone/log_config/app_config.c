@@ -131,6 +131,12 @@ const char log_tag_const_d_AEC_USER  = FALSE;
 const char log_tag_const_w_AEC_USER  = TRUE;
 const char log_tag_const_e_AEC_USER  = TRUE;
 
+const char log_tag_const_v_CVP_USER  = FALSE;
+const char log_tag_const_i_CVP_USER  = TRUE;
+const char log_tag_const_d_CVP_USER  = FALSE;
+const char log_tag_const_w_CVP_USER  = TRUE;
+const char log_tag_const_e_CVP_USER  = TRUE;
+
 const char log_tag_const_v_BT_BLE  = 0;
 const char log_tag_const_i_BT_BLE  = 0;
 const char log_tag_const_d_BT_BLE  = 1;

@@ -15,6 +15,7 @@
 #include "app_main.h"
 #include "mic_effect.h"
 #include "audio_config_def.h"
+#include "audio_dac.h"
 
 static void mic_effect_ram_code_load();
 static void mic_effect_ram_code_unload();
@@ -309,6 +310,7 @@ void mic_effect_dvol_down(void)
 /**********************************辅听接口**************************/
 int hearing_aid_player_open()
 {
+    DAC_NOISEGATE_OFF();
     return mic_effect_player_create(MIC_EFX_DHA);
 }
 
@@ -319,6 +321,7 @@ bool hearing_aid_player_runing()
 
 void hearing_aid_player_close()
 {
+    DAC_NOISEGATE_ON();
     mic_effect_player_delete();
 }
 

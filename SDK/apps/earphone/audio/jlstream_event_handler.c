@@ -442,8 +442,12 @@ static int get_output_node_delay(int arg)
 {
 #if !TCFG_JLSTREAM_EFFICIENT_MODE
     if (arg == STREAM_SCENE_A2DP && CONFIG_EXTWS_NACK_LIMIT_INT_CNT < 63) {
+#ifdef TCFG_HI_RES_AUDIO_ENEBALE
+        return 50/*ms*/;
+#else
         /*A2DP模式下，DAC或输出设备在监听+转发的机制下最大延时约束为30ms，其他延时补偿到蓝牙缓冲预留转发时间*/
         return 30/*ms*/;
+#endif
     }
 #endif
     return 0;

@@ -158,6 +158,8 @@ enum {
     CMD_MIC_CMP_GAIN_GET = 0X61,	//FF/FB 增益补偿读取
     CMD_MIC_CMP_GAIN_CLEAN = 0X62,	//FF/FB 增益补偿清0
     CMD_MIC_CMP_GAIN_SAVE = 0X63,	//FF/FB 增益补偿保存
+    CMD_MIC_CMP_GAIN_ALL_GET = 0X64, //FF/FB 增益补偿结构体获取
+    CMD_MIC_CMP_GAIN_ALL_SET = 0X65, //FF/FB 增益补偿结构体设置
 
     CMD_ANC_EXT_TOOL = 0XB0,
     CMD_DEBUG_USER_CMD = 0XB1,		//用户自定义命令
@@ -800,6 +802,7 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
     case CMD_MIC_CMP_GAIN_SET:
     case CMD_MIC_CMP_GAIN_CLEAN:
     case CMD_MIC_CMP_GAIN_SAVE:
+    case CMD_MIC_CMP_GAIN_ALL_SET:
         if (audio_anc_mic_gain_cmp_cmd_process(cmd, data + 1, len - 1)) {
             app_anctool_passthrough_send_ack(cmd, FALSE, ERR_NO);
         } else {
@@ -810,6 +813,12 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
         anctool_printf("CMD_MIC_CMP_GAIN_GET\n");
         float cmp_gain = audio_anc_mic_gain_cmp_get(data[1]);
         app_anctool_passthrough_send_buf(cmd, (u8 *)&cmp_gain, 4);
+        break;
+    case CMD_MIC_CMP_GAIN_ALL_GET:
+        anctool_printf("CMD_MIC_CMP_GAIN_ALL_GET\n");
+        int mic_cmp_len = 0;
+        u8 *mic_cmp_p = audio_anc_mic_gain_cmp_cfg_get(&mic_cmp_len);
+        app_anctool_passthrough_send_buf(cmd, mic_cmp_p, mic_cmp_len);
         break;
 #endif
     default:

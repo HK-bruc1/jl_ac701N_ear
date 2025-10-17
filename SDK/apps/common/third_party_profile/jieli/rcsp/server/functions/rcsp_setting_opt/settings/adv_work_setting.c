@@ -42,7 +42,7 @@ static void adv_work_setting_vm_value(u8 *work_setting_info)
     syscfg_write(CFG_RCSP_ADV_WORK_SETTING, work_setting_info, sizeof(u8));
 }
 
-static void update_work_setting_state(void)
+static void update_work_setting_state(u8 tone_play_enable)
 {
 #if TCFG_USER_TWS_ENABLE
     if (get_bt_tws_connect_status() && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
@@ -51,10 +51,10 @@ static void update_work_setting_state(void)
 #endif
     if (RCSPWorkModeNormal == g_work_mode) {
         printf("%s, false\n", __FUNCTION__);
-        bt_set_low_latency_mode(0, 1, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
+        bt_set_low_latency_mode(0, tone_play_enable, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
     } else if (RCSPWorkModeGame == g_work_mode) {
         printf("%s, true\n", __FUNCTION__);
-        bt_set_low_latency_mode(1, 1, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
+        bt_set_low_latency_mode(1, tone_play_enable, 500);	// a2dp淡出延时较大，这里调大到500ms可以处理无声问题
     } else {
         printf("%s, set deal none\n", __FUNCTION__);
     }
@@ -76,7 +76,7 @@ static void deal_work_setting(u8 *work_setting_info, u8 write_vm, u8 tws_sync)
         }
     }
 #endif
-    update_work_setting_state();
+    update_work_setting_state(1);
 }
 
 void rcsp_set_work_mode(RCSPWorkMode work_mode)
@@ -115,7 +115,7 @@ static int adv_work_opt_init(void)
         }
         printf("%s, %s, %d, work_setting_info:%d\n", __FILE__, __FUNCTION__, __LINE__, work_setting_info);
         set_work_setting(&work_setting_info);
-        update_work_setting_state();
+        update_work_setting_state(0);
     }
     return 0;
 }

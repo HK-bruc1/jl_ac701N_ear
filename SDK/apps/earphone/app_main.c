@@ -106,7 +106,7 @@ const struct task_info task_info_table[] = {
     {"update",				1,	   0,   512,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
     {"tws_ota_msg",			2,	   0,   256,   128 },
-    {"dw_update",		 	1,	   0,   256,   128 },
+    {"dw_update",		 	1,	   0,   512,   128 },
 #if TCFG_AUDIO_DATA_EXPORT_DEFINE
     {"aud_capture",         4,     0,   512,   256 },
     {"data_export",         5,     0,   512,   256 },

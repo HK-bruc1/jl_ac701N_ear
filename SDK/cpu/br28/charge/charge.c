@@ -19,7 +19,7 @@
 #include "app_config.h"
 #include "clock.h"
 #include "spinlock.h"
-
+#include "app_testbox.h"
 #define LOG_TAG_CONST   CHARGE
 #define LOG_TAG         "[CHARGE]"
 #define LOG_INFO_ENABLE
@@ -336,13 +336,15 @@ static void ldo5v_detect(void *priv)
             if (__this->charge_event_flag == 0) {
                 return;
             }
+            log_info("CHARGE_EVENT_LDO5V_OFF\n");
             ldo5v_off_cnt = 0;
             spin_lock(&ldo5v_lock);
             usr_timer_del(__this->ldo5v_timer);
             __this->ldo5v_timer = 0;
             spin_unlock(&ldo5v_lock);
-            if ((__this->charge_flag & BIT_LDO5V_OFF) == 0) {
+            if ((__this->charge_flag & BIT_LDO5V_OFF) == 0 || testbox_get_ex_enter_storage_mode_flag()) {
                 __this->charge_flag = BIT_LDO5V_OFF;
+                log_info("CHARGE_EVENT_LDO5V_OFF TO\n");
                 charge_event_to_user(CHARGE_EVENT_LDO5V_OFF);
             }
         }

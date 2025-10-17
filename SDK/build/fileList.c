@@ -80,6 +80,9 @@ objs += \
       $(ROOT)/audio/framework/nodes/cvp_v3_node.o
 
 objs += \
+      $(ROOT)/audio/framework/nodes/cvp_sms_vf_node.o
+
+objs += \
       $(ROOT)/audio/framework/nodes/dns_node.o
 
 objs += \
@@ -337,6 +340,7 @@ objs += \
 objs += \
 	  $(ROOT)/audio/CVP/audio_aec.o \
 	  $(ROOT)/audio/CVP/audio_cvp.o \
+	  $(ROOT)/audio/CVP/audio_cvp_sms_vf.o \
 	  $(ROOT)/audio/CVP/audio_cvp_dms.o \
 	  $(ROOT)/audio/CVP/audio_cvp_3mic.o \
 	  $(ROOT)/audio/CVP/audio_cvp_v3.o \

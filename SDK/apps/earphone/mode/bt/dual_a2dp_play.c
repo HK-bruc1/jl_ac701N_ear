@@ -170,7 +170,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         memset(a2dp_energy_detect_addr, 0xff, 6);
         break;
     case CMD_A2DP_PLAY:
-        puts("app_msg_bt_a2dp_play\n");
+        puts("CMD_A2DP_PLAY\n");
         put_buf(bt_addr, 6);
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
         if (le_audio_player_is_playing()) {
@@ -181,6 +181,16 @@ static void tws_a2dp_play_in_task(u8 *data)
             }
         }
 #endif
+        if (esco_player_runing()) {
+            printf("CMD_A2DP_PLAY error, esco running suspend a2dp\n");
+            a2dp_media_close(bt_addr);
+            break;
+        }
+        if ((tws_api_get_role() != TWS_ROLE_SLAVE) && ((bt_get_curr_channel_state_for_addr(bt_addr) & A2DP_CH) == 0)) {
+            printf("CMD_A2DP_PLAY error, a2dp ch no connect!\n");
+            a2dp_media_close(bt_addr);
+            break;
+        }
 #if (TCFG_BT_A2DP_PLAYER_ENABLE == 0)
         break;
 #endif
@@ -716,6 +726,7 @@ static int a2dp_bt_status_event_handler(int *event)
     case BT_STATUS_SCO_STATUS_CHANGE:
         printf("A2DP BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
                (bt->value >> 16), (bt->value & 0x0000ffff));
+        put_buf(bt->args, 6);
         if (bt->value != 0xff) {
             a2dp_suspend_by_call(addr_b, device_b);
         } else {

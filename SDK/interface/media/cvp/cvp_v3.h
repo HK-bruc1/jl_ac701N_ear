@@ -76,10 +76,7 @@ typedef struct {
     int MalfuncDet_MaxFrequency;	// 检测信号的最大频率成分
     int MalfuncDet_MinFrequency;	// 检测信号的最小频率成分
     int OnlyDetect;					// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
-    /*fusion 不支持在线调试 */
-    int fusionFreq;
-    float MagTh1;
-    float MagTh2;
+
     /*流程参数配置*/
     float preGainDb;				//ADC前级增益
     float CompenDb;					//流程补偿增益

@@ -901,6 +901,7 @@ typedef struct {
     s16 inbuf[DM_RUN_POINT];
     s16 outbuf[320];
     noise_suppress_param param;
+    void *ns;
 } audio_ns_t;
 audio_ns_t *audio_ns = NULL;
 
@@ -911,7 +912,7 @@ static int audio_ns_run(s16 *in, s16 *out, u16 points)
         out_points = points;
         memcpy(out, in, (out_points << 1));
     } else {
-        out_points = noise_suppress_run(in, out, points);
+        out_points = noise_suppress_run(audio_ns->ns, in, out, points);
         //printf(" <%d> ",out_points);
     }
     return (out_points << 1);
@@ -931,7 +932,7 @@ static int audio_ns_open(u16 sr)
     audio_ns->param.AggressFactor = 1.25f;
     audio_ns->param.MinSuppress = 0.04f;
     audio_ns->param.NoiseLevel = 2.2e4f;
-    noise_suppress_open(&audio_ns->param);
+    audio_ns->ns = noise_suppress_open(&audio_ns->param);
     printf("audio_ns_open succ\n");
     return 0;
 }
@@ -939,7 +940,7 @@ static int audio_ns_open(u16 sr)
 static void audio_ns_close(void)
 {
     if (audio_ns) {
-        noise_suppress_close();
+        noise_suppress_close(audio_ns->ns);
         free(audio_ns);
         audio_ns = NULL;
     }
@@ -1004,6 +1005,7 @@ int audio_capture_init(void)
 
 int audio_capture_exit()
 {
+    audio_ns_close();
     return 0;
 }
 

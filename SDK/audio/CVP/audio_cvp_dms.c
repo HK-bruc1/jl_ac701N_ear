@@ -129,6 +129,13 @@ const u8 CONST_DMS_WINDREPLACE = 1;
  */
 const u8 CONST_DMS_REF_MIC_AEC_ENABLE = 0;
 
+/*
+ * 2mic-hybrid在线调音EQ选择
+ * 0 : 更新fb eq曲线,调融合EQ(可视化界面->noise_level_db_T0设置90)
+ * 1 : 更新talk eq曲线,调非融合EQ (可视化界面->noise_level_db_T0设置10)
+ */
+const u8 CONST_DMS_HYBRID_ONLINE_TYPE = 1;
+
 //**************************DMS_GLOBAL_V100配置 end*******************************//
 
 //*********************************************************************************//
@@ -190,9 +197,16 @@ struct cvp_dms_hdl {
 #endif
     struct dms_attr attr;	//aec模块参数属性
     struct audio_cvp_pre_param_t pre;	//预处理配置
-    void *transfer_func;
     const struct cvp_2mic_adapter *adapter;
 };
+
+struct dms_hybrid_coeff_format {
+    u16 length;
+    u16 mix_flag;
+    u16 fft_size;
+    u16 sample_rate;
+};
+
 #if AEC_USER_MALLOC_ENABLE
 struct cvp_dms_hdl *cvp_dms = NULL;
 #else
@@ -602,18 +616,57 @@ static void audio_dms_flexible_param_init(struct dms_attr *p, u16 node_uuid)
     //cvp_dms_param_dump(p,DMS_FLEXIBLE);
 }
 
-#define AUDIO_DMS_HYBRID_COEFF_FILE 	(FLASH_RES_PATH"dms_hybrid.bin")
-void *read_dms_hybrid_mic_coeff()
+enum cvp_coeff_type {
+    EQ,
+    REF_EQ,
+};
+char *cvp_coeff_name[] = {"EQ", "REF_EQ"};
+
+#define AUDIO_DMS_HYBRID_TALK_COEFF_FILE 	(FLASH_RES_PATH"TALK_Coeff.bin")
+#define AUDIO_DMS_HYBRID_FB_COEFF_FILE 		(FLASH_RES_PATH"DNSFB_Coeff.bin")
+void *dms_hybrid_coeff_get_mag(void *hdl, enum cvp_coeff_type type)
+{
+    printf("received type: %s\n", cvp_coeff_name[type]);
+    if (!hdl) {
+        return NULL;
+    }
+    int coeff_offset = 0;
+    struct dms_hybrid_coeff_format *coeff_format = (struct dms_hybrid_coeff_format *)hdl;
+    u8 *hdl_data = (u8 *)hdl;
+    u8 coeff_algo_type = coeff_format->mix_flag & 0xF;          // 算法类型
+    int eq_points = (coeff_format->fft_size >> 1) + 1;
+
+    if (type == REF_EQ) {
+        coeff_offset = 2;
+    } else {
+        coeff_offset = 2 + eq_points ;
+    }
+    float *coeff_file = (float *)zalloc(eq_points * sizeof(float));
+    if (!coeff_file) {
+        printf("[error] zalloc coeff_file failed\n");
+        return NULL;
+    }
+    float *coeff_file_offset = (float *)hdl_data + coeff_offset;
+
+    for (int i = 0; i < eq_points; i++) {
+        coeff_file[i] = eq_db2mag(coeff_file_offset[i]);
+    }
+    return coeff_file;
+
+}
+
+void *read_dms_hybrid_mic_coeff(const char *file)
 {
     if (cvp_dms == NULL) {
         return NULL;
     }
+    void *tmp_coeff_file = NULL;
     RESFILE *fp = NULL;
     u32 param_len = 0;
     //===============================//
     //          打开参数文件         //
     //===============================//
-    fp = resfile_open(AUDIO_DMS_HYBRID_COEFF_FILE);
+    fp = resfile_open(file);
     if (!fp) {
         printf("[err] open dms_hybrid.bin fail !!!");
         return NULL;
@@ -623,23 +676,23 @@ void *read_dms_hybrid_mic_coeff()
     printf("param_len %d", param_len);
 
     if (param_len) {
-        cvp_dms->transfer_func = zalloc(param_len);
+        tmp_coeff_file = zalloc(param_len);
     }
-    if (cvp_dms->transfer_func == NULL) {
+    if (tmp_coeff_file == NULL) {
         resfile_close(fp);
         return NULL;
     }
     /* resfile_seek(fp, ptr, RESFILE_SEEK_SET); */
-    int rlen = resfile_read(fp, cvp_dms->transfer_func, param_len);
+    int rlen = resfile_read(fp, tmp_coeff_file, param_len);
     if (rlen != param_len) {
         printf("[error] read dms_hybrid.bin err !!! %d =! %d", rlen, param_len);
-        free(cvp_dms->transfer_func);
-        cvp_dms->transfer_func = NULL;
+        free(tmp_coeff_file);
+        tmp_coeff_file = NULL;
         resfile_close(fp);
         return NULL;
     }
     resfile_close(fp);
-    return cvp_dms->transfer_func;
+    return tmp_coeff_file;
 }
 
 __CVP_BANK_CODE
@@ -691,13 +744,14 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p, u16 node_uuid)
         p->aggressfactor = cfg.aggressfactor;
         p->minsuppress = cfg.minsuppress;
         p->init_noise_lvl = cfg.init_noise_lvl;
+        p->compensate = cfg.compensate;
 
         p->FB_EnableBit = AEC_EN | NLP_EN;
         p->enc_process_maxfreq = cfg.enc_process_maxfreq;
         p->enc_process_minfreq = cfg.enc_process_minfreq;//sir设定阈值
-        p->snr_db_T0 = cfg.snr_db_T0;//sir设定阈值
-        p->snr_db_T1 = cfg.snr_db_T1;//sir设定阈值
-        p->floor_noise_db_T = cfg.floor_noise_db_T;
+        p->noise_level_db_T0 = cfg.noise_level_db_T0;
+        p->noise_level_db_T1 = cfg.noise_level_db_T1;
+
         p->compen_db = cfg.compen_db;//mic补偿增益
 
         p->coh_val_T = cfg.coh_val_T;
@@ -742,13 +796,13 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p, u16 node_uuid)
         p->aggressfactor = 1.0f;
         p->minsuppress = 0.1f;
         p->init_noise_lvl = -75.f;
+        p->compensate = 16.0f;
 
         p->FB_EnableBit = AEC_EN | NLP_EN;
         p->enc_process_maxfreq = 8000;
         p->enc_process_minfreq = 0;//sir设定阈值
-        p->snr_db_T0 = 0.0f;//sir设定阈值
-        p->snr_db_T1 = 5.5f;//sir设定阈值
-        p->floor_noise_db_T = 55.0f;
+        p->noise_level_db_T0 = 55.0f;
+        p->noise_level_db_T1 = 65.0f;
         p->compen_db = 12.f;//mic补偿增益
 
         p->coh_val_T = 0.85f;
@@ -762,11 +816,22 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p, u16 node_uuid)
     log_info("DMS_HYBRID:WNC[%d] AEC[%d] NLP[%d] NS[%d] ENC[%d] AGC[%d] WNC[%d]", !!(p->EnableBit & WNC_EN), !!(p->EnableBit & AEC_EN), !!(p->EnableBit & NLP_EN), !!(p->EnableBit & ANS_EN), !!(p->EnableBit & ENC_EN), !!(p->EnableBit & AGC_EN), !!(p->EnableBit & WNC_EN));
 
     /* p->transfer_func = (float *)fb2talk_eq; */
-    p->transfer_func = read_dms_hybrid_mic_coeff();
-    if (p->transfer_func) {
-        printf("dms_hybrid_coeff read ok %x", (int)p->transfer_func);
+    void *dms_hybrid_talk_coeff;//非融合指针
+    dms_hybrid_talk_coeff = read_dms_hybrid_mic_coeff(AUDIO_DMS_HYBRID_TALK_COEFF_FILE);
+    if (dms_hybrid_talk_coeff) {
+        printf("dms_hybrid_talk_coeff read ok %x", (int)dms_hybrid_talk_coeff);
     }
+    p->filter_eq = dms_hybrid_coeff_get_mag(dms_hybrid_talk_coeff, REF_EQ);
 
+    void *dms_hybrid_fb_coeff;//融合指针
+    dms_hybrid_fb_coeff = read_dms_hybrid_mic_coeff(AUDIO_DMS_HYBRID_FB_COEFF_FILE);
+    if (dms_hybrid_fb_coeff) {
+        printf("dms_hybrid_fb_coeff read ok %x", (int)dms_hybrid_fb_coeff);
+    }
+    p->transfer_func = dms_hybrid_coeff_get_mag(dms_hybrid_fb_coeff, REF_EQ);
+
+    free(dms_hybrid_talk_coeff);
+    free(dms_hybrid_fb_coeff);
     p->AGC_echo_hold = 0;
     p->AGC_echo_look_ahead = 0;
 
@@ -1227,9 +1292,14 @@ void audio_aec_close(void)
         }
 #endif
 
-        if (cvp_dms->transfer_func) {
-            free(cvp_dms->transfer_func);
-            cvp_dms->transfer_func = NULL;
+        if (cvp_dms->attr.transfer_func) {
+            free(cvp_dms->attr.transfer_func);
+            cvp_dms->attr.transfer_func = NULL;
+        }
+
+        if (cvp_dms->attr.filter_eq) {
+            free(cvp_dms->attr.filter_eq);
+            cvp_dms->attr.filter_eq = NULL;
         }
 
         local_irq_disable();

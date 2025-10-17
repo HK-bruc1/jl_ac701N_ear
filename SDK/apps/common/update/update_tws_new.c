@@ -45,6 +45,7 @@ static void (*sync_update_crc_init_hdl)(void) = NULL;
 static u32(*sync_update_crc_calc_hdl)(u32 init_crc, const void *data, u32 len) = NULL;
 extern const int support_dual_bank_update_no_erase;
 extern const int support_dual_bank_update_breakpoint;
+extern const int support_dual_bank_sync_verify_en;
 
 struct _bt_event {
     u8 event;
@@ -308,8 +309,10 @@ u16 tws_ota_enter_verify(void *priv)
     if (tws_ota_trans_to_sibling((u8 *)&rsp_data, 2)) {
         return -1;
     }
-    if (os_sem_pend(&tws_ota_sem, 800) ==  OS_TIMEOUT) {
-        return -1;
+    if (0 == support_dual_bank_sync_verify_en) {
+        if (os_sem_pend(&tws_ota_sem, 800) ==  OS_TIMEOUT) {
+            return -1;
+        }
     }
     printf("tws_ota_enter_verify222\n");
     return 0;

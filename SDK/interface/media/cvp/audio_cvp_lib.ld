@@ -15,6 +15,7 @@ SECTIONS
         *(.jlsp_dms_hybrid_data)
         *(.jlsp_dms_awn_data)
         *(.sms_data)
+        *(.smsvf_data)
         *(.sms_stereo_data)
         *(.dms_data)
         *(.data._*)
@@ -36,6 +37,7 @@ SECTIONS
 	    audio_cvp_bss_begin = .;
         . = ALIGN(4);
         *(.sms_bss)
+        *(.smsvf_bss)
         *(.sms_stereo_bss)
         *(.aec_bss)
         *(.nlp_bss)
@@ -78,6 +80,7 @@ SECTIONS
 		*(.der_sparse_code)
 		*(.qmf_sparse_code)
         *(.sms_sparse_code)
+        *(.smsvf_sparse_code)
         *(.sms_stereo_sparse_code)
         *(.dms_sparse_code)
         *(.opcore_maskrom)
@@ -139,7 +142,9 @@ SECTIONS
 #endif
 #if AUDIO_CVP_SMS_AT_RAM == 0
         *(.sms_const)
+        *(.smsvf_const)
         *(.sms_code)
+        *(.smsvf_code)
         *(.sms_stereo_const)
         *(.sms_stereo_code)
 

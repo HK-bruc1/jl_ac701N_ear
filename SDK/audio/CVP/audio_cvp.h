@@ -100,6 +100,7 @@ u8 audio_aec_status(void);
 void audio_aec_reboot(u8 reduce);
 u8 get_audio_aec_rebooting();
 int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg);
+int audio_sms_vf_probe_param_update(struct audio_cvp_pre_param_t *cfg);
 /*
 *********************************************************************
 *                  Audio AEC Open
@@ -207,5 +208,16 @@ int audio_cvp_v3_probe_param_update(struct audio_cvp_pre_param_t *cfg);
 int audio_cvp_v3_toggle_set(u8 toggle);
 int audio_cvp_v3_ioctl(int cmd, int value, void *priv);
 void audio_cvp_v3_set_output_way(u8 en);
+int audio_cvp_v3_get_wind_detect_info(int *wd_flag, float *wd_val);
+int audio_cvp_v3_get_bandwidth_info(int is_wb_state);
+int audio_cvp_v3_get_mic_state_info(int mic_state);
 
+void audio_sms_vf_spk_data_push(s16 *data0, s16 *data1, u16 len);
+void audio_sms_vf_talk_mic_push(s16 *buf, u16 len);
+void audio_sms_vf_close(void);
+u8 audio_sms_vf_status(void);
+int audio_sms_vf_ioctl(int cmd, int value, void *priv);
+int audio_sms_vf_toggle_set(u8 toggle);
+u8 get_audio_sms_vf_rebooting();
+int audio_sms_vf_init(struct audio_aec_init_param_t *init_param);
 #endif

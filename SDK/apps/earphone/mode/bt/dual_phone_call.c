@@ -10,6 +10,8 @@
 /**
  * @brief 一拖二时，电话相关蓝牙事件消息处理函数 包含通话和通话的抢占
  *
+ * 注：如果通话抢占在应用层3秒内没有被处理，蓝牙底层会使用最新的通话链路
+ *
  * @param msg  蓝牙事件消息
  *
  */
@@ -19,8 +21,9 @@ void bt_dual_phone_call_msg_handler(int *msg)
     u8 phone_event;
 
     phone_event = event->event;
-    if (phone_event != BT_CALL_INCOMING &&
-        phone_event != BT_CALL_OUTGOING &&
+    printf("bt_dual_phone_call_msg_handler phone_event:%d\n", phone_event);
+    if (phone_event != BT_STATUS_PHONE_INCOME &&
+        phone_event != BT_STATUS_PHONE_OUT &&
         phone_event != BT_STATUS_SCO_CONNECTION_REQ) {
         return;
     }
@@ -38,6 +41,14 @@ void bt_dual_phone_call_msg_handler(int *msg)
     }
     u8 *addr_a = event->args;
     u8 *addr_b = btstack_get_device_mac_addr(device_b);
+    if (addr_a) {
+        printf("bt_dual_phone_call_msg_handler: a:\n");
+        put_buf(addr_a, 6);
+    }
+    if (addr_b) {
+        printf("bt_dual_phone_call_msg_handler: b:\n");
+        put_buf(addr_b, 6);
+    }
 
     int status_a = btstack_bt_get_call_status(device_a);
     int status_b = btstack_bt_get_call_status(device_b);
@@ -109,6 +120,13 @@ void bt_dual_phone_call_msg_handler(int *msg)
                 break;
             }
 
+        }
+        if (status_a == BT_CALL_HANGUP) {
+            if (status_b == BT_CALL_ACTIVE &&
+                btstack_get_call_esco_status(device_b) == BT_ESCO_STATUS_OPEN) {
+                puts("disconn_sco-b3\n");
+                btstack_device_control(device_a, USER_CTRL_DISCONN_SCO);
+            }
         }
         break;
     }

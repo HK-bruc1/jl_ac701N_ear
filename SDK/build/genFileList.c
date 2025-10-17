@@ -130,6 +130,11 @@ c_SRC_FILES += \
       audio/framework/nodes/cvp_v3_node.c
 #endif
 
+#if TCFG_AUDIO_CVP_SMS_VF_MODE
+c_SRC_FILES += \
+      audio/framework/nodes/cvp_sms_vf_node.c
+#endif
+
 #if TCFG_DNS_NODE_ENABLE
 c_SRC_FILES += \
       audio/framework/nodes/dns_node.c
@@ -450,6 +455,7 @@ c_SRC_FILES += \
 c_SRC_FILES += \
 	  audio/CVP/audio_aec.c \
 	  audio/CVP/audio_cvp.c \
+	  audio/CVP/audio_cvp_sms_vf.c \
 	  audio/CVP/audio_cvp_dms.c \
 	  audio/CVP/audio_cvp_3mic.c \
 	  audio/CVP/audio_cvp_v3.c \

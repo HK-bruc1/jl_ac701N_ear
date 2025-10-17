@@ -173,6 +173,7 @@ LFLAGS := \
 	cpu/br28/liba/media.a \
 	cpu/br28/liba/libepmotion.a \
 	cpu/br28/liba/libAptFilt_pi32v2_OnChip.a \
+	cpu/br28/liba/libSMSVF_TDE_pi32v2_OnChip.a \
 	cpu/br28/liba/libEchoSuppress_pi32v2_OnChip.a \
 	cpu/br28/liba/libNoiseSuppress_pi32v2_OnChip.a \
 	cpu/br28/liba/libSplittingFilter_pi32v2_OnChip.a \
@@ -252,6 +253,7 @@ LFLAGS := \
 	cpu/br28/liba/howling.a \
 	cpu/br28/liba/lib_HarmonicExciter.a \
 	cpu/br28/liba/libllns.a \
+	cpu/br28/liba/lib_llns_dns.a \
 	cpu/br28/liba/libDualMicSystem_Hybrid.a \
 	cpu/br28/liba/libDualMicSystem_Awn.a \
 	cpu/br28/liba/lib_ThreeD_effect.a \

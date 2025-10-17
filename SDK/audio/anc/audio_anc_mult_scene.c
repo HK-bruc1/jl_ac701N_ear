@@ -4,6 +4,7 @@
 *******************************************************************/
 #include "audio_anc.h"
 #include "audio_anc_mult_scene.h"
+#include "audio_anc_common_plug.h"
 
 
 #if ANC_MULT_ORDER_ENABLE
@@ -387,12 +388,19 @@ static int anc_mult_scene_set_base(u16 scene_id)
         param->gains.l_ffgain *= param->mic_cmp.lff_gain;
         param->gains.l_transgain *= param->mic_cmp.lff_gain;
         param->gains.l_fbgain *= param->mic_cmp.lfb_gain;
-        param->gains.l_cmpgain *= param->mic_cmp.lfb_gain;
-
+        if (param->mic_cmp.lfb_gain) {
+            param->gains.l_cmpgain /= param->mic_cmp.lfb_gain;
+        } else {
+            param->gains.l_cmpgain = 0;
+        }
         param->gains.r_ffgain *= param->mic_cmp.rff_gain;
         param->gains.r_transgain *= param->mic_cmp.rff_gain;
         param->gains.r_fbgain *= param->mic_cmp.rfb_gain;
-        param->gains.r_cmpgain *= param->mic_cmp.rfb_gain;
+        if (param->mic_cmp.lfb_gain) {
+            param->gains.r_cmpgain /= param->mic_cmp.rfb_gain;
+        } else {
+            param->gains.r_cmpgain = 0;
+        }
     }
 #endif
 

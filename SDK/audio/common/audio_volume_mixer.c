@@ -219,8 +219,10 @@ static void app_audio_volume_change(void)
 
 int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
 {
-    struct app_mode *mode;
-    mode = app_get_current_mode();
+    struct app_mode *mode = app_get_current_mode();
+    if (!mode) {
+        return -1;
+    }
     int i = 0;
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN)))
     if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {

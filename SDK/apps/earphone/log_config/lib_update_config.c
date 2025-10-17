@@ -37,6 +37,9 @@ const int support_dual_bank_update_breakpoint = 0;
 // 是否支持tws双备份升级，从机收错包重发机制
 const int support_dual_bank_slave_recv_again = 1;
 
+// 双备份tws升级主从同步校验使能
+const int support_dual_bank_sync_verify_en = 1;
+
 #if OTA_TWS_SAME_TIME_NEW       //使用新的同步升级流程
 const int support_ota_tws_same_time_new =  1;
 #else

@@ -434,10 +434,22 @@ const  int  silk_fsW_enable = 1;  //支持16-24k采样率
 //***********************
 //* 	LC3 Codec      *
 //***********************
-const int LC3_PLC_EN = 1;            			//0_fade,1_时域,2_频域,3静音;
+/*
+  0 : 仅淡入淡出
+  1 : 时域PLC
+  2 : 频域PLC  目前推荐使用，需要的资源相比APLC/NPLC 比较少, 修复效果也不错
+  3 : 仅补静音包
+  4 : APLC 需要官方授权  并将下面的配置config_lib_lc3_enc_ltpf_idx_enable 使能，才能得到更好的体验，但是编码需要的mip会更多,
+      解码在丢包触发plc时，需要的mips 也会增多(编解码都会增多1.5倍以上),如果未使能对应常量,则相当于频域PLC.
+  5 : NPLC JL 新一带PLC  修复效果接近于aplc，但是解码触发plc 的时候需要的mips 至少会翻倍。
+  4/5 的修复效果是最好的，但是需要增加30K~45K代码量,ram增大10K(立体声需要增大20K以上)以上，mips也需要的更多。建议在资源和效率允许的情况下在使用。
+ */
+const int LC3_PLC_EN = 2;
+const char config_lib_lc3_enc_ltpf_idx_enable = 0;   //是否编码ltpf参数,影响aplc效果. 速度要求比较高,编解码需要mips 都会增多,非APLC类型建议关掉
+
 const int LC3_PLC_FADE_OUT_START_POINT = 480;   //丢包后维持音量的点数.
-const int LC3_PLC_FADE_OUT_POINTS = 120 * 5;    //丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
-const int LC3_PLC_FADE_IN_POINTS = 120 * 5;     //丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
+const int LC3_PLC_FADE_OUT_POINTS = 1200;       //丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
+const int LC3_PLC_FADE_IN_POINTS = 1200;        //丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
 
 #if(HW_FFT_VERSION == FFT_EXT || HW_FFT_VERSION == FFT_EXT_V2) 			//支持非2的指数次幂点数的fft 时 置1
 const int LC3_HW_FFT = 1;
@@ -446,8 +458,9 @@ const int LC3_HW_FFT = 0;
 #endif
 
 //LC3帧长使能配置
-const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 1;	  //2.5ms的帧长使能
-const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 1; 	//5ms的帧长使能
+//2.5ms/5ms 属于LC3plus 需要授权使用
+const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 0;	//2.5ms的帧长使能
+const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 0; 	//5ms的帧长使能
 const char  LC3_FRAME_LEN_SUPPORT_75_DMS = 1; 	//7.5ms的帧长使能
 const char  LC3_FRAME_LEN_SUPPORT_100_DMS = 1; 	//10ms的帧长使能
 //LC3采样率使能配置
@@ -458,8 +471,14 @@ const char  LC3_SAMPLE_RATE_SUPPORT_32K = 1;  	//32K采样率使能
 const char  LC3_SAMPLE_RATE_SUPPORT_48K = 1;  	//48K/44.1K采样率使能
 
 //LC3 编解码  24bit使能控制常量:
-const int LC3_ENCODE_I24bit_ENABLE = 0;   //编码输入pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
-const int LC3_DECODE_O24bit_ENABLE = 0;   //解码输出pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+const int LC3_ENCODE_I24bit_ENABLE = MEDIA_24BIT_ENABLE;   //编码输入pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+const int LC3_DECODE_O24bit_ENABLE = MEDIA_24BIT_ENABLE;   //解码输出pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+
+/*
+   debug打印信息配置: 1~4 打印信息越来越多， 3 以上需要更多的任务堆栈(125byte 以上);
+   0:无打印， 1：基础信息打印. 2：丢包次数统计. 3：带丢包序列打印. 4.增加读数据相关提示。
+ */
+const char config_lib_lc3_codec_debug_level = 0;   //调试等级,按照等级打印基本信息及调试信息.
 //***********************
 //* 	JLA Codec      *
 //***********************
@@ -773,6 +792,13 @@ const int audio_effect_nsgate_pro_enable = 1;
 const int audio_effect_nsgate_pro_enable = 0;
 #endif
 
+//***********************
+//*   	LLNS DNS   *
+//***********************
+const u8 LLNS_DNS_AGC_EN = 0; //可以默认置1，由节点的配置判断是否使能agc
+const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
+const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，请在原厂指导下更改
+const u32 LLNS_DNS_TABLE_SELECT = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? BIT(0) : BIT(1);
 
 //***********************
 //*   	Others          *

@@ -512,7 +512,11 @@ static int cvp_ioc_update_parm(struct cvp_node_hdl *hdl, int parm)
     struct cvp_cfg_t *cfg = (struct cvp_cfg_t *)parm;
     if (hdl) {
         cvp_sms_node_param_cfg_update(cfg, &hdl->online_cfg);
+#if (TCFG_AUDIO_SMS_SEL == SMS_DEFAULT)
         aec_cfg_update(&hdl->online_cfg);
+#elif (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        sms_tde_cfg_update(&hdl->online_cfg);
+#endif
         ret = true;
     }
     return ret;

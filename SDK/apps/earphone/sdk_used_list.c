@@ -225,6 +225,10 @@ dns_node_adapter
 cvp_v3_node_adapter
 #endif
 
+#if TCFG_AUDIO_CVP_SMS_VF_MODE
+cvp_sms_vf_node_adapter
+#endif
+
 #if TCFG_DEC_WTG_ENABLE || TCFG_TONE_WTG_ENABLE
 g729_dec_plug
 #endif

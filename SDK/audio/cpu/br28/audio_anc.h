@@ -36,6 +36,10 @@
 
 #define ANC_DUT_MIC_CMP_GAIN_ENABLE 1   /*产测补偿ANC MIC增益使能； 仅支持多场景滤波器*/
 
+//支持OTA 更新 ANC COEFF参数：复位/开机后 参数会以下载目录的anc_coeff.bin为准
+#define ANC_COEFF_OTA_UPDATE_ENABLE 0
+
+
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
 /*立体声方案*/
 #define ANC_MODE_SWITCH_DELAY_MS	400	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */

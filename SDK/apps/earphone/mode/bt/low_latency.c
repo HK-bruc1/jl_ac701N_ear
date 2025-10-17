@@ -57,19 +57,23 @@ void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms)
         return;
     }
 
-    const char *fname = enable ? get_tone_files()->low_latency_in :
-                        get_tone_files()->low_latency_out;
     g_printf("bt_set_low_latency_mode=%d\n", enable);
 #if TCFG_USER_TWS_ENABLE
     if (state & TWS_STA_SIBLING_CONNECTED) {
-        if (delay_ms < 100) {
-            delay_ms = 100;
+        if (tone_play_enable) {
+            if (delay_ms < 100) {
+                delay_ms = 100;
+            }
+            const char *fname = enable ? get_tone_files()->low_latency_in : get_tone_files()->low_latency_out;
+            tws_play_tone_file_alone_callback(fname, delay_ms, 0x6F90E37B);
         }
-        tws_play_tone_file_alone_callback(fname, delay_ms, 0x6F90E37B);
     } else
 #endif
     {
-        play_tone_file_alone(fname);
+        if (tone_play_enable) {
+            const char *fname = enable ? get_tone_files()->low_latency_in : get_tone_files()->low_latency_out;
+            play_tone_file_alone(fname);
+        }
         tws_api_low_latency_enable(enable);
         a2dp_player_low_latency_enable(enable);
     }
@@ -98,10 +102,12 @@ static u8 low_latency_mode = 0;
 
 void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms)
 {
-    const char *fname = enable ? get_tone_files()->low_latency_in :
-                        get_tone_files()->low_latency_out;
     g_printf("bt_set_low_latency_mode=%d\n", enable);
-    play_tone_file_alone(fname);
+    if (tone_play_enable) {
+        const char *fname = enable ? get_tone_files()->low_latency_in :
+                            get_tone_files()->low_latency_out;
+        play_tone_file_alone(fname);
+    }
     a2dp_player_low_latency_enable(enable);
     low_latency_mode = enable;
     if (enable) {

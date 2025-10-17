@@ -349,6 +349,9 @@ void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_fr
 {
     struct a2dp_stream_control *ctrl = (struct a2dp_stream_control *)_ctrl;
     int max_latency = 0;
+    if (!ctrl) {
+        return;
+    }
 
     if (ctrl->low_latency) {
         return;

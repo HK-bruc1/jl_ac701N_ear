@@ -3,7 +3,9 @@
 
 #include "asm/cpu.h"
 
-//==================模块参数配置=====================
+//=========================================================================
+//===============================模块参数配置==============================
+//=========================================================================
 enum {
     AEC_EN_BIT = BIT(0),
     NLP_EN_BIT = BIT(1),
@@ -24,7 +26,7 @@ typedef enum  {
     DUAL_BF_TYPE = BIT(4),		//双麦bf
     DUAL_HYBRID_TYPE = BIT(5),	//双麦fbTalk
     DUAL_OWS_TYPE = BIT(6),		//双麦OWS
-    DUAL_TELE_TYPE = BIT(7),	//双麦话务
+    DUAL_FLEX_TYPE = BIT(7),	//双麦话务
     DUAL_BONE_TYPE = BIT(8),	//双麦骨传
     TRI_FUSION_TYPE = BIT(16),	//三麦融合
     TRI_TELE_TYPE = BIT(17),	//三麦话务
@@ -190,6 +192,36 @@ typedef struct {
 } JLSP_drc_v3_cfg_t;
 
 
+typedef struct {
+    int samplerate;
+    int cohenProcessMinFrequency; // MinProFreq
+    int cohenProcessMaxFrequency; // MaxProFreq
+    float resOverDrive;		  // Suppress Level
+    float miniSuppress;			  // Minimum Suppress Level
+    float xThr;				  // X Energy threshold
+    int useDe;					  // calc_cohen with D&E; otherwise with X&D
+} JLSP_cohen_v3_cfg_t;
+
+
+// Filter Canceller Based On NLMS
+typedef struct {
+    int samplerate;
+    int processMaxFrequency; // MaxProFreq
+    int processMinFrequency; // MinProFreq
+    float maxMuf;				// MaxStep
+    float minMuf;				// MinStep
+    float cohefMaxGamma;
+    float varmuMaxGamma;
+    float sirMaxGamma;
+    float sirMinimumSp;
+    float cohenXdThr;
+    int useSirGain;
+    int useErleReset;
+    float erleThr;
+
+    JLSP_cohen_v3_cfg_t coh_cfg;
+
+} JLSP_dual_flex_adf_cfg_t;
 
 
 //=========================================================================
@@ -242,7 +274,6 @@ typedef struct {
     float minSupress;
 
     int externalEnableBit;
-
 
 } JLSP_dual_bf_v3_cfg_t;
 
@@ -304,6 +335,37 @@ typedef struct {
 } JLSP_hybrid_v3_cfg_t;
 
 
+
+
+//话务麦双麦降噪参数配置
+typedef struct {
+
+    int enableBit;
+
+    float *dualFlexWbEqVec;
+    float *dualFlexNbEqVec;
+    float *dualFlexPhaseCompenVec; //相位补偿
+
+    int dualFlexType;
+    int samplerate;
+    int dualProcessMaxFrequency;
+    int dualProcessMinFrequency;
+
+    float dualPreGainDb;
+    float dualCompenDb;
+
+    int post_pro_en; // MCRA enable/disenable
+    int mcramode;
+    int mcra_usegain_mode;
+
+    float aggressFactor;
+    float minSupress;
+
+    int externalEnableBit;
+
+} JLSP_dual_flex_v3_cfg_t;
+
+
 // AEC&NLP module configuration
 typedef struct {
     int enableBit;
@@ -352,6 +414,10 @@ typedef struct {
     //麦掩蔽检测参数配置
     JLSP_micsel_v3_cfg_t micSel_cfg;
 
+    // Filter Canceller Based On NLMS
+    JLSP_dual_flex_adf_cfg_t dual_flex_adf_cfg;
+
+    /* ------------- Processing flow config -------------*/
     //单麦参数配置
     JLSP_single_v3_cfg_t  single_cfg;
 
@@ -368,6 +434,10 @@ typedef struct {
 
     // Single aec+nlp module
     JLSP_single_aecnlp_v3_cfg_t single_aecnlp_cfg;
+
+    //dual flexible ns module
+    JLSP_dual_flex_v3_cfg_t dual_flex_cfg;
+
 
 
 } JLSP_params_v3_cfg;
@@ -386,6 +456,7 @@ typedef enum {
     DUAL_SET_PHASE_COMPEN,   // set phase compensatory EQ
     DUAL_GET_WD_INFO,        // get wind info
     DUAL_GET_MIC_STATE,      // get micsel state: `0` for dual_mic, `1` for mic0, `2` for mic1
+    DUAL_SET_MIC_STATE,      // set micsel state: `0` for dual_mic, `1` for mic0, `2` for mic1
 
 
     // Tri-mic function port

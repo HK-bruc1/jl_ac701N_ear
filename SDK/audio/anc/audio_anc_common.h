@@ -12,6 +12,9 @@ int audio_anc_production_enter(void);
 //ANC退出产测模式
 int audio_anc_production_exit(void);
 
+//比较ANC资源文件和ANC_IF差异并替换
+int anc_config_rsfile_read(void *p);
+
 
 #if TCFG_AUDIO_ANC_ENABLE
 

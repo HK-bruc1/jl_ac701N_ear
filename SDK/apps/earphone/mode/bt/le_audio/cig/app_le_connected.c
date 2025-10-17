@@ -1545,6 +1545,12 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
         break;
     case VENDOR_PRIV_ACL_MUSIC_VOLUME:
         log_info("Get master music vol:%d", cmd[1]);
+#if LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG
+        if (a2dp_player_runing()) {
+            y_printf("a2dp_player_runing , do not set dongle vol\n");
+            break;
+        }
+#endif
         set_music_device_volume(cmd[1]);
         break;
     case VENDOR_PRIV_ACL_MIC_VOLUME:
@@ -1986,6 +1992,12 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         puts("LE_AUDIO_ADV_MAC_INFO\n");
         memcpy(le_audio_adv_slave_mac, &data[1], 6);
         put_buf(le_audio_adv_slave_mac, 6);
+        u16 con_handle = get_conn_handle();
+        if (con_handle) {
+            //主机连上后同步从机的adv mac给dongle
+            log_info("req master update addr\n");
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_DEVICE_TYPE_REQ, NULL, 0);
+        }
         break;
     }
     free(data);
@@ -2068,34 +2080,20 @@ void bt_tws_slave_sync_volume_to_master()
 static void tws_sync_le_audio_adv_mac_to_slave()
 {
     u8 data[7];
-    u16 con_handle = get_conn_handle();
     data[0] = LE_AUDIO_ADV_MAC_INFO;
     memcpy(&data[1], le_audio_adv_local_mac, 6);
     log_info("to slave le_audio_adv_mac");
     put_buf(le_audio_adv_local_mac, 6);
     tws_api_send_data_to_slave(data, 7, 0x23782C5B);
-
-    //通知conn master to read addr
-    if (con_handle) {
-        log_info("req master update addr\n");
-        le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_DEVICE_TYPE_REQ, NULL, 0);
-    }
-
 }
 static void tws_sync_le_audio_adv_mac_to_master()
 {
     u8 data[7];
-    u16 con_handle = get_conn_handle();
     data[0] = LE_AUDIO_ADV_MAC_INFO;
     memcpy(&data[1], le_audio_adv_local_mac, 6);
     log_info("to master le_audio_adv_mac");
     put_buf(le_audio_adv_local_mac, 6);
     tws_api_send_data_to_sibling(data, 7, 0x23782C5B);
-
-    if (con_handle) {
-        log_info("req master update addr\n");
-        le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_DEVICE_TYPE_REQ, NULL, 0);
-    }
 }
 #endif
 

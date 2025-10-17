@@ -52,6 +52,8 @@ int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len);
 
 float audio_anc_mic_gain_cmp_get(u8 id);
 
+u8 *audio_anc_mic_gain_cmp_cfg_get(int *len);
+
 
 #endif/*_AUDIO_ANC_COMMON_PLUG_H_*/
 

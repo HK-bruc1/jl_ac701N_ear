@@ -60,6 +60,8 @@
 #if AUDIO_CVP_SMS_AT_RAM
     *(.sms_const)
     *(.sms_code)
+    *(.smsvf_const)
+    *(.smsvf_code)
 #endif
 #if AUDIO_CVP_PREP_AT_RAM
     *(.jlsp_prep_code)

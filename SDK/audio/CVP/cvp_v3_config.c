@@ -114,6 +114,53 @@ const JLSP_drc_v3_cfg_t drc_init_cfg = {
     .samplerate = 16000
 };
 
+const JLSP_dual_flex_adf_cfg_t dual_flex_adf_cfg = {
+    .samplerate = 16000,
+    .processMaxFrequency = 8000,//ps
+    .processMinFrequency = 0,//ps
+    .maxMuf = 0.08f,
+    .minMuf = 0.0f,
+    .cohefMaxGamma = 0.5f,  // 预压制强度，越小压制越强，默认值0.5
+    .varmuMaxGamma = 0.85f, // 前级压制强度，越小压制越强，默认值0.85
+    .sirMaxGamma = 0.1f,    // 后级压制强度，越小压制越弱，默认值0.1
+    .sirMinimumSp = 0.04f,
+    .cohenXdThr = 0.1f,
+    .useSirGain = 0,		// 噪声压制强度(压制过大时置0)
+    .useErleReset = 0,
+    .erleThr = -6.f,
+    .coh_cfg = {
+        .samplerate = 16000,
+        .cohenProcessMaxFrequency = 8000,
+        .cohenProcessMinFrequency = 0,
+        .resOverDrive = 1.0f,
+        .miniSuppress = 0.0f,
+        .xThr = 1.39e-8f, //15.f,1.39e-8f
+        .useDe = 0
+    }
+};
+
+JLSP_dual_flex_v3_cfg_t dual_flex_cfg = {
+    .enableBit = 0b010111,//0b0010100,
+
+    .dualFlexWbEqVec = NULL,
+    .dualFlexNbEqVec = NULL,
+    .dualFlexPhaseCompenVec = NULL,
+
+    .dualFlexType = 1,
+    .dualPreGainDb = 0.0f,
+    .dualProcessMaxFrequency = 8000,
+    .dualProcessMinFrequency = 0,
+    .samplerate = 16000,
+
+    .post_pro_en = 1,		// 1 for enable, else for disable.
+
+    .aggressFactor = 1.0f,
+    .minSupress = 0.001f,
+    .dualCompenDb = 8.0f, //18.0f,
+
+    .externalEnableBit = 0x00,
+};
+
 const JLSP_single_aecnlp_v3_cfg_t aecnlp_init_cfg = {
     .enableBit = 0x03,
     .samplerate = 16000,

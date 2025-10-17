@@ -453,7 +453,7 @@ void bt_function_select_init()
 
     bt_set_sbc_cap_bitpool(TCFG_BT_SBC_BITPOOL);
 
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config()) {
         bt_change_hci_class_type(BD_CLASS_WEARABLE_HEADSET | LE_AUDIO_CLASS);   //经典蓝牙地址跟le audio地址一样要置上BIT(14)
 
@@ -1162,9 +1162,15 @@ int bt_mode_exit()
 int bt_app_msg_handler(int *msg)
 {
     u8 data[1];
+    u8 a2dp_addr[6];
+    u8 *bt_addr = NULL;
     if (!app_in_mode(APP_MODE_BT)) {
         return 0;
     }
+    if (a2dp_player_get_btaddr(a2dp_addr)) {
+        bt_addr = a2dp_addr;
+    }
+    int state = bt_get_call_status();
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
         log_info("APP_MSG_VOL_UP\n");
@@ -1313,6 +1319,28 @@ int bt_app_msg_handler(int *msg)
         }
 #endif
         break;
+#if TCFG_LP_EARTCH_KEY_ENABLE
+    case APP_MSG_EARTCH_IN_EAR:
+        puts("APP_MSG_EARTCH_IN_EAR\n");
+        if (state != BT_CALL_HANGUP) {
+            break;
+        }
+        if (bt_share_call_a2dp(DATA_ID_SHARE_TO_SHARE_PP)) {
+            break;
+        }
+        bt_cmd_prepare_for_addr(bt_addr, USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);   // 入耳播歌
+        break;
+    case APP_MSG_EARTCH_OUT_EAR:
+        puts("APP_MSG_EARTCH_OUT_EAR\n");
+        if (state != BT_CALL_HANGUP) {
+            break;
+        }
+        if (bt_share_call_a2dp(DATA_ID_SHARE_TO_SHARE_PP)) {
+            break;
+        }
+        bt_cmd_prepare_for_addr(bt_addr, USER_CTRL_AVCTP_OPID_STOP, 0, NULL);   // 出耳暂停
+        break;
+#endif
     default:
         break;
     }

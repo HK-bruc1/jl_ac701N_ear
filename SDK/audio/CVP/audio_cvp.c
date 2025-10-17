@@ -528,8 +528,13 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 #endif/*TCFG_AEC_TOOL_ONLINE_ENABLE*/
     aec_param->output_handle = audio_aec_output;
     aec_param->far_noise_gate = 10;
+    audio_aec_param_init(aec_param, init_param->node_uuid);
     if (ref_sr) {
-        aec_param->ref_sr  = ref_sr;
+        if (aec_param->adc_ref_en) {
+            aec_param->ref_sr  = sample_rate; // 硬回采参考数据采样率ref_sr和ADC采样率sample_rate保持一致
+        } else {
+            aec_param->ref_sr  = ref_sr;	  // 软回采
+        }
     } else {
         aec_param->ref_sr  = usb_mic_is_running();
     }
@@ -545,7 +550,6 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
     aec_param->ref_channel = ref_channel;
 
-    audio_aec_param_init(aec_param, init_param->node_uuid);
     if (enablebit >= 0) {
         aec_param->EnableBit = enablebit;
     }
@@ -949,7 +953,7 @@ struct cvp_context_setup g_cvp_context = {0};
 
 int audio_cvp_phase_align(void)
 {
-    if ((g_cvp_context.aec_status() == 0)  || (g_cvp_context.read_ref_data == NULL)) {
+    if ((g_cvp_context.aec_status == NULL) || (g_cvp_context.aec_status() == 0)  || (g_cvp_context.read_ref_data == NULL)) {
         return 0;
     }
     return g_cvp_context.read_ref_data();
@@ -966,9 +970,16 @@ void cvp_node_context_setup(u16 uuid)
 
 #if defined(TCFG_CVP_DEVELOP_ENABLE) && (TCFG_CVP_DEVELOP_ENABLE)
     g_cvp_context.read_ref_data = cvp_develop_read_ref_data;
+    g_cvp_context.aec_status = audio_aec_status;
 #endif
 
     switch (g_cvp_context.active_node_uuid) {
+    case NODE_UUID_CVP_SMS_VF:
+#if TCFG_AUDIO_CVP_SMS_VF_MODE
+        g_cvp_context.read_ref_data = cvp_sms_vf_tde_read_ref_data;
+        g_cvp_context.aec_status = audio_sms_vf_status;
+#endif
+        break;
     case NODE_UUID_CVP_SMS_ANS:
     case NODE_UUID_CVP_SMS_DNS:
 #if (TCFG_AUDIO_CVP_SMS_ANS_MODE || TCFG_AUDIO_CVP_SMS_DNS_MODE)
