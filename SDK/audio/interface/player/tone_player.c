@@ -177,7 +177,7 @@ static int tone_file_read(void *p_file, u8 *buf, int len)
         if ((len -= rlen) == 0) {
             break;
         }
-        if (player->scene == STREAM_SCENE_RING) {
+        if (player->scene == STREAM_SCENE_RING && player->coding_type != AUDIO_CODING_MTY) {
             if (player->coding_type == AUDIO_CODING_WTGV2) {
                 //WTS拼接提示音时，去掉头1byte
                 resfile_seek(player->file, 1, RESFILE_SEEK_SET);
@@ -219,7 +219,9 @@ static int tone_file_read(void *p_file, u8 *buf, int len)
         if (err == 0) {
             if (player->coding_type == fmt.coding_type &&
                 player->sample_rate == fmt.sample_rate &&
-                player->channel_mode == fmt.channel_mode) {
+                player->channel_mode == fmt.channel_mode &&
+                (player->scene != STREAM_SCENE_TONE || player->coding_type != AUDIO_CODING_MTY) && //mty格式提示音不能在原先的基础上接着读,同一个文件的铃声可以
+                player->coding_type != AUDIO_CODING_F2A) {
                 resfile_close(player->file);
                 player->file = file;
                 if (player->coding_type == AUDIO_CODING_WTGV2) {

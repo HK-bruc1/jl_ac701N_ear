@@ -376,7 +376,10 @@ __again:
         a2dp_media_free_packet(hdl->file, packet);
         goto __again;
     }
-    /*put_buf(packet, head_len + 8);*/
+#if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
+    printf("a2dp fmt check,head_len=%d", head_len);
+    put_buf(packet, head_len + 8);
+#endif
     u8 *frame = packet + head_len;
     if (frame[0] == 0x47) {    				//常见mux aac格式
 #if (defined(TCFG_BT_SUPPORT_AAC) && TCFG_BT_SUPPORT_AAC)
@@ -425,7 +428,7 @@ __again:
             fmt->channel_mode = AUDIO_CH_LR;
         }
         fmt->sample_rate  = sbc_sample_rates[sr];
-        printf("SBC param,sr=%d,channel_mode:%x", fmt->sample_rate, fmt->channel_mode);
+        printf("SBC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
 #if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
         if (strcmp(code_type, "SBC")) {
             printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
@@ -444,6 +447,10 @@ __again:
         printf("LDAC param : sr:%d, sample_rate : %d  chconfig_id : %d\n", sr, fmt->sample_rate, chconfig_id);
 #endif
     } else {
+#if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
+        printf("a2dp codec format error:unknown");
+        put_buf(packet, head_len + 8);
+#endif
         /*
          * 小米8手机先播sbc,暂停后切成AAC格式点播放,有时第一包数据还是sbc格式
          * 导致这里获取头信息错误

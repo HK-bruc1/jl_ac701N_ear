@@ -353,6 +353,11 @@ int bt_phone_hangup(u8 *bt_addr)
     }
     g_bt_hdl.phone_income_flag = 0;
     g_bt_hdl.phone_num_flag = 0;
+#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+    //来电报号结束，恢复通话主从切换
+    y_printf("phone num stop,tws_api_auto_role_switch_enable\n");
+    tws_api_auto_role_switch_enable();
+#endif
     g_bt_hdl.phone_ring_sync_tws = 0;
     lmp_private_esco_suspend_resume(4);
 
@@ -431,6 +436,11 @@ int bt_phone_active(u8 *bt_addr)
     lmp_private_esco_suspend_resume(4);
     g_bt_hdl.phone_income_flag = 0;
     g_bt_hdl.phone_num_flag = 0;
+#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+    //来电报号结束，恢复通话主从切换
+    y_printf("phone num stop,tws_api_auto_role_switch_enable\n");
+    tws_api_auto_role_switch_enable();
+#endif
     g_bt_hdl.phone_ring_sync_tws = 0;
     /* g_bt_hdl.phone_con_sync_ring = 0; */
     g_bt_hdl.phone_vol = 15;
@@ -771,6 +781,11 @@ void phone_income_num_check(void *priv)
     g_bt_hdl.phone_timer_id = 0;
 
     if (g_bt_hdl.phone_num_flag) {
+#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+        //来电报号开始，关闭自动主从切换
+        y_printf("phone num start,tws_api_auto_role_switch_disable\n")
+        tws_api_auto_role_switch_disable();
+#endif
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             if (g_bt_hdl.phone_ring_flag) {
                 tone_ring_player_stop();

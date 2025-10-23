@@ -736,9 +736,9 @@ static int app_connected_conn_status_event_handler(int *msg)
             //主机入仓，主机出仓测试，播歌的时候又播提示音有点变调，先屏蔽。
             break;
         }
-        tws_play_tone_file(get_tone_files()->bt_connect, 400);
+        tws_play_tone_file(get_tone_files()->cis_connect, 400);
 #else
-        play_tone_file(get_tone_files()->bt_connect);
+        play_tone_file(get_tone_files()->cis_connect);
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
@@ -767,11 +767,11 @@ static int app_connected_conn_status_event_handler(int *msg)
             break;
         }
         if (app_var.goto_poweroff_flag == 0) {
-            tws_play_tone_file(get_tone_files()->bt_disconnect, 400);
+            tws_play_tone_file(get_tone_files()->cis_disconnect, 400);
         }
 #else
         if (app_var.goto_poweroff_flag == 0) {
-            play_tone_file(get_tone_files()->bt_disconnect);
+            play_tone_file(get_tone_files()->cis_disconnect);
         }
 #endif
         if (!g_le_audio_hdl.le_audio_profile_ok) {
@@ -1223,9 +1223,11 @@ u8 le_audio_need_requesting_phone_connection()  //20250618 优化操作进配对
 void le_audio_adv_api_enable(u8 en)
 {
     if (!get_bt_le_audio_config()) {
+        r_printf("le_audio_en_config = 0");
         return;
     }
     if (g_le_audio_hdl.le_audio_profile_ok == 0) {
+        r_printf("le_audio_profile_ok = 0");
         //退出状态不操作LEA广播
         return;
     }
@@ -1584,10 +1586,6 @@ void le_audio_profile_init()
         char le_audio_name[LOCAL_NAME_LEN] = "le_audio_";     //le_audio蓝牙名
         u8 tem_len = 0;//strlen(le_audio_name);
         memcpy(&le_audio_name[tem_len], (u8 *)bt_get_local_name(), LOCAL_NAME_LEN - tem_len);
-#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
-        jl_unicast_edr_mode_get();
-#endif
-
         le_audio_name_reset((u8 *)le_audio_name, strlen(le_audio_name));
         le_audio_init(1);
         app_connected_init();
@@ -1599,7 +1597,12 @@ void le_audio_profile_init()
 
         make_rand_num(default_sirk);
     }
-
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (jl_unicast_edr_mode_get() != JL_UNICAST_MODE_DEFAULT) {
+        printf("close acl callback register\n");
+        ll_conn_rx_acl_callback_register(0); //关闭私有cis回调注册，rcsp才能连接
+    }
+#endif
 }
 /*
  * le audio功能总退出函数
@@ -2132,11 +2135,72 @@ static void jl_unicast_edr_mode_switch_in_app_core()
     y_printf("jl_unicast_edr_mode_switch_in_app_core = %d\n", _jl_unicast_mode);
 
     if (_jl_unicast_mode == JL_UNICAST_MODE_DEFAULT) {    // jlunicast模式
+        y_printf("JL_UNICAST_MODE_DEFAULT\n");
+#if TCFG_USER_TWS_ENABLE
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            tws_play_tone_file(get_tone_files()->cis_mode, 400);
+        }
+#else
+        play_tone_file(get_tone_files()->cis_mode);
+#endif
         le_audio_surport_config(1);
-    } else {
+        int connect_device = bt_get_total_connect_dev();
+        printf("bt_get_total_connect_dev = %d\n", connect_device);
+        if (connect_device) {                                       // 切换前如果有连接，断开当前所有蓝牙连接
+            bt_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL);   // 模式切换时需要清理现有连接，避免新旧模式的连接冲突。
+        }
+        write_scan_conn_enable(0, 0);
+        bt_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);
+        clr_device_in_page_list();
+#if TCFG_USER_TWS_ENABLE
+        tws_sync_le_audio_conn_info();
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+            ble_module_enable(0);
+#endif
+            tws_sync_le_audio_sirk();
+            le_audio_adv_api_enable(0);
+            le_audio_adv_api_enable(1);
+            tws_sync_le_audio_adv_mac_to_slave();//主机同步地址给tws从机
+        } else {
+            //if slave cis is playing,then send vol to master
+            if (is_cig_music_play() || is_cig_phone_call_play()) {
+                void bt_tws_slave_sync_volume_to_master();
+                bt_tws_slave_sync_volume_to_master();
+            }
+        }
+#else
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+        ble_module_enable(0);   //关闭rcsp广播
+#endif
+        le_audio_adv_api_enable(1);
+#endif
+    } else { // edr模式
+        y_printf("JL_UNICAST_MODE_EDR\n");
+#if TCFG_USER_TWS_ENABLE
+        if (tws_api_get_role() == TWS_ROLE_MASTER) {
+            tws_play_tone_file(get_tone_files()->edr_mode, 400);
+        }
+#else
+        play_tone_file(get_tone_files()->edr_mode);
+#endif
         le_audio_surport_config(0);
+        if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+            local_irq_disable();
+            y_printf("le_hci_disconnect_all_connections\n");
+            le_hci_disconnect_all_connections();
+            local_irq_enable();
+        }
+        le_audio_disconn_le_audio_link_no_reconnect();
+        printf("close acl callback register\n");
+        ll_conn_rx_acl_callback_register(0); //关闭私有cis回调注册，rcsp才能连接
+        extern void dual_conn_page_devices_init();
+        dual_conn_page_devices_init();
+#if TCFG_USER_TWS_ENABLE
+        tws_dual_conn_state_handler();
+#endif
     }
-    sys_enter_soft_poweroff(POWEROFF_RESET);
+
 }
 
 /**
@@ -2208,13 +2272,15 @@ void le_audio_surport_config(u8 le_audio_en)
         g_le_audio_hdl.le_audio_en_config = 0;
     }
     syscfg_write(CFG_LE_AUDIO_EN, &(g_le_audio_hdl.le_audio_en_config), 1);
+    log_debug("le_audio_surport_config le_audio_en_config=%d\n", g_le_audio_hdl.le_audio_en_config);
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)) //如果是公有cis的话，要换蓝牙地址，否则手机那边继续用原来的地址点击连接
     bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
     bt_cmd_prepare(USER_CTRL_POWER_OFF, 0, NULL);
-    log_debug("le_audio_surport_config le_audio_en_config=%d\n", g_le_audio_hdl.le_audio_en_config);
     u8 random = (u8)rand32();
     le_audio_surport_config_change_addr(random);
 #if TCFG_USER_TWS_ENABLE
     tws_sync_le_audio_en_info(random);
+#endif
 #endif
 #endif
 
@@ -2230,6 +2296,14 @@ void set_le_audio_surport_config(u8 le_audio_en)
  */
 u8 le_audio_enable_adv_when_disconnect()
 {
+    printf("le_audio_enable_adv_when_disconnect\n");
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+    if (g_le_audio_hdl.jl_unicast_mode == 1) {
+        y_printf("jl_unicast_edr_mode, close adv page\n");
+        //独立配对模式为edr模式不回连
+        return 0;
+    }
+#endif
     if (app_var.goto_poweroff_flag || g_bt_hdl.exiting || (g_le_audio_hdl.le_audio_profile_ok == 0)) {
         //退出状态不操作LEA广播
         return 0;
@@ -2259,7 +2333,7 @@ u8 get_bt_le_audio_config()
 /* ----------------------------------------------------------------------------*/
 u8 get_bt_le_audio_config_for_vm()
 {
-#if !TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+#if 1
     //default support le_audio
     g_le_audio_hdl.le_audio_en_config = 1;
     return g_le_audio_hdl.le_audio_en_config;

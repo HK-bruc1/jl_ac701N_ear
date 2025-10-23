@@ -206,7 +206,7 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params *params)
         dvol->vol_table_default = 1; //使用默认的音量表
     }
     dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
-
+#if AUDIO_DVOL_OFFSET_ENABLE
     if (dvol->vol_table_default) {
         dvol->min_vol = default_dig_vol_table[0];
         dvol->max_vol = default_dig_vol_table[dvol->vol_max];
@@ -219,6 +219,8 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params *params)
             dvol->max_vol = (s16)(eq_db2mag(dvol->max_db) *  DVOL_MAX_FLOAT);
         }
     }
+    /* printf("dvol_offset,max_vol:%d,min_vol:%d",dvol->max_vol,dvol->min_vol); */
+#endif
 
 #if BG_DVOL_FADE_ENABLE
     spin_lock(&dvol_attr.lock);
@@ -246,7 +248,7 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params *params)
     }
     spin_unlock(&dvol_attr.lock);
 #endif
-    /*dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, fade_step);*/
+    /* dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, dvol->fade_step); */
     return dvol;
 }
 
@@ -314,10 +316,12 @@ void audio_digital_vol_set_mute(dvol_handle *dvol, u8 mute_en)
 */
 void audio_digital_vol_offset_set(dvol_handle *dvol, s16 offset)
 {
+#if AUDIO_DVOL_OFFSET_ENABLE
     if (dvol == NULL) {
         return;
     }
     dvol->offset = offset;
+#endif
 }
 
 /*
@@ -332,6 +336,7 @@ void audio_digital_vol_offset_set(dvol_handle *dvol, s16 offset)
 */
 void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB)
 {
+#if AUDIO_DVOL_OFFSET_ENABLE
     if (dvol == NULL) {
         return;
     }
@@ -340,6 +345,10 @@ void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB)
     float tar_dB = 20 * log10_float(cur_vol / DVOL_MAX_FLOAT) + offset_dB;
     s16 tar_vol = (s16)(eq_db2mag(tar_dB) * DVOL_MAX_FLOAT + 0.5f);
     dvol->offset = tar_vol - cur_vol;
+    printf("dvol_offset_dB");
+    put_float(offset_dB);
+    printf("dvol offset:%d = target(%d) - current(%d)", dvol->offset, tar_vol, cur_vol);
+#endif
 }
 
 /*
@@ -369,10 +378,12 @@ void audio_digital_vol_set(dvol_handle *dvol, u16 vol)
     dvol->fade = DIGITAL_FADE_EN;
     dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
 
+#if AUDIO_DVOL_OFFSET_ENABLE
     /*音量改变时，更新音量dB偏移的音量大小*/
     if (dvol->offset) {
         audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
     }
+#endif
 }
 /*********************************************************************
 *                  Audio Digital Volume Set
@@ -401,10 +412,13 @@ void audio_digital_vol_set_no_fade(dvol_handle *dvol, u8 vol)
 #endif
     dvol->fade = 0;
     dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
+
+#if AUDIO_DVOL_OFFSET_ENABLE
     /*音量改变时，更新音量dB偏移的音量大小*/
     if (dvol->offset) {
         audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
     }
+#endif
 }
 
 void audio_digital_vol_reset_fade(dvol_handle *dvol)
@@ -438,6 +452,7 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
 
     s16 vol_target = dvol->vol_target;
 
+#if AUDIO_DVOL_OFFSET_ENABLE
     /*音量不为0时，才做偏移*/
     if (vol_target && dvol->offset) {
         vol_target += dvol->offset;
@@ -447,6 +462,7 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
             vol_target = dvol->max_vol;
         }
     }
+#endif
 
     if (dvol->mute_en) {
         vol_target = 0;

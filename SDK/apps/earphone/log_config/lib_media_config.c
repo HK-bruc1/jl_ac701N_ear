@@ -439,10 +439,11 @@ const  int  silk_fsW_enable = 1;  //支持16-24k采样率
   1 : 时域PLC
   2 : 频域PLC  目前推荐使用，需要的资源相比APLC/NPLC 比较少, 修复效果也不错
   3 : 仅补静音包
-  4 : APLC 需要官方授权  并将下面的配置config_lib_lc3_enc_ltpf_idx_enable 使能，才能得到更好的体验，但是编码需要的mip会更多,
-      解码在丢包触发plc时，需要的mips 也会增多(编解码都会增多1.5倍以上),如果未使能对应常量,则相当于频域PLC.
-  5 : NPLC JL 新一带PLC  修复效果接近于aplc，但是解码触发plc 的时候需要的mips 至少会翻倍。
-  4/5 的修复效果是最好的，但是需要增加30K~45K代码量,ram增大10K(立体声需要增大20K以上)以上，mips也需要的更多。建议在资源和效率允许的情况下在使用。
+  4 : APLC 需要官方授权（发邮件给[kurt.zou@iis-extern.fraunhofer.de] 或者访问官网[https://www.iis.fraunhofer.de/zh.html]获取联系方式）
+	  将下面的配置config_lib_lc3_enc_ltpf_idx_enable 使能，才能得到更好的体验，但是编码需要的mip会更多,
+      解码在丢包触发PLC时，需要的mips 也会增多(编解码都会增多1.5倍以上),如果未使能对应常量,则相当于频域PLC.
+  5 : NPLC 新一代自研PLC，修复效果接近于APLC，但是解码触发PLC的时候需要的mips 至少会翻倍。
+  注:4/5 的修复效果是最好的，但是需要增加30K~45K代码量,ram增大10K(立体声需要增大20K以上)以上，mips也需要的更多。建议在资源和效率允许的情况下在使用。
  */
 const int LC3_PLC_EN = 2;
 const char config_lib_lc3_enc_ltpf_idx_enable = 0;   //是否编码ltpf参数,影响aplc效果. 速度要求比较高,编解码需要mips 都会增多,非APLC类型建议关掉

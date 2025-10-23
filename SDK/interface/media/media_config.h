@@ -154,6 +154,14 @@ extern const int AAC_DEC_STKBUF_RELEASE_ENABLE;
 extern const char config_bt_aac_dec_pcm24_enable;
 extern const char config_bt_aac_dec_fifo_precision;
 
+/*
+ *******************************************************************
+ *						Audio Debug Config
+ *******************************************************************
+ */
+extern const int config_esco_media_stream_dump_enable;	//ESCO Media Stream Dump
+extern const int config_a2dp_media_stream_dump_enable;	//A2dp Media Stream Dump
+extern const int config_lea_media_stream_dump_enable;	//LE Audio Media Stream Dump
 
 
 

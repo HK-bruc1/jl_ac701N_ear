@@ -1249,19 +1249,19 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
                 i += (1 + *item_data);
                 item_data += (1 + *item_data);
             }
-
             if (rsp_len + sizeof(struct excfg_rsp_payload) + 2 > 31) {
+                rsp_len -= (rsp_len + sizeof(struct excfg_rsp_payload) + 2 - 31);
+                *rsp_data = rsp_len - 1;
                 cfg_printf("rsp data overflow!!!\n");
-            } else {
-                *(rsp_data + rsp_len) = sizeof(struct excfg_rsp_payload) + 1;        //fill jlpayload
-                *(rsp_data + rsp_len + 1) = 0xff;                                    // HCI_EIR_DATATYPE_MANUFACTURER_SPECIFIC_DATA
-                memcpy(rsp_data + rsp_len + 2, &rsp_payload, sizeof(struct excfg_rsp_payload));
-                rsp_len += (2 + sizeof(struct excfg_rsp_payload));
-                addr[0] += 1;                                                        //修改地址，让手机重新发现服务, 这里地址的修改规则可以用户自行设置
-                cfg_printf("new rsp_data:\n");
-                cfg_printf_buf(rsp_data, rsp_len);
-                custom_cfg_item_write(CFG_ITEM_SCAN_RSP, rsp_data, rsp_len);
             }
+            *(rsp_data + rsp_len) = sizeof(struct excfg_rsp_payload) + 1;        //fill jlpayload
+            *(rsp_data + rsp_len + 1) = 0xff;                                    // HCI_EIR_DATATYPE_MANUFACTURER_SPECIFIC_DATA
+            memcpy(rsp_data + rsp_len + 2, &rsp_payload, sizeof(struct excfg_rsp_payload));
+            rsp_len += (2 + sizeof(struct excfg_rsp_payload));
+            addr[0] += 1;                                                        //修改地址，让手机重新发现服务, 这里地址的修改规则可以用户自行设置
+            cfg_printf("new rsp_data:\n");
+            cfg_printf_buf(rsp_data, rsp_len);
+            custom_cfg_item_write(CFG_ITEM_SCAN_RSP, rsp_data, rsp_len);
 
             //广播包里有0xff字段也要找出来去掉，小程序判断到adv和rsp有重复字段是会出错
             u8 new_adv_len = 0;
@@ -1270,7 +1270,7 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
             while (i < len) {                           //找出不等于0xff的信息,拷贝到new_adv_data
                 if (*(item_data + 1) != 0xff) {
                     //memcpy(rsp_data, item_data, *item_data + 1);
-                    memcpy(rsp_data, item_data, *item_data + 1);
+                    memcpy(rsp_data + new_adv_len, item_data, *item_data + 1);
                     new_adv_len += *item_data + 1;
                 }
                 i += (1 + *item_data);

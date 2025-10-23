@@ -691,7 +691,7 @@ void dual_conn_page_device()
 }
 
 
-static void dual_conn_page_devices_init()
+void dual_conn_page_devices_init()
 {
     u8 mac_addr[6];
 

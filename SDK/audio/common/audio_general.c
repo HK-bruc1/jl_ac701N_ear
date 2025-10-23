@@ -196,6 +196,15 @@ const int config_audio_adc7_input_mode = 0;
 
 /*
  *******************************************************************
+ *						Audio Debug Config
+ *******************************************************************
+ */
+const int config_esco_media_stream_dump_enable = 0;	//ESCO Media Stream Dump
+const int config_a2dp_media_stream_dump_enable = 0;	//A2dp Media Stream Dump
+const int config_lea_media_stream_dump_enable = 0;	//LE Audio Media Stream Dump
+
+/*
+ *******************************************************************
  *						Audio CVP Config
  *******************************************************************
  */

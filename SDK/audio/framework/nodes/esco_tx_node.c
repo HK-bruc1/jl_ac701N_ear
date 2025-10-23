@@ -121,15 +121,17 @@ static int esco_tx_ioc_fmt_nego(struct stream_iport *iport)
         in_fmt->sample_rate = 8000;
         in_fmt->coding_type = AUDIO_CODING_CVSD;
         hdl->tx_frames = frame_time == 12 ? 60 : 30;
-    } else if (media_type == 1) {
-        in_fmt->sample_rate = 16000;
-        in_fmt->coding_type = AUDIO_CODING_MSBC;
-        hdl->tx_frames = frame_time == 12 ? 120 : 60;
-    } else {
+    } else if (media_type == 2) {
         in_fmt->sample_rate = 32000;
         in_fmt->coding_type = AUDIO_CODING_LC3;
         hdl->tx_frames = 60;
         hdl->swb = 1;
+    } else {
+        // 快速通话挂断会有临界状态lmp_private_get_esco_packet_type会返回-1，
+        // 需要保证else下面的编码格式，比如else配置LC3会导致没有LC3编码的项目出现无法获取编码器的断言
+        in_fmt->sample_rate = 16000;
+        in_fmt->coding_type = AUDIO_CODING_MSBC;
+        hdl->tx_frames = frame_time == 12 ? 120 : 60;
     }
     in_fmt->channel_mode = AUDIO_CH_MIX;
 

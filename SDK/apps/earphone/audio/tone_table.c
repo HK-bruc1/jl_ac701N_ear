@@ -56,9 +56,13 @@ static const struct tone_files chinese_tone_files = {
     .fit_det_on         = "tone_zh/fit_det_on.*",
     .share_search_pairing = "tone_zh/sharesearc.*",
     .share_wait_pairing = "tone_zh/sharewait.*",
-    .share_conn_master = "tone_zh/sharemaster.*",
-    .share_conn_slave = "tone_zh/shareslaver.*",
-    .share_disconnect = "tone_zh/share_dconn.*",
+    .share_conn_master  = "tone_zh/sharemaster.*",
+    .share_conn_slave   = "tone_zh/shareslaver.*",
+    .share_disconnect   = "tone_zh/share_dconn.*",
+    .edr_mode           = "tone_zh/edr_mode.*",
+    .cis_mode           = "tone_zh/cis_mode.*",
+    .cis_connect        = "tone_zh/cis_conn.*",
+    .cis_disconnect     = "tone_zh/cis_dconn.*",
 };
 
 static const struct tone_files english_tone_files = {
@@ -109,9 +113,13 @@ static const struct tone_files english_tone_files = {
     .fit_det_on         = "tone_en/fit_det_on.*",
     .share_search_pairing = "tone_en/sharesearc.*",
     .share_wait_pairing = "tone_en/sharewait.*",
-    .share_conn_master = "tone_en/sharemaster.*",
-    .share_conn_slave = "tone_en/shareslaver.*",
-    .share_disconnect = "tone_en/share_dconn.*",
+    .share_conn_master  = "tone_en/sharemaster.*",
+    .share_conn_slave   = "tone_en/shareslaver.*",
+    .share_disconnect   = "tone_en/share_dconn.*",
+    .edr_mode           = "tone_en/edr_mode.*",
+    .cis_mode           = "tone_en/cis_mode.*",
+    .cis_connect        = "tone_en/cis_conn.*",
+    .cis_disconnect     = "tone_en/cis_dconn.*",
 };
 
 #if TCFG_TONE_EN_ENABLE
