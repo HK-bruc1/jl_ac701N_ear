@@ -73,6 +73,15 @@ struct music_plc *music_plc_open(struct plc_node_hdl *hdl, u32 sr, u8 ch_num)
 
 void music_plc_run(struct music_plc *plc, s16 *data, u16 len, u8 repair)
 {
+#if AUDIO_MUSIC_PLC_TRACE_ENABLE
+    static u16 repair_cnt = 0;
+    if (repair) {
+        repair_cnt++;
+        y_printf("MusicPLC Error Count:%d", repair_cnt);//打印连续丢包情况
+    } else {
+        repair_cnt = 0;
+    }
+#endif
     if (plc && plc->plc_ops) {
         u16 point_offset = plc->datatype.IndataBit ? 2 : 1;
         u16 plc_type = repair ? AUD_PLC_WITH_FADE : AUD_PLC_BYPASS;

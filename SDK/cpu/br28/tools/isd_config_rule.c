@@ -90,12 +90,12 @@
 
 //uboot and ota.bin串口tx
 #ifndef CONFIG_UBOOT_DEBUG_PIN
-#define CONFIG_UBOOT_DEBUG_PIN                  PB02
+#define CONFIG_UBOOT_DEBUG_PIN                  PA05
 #endif
 
 //uboot and ota.bin串口波特率[EXTRA_CFG_PARAM]
 #ifndef CONFIG_UBOOT_DEBUG_BAUD_RATE
-#define CONFIG_UBOOT_DEBUG_BAUD_RATE            1000000
+#define CONFIG_UBOOT_DEBUG_BAUD_RATE            2000000
 #endif
 
 [EXTRA_CFG_PARAM]

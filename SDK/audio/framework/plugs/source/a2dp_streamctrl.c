@@ -721,13 +721,19 @@ void *a2dp_stream_control_plan_select(void *stream, int low_latency, u32 codec_t
 
 static void a2dp_stream_underrun_signal(void *arg)
 {
-    struct a2dp_stream_control *ctrl = (struct a2dp_stream_control *)arg;
+    struct a2dp_stream_control *ctrl;// = (struct a2dp_stream_control *)arg;
 
     local_irq_disable();
-    if (ctrl->underrun_callback) {
-        ctrl->underrun_callback(ctrl->underrun_signal);
+    list_for_each_entry(ctrl, &g_a2dp_stream_list, entry) {
+        if ((u32)ctrl != (u32)arg) {
+            continue;
+        }
+
+        if (ctrl->underrun_callback) {
+            ctrl->underrun_callback(ctrl->underrun_signal);
+        }
+        ctrl->timer = 0;
     }
-    ctrl->timer = 0;
     local_irq_enable();
 }
 
@@ -867,7 +873,7 @@ static int a2dp_stream_error_filter(struct a2dp_stream_control *ctrl, struct a2d
             err = -EAGAIN;
         } else if (!ctrl->stream_error && (u16)(seqn - ctrl->seqn) > 1) {
             err = -EAGAIN;
-            int missed_num = seqn - ctrl->seqn - 1;
+            u16 missed_num = seqn - ctrl->seqn - 1;
             if (missed_num > 32768) {
                 missed_num = 2;
             }

@@ -166,6 +166,8 @@ const struct task_info task_info_table[] = {
 #endif
 #if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
     {"imu_sensor",      2,     1,   512,   128 },
+#endif
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     {"imu_trim",            1,     0,   256,   128 },
 #endif
 //  {"periph_demo",       3,     0,   512,   0 },
@@ -633,7 +635,6 @@ void timer_no_response_callback(const char *task_name, void *func, u32 msec, voi
 }
 #endif
 
-#if 0
 static void test_printf(void *_arg)
 {
     //extern void mem_unfree_dump(void);
@@ -651,7 +652,6 @@ static void test_printf(void *_arg)
     int curr_clk = clk_get("sys");
     printf(">curr_clk:%d\n", curr_clk);  //打印当前时钟
 }
-#endif
 
 static void app_task_loop(void *p)
 {

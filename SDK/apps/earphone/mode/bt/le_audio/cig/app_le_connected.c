@@ -71,6 +71,7 @@ static struct le_audio_var g_le_audio_hdl;
 extern void ble_vendor_priv_cmd_handle_register(u16(*handle)(u16 hdl, u8 *cmd, u8 len, u8 *rsp));
 extern int ll_hci_vendor_send_priv_cmd(u16 conn_handle, u8 *data, u16 size); //通过hci命令发
 extern u8 lmp_get_esco_conn_statu(void);
+extern void ll_set_param_aclMaxPduCToP(uint8_t aclMaxRxPdu);
 
 /**************************************************************************************************
   Macros
@@ -440,7 +441,12 @@ static int app_connected_conn_status_event_handler(int *msg)
 
 #if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK)
         a2dp_suspend_by_le_audio();
-
+        if (esco_player_runing()) {
+            log_info("esco runing, stop cis");
+            le_audio_unicast_play_remove_by_phone_call();
+            app_connected_mutex_post(&mutex, __LINE__);
+            break;
+        }
 #elif (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
         clock_refurbish();
         if (hdl->Max_PDU_P_To_C) {
@@ -775,6 +781,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         }
 #endif
         if (!g_le_audio_hdl.le_audio_profile_ok) {
+            log_info("cis disconnect, app_connected_close\n");
             app_connected_close_in_other_mode();
         }
         break;
@@ -1196,8 +1203,10 @@ void app_connected_open_in_other_mode()
 
 void app_connected_close_in_other_mode_in_app_core()
 {
-    app_connected_close_all(APP_CONNECTED_STATUS_STOP);
-    app_connected_uninit();
+    if (is_cis_connected_init()) {
+        app_connected_close_all(APP_CONNECTED_STATUS_STOP);
+        app_connected_uninit();
+    }
 }
 void app_connected_close_in_other_mode()
 {
@@ -1600,6 +1609,7 @@ void le_audio_profile_init()
 #if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
     if (jl_unicast_edr_mode_get() != JL_UNICAST_MODE_DEFAULT) {
         printf("close acl callback register\n");
+        ll_set_param_aclMaxPduCToP(0);
         ll_conn_rx_acl_callback_register(0); //关闭私有cis回调注册，rcsp才能连接
     }
 #endif
@@ -1617,9 +1627,12 @@ void le_audio_profile_exit()
     g_le_audio_hdl.le_audio_profile_ok = 0;
     if (is_cig_phone_conn()) {
         local_irq_disable();
-        y_printf("le_hci_disconnect_all_connections\n");
+        log_info("le_hci_disconnect_all_connections\n");
         le_hci_disconnect_all_connections();
         local_irq_enable();
+    } else {
+        log_info("app_connected_close\n");
+        app_connected_close_in_other_mode();
     }
 }
 
@@ -2258,14 +2271,17 @@ void le_audio_surport_config(u8 le_audio_en)
 #if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
     if (le_audio_en) {
         g_le_audio_hdl.jl_unicast_mode = JL_UNICAST_MODE_DEFAULT;
+        ll_set_param_aclMaxPduCToP(JL_UNICAST_ACL_MAX_PDU_CTOP);
     } else {
         g_le_audio_hdl.jl_unicast_mode = JL_UNICAST_MODE_EDR;
+        ll_set_param_aclMaxPduCToP(0);
     }
     syscfg_write(CFG_JL_UNICAST_EDR_MODE, &(g_le_audio_hdl.jl_unicast_mode), 1);
     log_debug("le_audio_surport_config jl_unicast_mode=%d\n", g_le_audio_hdl.jl_unicast_mode);
 #endif
 #if TCFG_BT_DUAL_CONN_ENABLE
     set_dual_conn_config(addr, !le_audio_en);//le_audio en close dual_conn
+#endif
     if (le_audio_en) {
         g_le_audio_hdl.le_audio_en_config = 1;
     } else {
@@ -2280,7 +2296,6 @@ void le_audio_surport_config(u8 le_audio_en)
     le_audio_surport_config_change_addr(random);
 #if TCFG_USER_TWS_ENABLE
     tws_sync_le_audio_en_info(random);
-#endif
 #endif
 #endif
 

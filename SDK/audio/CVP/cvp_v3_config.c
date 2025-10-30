@@ -39,16 +39,9 @@ const JLSP_bf_v3_cfg_t bf_init_cfg = {
     .bfDrvTypeHyper = 0,
     .bfMainLobeMic = 1,
     .bfSideLobeMic = 0,
-    /*可配用宏*/
-    //V1 + post_en = 1<==>1代bf    V2 + post_en<==> 3代算法且无需配置ENCMIC补偿值
     .supressFactor = 0.6f,
-#if (CVP_BF_VERSION == JLSP_BF_V100)
-    .type = BF_TYPE_V1,
-    .bfPost_en = 1
-#else
     .type = BF_TYPE_V2,
     .bfPost_en = 0
-#endif
 };
 
 

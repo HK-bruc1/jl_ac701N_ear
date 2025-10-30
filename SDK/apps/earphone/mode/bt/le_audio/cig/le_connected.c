@@ -1473,5 +1473,11 @@ void cis_audio_recorder_close(u16 cis_hdl)
     connected_mutex_post(&connected_mutex, __LINE__);
 }
 
+u8 is_cis_connected_init()
+{
+    log_info("connected_init_flag:%d\n", connected_init_flag);
+    return connected_init_flag;
+}
+
 #endif
 

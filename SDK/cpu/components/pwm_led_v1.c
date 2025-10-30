@@ -635,8 +635,8 @@ static u32 pwm_led_get_cur_status_cnt_max(u32 cur_dir, u32 cur_level)
     u32 keep_prd;
     u32 cnt_max;
     if (JL_PLED->CON0 & BIT(1)) {//呼吸变化模式
-        u32 h_pwm_duty_prd = (JL_PLED->BRI_DUTY0H >> 8) | JL_PLED->BRI_DUTY0L;
-        u32 l_pwm_duty_prd = (JL_PLED->BRI_DUTY1H >> 8) | JL_PLED->BRI_DUTY1L;
+        u32 h_pwm_duty_prd = (JL_PLED->BRI_DUTY0H << 8) | JL_PLED->BRI_DUTY0L;
+        u32 l_pwm_duty_prd = (JL_PLED->BRI_DUTY1H << 8) | JL_PLED->BRI_DUTY1L;
         if (cur_dir) {
             keep_prd = (JL_PLED->DUTY3 << 8) | JL_PLED->DUTY2;
             if (cur_level) {

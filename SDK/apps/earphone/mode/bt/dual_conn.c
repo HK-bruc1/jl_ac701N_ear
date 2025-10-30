@@ -405,7 +405,16 @@ static int dual_conn_btstack_event_handler(int *_event)
         break;
 #endif
         puts("dual_conn BT_STATUS_INIT_OK");
+#if TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        if (jl_unicast_edr_mode_get() == JL_UNICAST_MODE_DEFAULT) {
+            printf("cis mode, edr not page\n");
+            break;
+        } else {
+            dual_conn_page_devices_init();
+        }
+#else
         dual_conn_page_devices_init();
+#endif
 #if (TCFG_BT_BACKGROUND_ENABLE)
         bt_background_switch_mode_after_initializes();
 #endif

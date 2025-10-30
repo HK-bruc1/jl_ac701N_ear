@@ -1182,7 +1182,7 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
     custom_cfg_item_write(CFG_ITEM_BT_NAME, host_name, host_name_len);
 
     //CFG_ITEM_EDR_ADDR
-    u8 addr[6];
+    u8 addr[6] = {0};
     //hook_get_mac_addr(addr);
     custom_cfg_item_write(CFG_ITEM_EDR_ADDR, (u8 *)bt_get_mac_addr(), sizeof(addr));
     printf("addr1 : \n");
@@ -1282,24 +1282,6 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
 
             free(rsp_data);
         }
-
-#if (RCSP_MODE || SMART_BOX_EN)
-    } else if (get_rcsp_support_new_reconn_flag()) {
-        u8 *rsp_adv_data = malloc(31);
-        if (rsp_adv_data) {
-            u16 rsp_adv_len = 0;
-
-            //CFG_ITEM_SCAN_RSP
-            rsp_adv_len = rebuild_adv_rcsp_info(rsp_adv_data, 31, CFG_ITEM_SCAN_RSP, NULL);
-            custom_cfg_item_write(CFG_ITEM_SCAN_RSP, rsp_adv_data, rsp_adv_len);
-
-            //CFG_ITEM_ADV_IND
-            u16 adv_len = rebuild_adv_rcsp_info(rsp_adv_data, 31, CFG_ITEM_ADV_IND, addr);
-            custom_cfg_item_write(CFG_ITEM_ADV_IND, rsp_adv_data, adv_len);
-
-            free(rsp_adv_data);
-        }
-#endif
     } else {
         //CFG_ITEM_SCAN_RSP
         custom_cfg_item_write(CFG_ITEM_SCAN_RSP, item_data, len);

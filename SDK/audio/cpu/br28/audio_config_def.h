@@ -76,6 +76,7 @@
 #define AFX_SW_EQ_AT_RAM                    0   //软件EQ
 #define AFx_SPATIAL_EFFECT_AT_RAM           1   //空间音效
 #define AFx_STEREO_TO_LCR_AT_RAM            0   //virtual surround headphone 2t4
+#define AUDIO_LLNS_DNS_CODEC_AT_RAM         0   //llns_dns
 
 /*通话语音处理算法*/
 #define AUDIO_CVP_TEXT_AT_RAM	    	    0	//COMMON TEXT

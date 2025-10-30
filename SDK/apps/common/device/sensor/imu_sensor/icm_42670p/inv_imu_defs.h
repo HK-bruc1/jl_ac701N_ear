@@ -41,6 +41,7 @@ extern "C" {
 #define ICM42670P_WHOAMI 0x67
 #define ICM42670T_WHOAMI 0x64
 #define ICM42670S_WHOAMI 0x69
+#define ICM42670L_WHOAMI 0x63
 
 /* Define whoami value for the targeted product and make sure the target is valid */
 #if defined(T1000)
@@ -53,6 +54,8 @@ extern "C" {
 #define ICM_WHOAMI ICM42670T_WHOAMI
 #elif defined(ICM42670S)
 #define ICM_WHOAMI ICM42670S_WHOAMI
+#elif defined(ICM42670L)
+#define ICM_WHOAMI ICM42670L_WHOAMI
 #else
 #error "Please define which IMU variant is targeted."
 #endif

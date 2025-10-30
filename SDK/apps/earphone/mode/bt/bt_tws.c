@@ -1063,6 +1063,9 @@ int bt_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_ROLE_SWITCH:
         r_printf("TWS_EVENT_ROLE_SWITCH=%d\n", role);
+        /* if (role != TWS_ROLE_SLAVE) { */
+        /* 	play_tone_file(get_tone_files()->low_latency_in); */
+        /* } */
         u8 *esco_addr = lmp_get_esco_link_addr();
         if (esco_addr) {
             bt_phone_esco_play(esco_addr);
@@ -1144,7 +1147,8 @@ static void bt_tws_enter_sniff(void *parm)
 {
     int interval;
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+    if (is_cig_music_play() || is_cig_other_music_play() || is_cig_phone_call_play() || is_cig_other_phone_call_play()) {
+        puts("cis music or call , can not enter sniff\n");
         goto __exit;
     }
 #endif

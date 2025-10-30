@@ -95,6 +95,7 @@ void audio_aec_close(void);
 void audio_aec_inbuf(s16 *buf, u16 len);
 void audio_aec_inbuf_ref(s16 *buf, u16 len);
 void audio_aec_inbuf_ref_1(s16 *buf, u16 len);
+void audio_aec_inbuf_ref_2(s16 *buf, u16 len);
 void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len);
 u8 audio_aec_status(void);
 void audio_aec_reboot(u8 reduce);

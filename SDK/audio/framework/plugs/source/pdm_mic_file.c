@@ -52,26 +52,53 @@ struct pdm_mic_file_hdl {
     PLNK_PARM *pdm_mic;
 };
 
-static void pdm_mic_output_handler(void *priv, void *data, u32 len)
+s16 *ch_to_stereo = NULL;
+static void pdm_mic_output_handler(void *priv, void *data0, void *data1,  u32 len)
 {
     struct pdm_mic_file_hdl *hdl = (struct pdm_mic_file_hdl *)priv;
     struct stream_frame *frame;
 
+    s16 *paddr0 = data0;
+    s16 *paddr1 = data1;
     if (hdl->dump_cnt < 10) {
         hdl->dump_cnt++;
         return;
     }
+    if (hdl->pdm_mic->ch_num == 2) {
+        int i = 0;
+        for (int j = 0; j < len / 2; j++) {
+            ch_to_stereo[i]     = paddr0[j];
+            ch_to_stereo[i + 1] = paddr1[j];
+            i += 2;
+        }
+
+    }
     if (audio_common_mic_mute_en_get()) {	//mute pdm_mic
-        memset((u8 *)data, 0x0, len);
+        if (hdl->pdm_mic->ch_cfg[0].en) {
+            memset((u8 *)data0, 0x0, len);
+        } else {
+            memset((u8 *)data1, 0x0, len);
+        }
     }
 
     if (hdl->scene == STREAM_SCENE_ESCO) {	//cvp读dac 参考数据
         audio_cvp_phase_align();
     }
 
-    frame = source_plug_get_output_frame(hdl->source_node, len);
+    //frame = source_plug_get_output_frame(hdl->source_node, (len * hdl->pdm_mic->ch_num));
+    frame = source_plug_get_output_frame(hdl->source_node, (len * hdl->pdm_mic->ch_num));
     if (frame) {
-        memcpy(frame->data, (u8 *)data, len);
+        if (hdl->pdm_mic->ch_num == 2) {
+            memcpy(frame->data, (u8 *)ch_to_stereo, (len * hdl->pdm_mic->ch_num));
+        } else {
+            if (hdl->pdm_mic->ch_cfg[0].en) {
+                putchar('a');
+                memcpy(frame->data, (u8 *)data0, len);
+            } else {
+                memcpy(frame->data, (u8 *)data1, len);
+            }
+        }
+        len *= hdl->pdm_mic->ch_num;
         frame->len = len;
         source_plug_put_output_frame(hdl->source_node, frame);
     }
@@ -217,7 +244,7 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     }
     if (plnk_ch_num > 1) {
         pdm_mic->ch_cfg[1].en = 1;
-        pdm_mic->ch_cfg[1].mode = DATA0_SCLK_FALLING_EDGE;
+        pdm_mic->ch_cfg[1].mode = DATA1_SCLK_FALLING_EDGE;
         pdm_mic->ch_cfg[1].mic_type = DIGITAL_MIC_DATA;
     }
 #endif
@@ -225,6 +252,7 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     if (!pdm_mic->dma_len) {	//避免没有设置pdm_mic的中断点数，默认256
         pdm_mic->dma_len = (ESCO_PDM_IRQ_POINTS << 1);
     }
+    ch_to_stereo = (s16 *) zalloc(ESCO_PDM_IRQ_POINTS * 2 *  sizeof(s16)) ;
     return len;
 }
 
@@ -275,6 +303,9 @@ static void pdm_mic_stop(struct pdm_mic_file_hdl *hdl)
             free(hdl->pdm_mic);
             hdl->pdm_mic = NULL;
         }
+        free(ch_to_stereo);
+        ch_to_stereo = NULL;
+
     }
 }
 

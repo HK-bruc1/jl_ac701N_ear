@@ -174,6 +174,14 @@ static void volume_ioc_start(struct volume_hdl *hdl)
         hdl->state          = APP_AUDIO_STATE_CALL;
         params.fade_step    = CALL_DVOL_FS;
         break;
+#if TCFG_AUDIO_HEARING_AID_ENABLE
+    case STREAM_SCENE_HEARING_AID:
+        vol_cfg->cfg_level_max = app_audio_get_max_volume();
+        /* puts("STREAM_SCENE_HEARING_AID , max_vol:%d\n", vol_cfg->cfg_level_max); */
+        hdl->state          = APP_AUDIO_STATE_MUSIC;
+        params.fade_step    = MUSIC_DVOL_FS;
+        break;
+#endif
     default:
         hdl->state          = APP_AUDIO_STATE_MUSIC;
         params.fade_step    = MUSIC_DVOL_FS;

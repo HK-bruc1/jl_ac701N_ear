@@ -348,10 +348,6 @@ void tws_a2dp_play_send_cmd(u8 cmd, u8 *_data, u8 len, u8 tx_do_action)
 void tws_a2dp_play_send_cmd(u8 cmd, u8 *_data, u8 len, u8 tx_do_action)
 {
     u8 data[16];
-
-    if (!tx_do_action) {
-        return;
-    }
     data[0] = cmd;
     data[1] = 2;
     memcpy(data + 2, _data, len);

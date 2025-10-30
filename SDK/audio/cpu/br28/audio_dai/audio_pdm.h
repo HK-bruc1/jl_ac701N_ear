@@ -70,7 +70,7 @@ typedef struct _PLNK_PARM {
     struct plnk_ch_cfg ch_cfg[2];		/*通道内部配置*/
     u32 sr;			                    /*采样率*/
     u32 dma_len;	                    /*一次中断byte数*/
-    void (*isr_cb)(void *priv, void *buf, u32 len);
+    void (*isr_cb)(void *priv, void *buf0, void *buf1,  u32 len); //回调传两个通道的ch_base
     void *private_data;			        /*音频私有数据*/
 
     /*内部使用的参数，不需要外部初始化*/

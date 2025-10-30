@@ -77,7 +77,7 @@ Beamforming版本配置
 JLSP_BF_V100:方向性较强，会对语音质量有损伤
 JLSP_BF_V200:方向性较弱，更好的保证语音质量
  */
-#define CVP_BF_VERSION	JLSP_BF_V200;
+#define CVP_BF_VERSION	JLSP_BF_V200
 
 /* 通过蓝牙spp发送风噪信息
  * 需要同时打开USER_SUPPORT_PROFILE_SPP和APP_ONLINE_DEBUG*/
@@ -581,6 +581,14 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
                 cvp_cfg->bf_cfg.targetSignalDegradation = cfg.target_signal_degradation;
                 cvp_cfg->bf_cfg.aggressFactor = cfg.enc_aggressfactor;
                 cvp_cfg->bf_cfg.minSuppress = cfg.enc_minsuppress;
+                //V1 + post_en = 1<==>1代bf    V2 + post_en<==> 3代算法且无需配置ENCMIC补偿值
+#if (CVP_BF_VERSION == JLSP_BF_V100)
+                cvp_cfg->bf_cfg.type = BF_TYPE_V1;
+                cvp_cfg->bf_cfg.bfPost_en = 1;
+#else
+                cvp_cfg->bf_cfg.type = BF_TYPE_V2;
+                cvp_cfg->bf_cfg.bfPost_en = 0;
+#endif
             }
             //双麦三麦有wnc mfdt
             if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
@@ -599,6 +607,17 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
                 cvp_cfg->micSel_cfg.onlyDetect = cfg.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
             }
         }
+#if (CVP_V3_2MIC_FLEXIBLE_ENABLE)
+        //双麦话务adaptive
+        if (cvp_v3->algo_type & CVP_ALGO_2MIC_FLEXIBLE) {
+            cvp_cfg->dual_flex_adf_cfg.processMaxFrequency = cfg.adaptive_processMaxFrequency;
+            cvp_cfg->dual_flex_adf_cfg.processMinFrequency = cfg.adaptive_processMinFrequency;
+            cvp_cfg->dual_flex_adf_cfg.cohefMaxGamma = cfg.cohefMaxGamma;
+            cvp_cfg->dual_flex_adf_cfg.varmuMaxGamma = cfg.varmuMaxGamma;
+            cvp_cfg->dual_flex_adf_cfg.sirMaxGamma	 = cfg.sirMaxGamma;
+            cvp_cfg->dual_flex_adf_cfg.useSirGain	 = cfg.useSirGain;
+        }
+#endif
 #endif
         //flow
         cvp_cfg->single_cfg.preGainDb = cfg.preGainDb;

@@ -18,9 +18,19 @@
 
 #define CVP_TYPE_2MIC					(CVP_ALGO_2MIC_BF | CVP_ALGO_2MIC_HYBRID | CVP_ALGO_2MIC_AWN |CVP_ALGO_2MIC_FLEXIBLE)
 
-#define CVP_V3_1MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0x00000F)
-#define CVP_V3_2MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0x00FFF0)
-#define CVP_V3_3MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & 0xFF0000)
+
+#define CVP_V3_1MIC_MASK  				0x00000F
+#define CVP_V3_2MIC_MASK  				0x00FFF0
+#define CVP_V3_3MIC_MASK  				0xFF0000
+
+#define CVP_V3_1MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & CVP_V3_1MIC_MASK)
+#define CVP_V3_2MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & CVP_V3_2MIC_MASK)
+#define CVP_V3_3MIC_ALGO_ENABLE			(TCFG_CVP_ALGO_TYPE & CVP_V3_3MIC_MASK)
+
+/* 2-MIC控制 */
+#define CVP_V3_2MIC_HYBRID_ENABLE     	(TCFG_CVP_ALGO_TYPE & CVP_ALGO_2MIC_HYBRID)
+#define CVP_V3_2MIC_AWN_ENABLE     		(TCFG_CVP_ALGO_TYPE & CVP_ALGO_2MIC_AWN)
+#define CVP_V3_2MIC_FLEXIBLE_ENABLE     (TCFG_CVP_ALGO_TYPE & CVP_ALGO_2MIC_FLEXIBLE)
 
 /* Beamforming 版本控制*/
 #define JLSP_BF_V100					0xA1
@@ -76,6 +86,14 @@ typedef struct {
     int MalfuncDet_MaxFrequency;	// 检测信号的最大频率成分
     int MalfuncDet_MinFrequency;	// 检测信号的最小频率成分
     int OnlyDetect;					// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+
+    /* flexible */
+    int adaptive_processMaxFrequency; // MaxProFreq
+    int adaptive_processMinFrequency; // MinProFreq
+    float cohefMaxGamma;
+    float varmuMaxGamma;
+    float sirMaxGamma;
+    int useSirGain;
 
     /*流程参数配置*/
     float preGainDb;				//ADC前级增益

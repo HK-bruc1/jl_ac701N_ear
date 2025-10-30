@@ -18,6 +18,7 @@
 #include "audio_config.h"
 #include "effects/AudioEffect_DataType.h"
 #include "media/audio_splicing.h"
+#include "audio_plc.h"
 
 #if TCFG_ESCO_PLC
 
@@ -100,16 +101,16 @@ void audio_plc_run_base(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
         return;
     }
 
-#if 0	//debug
+#if AUDIO_ESCO_PLC_TRACE_ENABLE
     static u16 repair_cnt = 0;
     if (repair) {
         repair_cnt++;
-        y_printf("[E%d]", repair_cnt);
+        y_printf("[E%d]", repair_cnt);//打印连续丢包情况
     } else {
         repair_cnt = 0;
     }
     //printf("[%d]",point);
-#endif/*debug*/
+#endif
 
     repair_flag = repair;
     if (plc->wideband) {

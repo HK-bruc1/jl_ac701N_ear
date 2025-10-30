@@ -52,7 +52,7 @@ static int adda_loop_get_adc_num(void)
     if (err == 0) {
         jlstream_read_form_cfg_data(&info, &temp_cfg);
     } else {
-        printf("adda_adc_file read cfg data err !!!\n");
+        printf("adda_adc_file read cfg data err !!! adc source name should be adda_adc\n");
     }
     for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
         if (temp_cfg.mic_en_map & BIT(i)) {

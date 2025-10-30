@@ -98,6 +98,16 @@ struct CVP_MFDT_CONFIG {
     int OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
 }  __attribute__((packed));
 
+/* adaptive */
+struct CVP_ADAPTIVE_CONFIG {
+    int adaptive_processMaxFrequency; // MaxProFreq
+    int adaptive_processMinFrequency; // MinProFreq
+    float cohefMaxGamma;// 预压制强度，越小压制越强，默认值0.5
+    float varmuMaxGamma;// 前级压制强度，越小压制越强，默认值0.85
+    float sirMaxGamma;// 后级压制强度，越小压制越弱，默认值0.1
+    int useSirGain;// 噪声压制强度(压制过大时置0)
+}  __attribute__((packed));
+
 struct CVP_FLOW_CONFIG {
     float preGainDb;	//ADC前级增益， default:0dB(0 ~ 30dB)
     float CompenDb;		//流程补偿增益，default:0dB(0 ~ 30dB)
@@ -119,6 +129,7 @@ struct cvp_cfg_t {
     struct CVP_DRC_CONFIG drc;		 // drc
     struct CVP_WNC_CONFIG wnc;		 // wnc
     struct CVP_MFDT_CONFIG mfdt;	 // mfdt
+    struct CVP_ADAPTIVE_CONFIG adaptive; // adaptive
     struct CVP_FLOW_CONFIG flow;	 // flow
     struct CVP_DEBUG_CONFIG debug;	//debug
 } __attribute__((packed));
@@ -240,6 +251,17 @@ void cvp_v3_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
             p->OnlyDetect = cfg->mfdt.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
         }
     }
+#if (CVP_V3_2MIC_FLEXIBLE_ENABLE)
+    //双麦话务adaptive
+    if (g_cvp_hdl->algo_sel.algo_type & CVP_ALGO_2MIC_FLEXIBLE) {
+        p->adaptive_processMaxFrequency	= cfg->adaptive.adaptive_processMaxFrequency;
+        p->adaptive_processMinFrequency = cfg->adaptive.adaptive_processMinFrequency;
+        p->cohefMaxGamma = cfg->adaptive.cohefMaxGamma;
+        p->varmuMaxGamma = cfg->adaptive.varmuMaxGamma;
+        p->sirMaxGamma	 = cfg->adaptive.sirMaxGamma;
+        p->useSirGain	 = cfg->adaptive.useSirGain;
+    }
+#endif
 #endif
     //flow
     p->preGainDb = cfg->flow.preGainDb;

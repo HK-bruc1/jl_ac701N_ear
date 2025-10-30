@@ -299,7 +299,7 @@ static const u32 aac_sample_rates[] = {
 };
 
 static const u16 sbc_sample_rates[] = {16000, 32000, 44100, 48000};
-
+static const char *sbc_channel_mode[] = {"Mono", "DualChannel", "Stereo", "JointStereo"};
 static const u32 ldac_sample_rates[] = {44100, 48000, 88200, 96000};
 
 __A2DP_DEC_BANK_CODE
@@ -387,7 +387,7 @@ __again:
         /* u8 ch = ((frame[5] & 0x3) << 2) | ((frame[6] & 0xC0) >> 6); */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate  = aac_sample_rates[sr];
-        printf("AAC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
+        printf("AAC param,Fs=%d,ChannelMode:0x%x", fmt->sample_rate, fmt->channel_mode);
 #if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
         if (strcmp(code_type, "AAC")) {
             printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
@@ -399,7 +399,7 @@ __again:
         /* u8 ch = ((frame[3] & 0x78) >> 3) ; */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate = aac_sample_rates[sr];
-        printf("LATM AAC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
+        printf("LATM AAC param,Fs=%d,ChannelMode:0x%x", fmt->sample_rate, fmt->channel_mode);
 #if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
         if (strcmp(code_type, "AAC")) {
             printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);
@@ -428,7 +428,7 @@ __again:
             fmt->channel_mode = AUDIO_CH_LR;
         }
         fmt->sample_rate  = sbc_sample_rates[sr];
-        printf("SBC param,sr=%d,channel_mode:0x%x", fmt->sample_rate, fmt->channel_mode);
+        printf("SBC param,Fs=%d,ChannelMode[%s]:0x%x", fmt->sample_rate, sbc_channel_mode[ch], fmt->channel_mode);
 #if A2DP_STREAM_FORMAT_CHECK_DEBUG_ENABLE
         if (strcmp(code_type, "SBC")) {
             printf("a2dp codec format error,code_type:%s,header flag:0x%x", code_type, frame[0]);

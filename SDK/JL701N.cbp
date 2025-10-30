@@ -1237,6 +1237,7 @@
 <Unit filename="audio/common/audio_event_handler.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_export_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_general.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/audio_general_config.h" />
 <Unit filename="audio/common/audio_iis_lrclk_capture.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_iis_lrclk_capture.h" />
 <Unit filename="audio/common/audio_node_config.c"><Option compilerVer="CC"/></Unit>

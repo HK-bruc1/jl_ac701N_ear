@@ -5,9 +5,9 @@
 #pragma code_seg(".driver.text")
 #endif
 #include "app_msg.h"
+#include "app_config.h"
 #include "system/event.h"
 #include "usb/usb_task.h"
-
 void sdx_dev_event_to_user(u32 arg, u8 sdx_status, u8 sdx_index)
 {
 

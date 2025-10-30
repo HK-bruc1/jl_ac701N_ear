@@ -564,7 +564,11 @@ int acoustic_echo_cancel_init(struct audio_aec_init_param_t *init_param, s16 ena
         ASSERT(0, "ref_channel need set 2 ch when CONST_SMS_TDE_STEREO_REF_ENABLE is 1");
     }
 #endif
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+    int ret = sms_tde_init(aec_param);
+#else
     int ret = aec_init(aec_param);
+#endif
     ASSERT(ret == 0, "aec_open err %d!!", ret);
 #endif/*CVP_TOGGLE*/
     aec_hdl->start = 1;
@@ -623,7 +627,11 @@ void acoustic_echo_cancel_close(void)
         aec_hdl->start = 0;
 
 #if CVP_TOGGLE
-        aec_exit();
+        if (TCFG_AUDIO_SMS_SEL == SMS_TDE) {
+            sms_tde_exit();
+        } else {
+            aec_exit();
+        }
 #endif
 
 #if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
@@ -680,7 +688,11 @@ void acoustic_echo_cancel_inbuf(s16 *buf, u16 len)
             aec_hdl->inbuf_clear_cnt--;
             memset(buf, 0, len);
         }
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        int ret = sms_tde_fill_in_data(buf, len);
+#else
         int ret = aec_fill_in_data(buf, len);
+#endif
         if (ret == -1) {
         } else if (ret == -2) {
             log_error("aec inbuf full\n");
@@ -709,7 +721,11 @@ void acoustic_echo_cancel_refbuf(s16 *data0, s16 *data1, u16 len)
 {
     if (aec_hdl && aec_hdl->start) {
 #if CVP_TOGGLE
+#if (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        sms_tde_fill_ref_data(data0, data1, len);
+#else
         aec_fill_ref_data(data0, data1, len);
+#endif
 #endif/*CVP_TOGGLE*/
     }
 }
