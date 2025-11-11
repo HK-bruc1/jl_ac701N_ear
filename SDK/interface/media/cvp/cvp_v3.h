@@ -33,8 +33,8 @@
 #define CVP_V3_2MIC_FLEXIBLE_ENABLE     (TCFG_CVP_ALGO_TYPE & CVP_ALGO_2MIC_FLEXIBLE)
 
 /* Beamforming 版本控制*/
-#define JLSP_BF_V100					0xA1
-#define JLSP_BF_V200					0xA2
+#define JLSP_BF_V100					0X01
+#define JLSP_BF_V200					0X02
 
 typedef struct {
     u8 ver;							//Ver:01

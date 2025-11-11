@@ -109,8 +109,8 @@ void bt_check_enter_sniff()
 #if (RCSP_ADV_EN)
     u8 rcsp_max_con_dev = rcsp_max_support_con_dev_num();
     u8 rcsp_conn_num = bt_rcsp_device_conn_num();
-    if (get_ble_adv_modify() || ((rcsp_conn_num < rcsp_max_con_dev) && get_ble_adv_notify())) {
-        // rcsp需要通知信息到手机 || rcsp未连接且需要通过广播信息到手机
+    if (get_ble_adv_modify() || get_ble_adv_notify()) {
+        // rcsp广播内容更改需要通知信息到手机 || 手机APP连接后需要主动通知信息
         return;
     }
 #endif

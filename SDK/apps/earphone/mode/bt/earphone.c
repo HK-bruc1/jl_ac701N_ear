@@ -1071,6 +1071,7 @@ int bt_mode_init()
     g_bt_hdl.exiting = 0;
     g_bt_hdl.wait_exit = 0;
     g_bt_hdl.ignore_discon_tone = 0;
+    g_bt_hdl.control_device_type = CONTROL_ALL;
     u32 sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
@@ -1170,6 +1171,12 @@ int bt_app_msg_handler(int *msg)
     if (a2dp_player_get_btaddr(a2dp_addr)) {
         bt_addr = a2dp_addr;
     }
+
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG)
+    g_bt_hdl.control_device_type = (is_cig_music_play() && !a2dp_player_runing()) ? CONTROL_CIS : CONTROL_EDR;
+    log_info("g_bt_hdl.control_device_type:%d\n", g_bt_hdl.control_device_type);
+#endif
+
     int state = bt_get_call_status();
     switch (msg[0]) {
     case APP_MSG_VOL_UP:

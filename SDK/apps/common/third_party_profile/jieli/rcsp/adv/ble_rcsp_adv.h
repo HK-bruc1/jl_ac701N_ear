@@ -21,7 +21,19 @@ void bt_ble_rcsp_adv_disable(void);
  * 关闭BLE广播定时器
  */
 void bt_ble_rcsp_adv_disable_timer(void);
+
+/**
+ * @brief 获取状态:手机APP连接后需要主动通知信息
+ *
+ * @return en 1:通知; 0:取消通知
+ */
 u8 get_ble_adv_notify(void);
+
+/**
+ * @brief 手机APP连接后需要主动通知信息
+ *
+ * @param en 1:通知; 0:取消通知
+ */
 void set_ble_adv_notify(u8 en);
 u8 adv_tws_both_in_charge_box(u8 type);
 int rcsp_make_set_rsp_data(void);
@@ -36,6 +48,11 @@ int upay_ble_send_data(const uint8_t *data, u16 len);
 void upay_ble_regiest_recv_handle(void (*handle)(const uint8_t *data, u16 len));
 void adv_seq_vaule_sync(void);
 
+/**
+ * @brief 获取状态:rcsp广播内容更改需要通知信息到手机
+ *
+ * @return en 1:通知; 0:取消通知
+ */
 u8 get_ble_adv_modify(void);
 void send_version_to_sibling(void);
 

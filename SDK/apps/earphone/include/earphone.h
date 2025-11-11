@@ -68,15 +68,16 @@ int tuya_earphone_state_cancel_page_scan();
 int tuya_earphone_state_enter_soft_poweroff();
 int tuya_earphone_state_tws_init(int paired);
 int tuya_earphone_state_tws_connected(int first_pair, u8 *comm_addr);
-int tuya_sys_event_handler_specific(struct sys_event *event);
 
 #define EARPHONE_STATE_INIT()                   tuya_earphone_state_init()
 #define EARPHONE_STATE_SET_PAGE_SCAN_ENABLE()   tuya_earphone_state_set_page_scan_enable()
 #define EARPHONE_STATE_GET_CONNECT_MAC_ADDR()   tuya_earphone_state_get_connect_mac_addr()
 #define EARPHONE_STATE_CANCEL_PAGE_SCAN()       tuya_earphone_state_cancel_page_scan()
-#define EARPHONE_STATE_ENTER_SOFT_POWEROFF()    tuya_earphone_state_enter_soft_poweroff()
+// #define EARPHONE_STATE_ENTER_SOFT_POWEROFF()    tuya_earphone_state_enter_soft_poweroff()
+#define EARPHONE_STATE_ENTER_SOFT_POWEROFF()    do { } while(0)
 #define EARPHONE_STATE_TWS_INIT(a)              tuya_earphone_state_tws_init(a)
-#define EARPHONE_STATE_TWS_CONNECTED(a, b)      tuya_earphone_state_tws_connected(a,b)
+// #define EARPHONE_STATE_TWS_CONNECTED(a, b)      tuya_earphone_state_tws_connected(a,b)
+#define EARPHONE_STATE_TWS_CONNECTED(a, b)      do { } while(0)
 #define SYS_EVENT_HANDLER_SPECIFIC(a)           tuya_sys_event_handler_specific(a)
 #define TWS_EVENT_MASSAGE_HANDLER(a)            0
 #define SYS_EVENT_REMAP(a) 				        0

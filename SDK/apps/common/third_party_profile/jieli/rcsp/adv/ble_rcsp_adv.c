@@ -657,6 +657,8 @@ static void bt_ble_rcsp_adv_enable_do(void *priv)
         if (rcsp_conn_num >= max_con_dev) {
             __this->modify_flag = 0;
         }
+    }
+    if (__this->ble_adv_notify) {
         set_ble_adv_notify(0);
     }
 

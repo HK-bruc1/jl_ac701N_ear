@@ -19,6 +19,10 @@
 
 void bt_volume_up(u8 inc)
 {
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
+
     u8 test_box_vol_up = 0x41;
     s8 cur_vol = 0;
     u8 call_status = bt_get_call_status();
@@ -91,6 +95,9 @@ void bt_volume_up(u8 inc)
 
 void bt_volume_down(u8 dec)
 {
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
     u8 test_box_vol_down = 0x42;
     u8 call_status = bt_get_call_status();
     u8 cur_state;
@@ -468,6 +475,10 @@ void bt_send_a2dp_cmd(int msg)
     u8 addr[6];
     u8 *bt_addr = NULL;
 
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
+
     if (a2dp_player_get_btaddr(addr)) {
         bt_addr = addr;
     }
@@ -510,6 +521,10 @@ void bt_send_a2dp_cmd(int msg)
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 void bt_send_jl_cis_cmd(int msg)
 {
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_CIS) {
+        return;
+    }
+
     u8 data[1];
 
     switch (msg) {

@@ -66,6 +66,7 @@ static void clock_critical_exit(void)
             int id = mcpwm_get_cfg_id(ch);
             if (id != -1) {
                 mcpwm_set_frequency(id, mcpwm_info[id]->cfg.aligned_mode, mcpwm_info[id]->cfg.frequency);
+                mcpwm_set_duty(id, mcpwm_info[id]->cfg.duty);
             }
         }
     }
@@ -322,7 +323,7 @@ void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 fr
             break;
         }
     }
-    tmr_con |= (i << MCPWM_TMR_CKPS); //div 2^i
+    SFR(tmr_con, MCPWM_TMR_CKPS, 4, i); //div 2^i
     mcpwm_div_clk = clk / (1 << i);
     if (frequency == 0) {
         mcpwm_tmr_pr = 0;

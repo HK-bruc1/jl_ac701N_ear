@@ -72,13 +72,6 @@ const u8 CONST_EQ_DEBUG_ENABLE = 0;
 /*响度指示器*/
 #define CVP_LOUDNESS_TRACE_ENABLE		0	//跟踪获取当前mic输入幅值
 
-/*
-Beamforming版本配置
-JLSP_BF_V100:方向性较强，会对语音质量有损伤
-JLSP_BF_V200:方向性较弱，更好的保证语音质量
- */
-#define CVP_BF_VERSION	JLSP_BF_V200
-
 /* 通过蓝牙spp发送风噪信息
  * 需要同时打开USER_SUPPORT_PROFILE_SPP和APP_ONLINE_DEBUG*/
 #define WIND_DETECT_INFO_SPP_DEBUG_ENABLE  0

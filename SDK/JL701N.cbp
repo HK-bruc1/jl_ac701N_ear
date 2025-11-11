@@ -1357,6 +1357,8 @@
 <Unit filename="audio/cpu/br28/audio_dai/audio_link.h" />
 <Unit filename="audio/cpu/br28/audio_dai/audio_pdm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_dai/audio_pdm.h" />
+<Unit filename="audio/cpu/br28/audio_dai/audio_tdm.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/cpu/br28/audio_dai/audio_tdm.h" />
 <Unit filename="audio/cpu/br28/audio_demo/audio_adc_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_demo/audio_dac_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br28/audio_demo/audio_demo.h" />
@@ -1430,6 +1432,7 @@
 <Unit filename="audio/framework/include/adc_file.h" />
 <Unit filename="audio/framework/include/fm_file.h" />
 <Unit filename="audio/framework/include/linein_file.h" />
+<Unit filename="audio/framework/include/tdm_file.h" />
 <Unit filename="audio/framework/include/volume_node.h" />
 <Unit filename="audio/framework/nodes/agc_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/ai_tx_node.c"><Option compilerVer="CC"/></Unit>

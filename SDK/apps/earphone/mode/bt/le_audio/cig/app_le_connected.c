@@ -56,6 +56,7 @@
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 struct le_audio_var {
+    u32 cig_dongle_host_type;			// cig dongle主机类型
     u8 le_audio_profile_ok;				// cig 初始化成功标志
     u8 le_audio_en_config;				// cig 功能是否使能
     u8 cig_phone_conn_status;			// cig 当前tws耳机le_audio连接状态
@@ -273,7 +274,7 @@ void le_audio_unicast_try_resume_play_by_phone_call_remove()
 #if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
                 data[1] = REMOVE_CIS_ESCO_MIX;
 #else
-                data[1] = REMOVE_CIS_REASON_BY_ESCO;
+                data[1] = 0;
 #endif
                 le_audio_media_control_cmd(data, 2);
             }
@@ -441,12 +442,6 @@ static int app_connected_conn_status_event_handler(int *msg)
 
 #if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK)
         a2dp_suspend_by_le_audio();
-        if (esco_player_runing()) {
-            log_info("esco runing, stop cis");
-            le_audio_unicast_play_remove_by_phone_call();
-            app_connected_mutex_post(&mutex, __LINE__);
-            break;
-        }
 #elif (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
         clock_refurbish();
         if (hdl->Max_PDU_P_To_C) {
@@ -468,6 +463,10 @@ static int app_connected_conn_status_event_handler(int *msg)
             log_debug("connected_perip_connect_deal fail");
         }
 
+        if (esco_player_runing()) {
+            log_info("esco runing, stop cis");
+            le_audio_unicast_play_remove_by_phone_call();
+        }
         //释放互斥量
         app_connected_mutex_post(&mutex, __LINE__);
         break;
@@ -1360,6 +1359,7 @@ void le_audio_adv_open_success(void *le_audio_ble_hdl, u8 *addr)
 #define VENDOR_PRIV_ACL_OPID_CONTORL    0x06
 #define VENDOR_PRIV_ACL_MUSIC_VOLUME    0x07
 #define VENDOR_PRIV_ACL_MIC_VOLUME      0x08
+#define VENDOR_PRIV_HOST_TYPE           0x10   //dongle主机类型
 
 enum {
     UNICAST_INDXT = 1,
@@ -1448,18 +1448,26 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
     u16 con_handle = get_conn_handle();
 
     if (con_handle) {
-        log_info("Send media control... handle:0x%x, 0x%x\n", con_handle, data[0]);
+        log_info("le_audio_media_control_cmd, handle:0x%x , data:\n", con_handle);
+        put_buf(data, len);
 #if TCFG_BT_VOL_SYNC_ENABLE
         switch (data[0]) {
         case CIG_EVENT_OPID_VOLUME_UP:
             log_info("sync vol to master up\n");
-            //cis标准只设计了连接1拖1，所以可以用不带地址的接口发
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
             bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_INC, 0, NULL);
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
+#endif
         case CIG_EVENT_OPID_VOLUME_DOWN:
             log_info("sync vol to master down\n");
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
             bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_DEC, 0, NULL);
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
+#endif
             break;
         default:
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
@@ -1575,6 +1583,13 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
         cfg.cur_vol = cmd[1] * 16 / 127;    // mic实际音量登记 = dongle发下来的实际等级 * mic音量总等级 / dongle发下来的总等级
         int err = jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, "LEA_CallMic", (void *)&cfg, sizeof(struct volume_cfg));
         printf(">>>lea mic vol:%d, ret:%d", cfg.cur_vol, err);
+        break;
+    case VENDOR_PRIV_HOST_TYPE:
+        g_le_audio_hdl.cig_dongle_host_type = (uint32_t)cmd[1] << 24 |
+                                              (uint32_t)cmd[2] << 16 |
+                                              (uint32_t)cmd[3] << 8  |
+                                              (uint32_t)cmd[4];
+        log_info("Get dongle host type:%d", g_le_audio_hdl.cig_dongle_host_type);
         break;
     }
     log_info("rsp_date len:%d\n", rsp_len); // debug用的
@@ -2375,12 +2390,12 @@ u8 edr_conn_memcmp_filterate_for_addr(u8 *addr)
 #endif
     return 0;
 }
-//le_audio phone conn不进power down
+//le_audio phone con可以进入power down
 static u8 le_audio_idle_query(void)
 {
     if ((g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_CONNECT)
         || (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_START)) {
-        return 0;
+        return 1;
     }
     return 1;
 }

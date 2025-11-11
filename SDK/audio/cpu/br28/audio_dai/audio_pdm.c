@@ -95,9 +95,9 @@ static void plnk_isr(void)
     u8 buf_flag;
     u32 *buf = (u32 *)__this->buf;
     u32 point_per_ch = __this->dma_len / 4;  // 256point
-    u32 *data_buf;
     u32 *ch0_base;
     u32 *ch1_base;
+    int i = 0;
     if (PLNK_PND_IS()) {
         buf_flag = PLNK_USING_BUF() ? 0 : 1; // buf_flag = 0代表buffer0可被读写，buf_flag=1代表buffer1可被读写
         if (JL_PLNK->CON & BIT(9)) {  		 // 读ch0/ch1 buffer0
@@ -107,24 +107,24 @@ static void plnk_isr(void)
             ch0_base = buf + point_per_ch;
             ch1_base = buf + point_per_ch + point_per_ch * 2;
         }
-        /* if(__this->ch_num == 1){
-                if (__this && __this->isr_cb) {
-                    __this->isr_cb(__this->private_data, __this->ch_cfg[0].en ? ch0_base : ch1_base, __this->dma_len);
-                }
-            }else{
-                s16 *stereo = (s16 *)zalloc(__this->dma_len * 2);
-                int i = 0;
-                for (int j = 0; j < len; j++){   // __this->dma_len = 256 poins
-                    stereo[i]     = ch0_base[j];
-                    stereo[i + 1] = ch1_base[j];
-                    i += 2;
-                }
-         */
-        if (__this && __this->isr_cb) {
-            __this->isr_cb(__this->private_data, ch0_base, ch1_base, __this->dma_len);
+        if (__this && __this->ch_num == 1) {
+            if (__this->isr_cb) {
+                __this->isr_cb(__this->private_data, __this->ch_cfg[0].en ? ch0_base : ch1_base, __this->dma_len);
+            }
+        } else {
+            s16 *dst   = (s16 *)__this->stereo_buf;
+            s16 *src1  = (s16 *)ch0_base;
+            s16 *src2  = (s16 *)ch1_base;
+            for (int j = 0; j < __this->dma_len / 2; j++) {  // __this->dma_len = 256 poins
+                dst[i]     = src1[j];
+                dst[i + 1] = src2[j];
+                i += 2;
+            }
+            if (__this && __this->isr_cb) {
+                __this->isr_cb(__this->private_data, __this->stereo_buf, __this->dma_len);
+            }
         }
         PLNK_PND_CLR();
-        //free(stereo);
     }
 }
 
@@ -185,6 +185,9 @@ void *plnk_init(void *hw_plink)
     PLNK_DMA_LEN(__this->dma_len / 2);      			// __this->dma = 512, PLK_DMA_LEN = 256 points
     __this->buf = dma_malloc(__this->dma_len  * 2 * 2);
     memset(__this->buf, 0x00, __this->dma_len  * 2 * 2);
+    if (__this->ch_num > 1) {
+        __this->stereo_buf = dma_malloc(__this->dma_len  * __this->ch_num);
+    }
     ASSERT(__this->buf);
     PLNK_BUF_SET((u32)__this->buf);
     /* 0：M = 1; 1:M=2  */
@@ -259,6 +262,11 @@ void plnk_uninit(void *hw_plink)
         dma_free(__this->buf);
         __this->buf = NULL;
     }
+    if (__this->stereo_buf) {
+        dma_free(__this->stereo_buf);
+        __this->stereo_buf = NULL;
+    }
+
     __this = NULL;
 }
 

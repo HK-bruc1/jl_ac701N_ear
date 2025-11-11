@@ -1235,6 +1235,7 @@ objs += \
 	  $(ROOT)/audio/cpu/br28/audio_setup.o \
 	  $(ROOT)/audio/cpu/br28/audio_mic_capless.o \
 	  $(ROOT)/audio/cpu/br28/audio_dai/audio_pdm.o \
+	  $(ROOT)/audio/cpu/br28/audio_dai/audio_tdm.o \
 	  $(ROOT)/audio/cpu/br28/audio_config.o \
 	  $(ROOT)/audio/cpu/br28/audio_configs_dump.o \
 
@@ -1257,6 +1258,7 @@ objs += \
 	  $(ROOT)/audio/cpu/br28/audio_demo/audio_dac_demo.o \
 	  $(ROOT)/audio/cpu/br28/audio_demo/audio_fft_demo.o \
 	  $(ROOT)/audio/cpu/br28/audio_demo/audio_pdm_demo.o
+
 
 
 

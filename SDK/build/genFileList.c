@@ -1698,6 +1698,7 @@ c_SRC_FILES += \
 	  audio/cpu/br28/audio_setup.c \
 	  audio/cpu/br28/audio_mic_capless.c \
 	  audio/cpu/br28/audio_dai/audio_pdm.c \
+	  audio/cpu/br28/audio_dai/audio_tdm.c \
 	  audio/cpu/br28/audio_config.c \
 	  audio/cpu/br28/audio_configs_dump.c \
 
@@ -1727,6 +1728,7 @@ c_SRC_FILES += \
 	  audio/cpu/br28/audio_demo/audio_dac_demo.c \
 	  audio/cpu/br28/audio_demo/audio_fft_demo.c \
 	  audio/cpu/br28/audio_demo/audio_pdm_demo.c
+
 #endif
 
 

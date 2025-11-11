@@ -52,10 +52,10 @@ extern struct audio_dac_hdl dac_hdl;
 *			   L0 R0 L1 R1 L2 R2...
 *********************************************************************
 */
-static void audio_plnk_mic_output(void *priv, void *data0, void *data1, u32 len)
+static void audio_plnk_mic_output(void *priv, void *data, u32 len)
 {
     putchar('o');
-    s16 *paddr = data0;
+    s16 *paddr = data;
     if (plnk_demo->mic_2_dac) {
         int wlen = audio_dac_write(&dac_hdl, paddr, len);
         if (wlen != len) {
