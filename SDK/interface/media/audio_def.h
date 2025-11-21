@@ -317,4 +317,12 @@
 #define  LIMITER_PRECISION_HIGH_NORMAL_LOW  EFx_PRECISION_NOR//高、普通、最低
 #define  LIMITER_PRECISION_MAX              EFx_PRECISION_PRO //最高
 
+//PLC Mode定义
+#define AUD_PLC_FADE_MODE					0	//淡入淡出模式
+#define AUD_PLC_TD_MODE						1	//时域（TimeDomain）模式
+#define AUD_PLC_FD_MODE						2	//频域（FrequencyDomain）模式
+#define AUD_PLC_SILENCE_MODE				3	//填充静音包模式
+#define AUD_PLC_ADVANCED_MODE				4	//官方高级PLC模式（需授权使用）
+#define AUD_PLC_ULTRA_MODE					5	//JL自研高级PLC模式
+
 #endif/*_AUDIO_DEF_H_*/

@@ -95,9 +95,14 @@
 #include "mix_record_api.h"
 #endif
 
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+#include "edr_hid_user.h"
+#include "sbox_user_app.h"
+#endif
+
 #if TCFG_APP_BT_EN
 
-#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN)) || \
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN | JL_SBOX_EN)) || \
 		(TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 #include "multi_protocol_main.h"
 #endif
@@ -493,6 +498,13 @@ void bt_function_select_init()
     bt_tws_share_function_select_init();
 #endif
 
+#if TCFG_BT_MUSIC_INFO_ENABLE
+    bt_music_info_handle_register(user_get_bt_music_info);
+#endif
+
+#if ((TCFG_BT_SUPPORT_HID==1) && TCFG_USER_EDR_ENABLE)
+    edr_hid_config_init();
+#endif
 }
 
 
@@ -574,7 +586,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
 #endif
 
-#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN)) || \
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN | JL_SBOX_EN)) || \
 		(TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
         multi_protocol_bt_init();
 #endif
@@ -896,12 +908,19 @@ void phone_date_and_time_feedback(u8 *data, u16 len)
     extern void ifly_vad_demo(void);
     ifly_vad_demo();
 #endif
+
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+    sbox_phone_date_and_time_feedback(data, len);
+#endif
 }
 void map_get_time_data(char *time, int status)
 {
     printf("[zwz info] func %s line %d \n", __func__, __LINE__);
     if (status == 0) {
         log_info("time：%s ", time);
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+        sbox_map_get_time_data(time);
+#endif
     } else {
         log_info(">>>map get fail\n");
         sys_timeout_add(NULL, bt_get_time_date, 100);
@@ -972,7 +991,7 @@ static void bt_no_background_exit_check(void *priv)
     bt_ble_exit();
 #endif
 
-#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN)) || \
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN | JL_SBOX_EN)) || \
 		(TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
     multi_protocol_bt_exit();
 #endif

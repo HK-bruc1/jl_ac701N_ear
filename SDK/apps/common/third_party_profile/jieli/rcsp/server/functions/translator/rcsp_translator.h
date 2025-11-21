@@ -54,29 +54,33 @@ struct translator_op_03_audio_format {
 };
 #pragma pack()
 
-struct translator_recv_audio_frame {
-    struct list_head entry;
-    u8 source;
-    u8 *buf;
-    u32 size;
-    u32 timestamp;
-};
 
-
+/** @brief      初始化RCSP翻译，rcsp协议层连上的时候调用
+  * @return     none
+  * @note
+  */
 void JL_rcsp_translator_init();
+/** @brief      注销RCSP翻译，rcsp协议层断开的时候调用
+  * @return     none
+  * @note
+  */
 void JL_rcsp_translator_deinit();
-int JL_rcsp_translator_op_inform_mode_info(struct translator_mode_info *info);
+/** @brief      RCSP翻译响应APP命令，执行相应操作
+  * @param[in]  priv: rcsp句柄
+  * @param[in]  OpCode: OpCode字段
+  * @param[in]  OpCode_SN: OpCode_SN字段
+  * @param[in]  data: 接收到的数据
+  * @param[in]  len: 数据长度
+  * @param[in]  ble_con_handle: ble句柄
+  * @param[in]  spp_remote_addr: spp地址
+  * @return     = 0 成功; < 0 失败
+  * @note
+  */
 int JL_rcsp_translator_functions(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr);
-struct translator_recv_audio_frame *JL_rcsp_translator_recv_ch_get_frame(u8 source);
-int JL_rcsp_translator_recv_ch_free_frame(u8 source, struct translator_recv_audio_frame *frame);
-
-void JL_rcsp_translator_set_decode_resume_handler(u8 source, void *priv, void (*func)(void *priv, u8 source));
-u32 JL_rcsp_translator_get_status();
-void JL_rcsp_translator_get_mode_info(struct translator_mode_info *minfo);
-int JL_rcsp_translator_manual_record_start();
-int JL_rcsp_translator_manual_record_stop();
-int JL_rcsp_translator_set_play_volume(u16 volume);
-void JL_rcsp_translator_update_play_volume(u8 source);
+/** @brief      RCSP翻译播放是否走opus解码通道
+  * @return     1 走opus解码通路，0 走a2dp通路
+  * @note
+  */
 int JL_rcsp_translator_whether_play_by_ai_rx();
 
 #endif

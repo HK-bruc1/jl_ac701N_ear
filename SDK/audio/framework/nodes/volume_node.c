@@ -162,9 +162,8 @@ static void volume_ioc_start(struct volume_hdl *hdl)
         audio_digital_vol_bg_fade(1);
 #endif
         break;
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+#if TCFG_AI_PLAYER_ENABLE
     case STREAM_SCENE_AI_VOICE:
-        /*puts("set_a2dp_volume\n");*/
         hdl->state = APP_AUDIO_STATE_MUSIC;
         params.fade_step  = MUSIC_DVOL_FS;
         break;

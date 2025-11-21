@@ -15,6 +15,9 @@
 
 #include "key_event_deal.h"
 #include "audio_config.h"
+#if TCFG_AI_PLAYER_ENABLE
+#include "ai_player.h"
+#endif
 
 #if (RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
 
@@ -173,9 +176,8 @@ static void vol_state_update(void)
 #endif
     } else {
         app_audio_set_volume(app_audio_get_state(), vol, 1);
-#if RCSP_ADV_TRANSLATOR
-        extern int JL_rcsp_translator_set_play_volume(u16 volume);
-        JL_rcsp_translator_set_play_volume(vol);
+#if TCFG_AI_PLAYER_ENABLE
+        ai_player_set_play_volume(vol);
 #endif
     }
 }

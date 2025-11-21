@@ -576,6 +576,24 @@ objs += \
 
 
 objs += \
+    $(ROOT)/apps/common/ai_audio/ai_audio_common.o \
+
+
+objs += \
+    $(ROOT)/apps/common/ai_audio/ai_player.o \
+
+
+objs += \
+    $(ROOT)/apps/common/ai_audio/ai_recorder.o \
+
+
+objs += \
+    $(ROOT)/apps/common/ai_audio/ai_translator.o \
+
+
+
+
+objs += \
 	$(ROOT)/apps/common/third_party_profile/multi_protocol_common.o \
 	$(ROOT)/apps/common/third_party_profile/multi_protocol_event.o \
 
@@ -960,6 +978,17 @@ objs += \
     $(ROOT)/apps/common/third_party_profile/ximalaya_protocol/xmly_config.o \
     $(ROOT)/apps/common/third_party_profile/ximalaya_protocol/xmly_ble.o \
 
+
+
+objs += \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_core_config.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_protocol.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_user_app.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_uart_app.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_eq_switch.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/user_video_ctr.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/edr_hid_user.o \
+    $(ROOT)/apps/common/third_party_profile/jieli/jl_earbox/sbox_connect_emitter.o \
 
 
 

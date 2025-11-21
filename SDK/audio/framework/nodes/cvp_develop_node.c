@@ -313,6 +313,11 @@ static void cvp_adapter_release(struct stream_node *node)
         hdl->buf_ref = NULL;
         free(hdl->buf_ref_1);
         hdl->buf_ref_1 = NULL;
+    } else if (hdl->cfg.mic_num == 4) {
+        free(hdl->buf_ref);
+        hdl->buf_ref = NULL;
+        free(hdl->buf_ref_1);
+        hdl->buf_ref_1 = NULL;
         free(hdl->buf_ref_2);
         hdl->buf_ref_2 = NULL;
     }

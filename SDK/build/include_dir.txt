@@ -63,6 +63,7 @@
 -Iinterface/btstack/third_party/le_audio
 -Iinterface/btstack/third_party/broadcast
 -Iapps/common/le_audio
+-Iapps/common/ai_audio
 -Iinterface/utils/ui/ui/cpu/br28
 -Iapps/common/third_party_profile
 -Iapps/common/third_party_profile/common
@@ -110,6 +111,8 @@
 -Iapps/common/third_party_profile/jieli/rcsp/client/rcsp_m_update
 -Iapps/common/third_party_profile/ximalaya_protocol
 -Iapps/common/third_party_profile/auracast_app
+-Iapps/common/third_party_profile/jieli/jl_earbox
+-Iinterface/btstack/third_party/jl_earbox
 -Iapps/common/third_party_profile/bt_fmy
 -Iinterface/btstack
 -Iapps/common/device/usb

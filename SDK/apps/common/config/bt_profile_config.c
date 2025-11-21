@@ -62,11 +62,69 @@ const int config_stack_modules = BT_BTSTACK_CLASSIC | BT_BTSTACK_LE;
 const int config_stack_modules = BT_BTSTACK_CLASSIC;
 #endif
 
+#if TCFG_USER_EDR_ENABLE
+//定义的产品信息,for test
+#define  PNP_VID_SOURCE   0x02
+#define  PNP_VID          0x05ac //0x05d6
+#define  PNP_PID          0x022C //
+#define  PNP_PID_VERSION  0x011b //1.1.11
+
+static const u8 sdp_pnp_service_data_hid[] = {
+    0x36, 0x00, 0x34, 0x09, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x0A, 0x09, 0x00, 0x01, 0x36, 0x00,
+    0x03, 0x19, 0x12, 0x00, 0x09, 0x02, 0x00, 0x09, 0x01, 0x03, 0x09, 0x02, 0x01, 0x09, PNP_VID >> 8, PNP_VID & 0xFF,
+
+    0x09, 0x02, 0x02, 0x09, PNP_PID >> 8, PNP_PID & 0xFF, 0x09, 0x02, 0x03, 0x09, PNP_PID_VERSION >> 8, PNP_PID_VERSION & 0xFF, 0x09, 0x02, 0x04, 0x28,
+    0x01, 0x09, 0x02, 0x05, 0x09, 0x09, PNP_VID_SOURCE >> 8, PNP_VID_SOURCE & 0xFF, 0x00, 0x00
+};
+
+/*重定义下面hid信息结构，信息用于提供给库里面接口SDP生成hid_service服务使用*/
+/*用到结构体的两个接口:sdp_create_diy_device_ID_service 和 sdp_create_diy_hid_service*/
+static const hid_sdp_info_t hid_sdp_info_config = {
+    .vid_private = PNP_VID,
+    .pid_private = PNP_PID,
+    .ver_private = PNP_PID_VERSION,
+
+    .sub_class           = 0x80,
+    .country_code        = 0x21,
+    .virtual_cable       = 0x01,
+    .reconnect_initiate  = 0x01,
+    .sdp_disable         = 0x00,
+    .battery_power       = 0x01,
+    .remote_wake         = 0x01,
+    .normally_connectable = 0x01,
+    .boot_device         = 0x01,
+    .version             = 0x0100,
+    .parser_version      = 0x0111,
+    .profile_version     = 0x0100,
+    .supervision_timeout = 0x1f40,
+    .language            = 0x0409,
+    .bt_string_offset    = 0x0100,
+    .descriptor_len      = 0,
+    .descriptor          = NULL,
+    .service_name        = "JL_HID",
+    .service_description = "hid key",
+    .provide_name        = "JIELI",
+    .sdp_request_respone_callback = NULL,
+    .extra_buf              = NULL,
+    .extra_len              = 0,
+};
+
+#define NEW_SDP_PNP_DATA_VER     1  //for 兼容性
+
+#endif
+
 #if (TCFG_BT_SUPPORT_PNP==1)
+#if TCFG_USER_EDR_ENABLE
+SDP_RECORD_HANDLER_REGISTER(pnp_sdp_record_item) = {
+    .service_record = (u8 *)sdp_pnp_service_data_hid,
+    .service_record_handle = 0x1000A,
+};
+#else
 SDP_RECORD_HANDLER_REGISTER(pnp_sdp_record_item) = {
     .service_record = (u8 *)sdp_pnp_service_data,
     .service_record_handle = 0x1000A,
 };
+#endif
 #endif
 
 #if (TCFG_BT_SUPPORT_A2DP==1)
@@ -122,10 +180,18 @@ u8 spp_profile_support = 1;
 #endif
 #if (TCFG_BT_SUPPORT_HID==1)
 u8 hid_profile_support = 1;
+#if TCFG_USER_EDR_ENABLE
+u8 sdp_make_hid_service_data[0x200];
+SDP_RECORD_HANDLER_REGISTER(hid_sdp_record_item) = {
+    .service_record = (u8 *)sdp_make_hid_service_data,
+    .service_record_handle = 0x00010006,
+};
+#else
 SDP_RECORD_HANDLER_REGISTER(hid_sdp_record_item) = {
     .service_record = (u8 *)sdp_hid_service_data,
     .service_record_handle = 0x00010006,
 };
+#endif
 #endif
 #if (TCFG_BT_SUPPORT_PBAP==1)
 extern const u8 sdp_pbap_service_data[];
@@ -159,6 +225,25 @@ SDP_RECORD_HANDLER_REGISTER(pan_sdp_record_item) = {
 /*注意hid_conn_depend_on_dev_company置2之后，默认不断开HID连接 */
 const u8 hid_conn_depend_on_dev_company = 1;
 const u8 sdp_get_remote_pnp_info = 0;
+
+#if TCFG_USER_EDR_ENABLE
+void hid_sdp_init(const u8 *hid_descriptor, u16 size)
+{
+#if (USER_SUPPORT_PROFILE_HID==1)
+    int real_size;
+
+#if (NEW_SDP_PNP_DATA_VER == 0)
+    real_size = sdp_create_diy_device_ID_service(sdp_make_pnp_service_data, sizeof(sdp_make_pnp_service_data));
+    printf("dy_device_id_service(%d):", real_size);
+#endif
+    /* put_buf(sdp_make_pnp_service_data,real_size); */
+
+    real_size = bt_sdp_create_diy_hid_service(sdp_make_hid_service_data, sizeof(sdp_make_hid_service_data), hid_descriptor, size);
+    printf("dy_hid_service(%d):", real_size);
+    /* put_buf(sdp_make_hid_service_data,real_size); */
+#endif
+}
+#endif
 
 //edr 功能配置代码优化
 const int CONFIG_BTSTACK_SUPPORT_FUN = HFP_UPDATE_BATTERY;

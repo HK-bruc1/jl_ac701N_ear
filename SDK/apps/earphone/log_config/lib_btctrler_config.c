@@ -458,8 +458,8 @@ const int config_btctler_le_master_multilink = 0;
 
 
 const int config_btctler_le_slave_conn_update_winden = 2500;//range:100 to 2500
-#if (defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52)
-//br50 br52 默认开启频道监测
+#if (defined CONFIG_CPU_BR28 || defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR56)
+//br28 br50 br52 br56 默认开启频道监测
 const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH | BIT(11) | BIT(12) | BIT(13);
 #else
 const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;

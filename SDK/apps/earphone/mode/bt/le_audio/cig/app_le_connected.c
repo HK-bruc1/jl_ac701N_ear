@@ -533,12 +533,6 @@ static int app_connected_conn_status_event_handler(int *msg)
             log_debug("connected_perip_disconnect_deal fail");
         }
 
-#if TCFG_AUTO_SHUT_DOWN_TIME
-        if (!cis_connected_nums) {
-            /* sys_auto_shut_down_enable();   // 恢复自动关机 */
-        }
-#endif
-
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
         if (dis_reason == ERROR_CODE_CONNECTION_TIMEOUT) {
             //测试播歌超距的时候，有一种状态是CIG超时了，ACL还没断开，
@@ -777,6 +771,11 @@ static int app_connected_conn_status_event_handler(int *msg)
 #else
         if (app_var.goto_poweroff_flag == 0) {
             play_tone_file(get_tone_files()->cis_disconnect);
+        }
+#endif
+#if TCFG_AUTO_SHUT_DOWN_TIME && TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        if (cis_connected_nums == 0) {
+            sys_auto_shut_down_enable();
         }
 #endif
         if (!g_le_audio_hdl.le_audio_profile_ok) {
@@ -1368,7 +1367,7 @@ enum {
 
 };
 
-static u32 ear_version[2] = {0x00, 0x00};           // 临时定义耳机版本号，后面可以考虑存在VM
+static u32 ear_version[2] = {0x02, 0x00};           // 临时定义耳机版本号，后面可以考虑存在VM
 static u32 dongle_common_version[2] = {0x00, 0x00}; // 耳机和dongle协商共用用双方中的低版本
 
 static u32 dongle_codec_type = 0;
