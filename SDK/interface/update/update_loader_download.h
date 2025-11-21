@@ -5,6 +5,7 @@
 
 // extern const int config_update_mode;
 extern const int support_dual_bank_update_en;
+extern const int support_dual_bank_less_en;
 
 extern const int CONFIG_UPDATE_ENABLE;
 extern const int CONFIG_UPDATE_STORAGE_DEV_EN;
@@ -43,6 +44,7 @@ typedef struct _update_op_api_tws {
     //for user chip update
     int (*tws_ota_user_chip_update_send)(u8 cmd, u8 *buf, u16 len);
     int (*tws_ota_user_chip_update_send_data)(u8 *buf, u16 len, u16 pack_crc, void *priv);
+    u32(*tws_ota_request_peer_crc_info_hdl)(void);
 } update_op_tws_api_t;  //给tws同步升级用的接口
 
 update_op_tws_api_t *get_tws_update_api(void);

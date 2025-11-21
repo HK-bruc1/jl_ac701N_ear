@@ -13,6 +13,7 @@
 *********************************************************************************************/
 #include "app_config.h"
 #include "system/includes.h"
+#include "gpadc.h"
 
 #if TCFG_SD0_SD1_USE_THE_SAME_HW
 const int sd0_sd1_use_the_same_hw = 1;
@@ -56,6 +57,18 @@ const int config_otg_slave_detect_method_2 = 1;
 const int config_otg_slave_detect_method_2 = 0;
 #endif
 
+//gpadc驱动开启 “电池电压”和“温度采集功能”
+const u8 adc_vbat_ch_en = 1;
+const u8 adc_vtemp_ch_en = 1;
+const u32 lib_adc_clk_max = 500 * 1000;
+const u8 gpadc_battery_mode = WEIGHTING_MODE; //使用IOVDD供电时,禁止使用 MEAN_FILTERING_MODE 模式
+const u32 gpadc_ch_power = AD_CH_PMU_VBAT_4; //根据供电方式选择通道
+const u8 gpadc_ch_power_div = 4; //分压系数,需和gpadc_ch_power匹配
+const u8 gpadc_power_supply_mode = 2; //映射供电方式
+const u16 gpadc_battery_trim_vddiom_voltage = 2800; //电池trim 使用的vddio电压
+const u16 gpadc_battery_trim_voltage = 3700; //电池trim 使用的vbat电压
+const u16 gpadc_extern_voltage_trim = 0; //使用外部输入方式校准的电压
+
 /* 是否开启把vm配置项暂存到ram的功能 */
 /* 具体使用方法和功能特性参考《项目帮助文档》的“11.4. 配置项管理 -VM配置项暂存RAM功能描述” */
 const char vm_ram_storage_enable = FALSE;
@@ -64,6 +77,12 @@ const char vm_ram_storage_in_irq_enable = TRUE;
 
 /* 设置vm的ram内存缓存区总大小限制，0为不限制，非0为限制大小（单位/byte）。 */
 const int  vm_ram_storage_limit_data_total_size  = 16 * 1024;
+
+// 设置vm写是否进行组包:
+// 0 :不组包
+// -1:使用malloc的buf进行组包(vm_write时分配)
+// 具体数值:使用固定的buf进行组包(vm_init时分配)
+const int vm_packet_size = 256;
 
 const int config_rtc_enable = 0;
 
@@ -74,6 +93,7 @@ const u8 lib_gptimer_timer_mode_en = 1; //gptimer timer功能使能
 const u8 lib_gptimer_pwm_mode_en = 1; //gptimer pwm功能使能
 const u8 lib_gptimer_capture_mode_en = 1; //gptimer capture功能使能
 const u8 lib_gptimer_auto_tid_en = 1; //gptimer_tid 内部自动分配使能
+const u8 lib_gptimer_extern_use = GPTIMER_EXTERN_USE; //gptimer 模块外部已经占用, bit0=1表示timer0 外部占用，以此类推
 
 const u32 lib_config_uart_flow_enable = 1;
 
@@ -83,8 +103,11 @@ const u32 lib_config_uart_flow_enable = 1;
 #define     AUTH_sdk_chip_key    (1<<2)   //SDK秘钥校验
 
 //需要对应的功能，就或上对应的宏定义，支持多种鉴权同时打开
+#if (defined(TCFG_BURNER_CURRENT_CALIBRATION) && TCFG_BURNER_CURRENT_CALIBRATION)
+const u32 lib_config_enable_auth_check = 0b0000 | AUTH_multi_algorithm;
+#else
 const u32 lib_config_enable_auth_check = 0b0000;
-
+#endif
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)
  */
@@ -261,6 +284,30 @@ const char log_tag_const_d_UART  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_UART  = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_e_UART  = CONFIG_DEBUG_LIB(TRUE);
 
+const char log_tag_const_v_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_IIC  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_IIC  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_SPI  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_SPI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_EXTI  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_EXTI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_GPIO  = CONFIG_DEBUG_LIB(TRUE);
+
 const char log_tag_const_v_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_i_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_d_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
@@ -272,4 +319,10 @@ const char log_tag_const_i_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_d_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_e_PERI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_GPADC  = CONFIG_DEBUG_LIB(TRUE);
 

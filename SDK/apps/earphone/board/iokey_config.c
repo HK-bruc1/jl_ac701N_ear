@@ -36,6 +36,7 @@ u8 uuid2keyValue(u16 uuid)
     return 0xff;
 }
 
+__INITCALL_BANK_CODE
 const struct iokey_platform_data *get_iokey_platform_data()
 {
     const struct iokey_info *info = g_iokey_info;

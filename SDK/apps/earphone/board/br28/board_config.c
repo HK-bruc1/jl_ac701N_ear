@@ -10,7 +10,7 @@
 #include "gSensor/gSensor_manage.h"
 #include "imuSensor_manage.h"
 #include "iic_api.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "asm/power_interface.h"
 #include "eartouch_manage.h"
 

@@ -4,7 +4,7 @@
 #include "generic/typedef.h"
 #include "audio_dvol.h"
 #include "audio_config_def.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "mic_power_manager.h"
 
 extern struct audio_dac_hdl dac_hdl;
@@ -198,8 +198,6 @@ void app_audio_bt_volume_save_mac(u8 *addr);
 int audio_digital_vol_default_init(void);
 
 void volume_up_down_direct(s16 value);
-void audio_combined_vol_init(u8 cfg_en);
-void audio_volume_list_init(u8 cfg_en);
 
 void dac_power_on(void);
 void dac_power_off(void);
@@ -260,6 +258,17 @@ s16 app_audio_volume_max_query(audio_vol_index_t index);
 *********************************************************************
 */
 void audio_app_mute_en(u8 mute_en);
+
+/*
+*********************************************************************
+*          			Audio Volume Offset
+* Description: 音量偏移
+* Arguments  : offset 音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_app_set_vol_offset_dB(float offset_dB);
 
 void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_platform_cfg *platform_cfg);
 

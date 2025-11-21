@@ -177,7 +177,7 @@ u8 get_music_player_state(void)
 void rcsp_update_player_state(void)
 {
     struct RcspModel *rcspModel = rcsp_handle_get();
-    if (1 == rcspModel->A_platform && rcsp_adv_music_info_vaild()) {
+    if (rcspModel && (1 == rcspModel->A_platform) && rcsp_adv_music_info_vaild()) {
         return;
     }
     JL_rcsp_event_to_user(DEVICE_EVENT_FROM_RCSP, MSG_JL_UPDATE_PLAYER_STATE, NULL, 0);
@@ -426,7 +426,7 @@ void rcsp_adv_music_info_deal(u8 type, u32 time, u8 *info, u16 len)
     //printf("info len \n");
     //put_buf(info,len);
     struct RcspModel *rcspModel = rcsp_handle_get();
-    if (1 == rcspModel->A_platform && rcsp_adv_music_info_vaild()) {
+    if (rcspModel && (1 == rcspModel->A_platform) && rcsp_adv_music_info_vaild()) {
         return;
     }
 #if RCSP_ADV_FIND_DEVICE_ENABLE

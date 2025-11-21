@@ -12,6 +12,7 @@
 
 #define iic_enable(reg)             (reg->CON0 |= BIT(0))
 #define iic_disable(reg)            (reg->CON0 &= ~BIT(0))
+#define is_iic_enable(reg)          (reg->CON0 & BIT(0))
 #define iic_role_host(reg)          (reg->CON0 &= ~BIT(1))
 #define iic_role_slave(reg)         (reg->CON0 |= BIT(1))
 #define iic_cfg_done(reg)           (reg->CON0 |= BIT(2))
@@ -53,25 +54,29 @@ typedef enum {
     I2C_PND_STOP,
 } i2c_pnd_typedef;
 
+enum {
+    HW_IIC_0,
+};
 
 typedef const u8 hw_iic_dev;
 #include "iic_api.h"
 
 struct hw_iic_slave_config {
     struct iic_master_config config;
-    void (*iic_slave_irq_callback)(void);
+    void (*iic_slave_irq_func)(void);
     u8 slave_addr;//bit7~bit1
 };
 
 struct iic_master_config *get_hw_iic_config(hw_iic_dev iic);
 enum iic_state_enum hw_iic_init(hw_iic_dev iic, struct iic_master_config *i2c_config);
-enum iic_state_enum hw_iic_uninit(hw_iic_dev iic);
+enum iic_state_enum hw_iic_deinit(hw_iic_dev iic);
 enum iic_state_enum hw_iic_resume(hw_iic_dev iic);
 enum iic_state_enum hw_iic_suspend(hw_iic_dev iic);
 enum iic_state_enum hw_iic_check_busy(hw_iic_dev iic);
-void hw_iic_start(hw_iic_dev iic);
+enum iic_state_enum hw_iic_start(hw_iic_dev iic);
 void hw_iic_stop(hw_iic_dev iic);
 void hw_iic_reset(hw_iic_dev iic);//无效
+void iic_hw_err_reset(hw_iic_dev iic);
 u8 hw_iic_tx_byte(hw_iic_dev iic, u8 byte);
 u8 hw_iic_rx_byte(hw_iic_dev iic, u8 ack);
 //return: =len:ok
@@ -102,7 +107,7 @@ enum iic_slave_rx_state {
 
 enum iic_state_enum hw_iic_slave_init(hw_iic_dev iic, struct hw_iic_slave_config *i2c_config);
 void hw_iic_slave_set_addr(hw_iic_dev iic, u8 addr, u8 addr_ack);
-void hw_iic_slave_set_callback(hw_iic_dev iic, void (*iic_slave_irq_callback)(void));
+void hw_iic_slave_set_isr_func(hw_iic_dev iic, void (*iic_slave_irq_func)(void));
 u8 hw_iic_slave_get_addr(hw_iic_dev iic);
 enum iic_slave_rx_state hw_iic_slave_rx_prepare(hw_iic_dev iic, u8 ack, u32 wait_time);//轮询, 准备收
 //判断地址，返回数据类型, 不检查结束位

@@ -68,6 +68,24 @@
 #define LL_FEAT_CONN_SUBRATE_HOST_SUPPORT           (UINT64_C(1) << (38))   /*!< Connection subratingHost supported. */
 #define LL_FEAT_CHANNEL_CLASSIFICATION              (UINT64_C(1) << (39))   /*!< Channel classification supported. */
 
+/* --- Core Spec 5.4 --- */
+#define LL_FEAT_ADVERTISING_CODING_SELECTION                     (UINT64_C(1) << (40))
+#define LL_FEAT_ADVERTISING_CODING_SELECTION_HOST_SUPPORT        (UINT64_C(1) << (41))
+
+#define LL_FEAT_PERIODIC_ADVERTISING_WITH_RESPONSES_ADVERTISER   (UINT64_C(1) << (43))
+#define LL_FEAT_PERIODIC_ADVERTISING_WITH_RESPONSES_SCANNER      (UINT64_C(1) << (44))
+
+/* --- Core Spec 6.0 --- */
+#define UNSEGMENTED_FRAMED_MODE                     (UINT64_C(1) << (45))
+#define CHANNEL_SOUNDING                            (UINT64_C(1) << (46))
+#define CHANNEL_SOUNDING_HOST_SUPPORT               (UINT64_C(1) << (47))
+#define CHANNEL_SOUNDING_TONE_QUALITY_INDICATION    (UINT64_C(1) << (48))
+
+#define LL_EXTENDED_FEATURE_SET                     (UINT64_C(1) << (50))  //63
+#define MONITORING_ADVERTISERS                      (UINT64_C(1) << (51))  //64
+#define FRAME_SPACE_UPDATE                          (UINT64_C(1) << (52))  //65
+
+/* --- Vendor --- */
 #define LL_FEAT_VENDOR_BIG_SYNC_TRANSFER            (UINT64_C(1) << (62))   /*!< Vendor BIG sync transfer. */
 #define LL_FEAT_VENDOR_BIG_TRANSFER                 (UINT64_C(1) << (63))   /*!< Vendor BIG transfer. */
 
@@ -168,7 +186,7 @@ extern const int config_btctler_le_afh_en;
  *  brief : 运行时优化（LTO）下，代码空间优化；
  */
 // extern const int config_btctler_le_param_check;
-#define LE_PARAM_IS_CHECK()                TRUE//(config_btctler_le_param_check)
+#define LE_PARAM_IS_CHECK()                0//TRUE//(config_btctler_le_param_check)
 /*
  *-------------------LE RAM CONTROL
  *
@@ -188,6 +206,8 @@ extern const int config_btctler_le_iso_rx;
  */
 extern const int config_btctler_le_slave_multilink;
 extern const int config_btctler_le_master_multilink;
+
+#define LE_MULTI_IS_SUPPORT()           (config_btctler_le_slave_multilink | config_btctler_le_master_multilink)
 /*-----------------------------------------------------------*/
 
 /*
@@ -220,6 +240,7 @@ extern const int config_bb_optimized_ctrl;
 #define LE_ADV_AFH_CTRL_EN()	(config_bb_optimized_ctrl & BIT(6))
 #define LE_ADV_PWR_CTRL_EN()	(config_bb_optimized_ctrl & BIT(7))
 #define LE_BIS_RX_PRE_CLOSE()	(config_bb_optimized_ctrl & BIT(8))
+#define LE_SUPPORT_LE_PER_CHECK()				(config_bb_optimized_ctrl & BIT(13))
 /*-----------------------------------------------------------*/
 
 /*

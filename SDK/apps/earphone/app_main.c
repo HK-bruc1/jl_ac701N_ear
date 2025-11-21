@@ -40,12 +40,15 @@
 #include "app_key_dut.h"
 #include "linein.h"
 #include "pc.h"
+#include "app_music.h"
 #include "rcsp_user_api.h"
 #include "pwm_led/led_ui_api.h"
+#include "dual_bank_updata_api.h"
+#include "effect/effects_dev.h"
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
 #include "icsd_adt_app.h"
 #endif
-
+#include "mix_record_api.h"
 
 #define LOG_TAG             "[APP]"
 #define LOG_ERROR_ENABLE
@@ -75,6 +78,14 @@ const struct task_info task_info_table[] = {
     {"jlstream_6",          5,     0,  768,   0 },
     {"jlstream_7",          5,     0,  768,   0 },
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    /*virtual surround pro*/
+
+    {"media0",          5,     0,  768,   0 },
+    {"media1",          5,     0,  768,   0 },
+    {"media2",          5,     0,  768,   0 },
+#endif
+
 #if (TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LHDC_V5)
     {"a2dp_dec",            4,     1,   256 + 512,   0 },
 #else
@@ -82,12 +93,20 @@ const struct task_info task_info_table[] = {
 #endif
 
     {"aec",					2,	   1,   768,   128 },
-
+#if (defined(EFFECT_DEV_MULTI_TASK_ENABLE) && EFFECT_DEV_MULTI_TASK_ENABLE)
+    {"eff_mtask",					6,	   1,   768,   0 },
+#endif
+    /*
+     *file dec任务不打断jlstream任务运行,故优先级低于jlstream
+     */
+    {"file_dec",            4,     0,  640,   0 },
+    {"file_cache",          6,     0,  512 - 128,   0 },
+    {"write_file",		    5,	   0,  512,   0 },
     {"aec_dbg",				3,	   0,   512,   128 },
-    {"update",				1,	   0,   256,   0   },
+    {"update",				1,	   0,   512,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
     {"tws_ota_msg",			2,	   0,   256,   128 },
-    {"dw_update",		 	2,	   0,   256,   128 },
+    {"dw_update",		 	1,	   0,   512,   128 },
 #if TCFG_AUDIO_DATA_EXPORT_DEFINE
     {"aud_capture",         4,     0,   512,   256 },
     {"data_export",         5,     0,   512,   256 },
@@ -101,6 +120,9 @@ const struct task_info task_info_table[] = {
     {"rcsp",		    	1,	   0,   768,   128 },
 #if RCSP_FILE_OPT
     {"rcsp_file_bs",		1,	   0,   768,   128 },
+#endif
+#if (RCSP_TONE_FILE_TRANSFER_ENABLE && TCFG_USER_TWS_ENABLE)
+    {"rcsp_ft_tws",			1,	   0,   256,   128 },
 #endif
 #endif
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
@@ -128,6 +150,10 @@ const struct task_info task_info_table[] = {
     {"led_driver",         	5,     0,   256,   128 },
 #endif
 
+#if TCFG_LP_TOUCH_KEY_ENABLE
+    {"lp_touch_key",        5,     0,   256,   32  },
+#endif
+
     {"audio_vad",           1,     1,   512,   128 },
 #if TCFG_KEY_TONE_EN
     {"key_tone",            5,     0,   256,   32  },
@@ -140,6 +166,8 @@ const struct task_info task_info_table[] = {
 #endif
 #if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
     {"imu_sensor",      2,     1,   512,   128 },
+#endif
+#if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     {"imu_trim",            1,     0,   256,   128 },
 #endif
 //  {"periph_demo",       3,     0,   512,   0 },
@@ -154,14 +182,15 @@ const struct task_info task_info_table[] = {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     {"icsd_anc",            5,     0,   512,   128 },
     {"icsd_adt",            2,     0,   512,   128 },
-    {"icsd_src",            2,     0,   512,   256 },
+    {"icsd_src",            3,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
-#if ANC_REAL_TIME_ADAPTIVE_ENABLE
-    {"rt_anc",              3,     1,   512,   128 },
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    {"rt_anc",              3,     0,   512,   128 },
+    {"rt_de",              	1,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
-    {"afq_common",         	2,     1,   512,   128 },
+    {"afq_common",         	1,     0,   512,   128 },
 #endif
 #endif
 
@@ -173,6 +202,18 @@ const struct task_info task_info_table[] = {
 #if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     /*Head Action Detection*/
     {"HA_Detect",           2,     0,  512,   0 },
+#endif
+#if TCFG_ANC_BOX_ENABLE && TCFG_AUDIO_ANC_ENABLE
+    {"anc_box",             7,     0,  512,   128},//配置高优先级避免产测被打断
+#endif
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    {"dlog",                1,     0,  256,   128 },
+#endif
+    {"aud_adc_demo",        1,     0,  512,   128 },
+    {"aud_dac_demo",        1,     0,  512,   128 },
+    {"vad_demo",        	1,     0,  512,   128 },
+#if (TCFG_HRSENSOR_ENABLE || TCFG_GSENSOR_ENABLE)
+    {"app_sensor",         1,     0,  512,   128 },
 #endif
     {0, 0},
 };
@@ -219,6 +260,7 @@ int *__errno()
     return &err;
 }
 
+_INLINE_
 void app_var_init(void)
 {
     app_var.play_poweron_tone = 1;
@@ -249,9 +291,11 @@ u8 get_power_on_status(void)
 }
 
 
+__INITCALL_BANK_CODE
 void check_power_on_key(void)
 {
     u32 delay_10ms_cnt = 0;
+    int key_ng_cnt = 0;
 
     while (1) {
         wdt_clear();
@@ -260,6 +304,7 @@ void check_power_on_key(void)
         if (get_power_on_status()) {
             putchar('+');
             delay_10ms_cnt++;
+            key_ng_cnt = 0;
             if (delay_10ms_cnt > 70) {
                 app_var.poweron_reason = SYS_POWERON_BY_KEY;
                 return;
@@ -267,8 +312,11 @@ void check_power_on_key(void)
         } else {
             log_info("enter softpoweroff\n");
             delay_10ms_cnt = 0;
-            app_var.poweroff_reason = SYS_POWEROFF_BY_KEY;
-            power_set_soft_poweroff();
+            key_ng_cnt++;
+            if (key_ng_cnt > 10) {
+                app_var.poweroff_reason = SYS_POWEROFF_BY_KEY;
+                power_set_soft_poweroff();
+            }
         }
     }
 }
@@ -281,6 +329,7 @@ u8 get_charge_online_flag(void)
 }
 
 /*充电拔出,CPU软件复位, 不检测按键，直接开机*/
+__INITCALL_BANK_CODE
 static void app_poweron_check(int update)
 {
 #if (CONFIG_BT_MODE == BT_NORMAL)
@@ -317,6 +366,7 @@ void board_init()
 
 }
 
+__INITCALL_BANK_CODE
 static void app_version_check()
 {
     extern char __VERSION_BEGIN[];
@@ -331,19 +381,33 @@ static void app_version_check()
     puts("=======================================\n");
 }
 
+__INITCALL_BANK_CODE
 static struct app_mode *app_task_init()
 {
     app_var_init();
     app_version_check();
 
+#if !(defined(CONFIG_CPU_BR56) || defined(CONFIG_CPU_BR50))
     sdfile_init();
     syscfg_tools_init();
+#endif
+    cfg_file_parse(0);
+
+    jlstream_init();
 
     do_early_initcall();
     board_init();
     do_platform_initcall();
 
-    cfg_file_parse(0);
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    dlog_init();
+    dlog_enable(1);
+    extern void dlog_uart_auto_enable_init(void);
+    extern int dlog_uart_output_set(enum DLOG_OUTPUT_TYPE type);
+    dlog_uart_output_set(DLOG_OUTPUT_2_FLASH | dlog_output_type_get());
+    dlog_uart_auto_enable_init();
+#endif
+
     key_driver_init();
 
     do_initcall();
@@ -357,7 +421,7 @@ static struct app_mode *app_task_init()
     if (CONFIG_UPDATE_ENABLE) {
         update = update_result_deal();
     }
-#if TCFG_MC_BIAS_AUTO_ADJUST
+#if (TCFG_MC_BIAS_AUTO_ADJUST && TCFG_AUDIO_ADC_ENABLE)
     mic_capless_trim_init(update);
 #endif
 
@@ -532,6 +596,13 @@ struct app_mode *app_mode_switch_handler(int *msg)
         return NULL;
     }
 
+#if TCFG_MIX_RECORD_ENABLE
+    //切换模式前关闭混合录音
+    if (get_mix_recorder_status()) {
+        mix_recorder_stop();
+    }
+#endif // TCFG_MIX_RECORD_ENABLE
+
     err = app_goto_mode(next_mode->name, arg);
 
     if (err != 0) {
@@ -546,12 +617,84 @@ struct app_mode *app_mode_switch_handler(int *msg)
     }
 }
 
+#if 0
+//用于查找重复出现的字符
+static u8 putchar_num = 0;
+int (putchar)(int a)    //重定义putchar
+{
+    uint32_t rets_addr;
+    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    if (a == 'a') {   //修改需要查找putchar的字符
+        putchar_num++;
+    }
+    if (putchar_num == 5) {    //打印连续出现5次的字符的rets
+        y_printf("char:%c rets:%x\n", a, rets_addr);
+        putchar_num =  0;
+    }
+#ifdef __LOG_ENABLE
+    if (log_output_lock() != 0) {
+        struct logbuf *lb = log_output_start(1);
+        if (lb) {
+            log_putchar(lb, a);
+            log_output_end(lb);
+        }
+    } else {
+        log_putbyte(a);
+        log_output_unlock();
+    }
+#else
+    if (a == '\r') {
+        return a;
+    }
+    putbyte(a);
+#endif
+    return a;
+}
+#endif
+
+
+#if 0
+void timer_no_response_callback(const char *task_name, void *func, u32 msec, void *timer, u32 curr_msec)
+{
+    extern const char *pcTaskName(void *pxTCB);
+    extern TaskHandle_t task_get_current_handle(u8 cpu_id);
+    if (CPU_CORE_NUM == 2) {
+        TaskHandle_t task0 = task_get_current_handle(0);
+        TaskHandle_t task1 = task_get_current_handle(1);
+        printf("timer_no_response: %s, %p, %d, %p, %d, c0:%s, c1:%s\n", task_name, func, msec, timer, curr_msec, pcTaskName(task0), pcTaskName(task1));
+    } else {
+        TaskHandle_t task0 = task_get_current_handle(0);
+        printf("timer_no_response: %s, %p, %d, %p, %d, c:%s\n", task_name, func, msec, timer, curr_msec, pcTaskName(task0));
+    }
+    //用于debug任务无响应情况
+    task_trace_info_dump(task_name);
+}
+#endif
+
+static void test_printf(void *_arg)
+{
+    //extern void mem_unfree_dump(void);
+    //mem_unfree_dump();    //打印各模块内存
+
+    extern void mem_stats(void);   //打印当前内存
+    mem_stats();
+
+    int role = tws_api_get_role();
+    printf(">tws role:%d\n", role);   //打印tws主从
+
+    //char channel = tws_api_get_local_channel();
+    //printf(">tws channel:%c\n", channel);    //打印tws通道
+
+    int curr_clk = clk_get("sys");
+    printf(">curr_clk:%d\n", curr_clk);  //打印当前时钟
+}
+
 static void app_task_loop(void *p)
 {
     struct app_mode *mode;
 
     mode = app_task_init();
-
+    //sys_timer_add(NULL, test_printf, 2000);  //定时调试打印
 #if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 #if (VFS_ENABLE == 1)
     if (mount(NULL, "mnt/sdfile", "sdfile", 0, NULL)) {
@@ -559,6 +702,7 @@ static void app_task_loop(void *p)
     } else {
         log_debug("sdfile mount failed!!!");
     }
+#if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
     int update = 0;
     u32 realme_breakpoint = 0;
     if (CONFIG_UPDATE_ENABLE) {
@@ -566,7 +710,21 @@ static void app_task_loop(void *p)
         extern int realme_check_upgrade_area(int update);
         realme_check_upgrade_area(update);
     }
+#endif
 #endif /* #if (VFS_ENABLE == 1) */
+
+#else
+    extern void flash_w_protected_check_en(u8 en);
+    extern const int support_dual_bank_update_no_erase;
+    if (support_dual_bank_update_no_erase) {
+        if (0 == dual_bank_update_bp_info_get()) {
+            norflash_set_write_protect_remove();
+            flash_w_protected_check_en(0);
+            dual_bank_check_flash_update_area(0);
+            flash_w_protected_check_en(1);
+            norflash_set_write_protect_en();
+        }
+    }
 #endif
 
     while (1) {
@@ -591,6 +749,11 @@ static void app_task_loop(void *p)
 #if TCFG_APP_PC_EN
         case APP_MODE_PC:
             mode = app_enter_pc_mode(g_mode_switch_arg);
+            break;
+#endif
+#if TCFG_APP_MUSIC_EN
+        case APP_MODE_MUSIC:
+            mode = app_enter_music_mode(g_mode_switch_arg);
             break;
 #endif
         }

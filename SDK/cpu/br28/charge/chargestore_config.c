@@ -5,7 +5,7 @@
 #pragma code_seg(".chargestore_config.text")
 #endif
 #include "app_config.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "asm/charge.h"
 #include "gpio_config.h"
 #include "system/init.h"

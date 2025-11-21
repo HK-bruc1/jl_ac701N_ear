@@ -1,7 +1,6 @@
 #ifndef __AUDIO_NOISEGATE_API_H
 #define __AUDIO_NOISEGATE_API_H
 
-#include "media/audio_stream.h"
 #include "effects/noisegate_api.h"
 
 
@@ -36,6 +35,7 @@ void audio_noisegate_close(NOISEGATE_API_STRUCT *hdl);
 void audio_noisegate_update_parm(NOISEGATE_API_STRUCT *hdl, noisegate_update_param *parm);
 void audio_noisegate_bypass(NOISEGATE_API_STRUCT *hdl, u8 bypass);
 int audio_noisegate_run(NOISEGATE_API_STRUCT *hdl, s16 *data, u16 len);
+int *audio_noisegate_gain(NOISEGATE_API_STRUCT *hdl);
 
 #ifndef RUN_NORMAL
 #define RUN_NORMAL  0

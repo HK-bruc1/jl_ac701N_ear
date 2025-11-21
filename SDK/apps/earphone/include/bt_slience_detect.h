@@ -37,9 +37,13 @@ int bt_slience_detect_get_result(u8 *bt_addr);
 
 /**
  * @brief 重置能量检测
- *
  */
 void bt_reset_a2dp_slience_detect();
+
+/**
+ * @brief 获取能量检测的设备数量
+ */
+u8 bt_a2dp_slience_detect_num();
 
 /**
  * @brief 获取对应地址的设备的是否在能量检测

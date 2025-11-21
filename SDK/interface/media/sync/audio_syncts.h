@@ -7,7 +7,7 @@
 #ifndef _AUDIO_SYNCTS_H_
 #define _AUDIO_SYNCTS_H_
 #include "typedef.h"
-#include "asm/audio_src_base.h"
+#include "audio_src_base.h"
 
 
 #define PCM_INSIDE_DAC                      0
@@ -18,7 +18,7 @@
 #define AUDIO_NETWORK_BT2_1                 1
 #define AUDIO_NETWORK_BLE                   2
 #define AUDIO_NETWORK_IPV4                  3
-
+#define AUDIO_NETWORK_AUTO                  4
 #define TIME_US_FACTOR      32
 
 #define STREAM_TIMESTAMP_ENABLE             0x00000001

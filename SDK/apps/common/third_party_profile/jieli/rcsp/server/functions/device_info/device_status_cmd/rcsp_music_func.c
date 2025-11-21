@@ -11,13 +11,11 @@
 #include "rcsp_config.h"
 #include "key_event_deal.h"
 #include "music/music_player.h"
+#include "app_music.h"
 #include "JL_rcsp_attr.h"
 #include "JL_rcsp_api.h"
 
 #if (RCSP_MODE && TCFG_APP_MUSIC_EN)
-#define MUSIC_INFO_ATTR_STATUS                 (0)
-#define MUSIC_INFO_ATTR_FILE_NAME              (1)
-#define MUSIC_INFO_ATTR_FILE_PLAY_MODE         (2)
 
 #pragma pack(1)
 struct _MUSIC_STATUS_info {
@@ -85,9 +83,8 @@ static u8 mucis_func_add_one_attr_continue(u8 *buf, u16 max_len, u8 offset, u8 t
 u32 rcsp_music_func_get(void *priv, u8 *buf, u16 buf_size, u32 mask)
 {
     u16 offset = 0;
-#if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN)
-    u8 app = app_get_curr_task();
-    if (app != APP_MUSIC_TASK) {
+#if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN && RCSP_FILE_OPT)
+    if (!app_in_mode(APP_MODE_MUSIC)) {
         return 0;
     }
     ///获取当前播放状态
@@ -98,11 +95,10 @@ u32 rcsp_music_func_get(void *priv, u8 *buf, u16 buf_size, u32 mask)
     if (mask & BIT(MUSIC_INFO_ATTR_STATUS)) {
         /* printf("MUSIC_INFO_ATTR_STATUS\n"); */
         struct _MUSIC_STATUS_info music_info;
-        // RCSP TODO:
-        printf("RCSP TODO!!!");
-        music_info.status = 0;
-        music_info.cur_time = 0;//app_htonl(file_dec_get_cur_time());
-        music_info.total_time = 60;//app_htonl(file_dec_get_total_time());
+
+        music_info.status = music_file_get_player_status(get_music_file_player());
+        music_info.cur_time = app_htonl(music_file_get_cur_time(get_music_file_player()));
+        music_info.total_time = app_htonl(music_file_get_total_time(get_music_file_player()));
         char *logo = dev_manager_get_logo(dev_manager_find_active(1));
         char *tmp = NULL;
         if (logo) {
@@ -160,6 +156,31 @@ bool rcsp_music_func_set(void *priv, u8 *data, u16 len)
 {
     /* printf("%s, %d\n", __func__, data[0]); */
 #if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN)
+    switch (data[0]) {
+    case MUSIC_FUNC_PP:
+        app_send_message(APP_MSG_MUSIC_PP, 0);
+        break;
+    case MUSIC_FUNC_PREV:
+        app_send_message(APP_MSG_MUSIC_PREV, 0);
+        break;
+    case MUSIC_FUNC_NEXT:
+        app_send_message(APP_MSG_MUSIC_NEXT, 0);
+        break;
+    case MUSIC_FUNC_MODE:
+        app_send_message(APP_MSG_MUSIC_CHANGE_REPEAT, 0);
+        break;
+    case MUSIC_FUNC_REWIND:
+        /* printf("MUSIC_FUNC_REWIND = %d\n", (int)(data[1] << 8 | data[2])); */
+        music_file_player_fr((int)(data[1] << 8 | data[2]), get_music_file_player());
+        break;
+    case MUSIC_FUNC_FAST_FORWORD:
+        /* printf("MUSIC_FUNC_FAST_FORWORD = %d\n", (int)(data[1] << 8 | data[2])); */
+        music_file_player_ff((int)(data[1] << 8 | data[2]), get_music_file_player());
+        break;
+    default:
+        break;
+    }
+
     rcsp_device_status_update(MUSIC_FUNCTION_MASK,
                               BIT(MUSIC_INFO_ATTR_STATUS) | BIT(MUSIC_INFO_ATTR_FILE_PLAY_MODE));
 #endif
@@ -169,11 +190,9 @@ bool rcsp_music_func_set(void *priv, u8 *data, u16 len)
 //停止音乐功能
 void rcsp_music_func_stop(void)
 {
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-    if (music_player_get_play_status() == FILE_DEC_STATUS_PLAY) {
-        app_task_put_key_msg(KEY_MUSIC_PP, 0);
-    }
-#endif
+    /* if (music_player_get_play_status() == FILE_DEC_STATUS_PLAY) { */
+    /*     app_task_put_key_msg(KEY_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

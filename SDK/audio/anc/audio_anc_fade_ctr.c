@@ -23,6 +23,10 @@
 #include "audio_anc.h"
 #include "audio_anc_fade_ctr.h"
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #if 0
 #define anc_fade_log	printf
 #else
@@ -39,7 +43,7 @@ struct anc_fade_context {
 
 static LIST_HEAD(anc_fade_head);
 
-static OS_MUTEX fade_mutex;
+static spinlock_t anc_fade_lock;
 
 static void anc_fade_ctr_list_del(enum anc_fade_mode_t mode)
 {
@@ -88,12 +92,11 @@ static int anc_fade_ctr_update(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 
 void audio_anc_fade_ctr_init(void)
 {
-    os_mutex_create(&fade_mutex);
+    spin_lock_init(&anc_fade_lock);
 }
 
 void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 {
-    os_mutex_pend(&fade_mutex, 0);
     u16 lff_gain, lfb_gain, rff_gain, rfb_gain;
     struct anc_fade_context *ctx;
     u8 fade_en = anc_api_get_fade_en();
@@ -104,6 +107,7 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
     rff_gain = AUDIO_ANC_FADE_GAIN_DEFAULT;
     rfb_gain = AUDIO_ANC_FADE_GAIN_DEFAULT;
 
+    spin_lock(&anc_fade_lock);
     if (gain == AUDIO_ANC_FADE_GAIN_DEFAULT) {
         anc_fade_ctr_list_del(mode);					//删除
     } else {
@@ -130,13 +134,27 @@ void audio_anc_fade_ctr_set(enum anc_fade_mode_t mode, u8 ch, u16 gain)
             }
         }
     }
+    spin_unlock(&anc_fade_lock);
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    struct rt_anc_fade_gain_ctr rt_anc_fade;
+    rt_anc_fade.lff_gain = lff_gain;
+    rt_anc_fade.lfb_gain = lfb_gain;
+    rt_anc_fade.rff_gain = rff_gain;
+    rt_anc_fade.rfb_gain = rfb_gain;
+    audio_rtanc_fade_gain_suspend(&rt_anc_fade);
+#endif
+
     anc_fade_log("fade lff %d, lfb %d, rff %d, rfb %d\n", lff_gain, lfb_gain, rff_gain, rfb_gain);
     audio_anc_fade_cfg_set(fade_en, 1, 0);
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFF, lff_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFB, lfb_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_RFF, rff_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_RFB, rfb_gain);
-    os_mutex_post(&fade_mutex);
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    audio_rtanc_fade_gain_resume();
+#endif
 }
 
 void audio_anc_fade_ctr_del(enum anc_fade_mode_t mode)

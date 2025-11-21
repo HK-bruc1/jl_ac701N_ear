@@ -19,7 +19,7 @@
 #include "app_config.h"
 #include "clock.h"
 #include "spinlock.h"
-
+#include "app_testbox.h"
 #define LOG_TAG_CONST   CHARGE
 #define LOG_TAG         "[CHARGE]"
 #define LOG_INFO_ENABLE
@@ -155,7 +155,7 @@ u8 get_ldo5v_pulldown_res(void)
 
 static void charge_cc_check(void *priv)
 {
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         usr_timer_del(__this->cc_timer);
         __this->cc_timer = 0;
@@ -175,7 +175,7 @@ void charge_start(void)
     }
 
     //进入恒流充电之后,才开启充满检测
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
         check_full = 1;
@@ -231,7 +231,7 @@ static void charge_full_detect(void *priv)
         if (CHARGE_FULL_FLAG_GET() && LVCMP_DET_GET()) {
             log_char('1');
 
-            vbat_vol = adc_get_voltage(AD_CH_PMU_VBAT) * 4;
+            vbat_vol = gpadc_battery_get_voltage();
             //判断电池电压不小于满电电压-100mV
             if (vbat_vol < CHARGE_FULL_VBAT_MIN_VOLTAGE) {
                 charge_full_cnt = 0;
@@ -286,6 +286,14 @@ static void ldo5v_detect(void *priv)
         log_char('X');
         if (ldo5v_on_cnt < __this->data->ldo5v_on_filter) {
             ldo5v_on_cnt++;
+            if (ldo5v_off_cnt >= (__this->data->ldo5v_off_filter + 4)) {
+                ldo5v_off_cnt = __this->data->ldo5v_off_filter + 4;
+            }
+            if (__this->data->ldo5v_keep_filter <= 16) {
+                ldo5v_keep_cnt = 0;
+            } else if (ldo5v_keep_cnt >= (__this->data->ldo5v_keep_filter - 16)) {
+                ldo5v_keep_cnt = __this->data->ldo5v_keep_filter - 16;
+            }
         } else {
             log_debug("ldo5V_IN\n");
             set_charge_online_flag(1);
@@ -309,6 +317,16 @@ static void ldo5v_detect(void *priv)
         log_char('Q');
         if (ldo5v_off_cnt < (__this->data->ldo5v_off_filter + 20)) {
             ldo5v_off_cnt++;
+            if (__this->data->ldo5v_on_filter <= 16) {
+                ldo5v_on_cnt = 0;
+            } else if (ldo5v_on_cnt >= (__this->data->ldo5v_on_filter - 16)) {
+                ldo5v_on_cnt = __this->data->ldo5v_on_filter - 16;
+            }
+            if (__this->data->ldo5v_keep_filter <= 16) {
+                ldo5v_keep_cnt = 0;
+            } else if (ldo5v_keep_cnt >= (__this->data->ldo5v_keep_filter - 16)) {
+                ldo5v_keep_cnt = __this->data->ldo5v_keep_filter - 16;
+            }
         } else {
             log_debug("ldo5V_OFF\n");
             set_charge_online_flag(0);
@@ -318,13 +336,15 @@ static void ldo5v_detect(void *priv)
             if (__this->charge_event_flag == 0) {
                 return;
             }
+            log_info("CHARGE_EVENT_LDO5V_OFF\n");
             ldo5v_off_cnt = 0;
             spin_lock(&ldo5v_lock);
             usr_timer_del(__this->ldo5v_timer);
             __this->ldo5v_timer = 0;
             spin_unlock(&ldo5v_lock);
-            if ((__this->charge_flag & BIT_LDO5V_OFF) == 0) {
+            if ((__this->charge_flag & BIT_LDO5V_OFF) == 0 || testbox_get_ex_enter_storage_mode_flag()) {
                 __this->charge_flag = BIT_LDO5V_OFF;
+                log_info("CHARGE_EVENT_LDO5V_OFF TO\n");
                 charge_event_to_user(CHARGE_EVENT_LDO5V_OFF);
             }
         }
@@ -332,6 +352,14 @@ static void ldo5v_detect(void *priv)
         log_char('E');
         if (ldo5v_keep_cnt < __this->data->ldo5v_keep_filter) {
             ldo5v_keep_cnt++;
+            if (ldo5v_off_cnt >= (__this->data->ldo5v_off_filter + 4)) {
+                ldo5v_off_cnt = __this->data->ldo5v_off_filter + 4;
+            }
+            if (__this->data->ldo5v_on_filter <= 16) {
+                ldo5v_on_cnt = 0;
+            } else if (ldo5v_on_cnt >= (__this->data->ldo5v_on_filter - 16)) {
+                ldo5v_on_cnt = __this->data->ldo5v_on_filter - 16;
+            }
         } else {
             log_debug("ldo5V_ERR\n");
             set_charge_online_flag(1);
@@ -436,10 +464,6 @@ static void charge_config(void)
     if (__this->data->charge_full_V < CHARGE_FULL_V_4237) {
         CHG_HV_MODE(0);
         charge_trim_val = efuse_get_vbat_trim_4p20();//4.20V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat low not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4199;
-        }
         log_info("low charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4199) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4199;
@@ -460,10 +484,6 @@ static void charge_config(void)
     } else {
         CHG_HV_MODE(1);
         charge_trim_val = efuse_get_vbat_trim_4p35();//4.35V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat high not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4354 - 16;
-        }
         log_info("high charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4354) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4354;
@@ -526,7 +546,8 @@ int charge_init(const struct charge_platform_data *data)
     p33_io_wakeup_enable(IO_CHGFL_DET, 0);
     CHARGE_EN(0);
     CHGGO_EN(0);
-
+    CHG_VILOOP_EN(0);
+    L5V_IO_MODE(0);
     //消除vbat到vpwr的漏电再判断ldo5v状态
     u8 temp = 10;
     if (is_reset_source(P33_VDDIO_POR_RST)) {
@@ -588,5 +609,18 @@ void charge_module_restart(void)
 
     p33_io_wakeup_enable(IO_LDOIN_DET, 1);
     p33_io_wakeup_enable(IO_VBTCH_DET, 1);
+}
+
+// 开机激活锂保退船运
+void charge_exit_shipping(void)
+{
+    if (LVCMP_DET_GET()) {
+        CHARGE_FULL_V_SEL(CHARGE_FULL_V_4041);
+        set_charge_mA(CHARGE_mA_3);
+        L5V_IO_MODE(0);
+        CHG_VILOOP_EN(CHARGE_VILOOP1_ENABLE);
+        CHARGE_EN(1);
+        CHGGO_EN(1);
+    }
 }
 

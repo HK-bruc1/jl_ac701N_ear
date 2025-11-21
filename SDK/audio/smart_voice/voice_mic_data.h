@@ -6,7 +6,7 @@
 #ifndef _VOICE_MIC_DATA_H_
 #define _VOICE_MIC_DATA_H_
 
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 
 #define VOICE_VAD_MIC         0
 #define VOICE_MCU_MIC         1

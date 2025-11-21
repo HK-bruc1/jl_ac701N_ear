@@ -9,6 +9,8 @@ typedef enum {
     CFG_PRIVATE_INIT_ADDR_NO_ALIGN, // 2, 初始化发现地址不对齐
     CFG_PRIVATE_INIT_FILE_NUM_OVER, // 3, 初始化发现文件数量超过最大限制(4K 对齐：16个， 256对齐：8个)
     CFG_PRIVATE_INIT_MALLOC_ERR, // 4, 初始化申请内失败
+    CFG_PRIVATE_ADDR_CHECK_ERR, // 5, 擦写地址检查失败
+    CFG_PRIVATE_FILE_HANDLE_ERR, // 6, file 句柄为空
     CFG_PRIVATE_UNKNOWN
 } CFG_PRIVATE_R;
 

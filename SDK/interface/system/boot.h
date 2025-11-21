@@ -53,5 +53,7 @@ typedef struct boot_device_info {
 
 extern BOOT_INFO boot_info;
 
+BOOT_INFO *get_boot_info();
+
 #endif
 

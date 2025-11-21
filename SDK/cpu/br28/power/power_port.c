@@ -19,14 +19,14 @@ static u8 gpiousb = 0x3;
  * 所有io保持原状，除usb io
  */
 static struct gpio_value soff_gpio_config = {
-    .gpioa = 0xffff,
-    .gpiob = 0xffff,
-    .gpioc = 0xffff,
-    .gpiod = 0xffff,
-    .gpioe = 0xffff,
-    .gpiog = 0xffff,
-    .gpiop = 0x1,//
-    .gpiousb = 0x3,
+    .gpioa = IO_PORT_PA_MASK,
+    .gpiob = IO_PORT_PB_MASK,
+    .gpioc = IO_PORT_PC_MASK,
+    .gpiod = IO_PORT_PD_MASK,
+    .gpioe = IO_PORT_PE_MASK,
+    .gpiog = IO_PORT_PG_MASK,
+    .gpiop = IO_PORT_PP_MASK,//
+    .gpiousb = IO_PORT_USB_MASK,
 };
 
 void soff_gpio_protect(u32 gpio)
@@ -47,9 +47,6 @@ void soff_gpio_protect(u32 gpio)
  */
 void board_set_soft_poweroff_common(void *priv)
 {
-    extern u32 pdebug_uart_lowpower;
-    extern u32 pdebug_uart_port;
-
     if (pdebug_uart_lowpower) {
         soff_gpio_protect(pdebug_uart_port);
     }
@@ -77,15 +74,31 @@ void board_set_soft_poweroff_common(void *priv)
         }
     }
 
-    gpio_set_mode(PORTA, soff_gpio_config.gpioa, PORT_HIGHZ);
-    gpio_set_mode(PORTB, soff_gpio_config.gpiob, PORT_HIGHZ);
-    gpio_set_mode(PORTC, soff_gpio_config.gpioc, PORT_HIGHZ);
-    gpio_set_mode(PORTD, soff_gpio_config.gpiod, PORT_HIGHZ);
-    gpio_set_mode(PORTE, soff_gpio_config.gpioe, PORT_HIGHZ);
-    gpio_set_mode(PORTG, soff_gpio_config.gpiog, PORT_HIGHZ);
-    gpio_set_mode(PORTP, soff_gpio_config.gpiop, PORT_HIGHZ);
+    if (soff_gpio_config.gpioa & IO_PORT_PA_MASK) {
+        gpio_set_mode(PORTA, soff_gpio_config.gpioa, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpiob & IO_PORT_PB_MASK) {
+        gpio_set_mode(PORTB, soff_gpio_config.gpiob, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpioc & IO_PORT_PC_MASK) {
+        gpio_set_mode(PORTC, soff_gpio_config.gpioc, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpiod & IO_PORT_PD_MASK) {
+        gpio_set_mode(PORTD, soff_gpio_config.gpiod, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpioe & IO_PORT_PE_MASK) {
+        gpio_set_mode(PORTE, soff_gpio_config.gpioe, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpiog & IO_PORT_PG_MASK) {
+        gpio_set_mode(PORTG, soff_gpio_config.gpiog, PORT_HIGHZ);
+    }
+    if (soff_gpio_config.gpiop & IO_PORT_PP_MASK) {
+        gpio_set_mode(PORTP, soff_gpio_config.gpiop, PORT_HIGHZ);
+    }
 
-    gpio_set_mode(PORTUSB, soff_gpio_config.gpiousb, PORT_HIGHZ); //dp dm
+    if (soff_gpio_config.gpiousb & IO_PORT_USB_MASK) {
+        gpio_set_mode(PORTUSB, soff_gpio_config.gpiousb, PORT_HIGHZ); //dp dm
+    }
 }
 
 /*进软关机之前默认将IO口都设置成高阻状态，需要保留原来状态的请修改该函数*/

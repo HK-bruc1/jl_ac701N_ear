@@ -44,7 +44,6 @@ struct pc_spk_player {
 };
 static struct pc_spk_player *g_pc_spk_player = NULL;
 
-extern void dac_try_power_on_task_delete();
 
 static void pc_spk_player_callback(void *private_data, int event)
 {
@@ -85,7 +84,7 @@ static void pc_spk_player_callback(void *private_data, int event)
 int pc_spk_player_open(void)
 {
     int err = 0;
-    struct pc_spk_player *player = NULL;;
+    struct pc_spk_player *player = NULL;
 
     if (g_pc_spk_player) {
         return 0;
@@ -116,8 +115,6 @@ int pc_spk_player_open(void)
     err = jlstream_start(player->stream);
     if (err) {
         goto __exit1;
-    } else {
-        dac_try_power_on_task_delete();
     }
 
     g_pc_spk_state = PC_SPK_STA_OPEN;
@@ -163,8 +160,7 @@ void pc_spk_player_close(void)
     jlstream_stop(player->stream, 0);
     jlstream_release(player->stream);
     free(player);
-    player = NULL;
-    g_pc_spk_player = NULL;
+    g_pc_spk_player = NULL; // [问题] player 被释放后仍被置为 NULL
 #if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
     if (audio_aec_status()) {
         //忽略参考数据

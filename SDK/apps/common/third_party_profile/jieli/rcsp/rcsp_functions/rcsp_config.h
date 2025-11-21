@@ -17,11 +17,7 @@
 #include "rcsp_bt_manage.h"
 #include "soundbox.h"
 #include "ui/ui_api.h"
-#if RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_DEFAULT
-#include "music/music.h"
-#else
 #include "app_music.h"
-#endif
 #endif
 
 #define RCSP_USE_BLE      0
@@ -34,8 +30,11 @@ enum func_type {
     RTC_FUNCTION     = 2,
     LINEIN_FUNCTION  = 3,
     FM_FUNCTION      = 4,
-    LIGHT_FUNCTION   = 5,
-    FMTX_FUNCTION    = 6,
+    // LIGHT_FUNCTION   = 5,
+    // FMTX_FUNCTION    = 6,
+    // EQ_FUNCTION      = 7,
+    SPDIF_FUNCTION   = 5,
+    PC_FUNCTION   = 6,
 };
 
 enum mask_func {
@@ -47,6 +46,8 @@ enum mask_func {
     COLOR_LED_MASK		  =  5,
     FMTX_FUNCTION_MASK    =  6,
     EQ_FUNCTION_MASK      =  7,
+    SPDIF_FUNCTION_MASK   =  8,
+    PC_FUNCTION_MASK      =  9,
     FUNCTION_MASK_MAX,
 
     COMMON_FUNCTION    	  =  0xFF,

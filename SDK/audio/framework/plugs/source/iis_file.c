@@ -10,7 +10,7 @@
 #include "jlstream.h"
 #include "iis_file.h"
 #include "app_config.h"
-#include "audio_dai/audio_iis.h"
+#include "media/audio_iis.h"
 #include "sync/audio_clk_sync.h"
 #include "gpio.h"
 #include "audio_config.h"
@@ -18,12 +18,13 @@
 #include "effects/effects_adj.h"
 #include "media/audio_general.h"
 #include "circular_buf.h"
+#include "audio_iis_lrclk_capture.h"
 
 /************************ ********************* ************************/
 /************************ 该文件是 IIS 输入用的 ************************/
 /************************ ********************* ************************/
 
-#if TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE || TCFG_TDM_RX_NODE_ENABLE
 
 #define IIS_LOG_ENABLE          0
 #if IIS_LOG_ENABLE
@@ -31,6 +32,7 @@
 #define LOG_ERROR_ENABLE
 #define LOG_INFO_ENABLE
 #define LOG_DUMP_ENABLE
+#define LOG_DEBUG_ENABLE
 #include "debug.h"
 #else
 #define log_info(fmt, ...)
@@ -39,7 +41,7 @@
 #endif
 
 
-#define MODULE_IDX_SEL ((hdl->plug_uuid == NODE_UUID_IIS0_RX) ? 0 : 1)
+#define MODULE_IDX_SEL ((hdl->plug_uuid == NODE_UUID_IIS1_RX) ? 1 : 0)
 extern const float const_out_dev_pns_time_ms;
 
 struct iis_file_hdl {
@@ -64,18 +66,11 @@ struct iis_file_hdl {
     u8 channel_mode;
     u8 bit_width;
     u8 module_idx;
-
-
-
-
+    u8 hw_ch_num;
+    u8 out_ch_num;
 
 };
 
-__attribute__((weak))
-u32 audio_iis_get_timestamp(u32 module_idx, u8 ch_idx)
-{
-    return audio_jiffies_usec();
-}
 /*
  * 24bit转32bit，处理符号位
  * bit23如果是1，高8位补1;如果是0，高8位补0*/
@@ -99,9 +94,9 @@ static void iis_file_fade_in(struct iis_file_hdl *hdl, void *buf, int len)
         int fade_ms = 100;//ms
         int fade_step = FADE_GAIN_MAX / (fade_ms * hdl->sample_rate / 1000);
         if (hdl->bit_width == DATA_BIT_WIDE_16BIT) {
-            hdl->value = jlstream_fade_in(hdl->value, fade_step, buf, len, AUDIO_CH_NUM(hdl->channel_mode));
+            hdl->value = jlstream_fade_in(hdl->value, fade_step, buf, len, hdl->out_ch_num);
         } else {
-            hdl->value = jlstream_fade_in_32bit(hdl->value, fade_step, buf, len, AUDIO_CH_NUM(hdl->channel_mode));
+            hdl->value = jlstream_fade_in_32bit(hdl->value, fade_step, buf, len, hdl->out_ch_num);
         }
     }
 }
@@ -126,15 +121,18 @@ static void iis_rx_handle(void *priv, void *buf, int len)
     if (hdl->bit_width == DATA_BIT_WIDE_24BIT) {
         audio_data_24bit_to_32bit(buf, len >> 2);
     }
-    u8 ch_num = AUDIO_CH_NUM(hdl->channel_mode);
-    if (ch_num == 1) {
-        if (hdl->bit_width == DATA_BIT_WIDE_24BIT) {
-            pcm_dual_to_single_32bit(buf, buf, len);
-        } else {
-            pcm_dual_to_single(buf, buf, len);
+
+    if (hdl->hw_ch_num == 2) {
+        if (hdl->out_ch_num == 1) {
+            if (hdl->bit_width == DATA_BIT_WIDE_24BIT) {
+                pcm_dual_to_single_32bit(buf, buf, len);
+            } else {
+                pcm_dual_to_single(buf, buf, len);
+            }
+            len >>= 1;
         }
-        len >>= 1;
     }
+
 #if defined(IIS_USE_DOUBLE_BUF_MODE_EN) && IIS_USE_DOUBLE_BUF_MODE_EN
     if (hdl->dump_cnt < 10) {
         hdl->dump_cnt++;
@@ -151,7 +149,7 @@ static void iis_rx_handle(void *priv, void *buf, int len)
     }
     frame->len          = len;
     frame->flags        = FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_PERIOD_SAMPLE | FRAME_FLAG_UPDATE_TIMESTAMP;
-    frame->timestamp    = audio_iis_get_timestamp(hdl->module_idx, hdl->ch_idx) * TIMESTAMP_US_DENOMINATOR;
+    frame->timestamp    = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
     memcpy(frame->data, buf, frame->len);
 
     iis_file_fade_in(hdl, frame->data, frame->len);//淡入处理
@@ -159,8 +157,8 @@ static void iis_rx_handle(void *priv, void *buf, int len)
 #else
     if (!hdl->cache_buf) {
         //申请cbuffer
-        hdl->buf_len = hdl->irq_points * (hdl->bit_width ? 4 : 2) * ch_num;
-        int buf_len = hdl->irq_points * (hdl->bit_width ? 4 : 2) * ch_num * 3;
+        hdl->buf_len = hdl->irq_points * (hdl->bit_width ? 4 : 2) * hdl->out_ch_num;
+        int buf_len = hdl->irq_points * (hdl->bit_width ? 4 : 2) * hdl->out_ch_num * 3;
         hdl->cache_buf = malloc(buf_len);
         if (hdl->cache_buf) {
             cbuf_init(&hdl->cache_cbuffer, hdl->cache_buf, buf_len);
@@ -246,22 +244,37 @@ void iis_rx_init(struct iis_file_hdl *hdl)
     struct audio_general_params *general_params = audio_general_get_param();
     // 初始化iis rx
     // IIS采样率有所差距，配置
-    hdl->sample_rate = general_params->sample_rate;	//默认采样率值
+    if (!hdl->sample_rate) {
+#if defined(AUDIO_IIS_LRCLK_CAPTURE_EN) && AUDIO_IIS_LRCLK_CAPTURE_EN
+        hdl->sample_rate = audio_iis_get_lrclk_sample_rate(hdl->module_idx) ? audio_iis_get_lrclk_sample_rate(hdl->module_idx) : general_params->sample_rate;	//默认采样率值
+#else
+        hdl->sample_rate = general_params->sample_rate;	//默认采样率值
+#endif
+    }
+
     jlstream_read_node_data_by_cfg_index(hdl->plug_uuid, hdl->node->subid, 0, (void *)&hdl->ch_idx, NULL);
     if (!iis_hdl[hdl->module_idx]) {
-        int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, 2);
         struct alink_param params = {0};
         params.module_idx = hdl->module_idx;
-        params.dma_size   = dma_len;
+        params.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->hw_ch_num, AUDIO_DAC_MAX_SAMPLE_RATE);
         params.sr         = hdl->sample_rate;
         params.bit_width  = hdl->bit_width;
         params.fixed_pns  = const_out_dev_pns_time_ms;
+#if TCFG_TDM_RX_NODE_ENABLE
+        if (hdl->plug_uuid == NODE_UUID_TDM_RX) {
+            params.alink_work_mode = TDM_WORK_MODE;
+            params.ch_num = TDM_CH_NUM;
+        }
+#endif
+        params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
         iis_hdl[hdl->module_idx] = audio_iis_init(params);
     }
     if (!iis_hdl[hdl->module_idx]) {
         log_debug("iis module_idx %d rx init err\n", hdl->module_idx);
         return;
     }
+    audio_iis_check_hw_cfg_status(hdl->module_idx, hdl->ch_idx, ALINK_DIR_RX);
+
     hdl->state = AUDIO_IIS_STATE_INIT;
 }
 
@@ -285,7 +298,16 @@ static void *iis_file_init(void *source_node, struct stream_node *node)
     hdl->bit_width = audio_general_in_dev_bit_width();
     hdl->plug_uuid = get_source_node_plug_uuid(source_node);
     hdl->module_idx = MODULE_IDX_SEL;
-    iis_rx_init(hdl);
+#if TCFG_TDM_RX_NODE_ENABLE
+    if (hdl->plug_uuid == NODE_UUID_TDM_RX) {
+        hdl->hw_ch_num = TDM_CH_NUM;
+    } else
+#endif
+    {
+        hdl->hw_ch_num = IIS_CH_NUM;
+    }
+
+    /* iis_rx_init(hdl); */
     return hdl;
 }
 
@@ -293,6 +315,14 @@ static void iis_ioc_get_fmt(struct iis_file_hdl *hdl, struct stream_fmt *fmt)
 {
     log_debug("==========  iis_ioc_get_fmt  ========== \n");
     fmt->coding_type = AUDIO_CODING_PCM;	//默认PCM
+    struct audio_general_params *general_params = audio_general_get_param();
+    if (!hdl->sample_rate) {
+#if defined(AUDIO_IIS_LRCLK_CAPTURE_EN) && AUDIO_IIS_LRCLK_CAPTURE_EN
+        hdl->sample_rate = audio_iis_get_lrclk_sample_rate(hdl->module_idx) ? audio_iis_get_lrclk_sample_rate(hdl->module_idx) : general_params->sample_rate;	//默认采样率值
+#else
+        hdl->sample_rate = general_params->sample_rate;	//默认采样率值
+#endif
+    }
     switch (hdl->scene) {
     case STREAM_SCENE_ESCO:
         fmt->sample_rate = 16000;
@@ -308,6 +338,25 @@ static void iis_ioc_get_fmt(struct iis_file_hdl *hdl, struct stream_fmt *fmt)
         hdl->channel_mode   = AUDIO_CH_LR;
         break;
     }
+
+#if TCFG_TDM_RX_NODE_ENABLE
+    if (hdl->plug_uuid == NODE_UUID_TDM_RX) {
+        if (hdl->hw_ch_num == 8) {
+            hdl->channel_mode   = AUDIO_CH_EIGHT;
+        } else if (hdl->hw_ch_num == 6) {
+            hdl->channel_mode   = AUDIO_CH_SIX;
+        } else if (hdl->hw_ch_num == 4) {
+            hdl->channel_mode   = AUDIO_CH_QUAD;
+        } else if (hdl->hw_ch_num == 2) {
+            hdl->channel_mode   = AUDIO_CH_LR;
+        } else {
+            hdl->channel_mode   = AUDIO_CH_MIX;
+        }
+    }
+#endif
+
+    hdl->out_ch_num = AUDIO_CH_NUM(hdl->channel_mode);
+    log_debug("iis/tdm hw_ch_num: %d, out_ch:%d\n", hdl->hw_ch_num, hdl->out_ch_num);
     fmt->channel_mode = hdl->channel_mode;
     fmt->sample_rate = hdl->sample_rate;
     fmt->bit_wide = hdl->bit_width;
@@ -324,15 +373,8 @@ static void iis_file_start(struct iis_file_hdl *hdl)
 {
     if (hdl->start == 0) {
         hdl->start = 1;
-        if (hdl->state == AUDIO_IIS_STATE_INIT) {
-            log_debug(">>> %s, %d, iis state is AUDIO_IIS_STATE_INIT\n", __func__, __LINE__);
-            iis_rx_start(hdl);
-        } else if (hdl->state == AUDIO_IIS_STATE_CLOSE) {
-            log_debug(">>> %s, %d, iis state is AUDIO_IIS_STATE_CLOSE\n", __func__, __LINE__);
-
-            iis_rx_init(hdl);
-            iis_rx_start(hdl);
-        }
+        iis_rx_init(hdl);
+        iis_rx_start(hdl);
         hdl->dump_cnt = 0;
     }
 }
@@ -425,5 +467,11 @@ REGISTER_SOURCE_NODE_PLUG(iis1_file_plug) = {
 
 #endif
 
-
-
+#if TCFG_TDM_RX_NODE_ENABLE
+REGISTER_SOURCE_NODE_PLUG(tdm_file_plug) = {
+    .uuid       = NODE_UUID_TDM_RX,
+    .init       = iis_file_init,
+    .ioctl      = iis_ioctl,
+    .release    = iis_release,
+};
+#endif

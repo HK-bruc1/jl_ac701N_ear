@@ -28,6 +28,7 @@
 #include "system/event.h"
 #include "syscfg_id.h"
 #include "JL_rcsp_api.h"
+#include "JL_rcsp_packet.h"
 #include "spp_user.h"
 #include "spp_config.h"
 #include "rcsp_command.h"
@@ -35,6 +36,7 @@
 #include "app_msg.h"
 #include "btstack_rcsp_user.h"
 #include "rcsp_ch_loader_download.h"
+#include "rcsp_translator.h"
 
 #if RCSP_MODE
 
@@ -46,6 +48,7 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+extern void rcsp_clear_all_buffer(void);
 extern void rcsp_find_device_reset(void);
 extern void sport_data_func_init(void);
 void sport_data_func_release(void);
@@ -229,7 +232,9 @@ int JL_rcsp_event_handler(struct rcsp_event *rcsp)
 
 static void rcsp_ble_disconnect(void)
 {
+#if (RCSP_MODE != RCSP_MODE_EARPHONE)
     app_rcsp_task_switch_stop();
+#endif
 #if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     rcsp_file_transfer_close();
     rcsp_file_bluk_trans_close(1);
@@ -240,8 +245,13 @@ static void rcsp_ble_disconnect(void)
 #if RCSP_UPDATE_EN && !RCSP_BLE_MASTER
     rcsp_update_resume();
 #endif
+#if JL_RCSP_SENSORS_DATA_OPT
     sport_data_func_release();
+#endif
     rcsp_timer_contrl(0);
+
+    // 防止上一次接收长度太长且未接收完成就中断，影响到下一次连接后的交互
+    rcsp_clear_all_buffer();
 }
 
 static void rcsp_ble_connect(void)
@@ -249,7 +259,9 @@ static void rcsp_ble_connect(void)
 #if JL_RCSP_EXTRA_FLASH_OPT
     rcsp_extra_flash_disconnect_tips(0);
 #endif
+#if JL_RCSP_SENSORS_DATA_OPT
     sport_data_func_init();
+#endif
     rcsp_timer_contrl(1);
     set_ble_adv_notify(1);
 }
@@ -303,6 +315,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
         log_info("rcsp_find_device_reset\n");
         rcsp_find_device_reset();
 #endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_init();
+#endif
 #if (TCFG_USER_BLE_CTRL_BREDR_EN)
         //bt_init_bredr();
         bredr_conn_last_dev();
@@ -327,6 +342,9 @@ void rcsp_user_event_ble_handler(ble_state_e ble_status, u8 flag)
         if (get_jl_update_flag()) {
             rcsp_bt_ble_adv_enable(0);
         }
+#endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_deinit();
 #endif
         break;
     default:
@@ -355,6 +373,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
         log_info("rcsp_find_device_reset\n");
         rcsp_find_device_reset();
 #endif
+#if RCSP_ADV_TRANSLATOR
+        JL_rcsp_translator_init();
+#endif
         break;
     default:
         if (flag) {
@@ -369,6 +390,9 @@ void rcsp_user_event_spp_handler(u8 spp_status, u8 flag)
 #endif
 #if JL_RCSP_EXTRA_FLASH_OPT
             rcsp_extra_flash_opt_stop();
+#endif
+#if RCSP_ADV_TRANSLATOR
+            JL_rcsp_translator_deinit();
 #endif
         }
 #if RCSP_UPDATE_EN

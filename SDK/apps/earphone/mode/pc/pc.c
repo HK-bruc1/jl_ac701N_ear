@@ -19,10 +19,11 @@
 #include "app_task.h"
 #include "app_main.h"
 #include "app_default_msg_handler.h"
+#include "dev_manager.h"
 
 #if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
      && TCFG_CHARGESTORE_PORT == IO_PORT_DP)
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #endif
 
 #define LOG_TAG             "[PC]"
@@ -35,7 +36,6 @@
 #if TCFG_APP_PC_EN
 
 struct pc_opr {
-    u8 volume;
     u8 onoff;
     u8 pc_is_active;
     u8 prev_key_msg;
@@ -153,7 +153,6 @@ static int pc_mode_init()
 {
     printf("pc mode\n");
     __this->pc_is_active = 1;
-    __this->volume =  app_audio_get_volume(APP_AUDIO_STATE_MUSIC);//记录下当前音量
     tone_player_stop();
     int ret = play_tone_file_callback(get_tone_files()->pc_mode, NULL, pc_tone_play_end_callback);
     if (ret != 0) {
@@ -308,7 +307,6 @@ static int pc_mode_try_enter(int arg)
 int pc_mode_try_exit()
 {
     pc_task_stop();
-    app_audio_set_volume(APP_AUDIO_STATE_MUSIC, __this->volume, 1);
     __this->pc_is_active = 0;
 
     return 0;

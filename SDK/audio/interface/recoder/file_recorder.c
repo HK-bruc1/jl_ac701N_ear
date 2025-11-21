@@ -103,6 +103,13 @@ static int recorder_fclose(void *_recorder)
     if (!recorder->file) {
         return 0;
     }
+#if AUDIO_RECORD_CUT_HEAD_TAIL_EN
+    int f_len = ftell((FILE *)recorder->file);
+    if ((recorder->cut_tail_size) && ((f_len - recorder->head_size) > recorder->cut_tail_size)) {
+        f_len -= recorder->cut_tail_size;
+        fseek(recorder->file, f_len, SEEK_SET);
+    }
+#endif
     if (recorder->fops) {
         if (!recorder->fops->close) {
             return -EINVAL;

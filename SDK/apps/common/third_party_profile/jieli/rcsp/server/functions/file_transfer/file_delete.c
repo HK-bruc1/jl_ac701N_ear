@@ -97,7 +97,7 @@ static int file_delete_scandisk_break(void)
     struct sys_event *event = NULL;
     char *logo = NULL;
     char *evt_logo = NULL;
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
+#if 0
     app_task_get_msg(msg, ARRAY_SIZE(msg), 0);
     switch (msg[0]) {
     case APP_MSG_SYS_EVENT:
@@ -159,7 +159,7 @@ static int file_delete_scandisk_break(void)
 #endif
     if (__this->scandisk_break) {
         ///查询到需要打断的事件， 返回1， 并且重新推送一次该事件,跑主循环处理流程
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
+#if 0
         file_del_printf("\n--func=%s, line=%d\n", __FUNCTION__, __LINE__);
         sys_event_notify(event);
         file_del_printf("scandisk_break!!!!!!\n");
@@ -173,16 +173,12 @@ static int file_delete_scandisk_break(void)
 static void scan_enter(struct __dev *dev)
 {
     __this->busy = 1;
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-    clock_add_set(SCAN_DISK_CLK);
-#endif
+    /* clock_add_set(SCAN_DISK_CLK); */
 }
 
 static void scan_exit(struct __dev *dev)
 {
-#if (RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
-    clock_remove_set(SCAN_DISK_CLK);
-#endif
+    /* clock_remove_set(SCAN_DISK_CLK); */
     __this->busy = 0;
 }
 
@@ -244,6 +240,7 @@ void rcsp_file_delete_end(void)
 /*----------------------------------------------------------------------------*/
 static void file_transfer_watch_opt(u32 dev_handle, u8 flag)
 {
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
     if (RCSPDevMapFLASH == dev_handle
         || RCSPDevMapFLASH_2 == dev_handle) {
         char *root_path = NULL;
@@ -252,6 +249,7 @@ static void file_transfer_watch_opt(u32 dev_handle, u8 flag)
         }
         rcsp_file_transfer_watch_opt(flag, root_path);
     }
+#endif
 }
 
 static int file_delete_func(FILE *file)
@@ -261,30 +259,24 @@ static int file_delete_func(FILE *file)
         err = -1;
         goto __file_delete_func_end;
     }
-#if (RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
     // RCSP TODO:
     printf("RCSP TODO!!!");
-#else
-    int music_state = music_player_get_play_status();
-    if (FILE_DEC_STATUS_PLAY == music_state) {
-        app_task_put_key_msg(KEY_MUSIC_PP, 0);
-    }
-#endif
+    /* int music_state = music_player_get_play_status(); */
+    /* if (FILE_DEC_STATUS_PLAY == music_state) { */
+    /*     app_task_put_key_msg(KEY_MUSIC_PP, 0); */
+    /* } */
     err = fdelete(file);
     if (err) {
         printf("[%s, %d] fail!!, replay cur file\n", __FUNCTION__, __LINE__);
         err = -1;
         goto __file_delete_func_end;
     } else {
-#if (RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL)
         // RCSP TODO:
         printf("RCSP TODO!!!");
-#else
-        printf("[%s, %d] ok, play next file\n", __FUNCTION__, __LINE__);
-        if (FILE_DEC_STATUS_PLAY == music_state) {
-            err = app_task_put_key_msg(KEY_MUSIC_PP, 0);
-        }
-#endif
+        /* printf("[%s, %d] ok, play next file\n", __FUNCTION__, __LINE__); */
+        /* if (FILE_DEC_STATUS_PLAY == music_state) { */
+        /*     err = app_task_put_key_msg(KEY_MUSIC_PP, 0); */
+        /* } */
     }
 
 __file_delete_func_end:
@@ -357,7 +349,9 @@ void rcsp_file_delete_start(u8 OpCode_SN, u8 *data, u16 len)
             return;
         }
 
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
         file_transfer_watch_opt(dev_handle, 4);
+#endif
     } else {
         file_del_printf("file delete, no this file\n");
         JL_CMD_response_send(JL_OPCODE_FILE_DELETE, JL_PRO_STATUS_PARAM_ERR, OpCode_SN, NULL, 0, 0, NULL);

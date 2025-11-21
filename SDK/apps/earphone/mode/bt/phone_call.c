@@ -43,6 +43,13 @@
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
 #include "somatosensory/audio_somatosensory.h"
 #endif
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 
 #if (TCFG_USER_TWS_ENABLE == 0)
@@ -63,7 +70,6 @@
 #define ESCO_DUMP_PACKET_CALL		60 /*0~0xFF*/
 #define SYNC_TONE_PHONE_RING_TIME   300
 
-static u8 g_play_addr[6];
 static u8 esco_dump_packet = ESCO_DUMP_PACKET_CALL;
 
 static void phone_income_num_check(void *priv);
@@ -145,7 +151,7 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
     }
 #endif
 
-    printf("inband_ringtone=0x%x %d\n", g_bt_hdl.inband_ringtone, after_conn);
+    printf("inband_ringtone = 0x%x,after_conn = %d\n", g_bt_hdl.inband_ringtone, after_conn);
     g_bt_hdl.phone_ring_flag = 1;
     g_bt_hdl.phone_income_flag = 1;
 
@@ -164,8 +170,6 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #if TCFG_BT_PHONE_NUMBER_ENABLE
     if (after_conn) {
         phone_ring_play_start();
-    } else {
-        phone_income_num_check(NULL);
     }
 #else
     phone_ring_play_start();
@@ -222,6 +226,12 @@ static int bt_phone_out(u8 *bt_addr)
 
 static int esco_audio_open(u8 *bt_addr)
 {
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+    //自适应与通话互斥，等待自适应结束之后再打开音频流程
+    if (anc_ear_adaptive_busy_get()) {
+        anc_ear_adaptive_forced_exit(1, 1);
+    }
+#endif
     esco_player_open(bt_addr);
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
     /* #if 0	//功能未完善，暂时关闭 */
@@ -311,12 +321,18 @@ int bt_phone_esco_play(u8 *bt_addr)
 #if TCFG_SMART_VOICE_ENABLE
     esco_smart_voice_detect_handler();
 #endif
+    int ret = 0;
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
+    ret = le_audio_unicast_play_stop_by_esco();
+#endif
 
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
 #endif
-
-    a2dp_player_close(bt_addr);
+    if (a2dp_player_get_btaddr(temp_btaddr)) {
+        a2dp_player_close(temp_btaddr);
+        a2dp_media_close(temp_btaddr);
+    }
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
 #if 0   //debug
@@ -349,14 +365,29 @@ int bt_phone_esco_play(u8 *bt_addr)
         log_info("dec_begin,dump_packet clear\n");
         esco_dump_packet = ESCO_DUMP_PACKET_DEFAULT;
     }
-
+#if TCFG_BT_PHONE_NUMBER_ENABLE
+    y_printf("play the calling number\n");
+    phone_income_num_check(NULL);
+#endif
     pbg_user_mic_fixed_deal(1);
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_MIX)
+    if (ret) {
+        le_audio_unicast_play_resume_by_esco();
+    }
+#endif
     return 0;
 
 }
 
 int bt_phone_esco_stop(u8 *bt_addr)
 {
+    if (!esco_player_is_playing(bt_addr)) {
+        if (ed_ctl.timer && memcmp(ed_ctl.esco_addr, bt_addr, 6) == 0) {
+            sys_timer_del(ed_ctl.timer);
+            ed_ctl.timer = 0;
+        }
+        return 0;
+    }
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
     /* 处理来电时挂断电话，先跑释放资源再收到handup命令的情况
      * 避免先开smart voice，再关闭"yes/no"，导致出错*/
@@ -519,8 +550,8 @@ static int bt_phone_status_event_handler(int *msg)
 #if TCFG_BT_SUPPORT_PBAP_LIST
         bt_cmd_prepare(USER_CTRL_PBAP_READ_LIST, 0, NULL);
 #endif
-#if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
+        printf("phone_number = %s\n", phone_number);
         if (g_bt_hdl.phone_num_flag == 1) {
             break;
         }
@@ -537,11 +568,10 @@ static int bt_phone_status_event_handler(int *msg)
             }
         }
         if (g_bt_hdl.income_phone_len > 0) {
-            g_bt_hdl.phone_num_flag = 1;
+            g_bt_hdl.phone_num_flag = 1;  //等esco建立后才开始来电号码的播报
         } else {
             log_info("PHONE_NUMBER len err\n");
         }
-#endif
         break;
     case BT_STATUS_PHONE_NAME:
         log_info("BT_STATUS_PHONE_NAME\n");
@@ -562,6 +592,11 @@ static int bt_phone_status_event_handler(int *msg)
         printf("BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
                (bt->value >> 16), (bt->value & 0x0000ffff));
         if (bt->value != 0xff) {
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (le_audio_player_is_playing()) {
+                le_auracast_stop(1);
+            }
+#endif
             u8 call_vol = 15;
             //为了解决两个手机都在通话，在手机上轮流切声卡的音量问题
             call_vol = bt_get_call_vol_for_addr(bt->args);
@@ -585,7 +620,11 @@ static int bt_phone_status_event_handler(int *msg)
 
             bt_phone_esco_stop(bt->args);
             bt_phone_esco_stop(bt->args);
-
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (!le_audio_player_is_playing()) {
+                le_auracast_audio_recover();
+            }
+#endif
         }
         break;
     case BT_STATUS_CALL_VOL_CHANGE:

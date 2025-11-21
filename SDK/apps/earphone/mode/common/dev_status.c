@@ -8,6 +8,7 @@
 #include "usb/usb_task.h"
 #include "undef_func.h"
 #include "app_config.h"
+#include "app_music.h"
 
 #if (RCSP_MODE && RCSP_DEVICE_STATUS_ENABLE && TCFG_DEV_MANAGER_ENABLE)
 #include "rcsp_device_status.h"
@@ -31,7 +32,7 @@ static int dev_manager_add_prepare(int *msg)
     case DRIVER_EVENT_FROM_SD1:
     case DRIVER_EVENT_FROM_SD2:
         //传入0 sd0 1：sd1
-        mult_sd_online_mount_before(!!(msg[0] - DRIVER_EVENT_FROM_SD0), g_usb_id);
+        //mult_sd_online_mount_before(!!(msg[0] - DRIVER_EVENT_FROM_SD0), g_usb_id);
         break;
 //#if TCFG_UDISK_ENABLE || TCFG_HOST_AUDIO_ENABLE
 //    case DEVICE_EVENT_FROM_OTG:
@@ -64,7 +65,7 @@ static int dev_manager_add_after(int *msg, int err)
     case DRIVER_EVENT_FROM_SD1:
     case DRIVER_EVENT_FROM_SD2:
         //传入0 sd0 1：sd1
-        mult_sd_online_mount_after(!!(msg[0] - DRIVER_EVENT_FROM_SD0), g_usb_id, err);
+        //mult_sd_online_mount_after(!!(msg[0] - DRIVER_EVENT_FROM_SD0), g_usb_id, err);
         break;
 //#if TCFG_UDISK_ENABLE
 //    case DEVICE_EVENT_FROM_OTG:
@@ -99,7 +100,7 @@ static int dev_manager_del_prepare(int *msg)
     case DRIVER_EVENT_FROM_SD0:
     case DRIVER_EVENT_FROM_SD1:
     case DRIVER_EVENT_FROM_SD2:
-        mult_sd_offline_before((char *)msg[2], g_usb_id);
+        //mult_sd_offline_before((char *)msg[2], g_usb_id);
         break;
 //#if TCFG_UDISK_ENABLE || TCFG_HOST_AUDIO_ENABLE
 //    case DEVICE_EVENT_FROM_OTG:
@@ -210,7 +211,7 @@ int dev_status_event_filter(int *msg)
             err = dev_manager_add(add);
             if (!err) {
                 sdx_mount_err_cnt = 0;
-#if (MUSIC_DEV_ONLINE_START_AFTER_MOUNT_EN)
+#if (TCFG_APP_MUSIC_EN && MUSIC_DEV_ONLINE_START_AFTER_MOUNT_EN)
                 music_task_dev_online_start(add);
 #endif
 #if (TCFG_DEV_UPDATE_IF_NOFILE_ENABLE == 0)

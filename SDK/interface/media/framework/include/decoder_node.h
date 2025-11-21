@@ -64,7 +64,7 @@ struct decoder_hdl {
     u8 stop_dec;
     u8 channel_mode;
     u8 decoder_out_bit_wide;//0:16bit, 1:24bit 解码器实际输出位宽,如与decoder_node的oport_data_wide不一致时，decoder_node需做位宽转换
-    u16 coding_type;
+    u32 coding_type;
 
     u32 cur_time;
     u32 timestamp;
@@ -75,6 +75,7 @@ struct decoder_hdl {
     OS_MUTEX mutex;
     OS_MUTEX file_mutex;
     OS_SEM file_sem;
+    struct stream_fmt_ex fmt_ex;
     struct jlstream_fade fade;
     struct audio_dec_breakpoint *breakpoint;
     struct decoder_flow_ctrl *flow_ctrl;

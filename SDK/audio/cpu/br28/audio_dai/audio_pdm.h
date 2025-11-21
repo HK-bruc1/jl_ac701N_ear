@@ -64,16 +64,20 @@ struct plnk_data_cfg {
 };
 
 typedef struct _PLNK_PARM {
-    u8 sclk_io;						//时钟IO
-    u32 sclk_fre;					//时钟频率推荐2M
-    struct plnk_ch_cfg ch_cfg[2];		//通道内部配置
-    struct plnk_data_cfg data_cfg[2];		//数据IO配置
-    u8 ch_num;		/*使能多少个通道*/
-    u32 sr;			/*采样率*/
-    u32 dma_len;	/*一次中断byte数*/
+    /*需要初始化前配置的参数*/
+    u8 sclk_io;						    /*时钟IO*/
+    struct plnk_data_cfg data_cfg[2];	/*数据IO配置*/
+    struct plnk_ch_cfg ch_cfg[2];		/*通道内部配置*/
+    u32 sr;			                    /*采样率*/
+    u32 dma_len;	                    /*一次中断byte数*/
+    void (*isr_cb)(void *priv, void *buf,  u32 len); //回调传两个通道的ch_base
+    void *private_data;			        /*音频私有数据*/
+
+    /*内部使用的参数，不需要外部初始化*/
+    u8 ch_num;		                    /*使能多少个通道*/
+    u32 sclk_fre;					    /*时钟频率*/
     void *buf;
-    void (*isr_cb)(void *priv, void *buf, u32 len);
-    void *private_data;			//音频私有数据
+    void *stereo_buf;						/*PDM数组重组buffer*/
 } PLNK_PARM;
 
 void *plnk_init(void *hw_plink);

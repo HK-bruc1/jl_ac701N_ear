@@ -420,7 +420,7 @@ void log_pwm_led_info()
 }
 //*******************************************************************
 
-
+__INITCALL_BANK_CODE
 int pwm_led_early_init()
 {
     __this = zalloc(sizeof(struct pwm_led_handler));

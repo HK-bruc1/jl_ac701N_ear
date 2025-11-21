@@ -8,6 +8,7 @@
 #include "effects/effects_adj.h"
 #include "effects/eq_config.h"
 #include "node_uuid.h"
+#include "audio_config.h"
 
 
 /*
@@ -116,3 +117,39 @@ void user_eq_update_file_parm_demo()
     }
 }
 
+#if AUDIO_EQ_LINK_VOLUME
+#include "node_param_update.h"
+/*
+ * 1、需要在每一个数据流callback里的start事件内调用该函数初始化一次。
+ * 2、需要在app_audio_set_volume中调用。
+ * */
+int eq_link_volume()
+{
+    int ret;
+    u8 cfg_index;
+    u8 mode_index = 0;                  //根据实际需求自行选择
+    char *node_name = "Eq0Media";       //根据实际需求自行选择
+    s16 cur_vol = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
+    s16 max_vol = app_audio_get_max_volume();
+
+    //以下音量判断逻辑请根据实际样机调试效果自行定义。
+    if ((0 <= cur_vol) && (cur_vol <= (max_vol / 4))) {
+        cfg_index = 0;
+    } else if (((max_vol / 4) < cur_vol) && (cur_vol <= (max_vol * 2 / 4))) {
+        cfg_index = 1;
+    } else if (((max_vol * 2 / 4) < cur_vol) && (cur_vol <= (max_vol * 3 / 4))) {
+        cfg_index = 2;
+    } else if (((max_vol * 3 / 4) < cur_vol) && (cur_vol <= max_vol)) {
+        cfg_index = 3;
+    } else {
+        cfg_index = 0;
+    }
+
+    if (config_audio_eq_xfade_enable) {
+        ret = eq_update_tab(mode_index, node_name, cfg_index); //可多次调用，同时更新多个EQ
+    } else {
+        ret = eq_update_parm(mode_index, node_name, cfg_index);
+    }
+    return ret;
+}
+#endif

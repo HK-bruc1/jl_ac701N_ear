@@ -130,7 +130,7 @@ IMU_write   icm42670p_write    = icm42670p_I2C_Write_NBytes;
 #define spi_dma_write(x, y)         spi_dma_send(icm42670p_info->spi_hdl, x, y)
 #define spi_set_width(x)            spi_set_bit_mode(icm42670p_info->spi_hdl, x)
 #define spi_init(cfg)              spi_open(icm42670p_info->spi_hdl, cfg)
-#define spi_closed()            spi_close(icm42670p_info->spi_hdl)
+#define spi_closed()            spi_deinit(icm42670p_info->spi_hdl)
 #define spi_suspend()           hw_spi_suspend(icm42670p_info->spi_hdl)
 #define spi_resume()            hw_spi_resume(icm42670p_info->spi_hdl)
 

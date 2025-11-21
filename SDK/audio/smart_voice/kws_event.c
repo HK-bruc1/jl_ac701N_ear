@@ -61,6 +61,9 @@ int smart_voice_kws_event_handler(u8 model, int kws)
     }
     int event = KWS_EVENT_NULL;
 
+    if (model >= sizeof(kws_model_events) / sizeof(kws_model_events[0])) {
+        return -EINVAL;
+    }
     event = kws_model_events[model][kws];
 
     if (event == KWS_EVENT_NULL) {
@@ -136,6 +139,9 @@ void smart_voice_kws_dump_result_add(void *_ctx, u8 model, int kws)
 
     struct kws_result_context *ctx = (struct kws_result_context *)_ctx;
     int event = kws_model_events[model][kws];
+    if (event >= ARRAY_SIZE(kws_dump_words)) {
+        return;
+    }
     ctx->result[event]++;
 }
 

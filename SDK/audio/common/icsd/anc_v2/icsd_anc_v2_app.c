@@ -123,12 +123,10 @@ void icsd_anc_v2_output(struct icsd_anc_v2_tool_data *_TOOL_DATA, u8 OUTPUT_STAT
         case ANC_V2_OUTPUT_FORCED://强行退出
             printf("\n\nANC_V2_OUTPUT_FORCED\n");
             if (ICSD_REG) {
-                if (ICSD_REG->icsd_anc_v2_contral & ICSD_ANC_TONE_END) {
-                    printf("icsd_anc_forced_exit_end cb\n");
-                    icsd_anc_v2_exit();
-                    ICSD_REG->icsd_anc_v2_contral = 0;
-                    anc_user_train_cb(ANC_ON, 1);
-                }
+                printf("icsd_anc_forced_exit_end cb\n");
+                icsd_anc_v2_exit();
+                ICSD_REG->icsd_anc_v2_contral = 0;
+                anc_user_train_cb(ANC_ON, 1);
             } else {
                 anc_user_train_cb(ANC_ON, 1);
             }

@@ -3,6 +3,13 @@
 #include "effects/AudioEffect_DataType.h"
 #include "visual_tool.h"
 
+#if 1
+#define text_code __attribute__((section(".SPECTRUMTOOL.text")))
+#define cache_code __attribute__((section(".SPECTRUMTOOL.text.cache.L2.code")))
+#else
+#define text_code
+#define cache_code
+#endif
 enum AlgorithmType {
     SPEC_PEAK = 0,
     SPEC_RMS

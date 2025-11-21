@@ -9,6 +9,7 @@
 #define PLAY_MOD_FF       0x01
 #define PLAY_MOD_FB       0x02
 #define SET_DECODE_MODE   0x80
+#define SET_DEC_CH_MODE   0x81
 
 typedef struct _AUDIO_DECODE_PARA {
     u32 mode;
@@ -26,6 +27,12 @@ typedef struct decoder_inf {
     u32 nch ;           ///<声道
     u32 total_time;     ///<总时间
 } dec_inf_t ;
+
+typedef struct _AUDIO_DEC_CH_OPUT_PARA {
+    u32 mode;    //0:old_LRLRLR  1:LLLLLL  2:RRRRRR  3:(L*p0+R*p1)/16384
+    short pL;    //mode_3_channel_L_coefficient  Q13  8192表示合成数据中对应通道音量为50%
+    short pR;    //mode_3_channel_R_coefficient  Q13
+} AUDIO_DEC_CH_OPUT_PARA;
 
 enum { //format_check 格式检查返回值, FORMAT_OK可继续调run,
     //sdk根据获取的解码信息位宽、采样率、声道数控制是否支持解码.

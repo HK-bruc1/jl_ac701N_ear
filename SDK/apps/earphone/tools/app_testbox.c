@@ -7,7 +7,7 @@
 #include "init.h"
 #include "app_config.h"
 #include "system/includes.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "asm/charge.h"
 #include "app_charge.h"
 #include "app_chargestore.h"
@@ -51,6 +51,10 @@
 #define CMD_BOX_ENTER_STORAGE_MODE  0x0a //进入仓储模式
 #define CMD_BOX_GLOBLE_CFG			0x0b //测试盒配置命令(测试盒收到CMD_BOX_TWS_CHANNEL_SEL命令后发送,需使能测试盒某些配置)
 #define CMD_BOX_GET_TWS_PAIR_INFO   0x0c //测试盒获取配对信息
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+#define CMD_BOX_GET_SET_MAC_ADDR	0x0d //获取mac地址并设置comm地址
+#endif
+#define CMD_BOX_GET_AUDIO_CHANNEL	0x0e //左右声道信息
 #define CMD_BOX_CUSTOM_CODE			0xf0 //客户自定义命令处理
 
 #define WRITE_LIT_U16(a,src)   {*((u8*)(a)+1) = (u8)(src>>8); *((u8*)(a)+0) = (u8)(src&0xff); }
@@ -236,6 +240,13 @@ static int chargestore_get_tws_paired_info(u8 *buf, u8 *len)
     return 0;
 }
 
+static u8 chargestore_get_tws_channel_info(void)
+{
+    u8 channel = 'U';
+    syscfg_read(CFG_CHARGESTORE_TWS_CHANNEL, &channel, 1);
+    return channel;
+}
+
 static void app_testbox_sub_event_handle(u8 *data, u16 size)
 {
     u8 mac = 0;
@@ -263,6 +274,12 @@ static void app_testbox_sub_event_handle(u8 *data, u16 size)
             bt_fast_test_api();
         }
         break;
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+    case CMD_BOX_GET_SET_MAC_ADDR:
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 11\n");
+        bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
+        break;
+#endif
     }
 }
 
@@ -274,13 +291,13 @@ static void app_testbox_update_event_handle(u8 *data, u16 size)
     if (get_vm_ram_storage_enable() || get_vm_ram_storage_in_irq_enable()) {
         vm_flush2flash(1);
     }
-#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52)  // 耳机目前仅支持br50\br52
+#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) || (defined CONFIG_CPU_BR56) // 耳机目前仅支持br50\br52
 
-    if ((size >= 1) && (data[0])) {
-        if (app_testbox_enter_loader_update()) {
-            return;
-        }
+    /* if ((size >= 1) && (data[0])) { */
+    if (app_testbox_enter_loader_update()) {
+        return;
     }
+    /* } */
 #endif
     /* 打一个uartkey给maskrom识别 */
     chargestore_set_update_ram();
@@ -488,6 +505,81 @@ static void app_testbox_sub_cmd_handle(u8 *send_buf, u8 buf_len, u8 *buf, u8 len
         chargestore_api_write(send_buf, send_len + 2);
         break;
 
+#if TCFG_JL_UNICAST_BOUND_PAIR_EN
+    case CMD_BOX_GET_SET_MAC_ADDR:		// tool pair
+        struct tws_pairtool_info_t pair_info = {0};
+        u8 mac_tmp[6] = {0};
+        if (!__this->bt_init_ok) {
+            break;
+        }
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 22");
+        put_buf(buf, len);
+        __this->testbox_status = 1;
+        memcpy((u8 *)&pair_info, &buf[2], sizeof(struct tws_pairtool_info_t));
+
+        send_len = 10;//cmd2+st+tws+mac6
+        send_buf[2] = 0;
+#if TCFG_USER_TWS_ENABLE&&(!TCFG_TWS_CONN_DISABLE)
+        send_buf[3] = 1;
+#else
+        send_buf[3] = 0;
+#endif
+#if TCFG_USER_TWS_ENABLE
+        syscfg_read(CFG_TWS_LOCAL_ADDR, send_buf + 4, 6);
+#else
+        y_printf("bt_get_mac_addr()");
+        put_buf(bt_get_mac_addr(), 6);
+        memcpy(send_buf + 4, bt_get_mac_addr(), 6);
+#endif
+
+        if (pair_info.dev_num >= 2) {
+            testbox_event_to_user(&buf[1], buf[0], len - 1);
+            log_info("dev_num =%d,set comm addr=", pair_info.dev_num);
+            put_buf(pair_info.common_addr, 6);
+
+            int err_temp = syscfg_write(CFG_USER_COMMON_ADDR, pair_info.common_addr, 6);    //存在VM
+            printf("err_temp:%d,write_custom_common_addr\n", err_temp);
+            put_buf(pair_info.common_addr, 6);
+
+            printf("write_custom_common_addr\n\n");
+            send_buf[2] |= BIT(0);//写入common mac成功状态
+#if TCFG_USER_TWS_ENABLE
+            syscfg_read(CFG_TWS_REMOTE_ADDR, mac_tmp, 6);
+            if (memcmp(pair_info.tws_addr, mac_tmp, 6) == 0) {
+                send_buf[2] |= BIT(1);//写入tws mac成功状态
+                log_info("write tws ok");
+            }
+#endif
+        } else {
+            log_info("dev offline");
+        }
+        y_printf("CMD_BOX_GET_SET_MAC_ADDR 33");
+        put_buf(send_buf, send_len);
+        chargestore_api_write(send_buf, send_len);
+        break;
+#endif
+
+
+    case CMD_BOX_GET_AUDIO_CHANNEL:
+        log_info("CMD_BOX_GET_AUDIO_CHANNEL");
+        __this->testbox_status = 1;
+#if TCFG_USER_TWS_ENABLE
+        u8 channel = bt_tws_get_local_channel();
+        if (channel == 'L') {
+            send_buf[2] = 0;
+        } else if (channel == 'R') {
+            send_buf[2] = 1;
+        } else {
+            send_buf[2] = 2;
+        }
+#else
+        send_buf[2] = 2;
+#endif
+        __this->channel = send_buf[2];
+        printf("channel = %d\n", send_buf[2]);
+        chargestore_api_write(send_buf, 3);
+        break;
+
     default:
         send_buf[0] = CMD_UNDEFINE;
         send_len = 1;
@@ -510,10 +602,11 @@ static int app_testbox_data_handler(u8 *buf, u8 len)
 
     case CMD_BOX_UPDATE:
         __this->testbox_status = 1;
-        if (buf[13] == get_jl_chip_id() || buf[13] == get_jl_chip_id2()) {
+        printf(">>>[test]:buf13 = 0x%x, chip_id = 0x%x\n", buf[13], get_jl_chip_id());
+        if (buf[13] == 0xff || buf[13] == get_jl_chip_id() || buf[13] == get_jl_chip_id2()) {
             //进行串口升级流程
             //vm_flush2flash();时间处理较长，不能够在串口中断处做处理，需要发送到线程进行处理
-#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) // 耳机目前仅支持br50\br52
+#if (defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52) || (defined CONFIG_CPU_BR56) // 耳机目前仅支持br50\br52
             if (buf[15]) { // 存在新的升级流程
                 send_buf[1] = 0xAA;//回复0xAA表示使用新的串口升级流程 uart_ota2.bin
                 chargestore_api_write(send_buf, 2);
@@ -540,7 +633,11 @@ static int app_testbox_data_handler(u8 *buf, u8 len)
             __this->keep_tws_conn_flag = 0;
         }
         __this->channel = (buf[1] == TWS_CHANNEL_LEFT) ? 'L' : 'R';
+#ifdef UPDATE_VOICE_REMIND
+        if (0 == __this->event_hdl_flag || app_var.update_tone_end_flag == 1) {
+#else
         if (0 == __this->event_hdl_flag) {
+#endif
             testbox_event_to_user(NULL, CMD_BOX_TWS_CHANNEL_SEL, 0);
             __this->event_hdl_flag = 1;
         }

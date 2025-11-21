@@ -10,6 +10,7 @@
 #include "rcsp_event.h"
 #include "rcsp_update.h"
 #include "file_transfer.h"
+#include "file_transfer_sync.h"
 #if	(defined CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE)
 #include "asm/debug_record.h"
 #endif
@@ -38,15 +39,19 @@ void rcsp_cmd_respone(void *priv, u8 OpCode, u8 status, u8 *data, u16 len, u16 b
 #endif
 
     switch (OpCode) {
-#if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
+#if ((TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT) || RCSP_TONE_FILE_TRANSFER_ENABLE)
+    case JL_OPCODE_MASS_DATA:
+        extern void mass_data_respone(void *priv, u8 OpCode, u8 status, u8 * data, u16 len, u16 ble_con_handle, u8 * spp_remote_addr);
+        mass_data_respone(priv, OpCode, status, data, len, ble_con_handle, spp_remote_addr);
+        break;
     case JL_OPCODE_FILE_TRANSFER_END:
-        rcsp_file_transfer_download_end(status, data, len);
+        file_trans_end(status, data, len, ble_con_handle, spp_remote_addr);
         break;
     case JL_OPCODE_FILE_TRANSFER_CANCEL:
-        rcsp_file_transfer_download_active_cancel_response(status, data, len);
+        rcsp_file_transfer_download_active_cancel_response(status, data, len, ble_con_handle, spp_remote_addr);
         break;
     case JL_OPCODE_FILE_RENAME:
-        rcsp_file_transfer_file_rename(status, data, len);
+        file_trans_rename(status, data, len, ble_con_handle, spp_remote_addr);
         break;
 #endif
 #if	(defined CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE)

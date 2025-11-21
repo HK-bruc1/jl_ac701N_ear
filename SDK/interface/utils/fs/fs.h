@@ -320,6 +320,21 @@ int f_free_cache(const char *path);
 /* ----------------------------------------------------------------------------*/
 FILE *fopen(const char *path, const char *mode);
 
+
+/**
+ * @brief 通过utf8编码打开文件，不需要进行额外的转码，获取指向文件流的文件指针
+ *
+ * @param path 文件路径（utf8编码）
+ * @param mode 打开模式
+ *
+ * @return 指向文件流的文件指针
+ * @return NULL: 打开失败
+ * @note fopen自动打开、创建文件夹和文件，打开模式只支持"r" "w" "w+"，如需要追加写请使用"w"
+ * @note 小于9个字节的中文名目录和中文文件名需要额外加上\U
+ */
+FILE *fopen_by_utf8(const char *path, const char *mode);
+
+
 /**
  * @brief 从文件中读取数据
  *
@@ -1141,6 +1156,8 @@ bool utf8_check(const char *str, int length);
  */
 /* ----------------------------------------------------------------------------*/
 int fget_rsv_info(const char *path, int *rsv_addr, int *rsv_len, int *fat2_addr, int *fat2_len);
+
+int long_file_name_encode(const char *input, u8 *output, u32 output_buf_len);
 
 #endif /* #ifndef __FS_H__ */
 

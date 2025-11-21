@@ -18,6 +18,7 @@
 #include "audio_config.h"
 #include "effects/AudioEffect_DataType.h"
 #include "media/audio_splicing.h"
+#include "audio_plc.h"
 
 #if TCFG_ESCO_PLC
 
@@ -100,25 +101,25 @@ void audio_plc_run_base(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
         return;
     }
 
-#if 0	//debug
+#if AUDIO_ESCO_PLC_TRACE_ENABLE
     static u16 repair_cnt = 0;
     if (repair) {
         repair_cnt++;
-        y_printf("[E%d]", repair_cnt);
+        y_printf("[E%d]", repair_cnt);//打印连续丢包情况
     } else {
         repair_cnt = 0;
     }
     //printf("[%d]",point);
-#endif/*debug*/
+#endif
 
     repair_flag = repair;
     if (plc->wideband) {
         /*
          *msbc plc deal
-         *如果上一帧是错误，则当前帧也要修复
+         *如果上一帧是错误，则当前正常的帧也要修复 并且给特殊标记 2
          */
-        if (plc->repair) {
-            repair_flag = 1;
+        if (plc->repair && (repair == 0)) {
+            repair_flag = 2;
         }
         plc->repair = repair;
     }
@@ -129,6 +130,9 @@ void audio_plc_run_base(audio_plc_t *plc, s16 *data, u16 len, u8 repair)
         PLC_run(p_in, p_out, repair_point, repair_flag);
         p_in  = (s16 *)((int)p_in + (repair_point << point_offset));
         p_out = (s16 *)((int)p_out + (repair_point << point_offset));
+        if (repair_flag == 2) {
+            repair_flag = 0;
+        }
     }
     os_mutex_post(&plc->mutex);
 }
@@ -181,7 +185,7 @@ int audio_plc_close(void *_plc)
 #else
 void *audio_plc_open(u16 sr, u16 ch_num, af_DataType *dataTypeobj)
 {
-    return 0;
+    return NULL;
 }
 
 void audio_plc_run(void *_plc, s16 *data, u16 len, u8 repair)

@@ -6,7 +6,7 @@
 #endif
 #include "source_node.h"
 #include "audio_dai/audio_pdm.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "app_config.h"
 #include "audio_config.h"
 #include "audio_cvp.h"
@@ -42,6 +42,7 @@ struct pdm_file_cfg {
 struct pdm_mic_file_hdl {
     char name[16];
     void *source_node;
+    struct stream_node *node;
     enum stream_scene scene;
     u8 start;
     u8 dump_cnt;
@@ -51,26 +52,26 @@ struct pdm_mic_file_hdl {
     PLNK_PARM *pdm_mic;
 };
 
-static void pdm_mic_output_handler(void *priv, void *data, u32 len)
+static void pdm_mic_output_handler(void *priv, void *data,  u32 len)
 {
     struct pdm_mic_file_hdl *hdl = (struct pdm_mic_file_hdl *)priv;
     struct stream_frame *frame;
-
     if (hdl->dump_cnt < 10) {
         hdl->dump_cnt++;
         return;
     }
     if (audio_common_mic_mute_en_get()) {	//mute pdm_mic
-        memset((u8 *)data, 0x0, len);
+        memset((u8 *)data, 0x0, len * hdl->pdm_mic->ch_num);
     }
 
     if (hdl->scene == STREAM_SCENE_ESCO) {	//cvp读dac 参考数据
         audio_cvp_phase_align();
     }
 
-    frame = source_plug_get_output_frame(hdl->source_node, len);
+    frame = source_plug_get_output_frame(hdl->source_node, len * hdl->pdm_mic->ch_num);
     if (frame) {
-        memcpy(frame->data, (u8 *)data, len);
+        memcpy(frame->data, (u8 *)data, len * hdl->pdm_mic->ch_num);
+        len *= hdl->pdm_mic->ch_num;
         frame->len = len;
         source_plug_put_output_frame(hdl->source_node, frame);
     }
@@ -81,6 +82,7 @@ static void *pdm_mic_init(void *source_node, struct stream_node *node)
     struct pdm_mic_file_hdl *hdl = zalloc(sizeof(*hdl));
     pdm_mic_file_log("%s\n", __func__);
     hdl->source_node = source_node;
+    hdl->node = node;
     node->type |= NODE_TYPE_IRQ;
     return hdl;
 }
@@ -98,6 +100,11 @@ static void pdm_mic_ioc_get_fmt(struct pdm_mic_file_hdl *hdl, struct stream_fmt 
         fmt->sample_rate    = 16000;
         fmt->channel_mode   = AUDIO_CH_MIX;
         break;
+    }
+    if (adc_hdl.bit_width == ADC_BIT_WIDTH_24) {
+        fmt->bit_wide = DATA_BIT_WIDE_24BIT;
+    } else {
+        fmt->bit_wide = DATA_BIT_WIDE_16BIT;
     }
     hdl->sample_rate = fmt->sample_rate;
 }
@@ -121,11 +128,34 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     /*
      *获取配置文件内的参数,及名字
      * */
-    int len = jlstream_read_node_data_new(NODE_UUID_PDM_MIC, 0XFF, (void *)&pdm_cfg, name);
+    struct pdm_mic_file_hdl *hdl = (struct pdm_mic_file_hdl *)pdm_mic->private_data;
+    int len = jlstream_read_node_data_new(NODE_UUID_PDM_MIC, hdl->node->subid, (void *)&pdm_cfg, name);
     if (!len) {
         printf("%s, read node data err\n", __FUNCTION__);
     }
     printf(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(pdm_cfg));
+#if ((defined PDM_VERSION) && (PDM_VERSION == AUDIO_PDM_V2))
+    if (len == sizeof(pdm_cfg)) {
+        pdm_mic->sclk_io = uuid2gpio(pdm_cfg.io_sclk_uuid);
+        plnk_ch_num = pdm_cfg.plnk_ch_num;
+        printf("PDM_IDX: %d\n", plnk_ch_num);
+        if (plnk_ch_num & AUDIO_PDM_MIC_0) {
+            pdm_mic->data_cfg[0].en = 1;
+            pdm_mic->data_cfg[0].io = uuid2gpio(pdm_cfg.io_ch0_uuid);
+        }
+        if (plnk_ch_num & AUDIO_PDM_MIC_1) {
+            pdm_mic->data_cfg[1].en = 1;
+            pdm_mic->data_cfg[1].io = uuid2gpio(pdm_cfg.io_ch0_uuid);
+        }
+        if (plnk_ch_num & AUDIO_PDM_MIC_2) {
+            pdm_mic->data_cfg[2].en = 1;
+            pdm_mic->data_cfg[2].io = uuid2gpio(pdm_cfg.io_ch1_uuid);
+        }
+        if (plnk_ch_num & AUDIO_PDM_MIC_3) {
+            pdm_mic->data_cfg[3].en = 1;
+            pdm_mic->data_cfg[3].io = uuid2gpio(pdm_cfg.io_ch1_uuid);
+        }
+#else
     if (len == sizeof(pdm_cfg)) {
         pdm_mic->sclk_io = uuid2gpio(pdm_cfg.io_sclk_uuid);
         plnk_ch_num = pdm_cfg.plnk_ch_num;
@@ -137,6 +167,7 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
             pdm_mic->data_cfg[1].en = 1;
             pdm_mic->data_cfg[1].io = uuid2gpio(pdm_cfg.io_ch1_uuid);
         }
+#endif
     } else {
         pdm_mic->sclk_io = PLNK_SCLK_PIN;
         //plnk_ch_num = 1;
@@ -162,6 +193,28 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     if (pdm_mic->sclk_fre % pdm_mic->sr) {
         r_printf("[warn]SCLK/SR需为整数且在1-4096范围\n");
     }
+#if ((defined PDM_VERSION) && (PDM_VERSION == AUDIO_PDM_V2))
+    if (plnk_ch_num & AUDIO_PDM_MIC_0) {
+        pdm_mic->ch_cfg[0].en = 1;
+        pdm_mic->ch_cfg[0].mode = DATA0_SCLK_RISING_EDGE;
+        pdm_mic->ch_cfg[0].mic_type = DIGITAL_MIC_DATA;
+    }
+    if (plnk_ch_num & AUDIO_PDM_MIC_1) {
+        pdm_mic->ch_cfg[1].en = 1;
+        pdm_mic->ch_cfg[1].mode = DATA0_SCLK_FALLING_EDGE;
+        pdm_mic->ch_cfg[1].mic_type = DIGITAL_MIC_DATA;
+    }
+    if (plnk_ch_num & AUDIO_PDM_MIC_2) {
+        pdm_mic->ch_cfg[2].en = 1;
+        pdm_mic->ch_cfg[2].mode = DATA1_SCLK_RISING_EDGE;
+        pdm_mic->ch_cfg[2].mic_type = DIGITAL_MIC_DATA;
+    }
+    if (plnk_ch_num & AUDIO_PDM_MIC_3) {
+        pdm_mic->ch_cfg[3].en = 1;
+        pdm_mic->ch_cfg[3].mode = DATA1_SCLK_FALLING_EDGE;
+        pdm_mic->ch_cfg[3].mic_type = DIGITAL_MIC_DATA;
+    }
+#else
     if (plnk_ch_num > 0) {
         pdm_mic->ch_cfg[0].en = 1;
         pdm_mic->ch_cfg[0].mode = DATA0_SCLK_RISING_EDGE;
@@ -169,9 +222,10 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     }
     if (plnk_ch_num > 1) {
         pdm_mic->ch_cfg[1].en = 1;
-        pdm_mic->ch_cfg[1].mode = DATA0_SCLK_FALLING_EDGE;
+        pdm_mic->ch_cfg[1].mode = DATA1_SCLK_FALLING_EDGE;
         pdm_mic->ch_cfg[1].mic_type = DIGITAL_MIC_DATA;
     }
+#endif
 
     if (!pdm_mic->dma_len) {	//避免没有设置pdm_mic的中断点数，默认256
         pdm_mic->dma_len = (ESCO_PDM_IRQ_POINTS << 1);

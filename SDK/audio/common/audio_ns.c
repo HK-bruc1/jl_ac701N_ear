@@ -45,7 +45,7 @@ extern void aec_code_movable_unload(void);
 *			   帧长整数倍，则某一次会输出0长度，即没有输出
 *********************************************************************
 */
-int audio_ns_run(void *ns, short *in, short *out, u16 len)
+int audio_ns_run(void *ns, short *in, void *out, u16 len)
 {
     if (ns == NULL) {
         return len;
@@ -65,7 +65,7 @@ int audio_ns_run(void *ns, short *in, short *out, u16 len)
     }
 #else
     //putchar('.');
-    int nOut = noise_suppress_run(in, out, (len / 2));
+    int nOut = noise_suppress_run(ns, in, out, (len / 2));
     return (nOut << 1);
 #endif
 }
@@ -85,27 +85,37 @@ int audio_ns_run(void *ns, short *in, short *out, u16 len)
  *				  ans-ns_para.wideband = 0;
  *********************************************************************
  */
-void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, float MinSuppress)
+void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, float MinSuppress, u8 lite, float eng_gain, float output16)
 {
     void *ns = NULL;
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
-    audio_ans_t *ans = zalloc(sizeof(audio_ans_t));
-    //cbuf_init(&ans->cbuf, ans->in, sizeof(ans->in));
+    noise_suppress_param *ns_para = zalloc(sizeof(noise_suppress_param));
+    if (!ns_para) {
+        printf("no mem for ns param\n");
+        return NULL;
+    }
+    ns_para->wideband = (sr == 16000) ? 1 : 0;
+    ns_para->mode = mode;
+    ns_para->NoiseLevel = NoiseLevel;
+    ns_para->AggressFactor = AggressFactor;
+    ns_para->MinSuppress = MinSuppress;
+    ns_para->lite = lite;
+    ns_para->eng_gain = eng_gain;
+    ns_para->output16 = output16;
+    ns_para->noise_suppress_energy = NULL;
+    ns = (void *)noise_suppress_open(ns_para);
+    if (!ns) {
+        free(ns_para);
+        return NULL;
+    }
 
-    ans->ns_para.wideband = (sr == 16000) ? 1 : 0;
-    ans->ns_para.mode = mode;
-    ans->ns_para.NoiseLevel = NoiseLevel;
-    ans->ns_para.AggressFactor = AggressFactor;
-    ans->ns_para.MinSuppress = MinSuppress;
-    printf("ns wideband:%d\n", ans->ns_para.wideband);
-    //int ns_mem_size = noise_suppress_mem_query(&ans->ns_para);
-    //printf("ns mem_size:%d\n", ns_mem_size);
-    noise_suppress_open(&ans->ns_para);
     float lowcut = -60.f;
-    noise_suppress_config(NS_CMD_LOWCUTTHR, 0, &lowcut);
-
-    ns = (void *)ans;
+    /*非精简版调用*/
+    if (!ns_para->lite) {
+        noise_suppress_config(ns, NS_CMD_LOWCUTTHR, 0, &lowcut);
+    }
+    //ns = (void *)ans;
     printf("audio_ns_open ok\n");
     return ns;
 }
@@ -121,10 +131,7 @@ void *audio_ns_open(u16 sr, u8 mode, float NoiseLevel, float AggressFactor, floa
  */
 int audio_ns_close(void *ns)
 {
-    noise_suppress_close();
-    if (ns) {
-        free(ns);
-    }
+    noise_suppress_close(ns);
 
     aec_code_movable_unload();
 

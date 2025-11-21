@@ -44,12 +44,19 @@ struct tone_files {
     const char *wclick_off;
     const char *linein_mode;
     const char *pc_mode;
+    const char *music_mode;
+    const char *device_sd;
+    const char *device_udisk;
     const char *fit_det_on;
     const char *share_search_pairing;
     const char *share_wait_pairing;
     const char *share_conn_master;
     const char *share_conn_slave;
     const char *share_disconnect;
+    const char *edr_mode;
+    const char *cis_mode;
+    const char *cis_connect;
+    const char *cis_disconnect;
 };
 
 

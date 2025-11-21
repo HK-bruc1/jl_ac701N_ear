@@ -13,5 +13,6 @@
 
 int le_audio_mic_recorder_open(void *params, void *le_audio, int latency);
 void le_audio_mic_recorder_close(void);
+bool le_audio_mic_recorder_is_running(void);
 
 #endif

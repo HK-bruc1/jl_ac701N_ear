@@ -154,12 +154,13 @@ typedef struct {
     float aggressfactor;			//default:1.25,range[1:2]
     float minsuppress;				//default:0.04,range[0.01:0.1]
     float init_noise_lvl;			//default:-75dB,range[-100:-30]
+    float compensate;				//default:0dB,range[0:30]
+
     /*enc*/
     int enc_process_maxfreq;		//default:8000,range[3000:8000]
     int enc_process_minfreq;		//default:0,range[0:1000]
-    float snr_db_T0;  //sir设定阈值
-    float snr_db_T1;  //sir设定阈值
-    float floor_noise_db_T;
+    float noise_level_db_T0;  //噪声水平等级阈值下限,退出融合阈值,范围(10~90db)
+    float noise_level_db_T1;  //噪声水平等级阈值上限,进入融合阈值,范围(10~90db)
     float compen_db; //mic增益补偿, dB
 
     /*wn*/
@@ -239,6 +240,9 @@ struct dms_attr {
     u8 aptfilt_only: 1;
     u8 reserved: 3;
 
+
+    u8 output_way;   /*输出方式配置0:dac  1:fm_tx */
+    u8 fm_tx_start;  /*fm发射同步标志*/
     u8 dst_delay;/*延时估计目标延时*/
     u8 EnableBit;
     u8 FB_EnableBit;
@@ -338,15 +342,16 @@ struct dms_attr {
     int OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
 
     /*jlsp hybrid enc*/
-    float snr_db_T0;
-    float snr_db_T1;
-    float floor_noise_db_T;
+    float noise_level_db_T0;  //噪声水平等级阈值下限,退出融合阈值,范围(10~90db)
+    float noise_level_db_T1;  //噪声水平等级阈值上限,进入融合阈值,范围(10~90db)
     float compen_db;
     float *transfer_func;
 
     /*jlsp hybrid dns*/
     int dns_process_maxfrequency;
     int dns_process_minfrequency;
+    float *filter_eq;
+    float compensate;				//default:0dB,range[0:30]
 
     /*jlsp hybrid agc*/
     int min_mag_db_level;
@@ -359,6 +364,20 @@ struct dms_attr {
     float coh_val_T;        //双麦非相关性阈值，范围：0 ~ 1，默认值：0.6
     float eng_db_T;        //麦增益能量阈值，范围：0 ~ 255 dB，默认值：80，单位：dB
 };
+
+struct cvp_2mic_adapter {
+    int (*init)(struct dms_attr *attr);
+    int (*exit)(void);
+    int (*push_mic0_data)(void *dat, u16 len);
+    int (*push_mic1_data)(void *dat, u16 len);
+    int (*push_ref_data)(void *data0, void *data1, u16 len);
+    int (*pop_ref_data)(void);
+    int (*ioctl)(int cmd, int value, void *priv);
+};
+const struct cvp_2mic_adapter *cvp_2mic_beamforming_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_flexible_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_awn_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_hybrid_adapter();
 
 s32 aec_dms_init(struct dms_attr *attr);
 s32 aec_dms_exit();
@@ -390,6 +409,7 @@ void aec_dms_hybrid_toggle(u8 toggle);
 int aec_dms_hybrid_cfg_update(DMS_HYBRID_CONFIG *cfg);
 int aec_dms_hybrid_reboot(u8 enablebit);
 u8 get_cvp_dms_hybrid_rebooting();
+void *get_dms_hybrid_init_hanlder();
 
 s32 aec_dms_awn_init(struct dms_attr *attr);
 s32 aec_dms_awn_exit();
@@ -401,7 +421,14 @@ void aec_dms_awn_toggle(u8 toggle);
 int aec_dms_awn_cfg_update(DMS_AWN_CONFIG *cfg);
 int aec_dms_awn_reboot(u8 enablebit);
 u8 get_cvp_dms_awn_rebooting();
-
+void audio_cvp_dms_lock();              // dms
+void audio_cvp_dms_unlock();
+void audio_cvp_dms_hybrid_lock();		// dms + hybrid
+void audio_cvp_dms_hybrid_unlock();
+void audio_cvp_dms_flexible_lock();     // dms + flexible
+void audio_cvp_dms_flexible_unlock();
+void audio_cvp_dms_awn_lock();			// dms + awn
+void audio_cvp_dms_awn_unlock();
 /*获取风噪的检测结果，1：有风噪，0：无风噪*/
 int cvp_dms_get_wind_detect_state(void);
 

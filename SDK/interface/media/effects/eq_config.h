@@ -113,6 +113,7 @@ EQ_MODE eq_mode_get_cur(void);
  * */
 u8 eq_get_table_nsection(EQ_MODE mode);
 
+int eq_link_volume();
 
 extern const int AUDIO_EQ_MAX_SECTION;
 

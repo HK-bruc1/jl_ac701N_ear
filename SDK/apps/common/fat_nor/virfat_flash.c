@@ -67,8 +67,8 @@ static OS_MUTEX virfat_flash_mutex;
 
 static void virfat_get_cpu_fatfs_addr(char *name, u32 *addr, u32 *len)
 {
-    u32 start_addr = boot_info.sfc.app_addr;
-    /* y_printf(">>>[test]:base_addr = %d, app_addr = %d\n", boot_info.sfc.sfc_base_addr, boot_info.sfc.app_addr); */
+    u32 start_addr = get_boot_info()->sfc.app_addr;
+    /* y_printf(">>>[test]:base_addr = %d, app_addr = %d\n", get_boot_info()->sfc.sfc_base_addr, get_boot_info()->sfc.app_addr); */
     /* u32 offset = 0; */
     struct sdfile_file_head head = {0};
     /* u16 local_flash_key = get_chip_id_in_phonefs(); */
@@ -766,7 +766,7 @@ AT_VOLATILE_RAM_CODE
 int flash_virfat_read(struct device *device, void *buf, u32 len, u32 addr)
 {
     /* y_printf(">>>[test]:r；addr = %d ,len = %d\n", addr, len); */
-    u32 *_buf = buf;
+    u8 *_buf = buf;
     u32 _len = len;
     u32 _lba = addr;
     while (_len) {
@@ -787,7 +787,7 @@ static int flash_virfat_write(struct device *device, void *buf, u32 len, u32 add
 
     /* r_printf(">>>[test]:w；addr = %d ,len = %d\n", addr, len); */
     /* return virfat_flash_write(buf, addr, len); */
-    u32 *_buf = buf;
+    u8 *_buf = buf;
     u32 _len = len;
     u32 _lba = addr;
     while (_len) {
@@ -949,7 +949,7 @@ static int private_sfc_open(const char *name, struct device **device, void *arg)
     private_sfc_dev->private_data = flash_private_info;
     *device = private_sfc_dev;
     virfat_mutex_post();
-    ASSERT(boot_info.vm.align >= 8, "virfat_flash erase sector < 4K is not support!!!!!!!!!");
+    ASSERT(get_boot_info()->vm.align >= 8, "virfat_flash erase sector < 4K is not support!!!!!!!!!");
     return 0;
 }
 

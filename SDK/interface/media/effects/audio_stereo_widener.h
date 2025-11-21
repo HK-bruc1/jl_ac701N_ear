@@ -1,7 +1,6 @@
 #ifndef _AUDIO_STEREO_widener_API_H_
 #define _AUDIO_STEREO_widener_API_H_
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/stereo_widen_api.h"
 
 typedef struct _StereowidenerUdateParam {//与stewiden_parm_context关联

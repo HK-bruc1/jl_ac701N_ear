@@ -14,8 +14,11 @@
 #include "poweroff.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 #include "app_le_connected.h"
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "app_le_auracast.h"
 #endif
 
 
@@ -35,53 +38,63 @@ const int adkey_msg_table[10][KEY_ACTION_MAX] = {
     //按住3s, 按住5s
     [0] = {
         APP_MSG_MUSIC_PP,   APP_MSG_CALL_HANGUP,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_GOTO_NEXT_MODE,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_POWER_OFF,
+        APP_MSG_LOW_LANTECY,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_KEY_POWER_OFF,
     },
     [1] = {
-        APP_MSG_MUSIC_PREV, APP_MSG_VOL_DOWN,   APP_MSG_VOL_DOWN,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
-    },
-    [2] = {
         APP_MSG_MUSIC_NEXT, APP_MSG_VOL_UP,   APP_MSG_VOL_UP,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
+    },
+    [2] = {
+        APP_MSG_MUSIC_PREV, APP_MSG_VOL_DOWN,   APP_MSG_VOL_DOWN,   APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [3] = {
-        APP_MSG_LOW_LANTECY,   APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_GOTO_NEXT_MODE,   APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [4] = {
         APP_MSG_ANC_SWITCH, APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [5] = {
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [6] = {
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [7] = {
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [8] = {
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
     [9] = {
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
         APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
-        APP_MSG_NULL,       APP_MSG_NULL,
+        APP_MSG_NULL,       APP_MSG_NULL,   APP_MSG_NULL,   APP_MSG_NULL,
+        APP_MSG_NULL,
     },
 };
 #endif
@@ -113,6 +126,7 @@ int bt_key_power_msg_remap(int *msg)
     void *outgoing_device = NULL;
     void *siri_device = NULL;
 
+    int tws_state = tws_api_get_tws_state();
     int num = btstack_get_conn_devices(devices, 2);
     for (int i = 0; i < num; i++) {
         int state = bt_get_phone_state(devices[i]);
@@ -126,35 +140,26 @@ int bt_key_power_msg_remap(int *msg)
             siri_device = devices[i];
         }
     }
-
+    /* 通话相关场景下按键流程 */
     if (active_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
-#if TCFG_IOKEY_ENABLE || TCFG_ADKEY_ENABLE
-            app_msg = APP_MSG_CALL_HANGUP;
-#endif
-            break;
         case KEY_ACTION_DOUBLE_CLICK:
-#if TCFG_LP_TOUCH_KEY_ENABLE
             app_msg = APP_MSG_CALL_HANGUP;
-#endif
             break;
+#if 0
+        case KEY_ACTION_TRIPLE_CLICK:
+            app_msg = APP_MSG_REC_PP;
+            break;
+#endif
         default:
             break;
         }
     } else if (incoming_device) {
         switch (key_action) {
         case KEY_ACTION_CLICK:
-#if TCFG_IOKEY_ENABLE || TCFG_ADKEY_ENABLE
             app_msg = APP_MSG_CALL_ANSWER;
-#endif
             break;
         case KEY_ACTION_DOUBLE_CLICK:
-#if TCFG_LP_TOUCH_KEY_ENABLE
-            app_msg = APP_MSG_CALL_ANSWER;
-#endif
-            break;
-        case KEY_ACTION_HOLD_1SEC:
             app_msg = APP_MSG_CALL_HANGUP;
             break;
         default:
@@ -162,49 +167,37 @@ int bt_key_power_msg_remap(int *msg)
         }
     } else if (outgoing_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
-#if TCFG_IOKEY_ENABLE || TCFG_ADKEY_ENABLE
+        case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CALL_HANGUP;
-#endif
-            break;
-        case KEY_ACTION_HOLD_1SEC:
-#if TCFG_LP_TOUCH_KEY_ENABLE
-            app_msg = APP_MSG_CALL_HANGUP;
-#endif
             break;
         default:
             break;
         }
     } else if (siri_device) {
         switch (key_action) {
-        case KEY_ACTION_CLICK:
+        case KEY_ACTION_DOUBLE_CLICK:
             app_msg = APP_MSG_CLOSE_SIRI;
             break;
         default:
             break;
         }
-
     } else {
-        /* 非通话相关状态 */
-        int tws_state = tws_api_get_tws_state();
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        /* 非通话相关场景下按键流程 */
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
         int tws_cig_state = is_cig_phone_conn();
-        if (tws_state & TWS_STA_PHONE_CONNECTED || tws_cig_state) { //已连接手机经典蓝牙或者cig
+        if ((tws_state & TWS_STA_PHONE_CONNECTED) || tws_cig_state) { //已连接手机经典蓝牙或者cig
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if ((tws_state & TWS_STA_PHONE_CONNECTED) && (!le_auracast_is_running())) { //已连接手机经典蓝牙&&耳机没有auracast播歌
 #else
         if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
 #endif
             char channel = tws_api_get_local_channel();
             switch (key_action) {
             case KEY_ACTION_CLICK:
-#if TCFG_IOKEY_ENABLE || TCFG_ADKEY_ENABLE
                 app_msg = APP_MSG_MUSIC_PP;
-#endif
                 break;
             case KEY_ACTION_DOUBLE_CLICK:
-#if TCFG_LP_TOUCH_KEY_ENABLE
-                app_msg = APP_MSG_MUSIC_PP;
-#else
-                // TWS连上情况下, 左耳双击上一曲, 右耳双击下一曲
+                // TWS连上情况下, 双击右耳上一曲
                 if (tws_state & TWS_STA_SIBLING_CONNECTED) {
                     if ((channel == 'L' && msg[1] != APP_KEY_MSG_FROM_TWS) ||
                         (channel == 'R' && msg[1] == APP_KEY_MSG_FROM_TWS)) {
@@ -212,37 +205,11 @@ int bt_key_power_msg_remap(int *msg)
                         break;
                     }
                 }
+                // 双击左耳下一曲
                 app_msg = APP_MSG_MUSIC_NEXT;
-#endif
-                break;
-            case KEY_ACTION_LONG:
-            case KEY_ACTION_HOLD:
-#if TCFG_IOKEY_ENABLE
-                // TWS连上情况下, 按住左耳上一曲
-                if (tws_state & TWS_STA_SIBLING_CONNECTED) {
-                    if ((channel == 'L' && msg[1] != APP_KEY_MSG_FROM_TWS) ||
-                        (channel == 'R' && msg[1] == APP_KEY_MSG_FROM_TWS)) {
-                        app_msg = APP_MSG_VOL_DOWN;
-                        break;
-                    }
-                }
-                app_msg = APP_MSG_VOL_UP;
-#endif
-                break;
-            case KEY_ACTION_HOLD_1SEC:
-#if TCFG_LP_TOUCH_KEY_ENABLE
-                // TWS连上情况下, 按住左耳上一曲
-                if (tws_state & TWS_STA_SIBLING_CONNECTED) {
-                    if ((channel == 'L' && msg[1] != APP_KEY_MSG_FROM_TWS) ||
-                        (channel == 'R' && msg[1] == APP_KEY_MSG_FROM_TWS)) {
-                        app_msg = APP_MSG_MUSIC_PREV;
-                        break;
-                    }
-                }
-                app_msg = APP_MSG_MUSIC_NEXT;
-#endif
                 break;
             case KEY_ACTION_TRIPLE_CLICK:
+                // TWS连上情况下, 三击左耳进入低延迟
                 if (tws_state & TWS_STA_SIBLING_CONNECTED) {
                     if ((channel == 'L' && msg[1] != APP_KEY_MSG_FROM_TWS) ||
                         (channel == 'R' && msg[1] == APP_KEY_MSG_FROM_TWS)) {
@@ -250,33 +217,92 @@ int bt_key_power_msg_remap(int *msg)
                         break;
                     }
                 }
+                // 三击右耳进入SIRI
                 app_msg = APP_MSG_OPEN_SIRI;
                 break;
-            default:
+            case KEY_ACTION_FOURTH_CLICK:
+                app_msg = APP_MSG_VOL_UP;
                 break;
-            }
-        } else {
-            switch (key_action) {
-            case KEY_ACTION_DOUBLE_CLICK:
-#if CONFIG_TWS_PAIR_MODE == CONFIG_TWS_PAIR_BY_CLICK
-                if (tws_state & TWS_STA_TWS_UNPAIRED) { // TWS未配对
-                    app_msg = APP_MSG_TWS_START_PAIR;
-                }
-#endif
+            case KEY_ACTION_FIRTH_CLICK:
+                app_msg = APP_MSG_VOL_DOWN;
                 break;
             default:
                 break;
             }
         }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_auracast_is_running()) {
+            switch (key_action) {
+            case KEY_ACTION_DOUBLE_CLICK:
+                app_msg = APP_MSG_VOL_UP;
+                break;
+            case KEY_ACTION_TRIPLE_CLICK:
+                app_msg = APP_MSG_VOL_DOWN;
+                break;
+            default:
+                break;
+            }
+        }
+#endif
     }
-
+    /* 所有场景下按键流程 */
     switch (key_action) {
-    case KEY_ACTION_TWS_HOLD_5SEC:
-        //app_msg = APP_MSG_TWS_POWER_OFF;
+    case KEY_ACTION_HOLD_1SEC:
+        //长按切换ANC模式
+        app_msg = APP_MSG_ANC_SWITCH;
+        break;
+    case KEY_ACTION_HOLD_5SEC:
+#if TCFG_USER_TWS_ENABLE
+        app_msg = APP_MSG_TWS_POWER_OFF;
+#else
+        app_msg = APP_MSG_KEY_POWER_OFF;
+#endif
+        break;
+    case KEY_ACTION_FOURTH_CLICK:
+#if (TCFG_USER_TWS_ENABLE && (CONFIG_TWS_PAIR_MODE == CONFIG_TWS_PAIR_BY_CLICK))
+        if (tws_state & TWS_STA_TWS_UNPAIRED) { // TWS未配对，按键配对
+            app_msg = APP_MSG_TWS_START_PAIR;
+        }
+#else
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN) && TCFG_JL_UNICAST_EDR_MODE_SWITCH_ENABLE
+        jl_unicast_edr_mode_switch();
+#endif
+#endif
         break;
     default:
         break;
     }
+#if 0 //anc功能测试
+    app_msg = APP_MSG_NULL;
+    switch (key_action) {
+    case KEY_ACTION_CLICK:
+        y_printf("APP_MSG_MUSIC_PP 95 >>>>>>>>>>>>>>KEY_ACTION_CLICK \n");
+        app_msg = APP_MSG_MUSIC_PP;
+        break;
+    case KEY_ACTION_HOLD_1SEC:   //长按1s 切换anc模式
+        y_printf("APP_MSG_ANC_SWITCH 66 >>>>>>>>>>>>>>KEY_ACTION_HOLD_1SEC \n");
+        app_msg = APP_MSG_ANC_SWITCH;
+        break;
+    case KEY_ACTION_DOUBLE_CLICK:    //双击切换智能免摘
+        y_printf("audio_speak_to_chat_demo 72 >>>>>>>>>>>>>>KEY_ACTION_DOUBLE_CLICK \n");
+        app_msg = APP_MSG_SPEAK_TO_CHAT_SWITCH;
+        break;
+    case KEY_ACTION_TRIPLE_CLICK:   //三击切换广域点击
+        y_printf("audio_wat_click_demo 73  >>>>>>>>>>>>>>KEY_ACTION_TRIPLE_CLICK \n");
+        app_msg = APP_MSG_WAT_CLICK_SWITCH;
+        break;
+    case KEY_ACTION_FOURTH_CLICK:   //四击切换风噪检测
+        y_printf("audio_icsd_wind_detect_demo 74 >>>>>>>>>>>>>>KEY_ACTION_FOURTH_CLICK \n");
+        app_msg = APP_MSG_WIND_DETECT_SWITCH;
+        break;
+    case KEY_ACTION_FIRTH_CLICK:   //五击切换自适应 自适应开启一段时间会自己关
+        y_printf("audio_anc_ear_adaptive_open 70  >>>>>>>>>>>>>>KEY_ACTION_FIRTH_CLICK \n");
+        app_msg = APP_MSG_EAR_ADAPTIVE_OPEN;
+        break;
+    default:
+        break;
+    }
+#endif
     printf("bt_key_msg_remap, key_action: %d, app_msg: %d\n", key_action, app_msg);
     return app_msg;
 }

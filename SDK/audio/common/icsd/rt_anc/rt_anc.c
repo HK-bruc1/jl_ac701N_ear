@@ -1,30 +1,41 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".rt_anc.data.bss")
+#pragma data_seg(".rt_anc.data")
+#pragma const_seg(".rt_anc.text.const")
+#pragma code_seg(".rt_anc.text")
+#endif
+
+#include "app_config.h"
+#include "audio_config_def.h"
+
+#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+
 #include "audio_anc.h"
 #include "app_tone.h"
 #include "classic/tws_api.h"
-
-#if TCFG_AUDIO_ANC_ENABLE && ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "anc_ext_tool.h"
+#include "audio_anc_debug_tool.h"
 #include "rt_anc.h"
+#include "icsd_adt.h"
+#include "icsd_adt_alg.h"
+#include "rt_anc_app.h"
+#include "clock_manager/clock_manager.h"
 
-struct rt_anc_function	RT_ANC_FUNC;
-void *rt_anc_ram_addr = 0;
-u8 rtanc_open_flag;
 
+int (*hz_printf)(const char *format, ...) = _hz_printf;
 int (*rt_printf)(const char *format, ...) = _rt_printf;
 int rt_printf_off(const char *format, ...)
 {
     return 0;
 }
 
-void icsd_rtanc_send();
-
-
-#define TWS_FUNC_ID_RTANC_M2S    TWS_FUNC_ID('I', 'C', 'M', 'S')
+#define TWS_FUNC_ID_RTANC_M2S    TWS_FUNC_ID('R', 'T', 'M', 'S')
 REGISTER_TWS_FUNC_STUB(icsd_rtanc_m2s) = {
     .func_id = TWS_FUNC_ID_RTANC_M2S,
     .func    = icsd_rtanc_m2s_cb,
 };
 
-#define TWS_FUNC_ID_RTANC_S2M    TWS_FUNC_ID('I', 'C', 'S', 'M')
+#define TWS_FUNC_ID_RTANC_S2M    TWS_FUNC_ID('R', 'T', 'S', 'M')
 REGISTER_TWS_FUNC_STUB(icsd_rtanc_s2m) = {
     .func_id = TWS_FUNC_ID_RTANC_S2M,
     .func    = icsd_rtanc_s2m_cb,
@@ -32,7 +43,6 @@ REGISTER_TWS_FUNC_STUB(icsd_rtanc_s2m) = {
 
 void icsd_rtanc_tws_m2s(u8 cmd)
 {
-    printf("icsd_rtanc_tws_m2s\n");
     struct rt_anc_tws_packet packet;
     rt_anc_master_packet(&packet, cmd);
     int ret = tws_api_send_data_to_sibling(packet.data, packet.len, TWS_FUNC_ID_RTANC_M2S);
@@ -40,19 +50,14 @@ void icsd_rtanc_tws_m2s(u8 cmd)
 
 void icsd_rtanc_tws_s2m(u8 cmd)
 {
-    /*
-    s8 data[16];
-    s_tig = tig;
-    data[0] = s_tig;
-    int ret = tws_api_send_data_to_sibling(data, 16, TWS_FUNC_ID_RTANC_S2M);
-    */
     struct rt_anc_tws_packet packet;
     rt_anc_slave_packet(&packet, cmd);
     int ret = tws_api_send_data_to_sibling(packet.data, packet.len, TWS_FUNC_ID_RTANC_S2M);
 }
 
-void icsd_rtanc_send()
+void icsd_rtanc_need_updata()
 {
+    printf(">>>>>>>>>>>>>>>> icsd rtanc_need_update()\n");
     u32 tws_state = tws_api_get_tws_state();
     u32 role = tws_api_get_role();
     if (tws_state & TWS_STA_SIBLING_CONNECTED) {
@@ -64,7 +69,6 @@ void icsd_rtanc_send()
             icsd_rtanc_tws_s2m(S_CMD_TEST);
         }
     }
-
 }
 
 void icsd_rtanc_master_send(u8 cmd)
@@ -90,135 +94,83 @@ void icsd_rtanc_slave_send(u8 cmd)
     }
 }
 
-void icsd_rt_anc_on(void *param)
-{
-    return;
-    printf("icsd_rt_anc_on-0:%d-----------------------\n", (int)param);
-    static u8 rt_open = 0;
-    if (rt_open == 0) {
-        extern void rt_anc_open(void *param);
-        rt_anc_open(param);
-        rt_open = 1;
-    }
-
-    rtanc_open_flag = 1;
-    //play_tone_file(get_tone_files()->num[2]);
-    //
-    printf("Raymond key>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    extern void rt_anc_pzl_dma_on();
-    rt_anc_pzl_dma_on();
-
-}
-
-
-void rt_anc_function_init()
-{
-    RT_ANC_FUNC.anc_dma_on = anc_dma_on;
-    RT_ANC_FUNC.anc_dma_on_double = anc_dma_on_double;
-    RT_ANC_FUNC.anc_dma_done_ppflag = anc_dma_done_ppflag;
-    RT_ANC_FUNC.anc_core_dma_ie = anc_dma_ie;
-    RT_ANC_FUNC.anc_core_dma_stop = anc_dma_stop;
-}
-
 void rt_anc_post_anctask_cmd(u8 cmd)
 {
     os_taskq_post_msg("anc", 2, ANC_MSG_RT_ANC_CMD, cmd);
 }
 
-void rt_anc_post_rtanctask_cmd(u8 cmd)
+void rt_anc_post_rttask_cmd(u8 cmd)
 {
     os_taskq_post_msg("rt_anc", 1, cmd);
 }
 
-void rt_anc_open(void *param)
+void rt_anc_rttask(void *priv)
 {
-    printf("=================rt_anc_open==================\n");
-    rt_anc_function_init();
-    struct rt_anc_libfmt libfmt;
-    rt_anc_get_libfmt(&libfmt);
-    if (rt_anc_ram_addr == 0) {
-        rt_anc_ram_addr = zalloc(libfmt.lib_alloc_size);
-    }
-    struct rt_anc_infmt infmt;
-    infmt.alloc_ptr = rt_anc_ram_addr;
-    infmt.param = param;
-    rt_anc_set_infmt(&infmt);
-}
-
-void rt_anc_close()
-{
-    printf("================rt_anc_close==================\n");
-    rt_anc_exit();
-    if (rt_anc_ram_addr) {
-        free(rt_anc_ram_addr);
-        rt_anc_ram_addr = 0;
-    }
-}
-
-void rt_anc_get_param(void *_param, void *rt_param_l, void *rt_param_r)
-{
-    audio_anc_t *param = (audio_anc_t *)_param;
-    __rt_anc_param *anc_param = (__rt_anc_param *)rt_param_l;
-    anc_param->ff_yorder = param->lff_yorder;
-    anc_param->fb_yorder = param->lfb_yorder;
-    anc_param->ffgain = param->gains.l_ffgain;
-    anc_param->fbgain = param->gains.l_fbgain;
-    for (int i = 0; i < anc_param->ff_yorder * 5; i++) {
-        anc_param->ff_coeff[i] = param->lff_coeff[i];
-    }
-    for (int i = 0; i < anc_param->fb_yorder * 5; i++) {
-        anc_param->fb_coeff[i] = param->lfb_coeff[i];
-    }
-    anc_param->param = _param;
-
-    if (rt_param_r) {
-        anc_param = (__rt_anc_param *)rt_param_r;
-        anc_param->ff_yorder = param->rff_yorder;
-        anc_param->fb_yorder = param->rfb_yorder;
-        anc_param->ffgain = param->gains.r_ffgain;
-        anc_param->fbgain = param->gains.r_fbgain;
-        for (int i = 0; i < anc_param->ff_yorder * 5; i++) {
-            anc_param->ff_coeff[i] = param->rff_coeff[i];
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            rt_anc_rttask_handler(msg[1]);
         }
-        for (int i = 0; i < anc_param->fb_yorder * 5; i++) {
-            anc_param->fb_coeff[i] = param->rfb_coeff[i];
-        }
-        anc_param->param = _param;
-
     }
-
 }
 
-void rt_anc_updata_param(void *rt_param_l, void *rt_param_r)
+u8 rt_anc_task_en = 0;
+void rt_anc_task_create()
 {
-    __rt_anc_param *anc_param = (__rt_anc_param *)rt_param_l;
-    audio_anc_t *param = (audio_anc_t *)anc_param->param;
-    param->gains.l_ffgain = anc_param->ffgain;
-    param->lff_coeff = &anc_param->ff_coeff[0];
-    param->gains.l_fbgain = anc_param->fbgain;
-    //param->lfb_coeff = &anc_param->lfb_coeff[0];
-    if (rt_param_r) {
-        anc_param = (__rt_anc_param *)rt_param_r;
-        audio_anc_t *param = (audio_anc_t *)anc_param->param;
-        param->gains.r_ffgain = anc_param->ffgain;
-        param->rff_coeff = &anc_param->ff_coeff[0];
-        param->gains.r_fbgain = anc_param->fbgain;
+    if (rt_anc_task_en == 0) {
+        task_create(rt_anc_rttask, NULL, "rt_anc");
+        rt_anc_task_en = 1;
     }
-    anc_coeff_online_ff_update(param, 1);
 }
 
-void rt_anc_dma_2ch_on(u8 out_sel, int *buf, int len)
+void rt_anc_task_kill()
 {
-    printf("dma 2ch on:%d %x %d\n", out_sel, (int)buf, len);
-    anc_dma_on_double(out_sel, buf, len);
+    if (rt_anc_task_en == 1) {
+        task_kill("rt_anc");
+        rt_anc_task_en = 0;
+    }
 }
 
-void rt_anc_dma_4ch_on(u8 out_sel_ch01, u8 out_sel_ch23, int *buf, int len)
+void rt_anc_config_init(__rt_anc_config *_rt_anc_config)
 {
-    printf("dma 4ch on:%d %d %x %d\n", out_sel_ch01, out_sel_ch23, (int)buf, len);
-    anc_dma_on_double_4ch(out_sel_ch01, out_sel_ch23, buf, len);
+
 }
 
+const struct rt_anc_function RT_ANC_FUNC_t = {
+    .anc_dma_on = anc_dma_on,
+    .anc_dma_on_double = anc_dma_on_double,
+    .anc_dma_done_ppflag = anc_dma_done_ppflag,
+    .anc_core_dma_ie = anc_dma_ie,
+    .anc_core_dma_stop = anc_dma_stop,
+    .sys_timeout_add = sys_timeout_add,
+    .sys_timeout_del = sys_timeout_del,
+    .rt_anc_post_rttask_cmd = icsd_post_rtanctask_msg,
+    .rt_anc_post_anctask_cmd = rt_anc_post_anctask_cmd,
+    .icsd_post_detask_msg = icsd_post_detask_msg,
+    .rt_anc_dma_2ch_on = anc_dma_on_double,
+    .rt_anc_dma_4ch_on = anc_dma_on_double_4ch,
+    .rt_anc_task_create = rt_anc_task_create,
+    .rt_anc_task_kill = rt_anc_task_kill,
+    .rt_anc_alg_output = icsd_adt_rtanc_alg_output,
+    .icsd_rtanc_need_updata = icsd_rtanc_need_updata,
+    .icsd_rtanc_master_send = icsd_rtanc_master_send,
+    .icsd_rtanc_slave_send = icsd_rtanc_slave_send,
+    .jiffies_usec = jiffies_usec,
+    .jiffies_usec2offset = jiffies_usec2offset,
+    .audio_anc_debug_send_data = audio_anc_debug_send_data,
+    .tws_api_get_role = tws_api_get_role,
+    .tws_api_get_tws_state = tws_api_get_tws_state,
+    .rt_anc_config_init = rt_anc_config_init,
+    .rt_anc_param_updata_cmd = rt_anc_param_updata_cmd,
+    .clock_refurbish = clock_refurbish,
+    .get_wind_lvl = icsd_adt_alg_rtanc_get_wind_lvl,
+    .get_adjdcc_result = icsd_adt_alg_rtanc_get_adjdcc_result,
+    .icsd_self_talk_output = audio_rtanc_self_talk_output,
+    .icsd_adt_rtanc_suspend = icsd_adt_rtanc_suspend,
+};
+struct rt_anc_function *RT_ANC_FUNC = (struct rt_anc_function *)(&RT_ANC_FUNC_t);
 
 #if RT_ANC_DSF8_DATA_DEBUG
 s16 DSF8_DEBUG_H[RT_ANC_DMA_DOUBLE_LEN / 8 * RT_ANC_DMA_DOUBLE_CNT];

@@ -20,6 +20,14 @@
 
 /*
  *******************************************************************
+ *						Audio DAC Config
+ *******************************************************************
+ */
+// 默认0，备选-600
+const int config_audio_dac_trim_offset = 0;
+
+/*
+ *******************************************************************
  *						Audio Codec Config
  *******************************************************************
  */
@@ -35,13 +43,18 @@ const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 const int AAC_DEC_MP4A_LATM_ANALYSIS = 1;
 const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 #endif
-
+//***********************
+//*		MP3 Codec       *
+//***********************
 #ifdef MP3_DEC_IN_MASK
 const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 #else
 const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 #endif
 
+//***********************
+//*		WTS Codec       *
+//***********************
 #ifdef WTS_DEC_IN_MASK
 const int WTS_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
 #else

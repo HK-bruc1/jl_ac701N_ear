@@ -57,6 +57,7 @@ struct anc_music_dyn_gain_t {
 #define ANC_MUSIC_DYNAMIC_GAIN_NORGAIN				1024	/*正常默认增益*/
 #define ANC_MUSIC_DYNAMIC_GAIN_TRIGGER_INTERVAL		6		/*音乐响度取样间隔*/
 
+extern struct audio_dac_hdl dac_hdl;
 static struct anc_music_dyn_gain_t *music_dyn_hdl = NULL;
 
 static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hdl *hdl);
@@ -167,11 +168,15 @@ static void audio_anc_music_dynamic_gain_dB_get(int dB)
     }
 }
 
-void audio_anc_music_dynamic_gain_det(s16 *data, int len)
+void audio_anc_music_dynamic_gain_det(void *data, int len)
 {
     /* putchar('l'); */
     if (anc_mode_get() == ANC_ON) {
-        loudness_meter_short(&music_dyn_hdl->loud_hdl, data, len >> 1);
+        if (dac_hdl.pd->bit_width) {
+            loudness_meter_24bit(&music_dyn_hdl->loud_hdl, (int *)data, len >> 2);
+        } else {
+            loudness_meter_short(&music_dyn_hdl->loud_hdl, (s16 *)data, len >> 1);
+        }
         audio_anc_music_dynamic_gain_dB_get(music_dyn_hdl->loud_hdl.peak_val);
     }
 }
@@ -221,7 +226,7 @@ static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hd
 static void audio_anc_music_dynamic_gain_dac_node_write_cb(void *buf, int len)
 {
     if (music_dyn_hdl->state == ANC_MUSIC_DYN_STATE_START) {
-        audio_anc_music_dynamic_gain_det((s16 *)buf, len);
+        audio_anc_music_dynamic_gain_det(buf, len);
     }
 }
 
@@ -358,7 +363,7 @@ REGISTER_TWS_FUNC_STUB(tws_anc_power_adaptive_compare) = {
 static int bt_tws_anc_power_adaptive_compare_send(int ref_lvl, int err_lvl)
 {
     u8 data[2];
-    int ret = -EINVAL;
+    int ret;
     data[0] = ref_lvl;
     data[1] = err_lvl;
     /* r_printf("tws_anc_power_adaptive_sync: %d, %d\n", data[0], data[1]); */
@@ -448,6 +453,9 @@ u8 audio_anc_power_adaptive_mode_get(void)
 //用于功能互斥需要挂起场景自适应
 void audio_anc_power_adaptive_suspend(void)
 {
+    if (power_adaptive_hdl->suspend == 1) {
+        return;
+    }
     power_adaptive_hdl->suspend = 1;
     power_adaptive_hdl->suspend_state = audio_anc_power_adaptive_mode_get();
     if (power_adaptive_hdl->suspend_state == ANC_ADAPTIVE_GAIN_MODE) {
@@ -458,6 +466,9 @@ void audio_anc_power_adaptive_suspend(void)
 //用于功能互斥结束后恢复场景自适应
 void audio_anc_power_adaptive_resume(void)
 {
+    if (power_adaptive_hdl->suspend == 0) {
+        return;
+    }
     power_adaptive_hdl->suspend = 0;
     if (power_adaptive_hdl->suspend_state == ANC_ADAPTIVE_GAIN_MODE) {
         audio_anc_power_adaptive_mode_set(ANC_ADAPTIVE_GAIN_MODE, 0);
@@ -465,3 +476,142 @@ void audio_anc_power_adaptive_resume(void)
 }
 
 #endif
+
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+
+static struct anc_mic_gain_cmp_cfg *anc_dut_mic_cmp = NULL;
+
+enum {
+    CMD_MIC_CMP_GAIN_EN = 0X5F,		//FF/FB 增益补偿使能
+    CMD_MIC_CMP_GAIN_SET = 0X60,	//FF/FB 增益补偿设置
+    CMD_MIC_CMP_GAIN_GET = 0X61,	//FF/FB 增益补偿读取
+    CMD_MIC_CMP_GAIN_CLEAN = 0X62,	//FF/FB 增益补偿清0
+    CMD_MIC_CMP_GAIN_SAVE = 0X63,	//FF/FB 增益补偿保存
+    CMD_MIC_CMP_GAIN_ALL_GET = 0X64, //FF/FB 增益补偿结构体获取
+    CMD_MIC_CMP_GAIN_ALL_SET = 0X65, //FF/FB 增益补偿结构体设置
+};
+
+//ANC MIC补偿值初始化
+void audio_anc_mic_gain_cmp_init(void *mic_cmp)
+{
+    if (mic_cmp) {
+        anc_dut_mic_cmp = (struct anc_mic_gain_cmp_cfg *)mic_cmp;
+        int ret = syscfg_read(CFG_ANC_MIC_CMP_GAIN, mic_cmp, sizeof(struct anc_mic_gain_cmp_cfg));
+        if (ret != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            printf("anc_mic_cmp cap vm read fail !!!");
+            anc_dut_mic_cmp->en = 1;
+            anc_dut_mic_cmp->lff_gain = 1.0f;
+            anc_dut_mic_cmp->lfb_gain = 1.0f;
+            anc_dut_mic_cmp->rff_gain = 1.0f;
+            anc_dut_mic_cmp->rfb_gain = 1.0f;
+        } else {
+            printf("anc_mic_cmp cap vm read succ: en %d lff_gain %d/1000 lfb_gain %d/1000 rff_gain %d/1000 rfb_gain %d/1000\n",
+                   anc_dut_mic_cmp->en,
+                   (int)(anc_dut_mic_cmp->lff_gain * 1000.0f),
+                   (int)(anc_dut_mic_cmp->lfb_gain * 1000.0f),
+                   (int)(anc_dut_mic_cmp->rff_gain * 1000.0f),
+                   (int)(anc_dut_mic_cmp->rfb_gain * 1000.0f));
+        }
+    }
+}
+
+float audio_anc_mic_gain_cmp_get(u8 id)
+{
+    if (!anc_dut_mic_cmp) {
+        return 1.0f;
+    }
+    switch (id) {
+    case ANC_L_FFMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->lff_gain;
+    case ANC_L_FBMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->lfb_gain;
+    case ANC_R_FFMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->rff_gain;
+    case ANC_R_FBMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->rfb_gain;
+    }
+    return 1.0f;
+}
+
+//补偿命令处理函数
+int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len)
+{
+    put_buf(buf, len);
+    float gain;
+    switch (cmd) {
+    case CMD_MIC_CMP_GAIN_EN:
+        anc_plug_log("CMD_MIC_CMP_GAIN_EN\n");
+        anc_dut_mic_cmp->en = buf[0];
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_SET:
+        if (len != 5) {	//cmd + sizeof(float)
+            return 1;
+        }
+        memcpy((u8 *)&gain, buf + 1, 4);
+        anc_plug_log("CMD_MIC_CMP_GAIN_SET %d/100\n", (int)(gain * 100.0f));
+        switch (buf[0]) {
+        case ANC_L_FFMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->lff_gain = gain;
+            break;
+        case ANC_L_FBMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->lfb_gain = gain;
+            break;
+        case ANC_R_FFMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->rff_gain = gain;
+            break;
+        case ANC_R_FBMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->rfb_gain = gain;
+            break;
+        }
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_CLEAN:
+        anc_plug_log("CMD_MIC_CMP_GAIN_CLEAN\n");
+        anc_dut_mic_cmp->lff_gain = 1.0f;
+        anc_dut_mic_cmp->lfb_gain = 1.0f;
+        anc_dut_mic_cmp->rff_gain = 1.0f;
+        anc_dut_mic_cmp->rfb_gain = 1.0f;
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_SAVE:
+        anc_plug_log("CMD_MIC_CMP_GAIN_SAVE\n");
+        int wlen = syscfg_write(CFG_ANC_MIC_CMP_GAIN, (u8 *)anc_dut_mic_cmp, sizeof(struct anc_mic_gain_cmp_cfg));
+        if (wlen != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            printf("anc_mic_cmp cap vm write fail !!!");
+            return 1;
+        }
+        break;
+    case CMD_MIC_CMP_GAIN_ALL_SET:
+        anc_plug_log("CMD_MIC_CMP_GAIN_ALL_SET\n");
+        if (len != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            return 1;
+        }
+        memcpy(anc_dut_mic_cmp, buf, len);
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+
+    }
+    return 0;
+}
+
+u8 *audio_anc_mic_gain_cmp_cfg_get(int *len)
+{
+    if (anc_dut_mic_cmp) {
+        *len = sizeof(struct anc_mic_gain_cmp_cfg);
+        return (u8 *)anc_dut_mic_cmp;
+    }
+    return NULL;
+}
+
+#endif
+
+

@@ -61,6 +61,7 @@ struct eq_seg_info {
 struct eq_coeff_info {
     u8 nsection;     //eq段数
     u8 no_coeff;	  //不是滤波系数
+    u8 lrmem_clear;
 #ifdef CONFIG_EQ_NO_USE_COEFF_TABLE
     u32 sr;               //采样率
 #endif
@@ -134,6 +135,7 @@ struct hw_eq_ch {
     unsigned char out_channels;       //输出通道数
     unsigned char data_in_mode;       //输入数据存放模式
     unsigned char data_out_mode;      //输入数据存放模式
+    unsigned char lrmem_clear;
     float *L_coeff;
     float *R_coeff;
     float L_gain;

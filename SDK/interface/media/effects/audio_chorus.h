@@ -1,7 +1,6 @@
 #ifndef _AUDIO_chorus_API_H_
 #define _AUDIO_chorus_API_H_
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/chorus_api.h"
 
 typedef struct _ChorusUdateParam {//与CHORUS_PARM关联

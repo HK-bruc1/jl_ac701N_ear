@@ -3,13 +3,33 @@
 
 #include "system/includes.h"
 #include "dma/dma_api.h"
+#include "dma_wrapper.h"
+#include "dma_setting.h"
+
+//发送给对耳的消息，格式为：opcode len data
+enum {
+    DMA_TWS_FOR_LIB_SYNC = 1,
+    DMA_TWS_CMD_SYNC_LIC,
+    DMA_TWS_LIB_INFO_SYNC,
+    DMA_TWS_ALL_INFO_SYNC,
+    DMA_TWS_OTA_CMD_SYNC,
+    DMA_TWS_OTA_INFO_SYNC,
+    DMA_TWS_TONE_INFO_SYNC,
+    DMA_TWS_SLAVE_SEND_RSSI,
+    DMA_TWS_PAIR_STATE_SYNC,
+};
 
 // app api
 extern bool dma_get_battery(u8 type, u8 *value);
 extern int dma_app_speech_start(void);
+extern void dma_speech_timeout_start(void);
 extern void dma_app_speech_stop(void);
-extern int dma_protocol_init(void);
-extern int dma_protocol_exit(void);
+extern int dma_protocol_all_init(void);
+extern int dma_protocol_all_exit(void);
+extern int dma_protocol_tws_send_to_sibling(u16 opcode, u8 *data, u16 len);
+extern void dma_protocol_tws_sync_pair_state(u8 state);
+extern bool set_dueros_pair_state(u8 new_state, u8 init_flag);
+extern bool set_dueros_pair_state_2(u8 new_state);
 
 // lib api
 extern int dueros_process();
@@ -33,6 +53,7 @@ extern void dma_get_battery_callback_register(bool (*handler)(u8 battery_type, u
 extern void dma_set_pid(u32 pid);
 extern int dma_tws_data_deal(u8 *data, int len);
 extern int dma_ble_set_mac_addr(u8 *ble_addr);
+extern void dma_ble_disconnect(void);
 
 // other api
 extern int ai_mic_is_busy(void); //mic正在被使用

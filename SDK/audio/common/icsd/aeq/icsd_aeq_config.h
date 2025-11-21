@@ -3,28 +3,29 @@
 
 #include "generic/typedef.h"
 
-extern u8 sz_ref_test[];
-extern float target_headset[];
+// extern float target_headset[];
+
+typedef struct {
+    u8      iir_num_flex;
+    u8      iir_num_fix;
+    u8      iir_coef;
+    u8      objfunc_type;
+    u8      gain_limit_all;
+    u8      iter_max;
+    u16     fstop_idx;
+    u16     fstop_idx2;
 
 
-extern const int AEQ_objFunc_type ;
-extern const float AEQ_GAIN_LIMIT_ALL ;
+    u8      type[10];
+    float   vrange_m[62];
+    float   biquad_init_m[31];
 
-/***************************************************************/
-// aeq
-/***************************************************************/
-extern const int aeq_type[];
-extern const float AEQ_Vrange_M[];
-extern const float AEQ_Biquad_init_M[];
+    float   *weight_m;
+    float   *gold_csv_m;
+    float   *degree_set_0;
+} __adpt_aeq_cfg;
 
-extern const float aeq_Weight_M[];
-extern const float AEQ_Gold_csv_M[];
-extern const float aeq_degree_set_0[];
-extern const int   AEQ_IIR_NUM_FLEX;
-extern const int   AEQ_IIR_NUM_FIX;
-extern const int   AEQ_IIR_COEF;
-extern const float AEQ_FSTOP_IDX;
-extern const float AEQ_FSTOP_IDX2;
-extern const int   AEQ_ITER_MAX;
+void icsd_aeq_cfg_set(__adpt_aeq_cfg *aeq_cfg, void *_ext_cfg, u8 ch, u8 order);
+
 
 #endif

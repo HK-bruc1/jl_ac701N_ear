@@ -27,7 +27,7 @@
 ================================================================*/
 
 #include "asm/anc.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "app_config.h"
 #include "icsd_anc.h"
 #include "icsd_anc_interactive.h"
@@ -43,7 +43,7 @@
 #define ANC_FB_TRAIN_OFF            1
 #define ANC_FB_TRAIN_NEW            0
 #define ANC_EARPHONE_CHECK_EN       0
-#define ANC_ADAPTIVE_CMP_EN         1 				//自适应CMP补偿
+#define ANC_ADAPTIVE_CMP_EN         TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN 				//自适应CMP补偿
 #define ANC_ADAPTIVE_TONE_DELAY		1570
 
 #endif/*ADAPTIVE_CLIENT_BOARD*/

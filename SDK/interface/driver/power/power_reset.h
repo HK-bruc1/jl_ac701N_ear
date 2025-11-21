@@ -41,6 +41,7 @@ enum RST_REASON {
     P33_PPINR1_RST,						//模拟io输入长按复位，包括charge_full、vatch、ldoint、vabt_det
     P33_PPINR1_SOFT_RST,				//PINR1保护机制使能时，当软件清PINR PND1的操作发生在窗口外时产生的复位
     P33_POWER_RETURN,					//p33系统未被复位。
+    P33_LEVEL0_RST,						//p33 level0复位。
 
     /*RTC*/
     R3_VDDIO_RST,						//rtc vddio
@@ -57,6 +58,7 @@ enum RESET_FLAG {
     UPDATE_FLAG,
     BT_FLAG,
     LP_OSC_UP_TO,
+    CHARGE_FLAG,
 };
 
 /**

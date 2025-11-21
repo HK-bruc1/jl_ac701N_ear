@@ -66,6 +66,7 @@ static void clock_critical_exit(void)
             int id = mcpwm_get_cfg_id(ch);
             if (id != -1) {
                 mcpwm_set_frequency(id, mcpwm_info[id]->cfg.aligned_mode, mcpwm_info[id]->cfg.frequency);
+                mcpwm_set_duty(id, mcpwm_info[id]->cfg.duty);
             }
         }
     }
@@ -286,7 +287,18 @@ void mcpwm_pause(int mcpwm_cfg_id)
 
 void mcpwm_resume(int mcpwm_cfg_id)
 {
-    mcpwm_start(mcpwm_cfg_id);
+    /* mcpwm_start(mcpwm_cfg_id); */
+    ASSERT(mcpwm_info[mcpwm_cfg_id] != NULL, "func:%s(), line:%d\n", __func__, __LINE__);
+    int id = mcpwm_cfg_id;
+    u32 ch = (u32)mcpwm_info[id]->cfg.ch;
+    u32 mcpwm_con = JL_MCPWM->MCPWM_CON0;
+    asm("csync");
+    /* mcpwm_con |= BIT(MCPWM_CON_CLK_EN); */
+    mcpwm_con |= BIT(ch + MCPWM_CON_TMR_EN);
+    mcpwm_con |= BIT(ch + MCPWM_CON_PWM_EN);
+    spin_lock(&mcpwm_lock);
+    JL_MCPWM->MCPWM_CON0 = mcpwm_con;
+    spin_unlock(&mcpwm_lock);
 }
 
 void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 frequency)
@@ -311,7 +323,7 @@ void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 fr
             break;
         }
     }
-    tmr_con |= (i << MCPWM_TMR_CKPS); //div 2^i
+    SFR(tmr_con, MCPWM_TMR_CKPS, 4, i); //div 2^i
     mcpwm_div_clk = clk / (1 << i);
     if (frequency == 0) {
         mcpwm_tmr_pr = 0;
@@ -361,6 +373,12 @@ void mcpwm_set_duty(int mcpwm_cfg_id, u16 duty)
     } else if (duty == 0) {
         tmr_cnt = ch_cmpl;
         tmr_con &= ~(0b11);
+    } else {
+        if (mcpwm_info[id]->cfg.aligned_mode == MCPWM_CENTER_ALIGNED) { //中心对齐
+            tmr_con |= 0b10; //递增-递降循环模式，中心对齐
+        } else {
+            tmr_con |= 0b01; //递增模式，边沿对齐
+        }
     }
 
     spin_lock(&mcpwm_lock);

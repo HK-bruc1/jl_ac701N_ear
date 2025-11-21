@@ -6,7 +6,7 @@
 #define _SMART_VOICE_H_
 #include "media/includes.h"
 #include "app_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 
 /*是否支持VAD唤醒*/
 #define CONFIG_VAD_PLATFORM_SUPPORT_EN  0

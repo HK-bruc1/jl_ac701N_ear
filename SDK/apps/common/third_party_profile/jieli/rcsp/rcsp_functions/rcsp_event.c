@@ -166,7 +166,9 @@ static void rcsp_common_event_deal(int msg, int argc, int *argv)
                     rcsp_printf("the same music file!!\n");
                 } else {
                     // RCSP TODO:
-                    rcsp_printf("RCSP TODO!!!");
+                    rcsp_printf("rcsp play dev by sclust!!!");
+                    dev_manager_set_active_by_logo(dev_logo);
+                    app_send_message(APP_MSG_MUSIC_PLAY_START_BY_SCLUST, sclust);
                 }
             } else {
                 rcsp_printf("is not music mode\n");
@@ -179,7 +181,11 @@ static void rcsp_common_event_deal(int msg, int argc, int *argv)
                 music_set_start_auto_play(1);
 #endif
                 ///切换模式
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+                app_task_switch_to(APP_MODE_MUSIC, NULL_VALUE);
+#else
                 app_task_switch_to(APP_MUSIC_TASK, NULL_VALUE);
+#endif
             }
 #endif /* #if TCFG_APP_MUSIC_EN */
         }
@@ -190,40 +196,79 @@ static void rcsp_common_event_deal(int msg, int argc, int *argv)
         bool ret = true;
         u8 mode = (u8)argv[1];
         switch (mode) {
-        case FM_FUNCTION_MASK:
+        case FM_FUNCTION:
 #if TCFG_APP_FM_EN
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_FM, NULL_VALUE);
+#else
             ret = app_task_switch_to(APP_FM_TASK, NULL_VALUE);
 #endif
+#endif
             break;
-        case BT_FUNCTION_MASK:
+        case BT_FUNCTION:
 #if (TCFG_APP_BT_EN)
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_BT, NULL_VALUE);
+#else
             ret = app_task_switch_to(APP_BT_TASK, NULL_VALUE);
 #endif
+#endif
             break;
-        case MUSIC_FUNCTION_MASK:
+        case MUSIC_FUNCTION:
 #if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN)
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_MUSIC, NULL_VALUE);
+#else
             ret = app_task_switch_to(APP_MUSIC_TASK, NULL_VALUE);
 #endif
+#endif
             break;
-        case RTC_FUNCTION_MASK:
+        case RTC_FUNCTION:
 #if (TCFG_APP_RTC_EN && RCSP_APP_RTC_EN)
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_RTC, NULL_VALUE);
+#else
             ret = app_task_switch_to(APP_RTC_TASK, NULL_VALUE);
 #endif
-            break;
-        case LINEIN_FUNCTION_MASK:
-#if TCFG_APP_LINEIN_EN
-            ret = app_task_switch_to(APP_LINEIN_TASK, NULL_VALUE);
 #endif
             break;
-        case FMTX_FUNCTION_MASK:
+        case LINEIN_FUNCTION:
+#if TCFG_APP_LINEIN_EN
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_LINEIN, NULL_VALUE);
+#else
+            ret = app_task_switch_to(APP_LINEIN_TASK, NULL_VALUE);
+#endif
+#endif
+            break;
+        /* case FMTX_FUNCTION_MASK: */
+        /*     break; */
+
+        case SPDIF_FUNCTION:
+#if TCFG_APP_SPDIF_EN
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_SPDIF, NULL_VALUE);
+#else
+            ret = app_task_switch_to(APP_SPDIF_TASK, NULL_VALUE);
+#endif
+#endif
+            break;
+        case PC_FUNCTION:
+#if TCFG_APP_PC_EN
+#if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
+            ret = app_task_switch_to(APP_MODE_PC, NULL_VALUE);
+#else
+            ret = app_task_switch_to(APP_PC_TASK, NULL_VALUE);
+#endif
+#endif
             break;
         }
 #if RCSP_DEVICE_STATUS_ENABLE
-        if (false == ret) {
-            function_change_inform(app_get_curr_task(), ret);
-        }
+        /* if (false == ret) { */
+        /*     function_change_inform(app_get_curr_task(), ret); */
+        /* } */
 #endif
-        printf("USER_MSG_RCSP_MODE_SWITCH:%d\n", ret);
+        printf("USER_MSG_RCSP_MODE_SWITCH:%d %d\n", ret, mode);
         break;
     case USER_MSG_RCSP_FM_UPDATE_STATE:
         rcsp_printf("USER_MSG_RCSP_FM_UPDATE_STATE\n");
@@ -249,16 +294,21 @@ static void rcsp_common_event_deal(int msg, int argc, int *argv)
         break;
 #endif
 
+#if (JL_RCSP_SENSORS_DATA_OPT && JL_RCSP_NFC_DATA_OPT)
     case USER_MSG_RCSP_NFC_FILE_TRANS_BACK:
         rcsp_printf("USER_MSG_RCSP_NFC_FILE_TRANS_BACK\n");
         extern void nfc_file_trans_back_end(void *priv, u32 handler, u8 op, int result, int param);
         nfc_file_trans_back_end((void *)rcspModel, (u32)argv[1], (u8)argv[2], argv[3], argv[4]);
         break;
+#endif
+
+#if JL_RCSP_SENSORS_DATA_OPT
     case USER_MSG_RCSP_SPORT_DATA_EVENT:
         rcsp_printf("USER_MSG_RCSP_SPORT_DATA_EVENT\n");
         extern void sport_data_func_event(void *priv, u8 flag);
         sport_data_func_event((void *)rcspModel, (u8)argv[1]);
         break;
+#endif
     default:
         break;
     }

@@ -12,6 +12,7 @@
 #include "iokey.h"
 #include "gpio.h"
 #include "asm/power_interface.h"
+#include "system/init.h"
 
 
 
@@ -25,22 +26,7 @@ static const struct iokey_platform_data *__this = NULL;
         } while(0)
 
 //按键驱动扫描参数列表
-struct key_driver_para iokey_scan_para = {
-    .last_key 		  = NO_KEY,  		//上一次get_value按键值, 初始化为NO_KEY;
-    .key_type		  = KEY_DRIVER_TYPE_IO,
-#if MOUSE_KEY_SCAN_MODE
-    .filter_time  	  = 2,				//按键消抖延时;
-    .long_time 		  = 5,  			//按键判定长按数量
-    .hold_time 		  = (5 + 0),   	    //按键判定HOLD数量
-    .scan_time 	  	  = 5,				//按键扫描频率, 单位: ms
-#else
-    .filter_time  	  = 4,				//按键消抖延时;
-    .long_time 		  = 75,  			//按键判定长按数量
-    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
-    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
-#endif
-    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
-};
+struct key_driver_para iokey_scan_para;
 
 static void key_io_pull_down_input(u8 key_io)
 {
@@ -244,6 +230,7 @@ const struct iokey_platform_data *get_iokey_platform_data()
     return NULL;
 }
 
+__INITCALL_BANK_CODE
 int iokey_init(void)
 {
     __this = get_iokey_platform_data();
@@ -257,14 +244,28 @@ int iokey_init(void)
     key_io_reset();
 
     if (__this->long_press_enable) {
-        gpio_longpress_pin0_reset_config(__this->long_press_port, __this->long_press_level, __this->long_press_time, 1, 1);
+        gpio_longpress_pin0_reset_config(__this->long_press_port, __this->long_press_level, __this->long_press_time, 1, PORT_KEEP_STATE, 0);
+    } else {
+        gpio_longpress_pin0_reset_config(__this->long_press_port, 0, 0, 1, PORT_KEEP_STATE, 0);
     }
-
     return 0;
 }
 
 REGISTER_KEY_OPS(iokey) = {
     .idle_query_en    = 1,
+    .key_type		  = KEY_DRIVER_TYPE_IO,
+#if MOUSE_KEY_SCAN_MODE
+    .filter_time  	  = 2,				//按键消抖延时;
+    .long_time 		  = 5,  			//按键判定长按数量
+    .hold_time 		  = (5 + 0),   	    //按键判定HOLD数量
+    .scan_time 	  	  = 5,				//按键扫描频率, 单位: ms
+#else
+    .filter_time  	  = 4,				//按键消抖延时;
+    .long_time 		  = 75,  			//按键判定长按数量
+    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
+    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
+#endif
+    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
     .param            = &iokey_scan_para,
     .get_value 	      = io_get_key_value,
     .key_init         = iokey_init,

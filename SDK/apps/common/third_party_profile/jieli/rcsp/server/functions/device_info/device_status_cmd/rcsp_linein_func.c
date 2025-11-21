@@ -22,9 +22,25 @@
 //设置固件linein行为
 bool rcsp_linein_func_set(void *priv, u8 *data, u16 len)
 {
-    if (0 != linein_get_status()) {
-        return true;
+
+
+    /* printf("\nrcsp_linein_func_set\n\n"); */
+
+    /* if (0 != linein_get_status()) { */
+    /*     return true; */
+    /* } */
+
+    u8 fun_cmd = data[0];
+    u16 param_len = len - 1;
+    /* printf("\n fun_cmd %d\n\n",fun_cmd); */
+    switch (fun_cmd) {
+    case 3:
+        app_send_message(APP_MSG_MUSIC_PP, 0);
+        break;
+    default:
+        break;
     }
+
     return true;
 }
 
@@ -45,16 +61,26 @@ void rcsp_linein_msg_deal(int msg, u8 ret)
     if (rcspModel == NULL) {
         return ;
     }
+
+    switch (msg) {
+    case  APP_MSG_VOL_DOWN:
+    case  APP_MSG_VOL_UP:
+        rcsp_device_status_update(COMMON_FUNCTION, BIT(RCSP_DEVICE_STATUS_ATTR_TYPE_VOL));
+        break;
+    case (int)-1:
+    case APP_MSG_MUSIC_PP:
+    case APP_MSG_LINEIN_START:
+        rcsp_device_status_update(LINEIN_FUNCTION_MASK, BIT(LINEIN_INFO_ATTR_STATUS));
+        break;
+    }
 }
 
 //停止linein功能
 void rcsp_linein_func_stop(void)
 {
-#if RCSP_MSG_DISTRIBUTION_VER != RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL
-    if (linein_get_status()) {
-        app_task_put_key_msg(KEY_MUSIC_PP, 0);
-    }
-#endif
+    /* if (linein_get_status()) { */
+    /*     app_send_message(APP_MSG_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

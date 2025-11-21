@@ -35,6 +35,10 @@
 #include "usb/device/hid.h"
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+#include "usb/device/mtp.h"
+#endif
+
 #if TCFG_USB_SLAVE_MSD_ENABLE
 #include "usb/device/msd.h"
 #endif
@@ -69,7 +73,7 @@
 
 #if ((TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE) \
      && TCFG_CHARGESTORE_PORT == IO_PORT_DP)
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #endif
 
 #define LOG_TAG_CONST       USB
@@ -101,27 +105,60 @@ static void usb_msd_reset_wakeup(struct usb_device_t *usb_device, u32 itf_num)
 }
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+static void usb_mtp_wakeup(struct usb_device_t *usb_device)
+{
+    os_taskq_post_msg(USB_TASK_NAME, 2, USBSTACK_MTP_RUN, usb_device);
+}
+#endif
+
 #if TCFG_USB_SLAVE_CDC_ENABLE
 static void usb_cdc_wakeup(struct usb_device_t *usb_device)
 {
     //回调函数在中断里，正式使用不要在这里加太多东西阻塞中断，
     //或者先post到任务，由任务调用cdc_read_data()读取再执行后续工作
-    const usb_dev usb_id = usb_device2id(usb_device);
-    u8 buf[64] = {0};
-    u32 rlen;
+    /* const usb_dev usb_id = usb_device2id(usb_device); */
+    /* u8 buf[64] = {0}; */
+    /* u32 rlen; */
 
     /* log_debug("cdc rx hook"); */
     //cppcheck-suppress unreadVariable
-    rlen = cdc_read_data(usb_id, buf, 64);
+    /* rlen = cdc_read_data(usb_id, buf, 64); */
 
     /* put_buf(buf, rlen);//固件三部测试使用 */
     /* cdc_write_data(usb_id, buf, rlen);//固件三部测试使用 */
 
 #if TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_USB_COMM)
-    cfg_tool_data_from_cdc(buf, rlen);
+    int msg[1] = {0};
+    msg[0] = (u32)usb_device;
+    if (OS_NO_ERR != os_taskq_post_type("app_core", MSG_FROM_CDC_DATA, 1, msg)) {
+        log_error("cdc_rx post error\n");
+    }
 #endif
 
 }
+static int cdc_rx_data(int *msg)
+{
+    /* log_debug("msg[0]:0x%x\n", (u32)msg[0]); */
+    const struct usb_device_t *usb_device = (struct usb_device_t *)msg[0];
+    const usb_dev usb_id = usb_device2id(usb_device);
+    u8 buf[64] = {0};
+    u32 rlen;
+
+    rlen = cdc_read_data(usb_id, buf, 64);
+    /* log_debug("cdc rx data"); */
+    /* put_buf(buf, rlen);//固件三部测试使用 */
+    /* cdc_write_data(usb_id, buf, rlen);//固件三部测试使用 */
+
+    cfg_tool_data_from_cdc(buf, rlen);
+    return rlen;
+}
+
+APP_MSG_HANDLER(cdc_data_msg_entry) = {
+    .owner      = 0xff,
+    .from       = MSG_FROM_CDC_DATA,
+    .handler    = cdc_rx_data,
+};
 #endif
 
 #if TCFG_USB_CUSTOM_HID_ENABLE
@@ -202,6 +239,9 @@ void usb_start(const usb_dev usbfd)
 #if TCFG_USB_CUSTOM_HID_ENABLE
     class |= CUSTOM_HID_CLASS;
 #endif
+#if TCFG_USB_SLAVE_MTP_ENABLE
+    class |= MTP_CLASS;
+#endif
 #if TCFG_USB_SLAVE_MIDI_ENABLE
     class |= MIDI_CLASS;
 #endif
@@ -241,6 +281,14 @@ void usb_start(const usb_dev usbfd)
     msd_set_reset_wakeup_handle(usb_msd_reset_wakeup);
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+#if (!TCFG_USB_DM_MULTIPLEX_WITH_SD_DAT0 && TCFG_SD0_ENABLE)\
+     ||(TCFG_SD0_ENABLE && TCFG_USB_DM_MULTIPLEX_WITH_SD_DAT0 && TCFG_DM_MULTIPLEX_WITH_SD_PORT != 0)
+    mtp_register_disk("sd0", NULL);
+#endif
+    mtp_set_wakeup_handle(usb_mtp_wakeup);
+#endif
+
 #if TCFG_USB_SLAVE_CDC_ENABLE
     cdc_set_wakeup_handler(usb_cdc_wakeup);
 #endif
@@ -267,6 +315,11 @@ void usb_pause(const usb_dev usbfd)
 #if TCFG_USB_SLAVE_MSD_ENABLE
     if (msd_set_wakeup_handle(NULL)) {
         msd_unregister_all();
+    }
+#endif
+#if TCFG_USB_SLAVE_MTP_ENABLE
+    if (mtp_set_wakeup_handle(NULL)) {
+        mtp_unregister_all();
     }
 #endif
 

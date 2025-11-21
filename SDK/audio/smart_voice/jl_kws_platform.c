@@ -22,6 +22,13 @@
 #include "nn_vad.h"
 #include "asr/jl_kws.h"
 #include "clock_manager/clock_manager.h"
+#if (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_AIS)
+#include "aispeech_asr.h"
+#endif/*ASR_CFG_AIS*/
+#if (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_USER_DEFINED)
+#include "user_asr.h"
+#endif/*ASR_CFG_USER_DEFINED*/
+
 
 #if CONFIG_VAD_PLATFORM_SUPPORT_EN
 #include "vad_mic.h"
@@ -33,7 +40,7 @@
 #define SMART_VOICE_TEST_PRINT_PCM        0
 #define SMART_VOICE_TEST_WRITE_FILE       0
 #define SMART_VOICE_DEBUG_KWS_RESULT      0
-#define AUDIO_NN_VAD_ENABLE             0
+#define AUDIO_NN_VAD_ENABLE               0
 
 
 /*
@@ -349,7 +356,11 @@ static void __audio_smart_voice_detect_open(u8 mic, u8 model)
         printf("sd0 mount fat failed.\n");
     }
 #endif
+#if ((defined TCFG_AUDIO_ASR_DEVELOP) && (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_USER_DEFINED))	/*用户自定义算法*/
+    user_platform_asr_open();
+#else	/*JL算法*/
     audio_smart_voice_detect_create(model, mic, VOICE_DATA_BUFFER_SIZE);
+#endif
 }
 
 void audio_smart_voice_detect_open(u8 model)

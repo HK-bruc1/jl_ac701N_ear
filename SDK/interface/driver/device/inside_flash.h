@@ -43,4 +43,5 @@ struct	flash_config_info { //flash配置信息的结构体
     struct  flash_io_drv drv; // flash drv 参数
 } __attribute__((packed));
 int  norflash_set_write_protect(u32 enable, u32 wp_addr);
+u32 syscfg_read_otp(u32 id, u8 *buf, u32 len);
 #endif

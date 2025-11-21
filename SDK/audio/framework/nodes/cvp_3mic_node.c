@@ -145,13 +145,15 @@ struct cvp_node_hdl {
     s16 *buf_3;
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
+    void (*lock)(void);
+    void (*unlock)(void);
     struct CVP_MIC_SEL_CONFIG mic_sel;
     struct CVP_REF_MIC_CONFIG ref_mic;
 };
 
 static struct cvp_node_hdl *g_cvp_hdl;
 
-int cvp_node_output_handle(s16 *data, u16 len)
+int cvp_tms_node_output_handle(s16 *data, u16 len)
 {
     struct stream_frame *frame;
     frame = jlstream_get_frame(hdl_node(g_cvp_hdl)->oport, len);
@@ -165,7 +167,7 @@ int cvp_node_output_handle(s16 *data, u16 len)
 }
 
 extern float eq_db2mag(float x);
-void cvp_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
+void cvp_tms_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
 {
     AEC_TMS_CONFIG *p = (AEC_TMS_CONFIG *)priv;
 
@@ -254,8 +256,8 @@ void cvp_node_param_cfg_update(struct cvp_cfg_t *cfg, void *priv)
     p->output_sel = cfg->debug.output_sel;
 }
 
-struct cvp_cfg_t global_cvp_cfg;
-int cvp_param_cfg_read(void)
+static struct cvp_cfg_t global_cvp_cfg;
+int cvp_tms_param_cfg_read(void)
 {
     u8 subid;
     if (g_cvp_hdl) {
@@ -303,7 +305,8 @@ u8 cvp_get_talk_fb_mic_ch(void)
     return global_cvp_cfg.mic_sel.talk_fb_mic;
 }
 
-int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
+__CVP_BANK_CODE
+int cvp_tms_node_param_cfg_read(void *priv, u8 ignore_subid, u16 algo_uuid)
 {
     AEC_TMS_CONFIG *p = (AEC_TMS_CONFIG *)priv;
     struct cvp_cfg_t cfg;
@@ -346,7 +349,7 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
             }
         }
     }
-    cvp_node_param_cfg_update(&cfg, p);
+    cvp_tms_node_param_cfg_update(&cfg, p);
 
     return sizeof(AEC_TMS_CONFIG);
 }
@@ -392,6 +395,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 tbuf_2[i] = dat[4 * i + 2];
                 tbuf_3[i] = dat[4 * i + 3];
             }
+            hdl->lock();
             u8 cnt = 0;
             u8 talk_data_num = 0;//记录通话MIC数据位置
             s16 *mic_data[4];
@@ -419,6 +423,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             }
             /*通话MIC数据需要最后传进算法*/
             audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+            hdl->unlock();
 
         } else {//参考数据软回采
             wlen = in_frame->len / 3 / 2;	//一个ADC的点数
@@ -436,6 +441,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
                 tbuf_1[i] = dat[3 * i + 1];
                 tbuf_2[i] = dat[3 * i + 2];
             }
+            hdl->lock();
             u8 cnt = 0;
             u8 talk_data_num = 0;//记录通话MIC数据位置
             s16 *mic_data[3];
@@ -458,19 +464,41 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             }
             /*通话MIC数据需要最后传进算法*/
             audio_aec_inbuf(mic_data[talk_data_num], wlen << 1);
+            hdl->unlock();
         }
         jlstream_free_frame(in_frame);	//释放iport资源
     }
+}
+
+static int cvp_tms_lock_init(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+        case NODE_UUID_CVP_3MIC:
+            hdl->lock   = audio_cvp_tms_lock;
+            hdl->unlock = audio_cvp_tms_unlock;
+            break;
+        default:
+            ASSERT(0, "cvp_tms_lock_init: unknown node UUID \n");
+            break;
+        }
+        ret = true;
+    }
+    return ret;
 }
 
 /*节点预处理-在ioctl之前*/
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data ;
-
+    /*初始化spinlock锁*/
+    cvp_tms_lock_init(hdl);
     node->type = NODE_TYPE_ASYNC;
     g_cvp_hdl = hdl;
 
+    cvp_node_context_setup(uuid);
     return 0;
 }
 
@@ -523,6 +551,7 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
 }
 
 /*节点start函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 {
     struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt;
@@ -530,6 +559,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     init_param.sample_rate = fmt->sample_rate;
     init_param.ref_sr = hdl->ref_sr;
     init_param.ref_channel = 1;
+    init_param.node_uuid = hdl_node(hdl)->uuid;
     u8 mic_num; //算法需要使用的MIC个数
 
     audio_aec_init(&init_param);
@@ -558,6 +588,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 }
 
 /*节点stop函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
 {
     if (hdl) {
@@ -565,12 +596,13 @@ static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
     }
 }
 
+__CVP_BANK_CODE
 static int cvp_ioc_update_parm(struct cvp_node_hdl *hdl, int parm)
 {
     int ret = false;
     struct cvp_cfg_t *cfg = (struct cvp_cfg_t *)parm;
     if (hdl) {
-        cvp_node_param_cfg_update(cfg, &hdl->online_cfg);
+        cvp_tms_node_param_cfg_update(cfg, &hdl->online_cfg);
         aec_tms_cfg_update(&hdl->online_cfg);
         ret = true;
     }
@@ -610,7 +642,9 @@ static int cvp_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         }
         break;
     case NODE_IOC_SET_PARAM:
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
         ret = cvp_ioc_update_parm(hdl, arg);
+#endif
         break;
     case NODE_IOC_SET_PRIV_FMT:
         hdl->source_uuid = (u16)arg;
@@ -629,6 +663,7 @@ static void cvp_adapter_release(struct stream_node *node)
         g_cvp_hdl->buf_3 = NULL;
     }
     g_cvp_hdl = NULL;
+    cvp_node_context_setup(0);
 }
 
 /*节点adapter 注意需要在sdk_used_list声明，否则会被优化*/

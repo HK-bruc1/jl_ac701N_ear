@@ -33,6 +33,8 @@
 #include "update.h"
 #include "in_ear_detect/in_ear_manage.h"
 #include "multi_protocol_main.h"
+#include "phone_call.h"
+#include "btstack_rcsp_user.h"
 
 #include "multi_protocol_main.h"
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
@@ -90,6 +92,7 @@ struct tws_user_var  gtws;
 
 static u8 tone_together_by_systime = 0;
 static u32 tws_tone_together_time = 0;
+extern const u8 adt_profile_support;
 
 void tws_sniff_controle_check_enable(void);
 
@@ -591,11 +594,53 @@ void bt_page_scan_for_test(u8 inquiry_en)
     gtws.state = 0;
 }
 
+/**
+ * @brief 入仓没有连接edr需要主动调用ble主从切换
+ * 功能：入仓关盖tws主从切换
+ * 条件：入仓+没连edr+有ble连接+主机
+ */
+void soft_poweroff_tws_role_switch()
+{
+    if (!get_bt_tws_connect_status()) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+    if (!get_charge_online_flag()) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+
+#if RCSP_MODE
+    if (bt_rcsp_ble_conn_num() <= 0) {
+        printf("soft_poweroff_tws_role_switch, %d\n", __LINE__);
+        return;
+    }
+#endif
+
+    /* 连上手机后，软关机流程会触发主从切 */
+    // if (BT_STATUS_CONNECTING == bt_get_connect_status()) {
+    //     return;
+    // }
+
+    printf("soft_poweroff_tws_role_switch\n");
+    tws_api_role_switch();
+}
+
 int bt_tws_poweroff()
 {
     log_info("bt_tws_poweroff\n");
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if TCFG_USER_BLE_ENABLE
+    soft_poweroff_tws_role_switch();
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     multi_protocol_bt_tws_poweroff_handler();
 #endif
 
@@ -617,6 +662,7 @@ int bt_tws_poweroff()
 
 void tws_page_scan_deal_by_esco(u8 esco_flag)
 {
+    return;
     if (gtws.state & BT_TWS_UNPAIRED) {
         return;
     }
@@ -1017,6 +1063,13 @@ int bt_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_ROLE_SWITCH:
         r_printf("TWS_EVENT_ROLE_SWITCH=%d\n", role);
+        /* if (role != TWS_ROLE_SLAVE) { */
+        /* 	play_tone_file(get_tone_files()->low_latency_in); */
+        /* } */
+        u8 *esco_addr = lmp_get_esco_link_addr();
+        if (esco_addr) {
+            bt_phone_esco_play(esco_addr);
+        }
 #if TCFG_TWS_POWER_BALANCE_ENABLE
         if (role == TWS_ROLE_SLAVE) {
             esco_recoder_switch(0);
@@ -1035,6 +1088,10 @@ int bt_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_ESCO_ROLE_SWITCH_START:
         r_printf("TWS_EVENT_ESCO_ROLE_SWITCH_START=%d\n", role);
+        u8 *esco_addr1 = lmp_get_esco_link_addr();
+        if (esco_addr1) {
+            bt_phone_esco_play(esco_addr1);
+        }
 #if TCFG_TWS_POWER_BALANCE_ENABLE
         if (role == TWS_ROLE_SLAVE) {
             esco_recoder_switch(1);
@@ -1090,7 +1147,13 @@ static void bt_tws_enter_sniff(void *parm)
 {
     int interval;
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+    if (is_cig_music_play() || is_cig_other_music_play() || is_cig_phone_call_play() || is_cig_other_phone_call_play()) {
+        puts("cis music or call , can not enter sniff\n");
+        goto __exit;
+    }
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    if (check_local_not_accept_sniff_by_remote()) {
         goto __exit;
     }
 #endif
@@ -1099,7 +1162,7 @@ static void bt_tws_enter_sniff(void *parm)
     if (state & TWS_STA_PHONE_DISCONNECTED) {
         interval = 400;
     } else if (state & TWS_STA_PHONE_SNIFF) {
-        interval = 400;
+        interval = 800;
     } else {
         goto __exit;
     }

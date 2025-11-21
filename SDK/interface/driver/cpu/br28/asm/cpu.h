@@ -49,10 +49,13 @@ extern const int CONFIG_CPU_UNMASK_IRQ_ENABLE;
 ///屏蔽的优先级, < N的优先级不可以响应
 #define CPU_IRQ_IPMASK_LEVEL   				6
 
+#define OS_SW_SOFT_IRQ_ID           0
+#define OS_SYNC_SOFT_IRQ_ID         1
+
 #define  CPU_TASK_CLR(a)
 #define  CPU_TASK_SW(a) 		\
     do { \
-        q32DSP(a)->ILAT_SET |= BIT(3-a); \
+        q32DSP(a)->ILAT_SET |= BIT(OS_SW_SOFT_IRQ_ID); \
     } while (0)
 
 

@@ -140,4 +140,28 @@ int aec_cfg_online_update(int root_cmd, void *cfg);
 int aec_cfg_online_update_fill(void *cfg, u16 len);
 int get_aec_config(u8 *buf, int version);
 
+/*
+*********************************************************************
+*                  read_dns_coeff_param
+* Description: fb eq 参数文件读取
+* Arguments  : coeff_file   文件路径
+* Return	 : 成功返回数据地址,失败返回null
+* Note(s)    : null
+*********************************************************************
+*/
+void *read_dns_coeff_param(const char *coeff_file);
+
+/*
+*********************************************************************
+*                  dns_coeff_param_updata
+* Description: fb eq 参数在线更新
+* Arguments  : coeff_file   文件路径
+*			   data	        数据地址
+*			   len		    数据长度
+* Return	 : 0 成功 其他 失败
+* Note(s)    : null
+*********************************************************************
+*/
+int dns_coeff_param_updata(const char *coeff_file, void *data, int len);
+
 #endif/*_AUDIO_AEC_ONLINE_H_*/

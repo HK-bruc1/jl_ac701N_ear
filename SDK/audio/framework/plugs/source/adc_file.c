@@ -5,7 +5,7 @@
 #pragma code_seg(".adc_file.text")
 #endif
 #include "source_node.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_config.h"
 #include "adc_file.h"
 #include "gpio_config.h"
@@ -14,6 +14,7 @@
 #include "asm/audio_common.h"
 #include "mic_effect.h"
 #include "pc_mic_recoder.h"
+#include "btstack/avctp_user.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
@@ -23,11 +24,13 @@
 
 #if defined(TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
+#include "icsd_anc_user.h"
 #endif
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
 #endif
+#if TCFG_AUDIO_ADC_ENABLE
 
 #if 1
 #define adc_file_log	printf
@@ -53,7 +56,7 @@ struct adc_file_hdl {
     struct adc_file_common *adc_f;
     int force_dump;
     int value;
-    u16 sample_rate;
+    u32 sample_rate;
     u16 irq_points;
     u8 adc_seq;
     u8 channel_mode;
@@ -72,12 +75,19 @@ struct adc_file_common {
 
 struct adc_file_global {
     u8 fixed_ch_num;
-    s16 *fixed_buf;						//固定的ADCbuffer
+    s16 *fixed_buf;				//固定的ADCbuffer
     struct adc_file_cfg cfg;	//ESCO ADC的参数信息
 };
 
 static struct adc_file_common esco_adc_f;
 static struct adc_file_global esco_adc_file_g;
+static u8 adc_file_global_open_cnt = 0;
+
+/*判断adc 节点是否再跑*/
+u8 adc_file_is_runing(void)
+{
+    return adc_file_global_open_cnt;
+}
 
 /*根据mic通道值获取使用的第几个mic*/
 u8 audio_get_mic_index(u8 mic_ch)
@@ -96,7 +106,7 @@ u8 audio_get_mic_index(u8 mic_ch)
 u8 audio_get_mic_num(u32 mic_ch)
 {
     u8 mic_num = 0;
-    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+    for (int i = 0; i < 8; i++) {
         if (mic_ch & BIT(i)) {
             mic_num++;
         }
@@ -145,6 +155,7 @@ void audio_adc_file_set_mic_en_map(u8 mic_en_map)
 }
 
 
+__AUDIO_ADC_BANK_CODE
 void audio_adc_file_global_cfg_init(void)
 {
     memcpy(&esco_adc_file_g.cfg, &esco_adc_f.cfg, sizeof(struct adc_file_cfg));
@@ -203,6 +214,7 @@ void audio_all_adc_file_init(void)
 #endif
 }
 
+__AUDIO_INIT_BANK_CODE
 void audio_adc_file_init(void)  //通话的ADC节点配置
 {
     u32 i;
@@ -227,18 +239,32 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
         }
         memcpy(&esco_adc_f.platform_cfg, adc_platform_cfg_table, sizeof(struct adc_platform_cfg) * AUDIO_ADC_MAX_NUM);
 
-        adc_file_log(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(struct adc_file_cfg));
+        adc_file_log("%s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(struct adc_file_cfg));
 
-#if 0
-        adc_file_log(" esco_adc_f.cfg.mic_en_map = %x\n", esco_adc_f.cfg.mic_en_map);
+#if 0//dump出ESCO通话ADC节点参数配置
+        adc_file_log("esco_adc_f.cfg.mic_en_map = 0x%x\n", esco_adc_f.cfg.mic_en_map);
         for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_gain      = %d\n", i, esco_adc_f.cfg.param[i].mic_gain);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_pre_gain  = %d\n", i, esco_adc_f.cfg.param[i].mic_pre_gain);
+            adc_file_log("esco_adc_f.cfg.mic[%d] enable = %d\n", i, !!(esco_adc_f.cfg.mic_en_map & BIT(i)));
+            adc_file_log("esco_adc_f.cfg.param[%d].mic_gain      = %d\n", i, esco_adc_f.cfg.param[i].mic_gain);
+            adc_file_log("esco_adc_f.cfg.param[%d].mic_pre_gain  = %d\n", i, esco_adc_f.cfg.param[i].mic_pre_gain);
         }
 #endif
         esco_adc_f.read_flag = 1;
+
+        u32 mic_ch = esco_adc_f.cfg.mic_en_map;
+#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+        if (const_adc_async_en) {
+            /*同时开ANC和免摘功能时，配置ADC固定打开的adc数字通道数*/
+            mic_ch |= icsd_get_ref_mic_L_ch() | icsd_get_fb_mic_L_ch();
+
+            if (get_icsd_adt_mic_num() == 3) {
+                mic_ch |= icsd_get_talk_mic_ch();
+            }
+
+        }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
         for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
-            if (esco_adc_f.cfg.mic_en_map & BIT(i)) {
+            if (mic_ch & BIT(i)) {
                 audio_adc_add_ch(&adc_hdl, i);
             }
         }
@@ -253,10 +279,12 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
         }
     }
 #endif
+
     /* audio_all_adc_file_init(); */
     audio_adc_file_global_cfg_init();
 }
 
+__AUDIO_ADC_BANK_CODE
 void audio_adc_cfg_init(struct adc_file_common *adc_f)  //通话外其他ADC节点读配置
 {
     if (!adc_f->read_flag) {
@@ -348,6 +376,62 @@ static void adc_file_fade_in(struct adc_file_hdl *hdl, void *buf, int len)
 
 
 
+/*
+*********************************************************************
+*                  audio_mic_data_align
+* Description: 将使用的mic数据按照序号顺序，相邻的排在一起*
+* Arguments  : in_data      输入数据起始地址
+*              out_data     输出数据起始地址
+*			   len      	1个mic通道的数据大小，byte
+*			   mic_ch		使用的mic通道
+*              max_mic_num  打开的mic通道数
+* Return	 : null
+* Note(s)    : 输入输出地址可以一样
+*********************************************************************
+*/
+void audio_mic_data_align(s16 *in_data, s16 *out_data, int len, u32 mic_ch, u8 max_mic_num)
+{
+    u8 mic_num = audio_get_mic_num(mic_ch);//使用的mic个数
+    /* u8 max_mic_num = AUDIO_ADC_MAX_NUM; //打开的mic个数 */
+    int i, j, tmp_len;
+    u8 adc_seq = 0;
+    /* u8 *adc_seq_buf = zalloc(mic_num); */
+    u8 adc_seq_buf[AUDIO_ADC_MAX_NUM];
+    /*获取使用的mic数据的相对位置*/
+    for (j = 0; j < max_mic_num; j++) {
+        if (mic_ch & BIT(j)) {
+            adc_seq_buf[adc_seq] = get_adc_seq(&adc_hdl, BIT(j)); //查询模拟mic对应的ADC通道
+            adc_seq++;
+        }
+    }
+    /*将使用的mic数据按照序号顺序，相邻的排在一起*/
+    if (adc_hdl.bit_width != ADC_BIT_WIDTH_16) {
+        tmp_len = mic_num * sizeof(int);
+        s32 *s32_src = (s32 *)in_data;
+        s32 *s32_dst = (s32 *)out_data;
+        s32 s32_tmp_dst[AUDIO_ADC_MAX_NUM];
+        for (i = 0; i < len / 4; i++) {
+            for (j = 0; j < mic_num; j++) {
+                s32_tmp_dst[j] = s32_src[max_mic_num * i + adc_seq_buf[j]];
+            }
+            memcpy(&s32_dst[mic_num * i], s32_tmp_dst, tmp_len);
+        }
+
+    } else {
+        tmp_len = mic_num * sizeof(short);
+        s16 *s16_src = (s16 *)in_data;
+        s16 *s16_dst = (s16 *)out_data;
+        s16 s16_tmp_dst[AUDIO_ADC_MAX_NUM];
+        for (i = 0; i < len / 2; i++) {
+            for (j = 0; j < mic_num; j++) {
+                s16_tmp_dst[j] = s16_src[max_mic_num * i + adc_seq_buf[j]];
+            }
+            memcpy(&s16_dst[mic_num * i], s16_tmp_dst, tmp_len);
+        }
+    }
+    /* free(adc_seq_buf); */
+}
+
 /**
  * @brief       MIC 的中断回调函数
  *
@@ -377,7 +461,8 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
     //cvp读dac 参考数据
     if ((hdl->scene == STREAM_SCENE_ESCO) ||
         (hdl->scene == STREAM_SCENE_PC_MIC) ||
-        (hdl->scene == STREAM_SCENE_LEA_CALL)) {
+        (hdl->scene == STREAM_SCENE_LEA_CALL) ||
+        (hdl->scene == STREAM_SCENE_AI_VOICE)) {
 
 #if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
         /*对齐iis外部参考数据延时*/
@@ -403,24 +488,7 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
 #else
         if (0) {
 #endif
-            /* printf("l:%d,%d,%d\n",hdl->adc_seq,hdl->ch_num,adc_hdl.max_adc_num); */
-            if (adc_hdl.bit_width != ADC_BIT_WIDTH_16) {
-                s32 *s32_src = (s32 *)data;
-                s32 *s32_dst = (s32 *)frame->data;
-                for (int i = 0; i < len / 4; i++) {
-                    for (int j = 0; j < hdl->ch_num; j++) {
-                        s32_dst[hdl->ch_num * i + j] = s32_src[adc_hdl.max_adc_num * i + hdl->adc_seq + j];
-                    }
-                }
-            } else {
-                s16 *s16_src = data;
-                s16 *s16_dst = (s16 *)frame->data;
-                for (int i = 0; i < len / 2; i++) {
-                    for (int j = 0; j < hdl->ch_num; j++) {
-                        s16_dst[hdl->ch_num * i + j] = s16_src[adc_hdl.max_adc_num * i + hdl->adc_seq + j];
-                    }
-                }
-            }
+            audio_mic_data_align(data, (s16 *)frame->data, len, hdl->adc_f->cfg.mic_en_map, adc_hdl.max_adc_num);
         } else {
             memcpy(frame->data, data, (len * hdl->ch_num));
         }
@@ -432,10 +500,10 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
         frame->len          = len;
 #if 1
         frame->flags        = FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_PERIOD_SAMPLE | FRAME_FLAG_UPDATE_TIMESTAMP;
-        frame->timestamp    = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
+        frame->timestamp    = adc_hdl.timestamp * TIMESTAMP_US_DENOMINATOR;
 #else
         frame->flags        = FRAME_FLAG_SYS_TIMESTAMP_ENABLE;
-        frame->timestamp    = audio_jiffies_usec();
+        frame->timestamp    = adc_hdl.timestamp;
 #endif
 
         adc_file_fade_in(hdl, frame->data, frame->len);//淡入处理
@@ -451,14 +519,10 @@ static void *adc_init(void *source_node, struct stream_node *node)
     node->type |= NODE_TYPE_IRQ;
 
 
-#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
-    extern void smart_voice_mcu_mic_suspend();
-    smart_voice_mcu_mic_suspend();
-#endif
-
     return hdl;
 }
 
+__AUDIO_ADC_BANK_CODE
 static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     /*
@@ -531,7 +595,7 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
     } else {
         fmt->channel_mode   = AUDIO_CH_MIX;
     }
-    printf("adc num: %d , channel_mode: %x", hdl->ch_num, fmt->channel_mode);
+    printf("adc num:%d, channel_mode:0x%x, bit_width:%dbit", hdl->ch_num, fmt->channel_mode, (adc_hdl.bit_width) ? 24 : 16);
     if (adc_hdl.bit_width == ADC_BIT_WIDTH_24) {
         fmt->bit_wide = DATA_BIT_WIDE_24BIT;
     } else {
@@ -541,12 +605,18 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 
     hdl->channel_mode = fmt->channel_mode;
     hdl->sample_rate = fmt->sample_rate;
-
 }
 
 static int adc_ioc_set_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     hdl->sample_rate = fmt->sample_rate;
+    printf("adc_ioc_set_fmt,Fs = %d", hdl->sample_rate);
+    if (hdl->ch_num != AUDIO_CH_NUM(fmt->channel_mode)) {
+        //节点配置的声道类型与协商输出的声道类型不一致。
+        printf("adc channel number set error, %d, %d\n", hdl->ch_num, AUDIO_CH_NUM(fmt->channel_mode));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -566,8 +636,9 @@ int adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通话使用
             mic_gain                = esco_adc_f.cfg.param[ch_index].mic_gain;
             mic_pre_gain            = esco_adc_f.cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (esco_adc_f.platform_cfg[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io);
+            if (mic_param.mic_bias_sel == 0) {
+                /* u32 gpio = uuid2gpio(esco_adc_f.platform_cfg[ch_index].power_io); */
+                u32 gpio = esco_adc_f.platform_cfg[ch_index].power_io;
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -579,24 +650,29 @@ int adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通话使用
     return 0;
 }
 
+/*返回值：使能打开的ADC通道数*/
+__AUDIO_ADC_BANK_CODE
 int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common *adc_f) //用于打开通话外其他mic
 {
     struct mic_open_param mic_param = {0};
     int mic_gain;
     int mic_pre_gain;
     int ch_index;
+    u8 mic_en_num = 0;
 
     u32 i = 0;
     for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (ch & BIT(i)) {
+            mic_en_num++;
             ch_index = i;
 
             audio_adc_param_fill(&mic_param, &adc_f->platform_cfg[ch_index]);
             mic_gain                = adc_f->cfg.param[ch_index].mic_gain;
             mic_pre_gain            = adc_f->cfg.param[ch_index].mic_pre_gain;
 
-            if ((mic_param.mic_bias_sel == 0) && (adc_f->platform_cfg[ch_index].power_io != 0)) {
-                u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);
+            if (mic_param.mic_bias_sel == 0) {
+                /*u32 gpio = uuid2gpio(adc_f->platform_cfg[ch_index].power_io);*/
+                u32 gpio = adc_f->platform_cfg[ch_index].power_io;
                 gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_HIGH);
             }
 
@@ -605,7 +681,7 @@ int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common
             audio_adc_mic_gain_boost(AUDIO_ADC_MIC(ch_index), mic_pre_gain);
         }
     }
-    return 0;
+    return mic_en_num;
 }
 
 static u8 adc_mic_start = 0;
@@ -625,11 +701,16 @@ static void adc_open_task(void *_hdl)
 
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 {
     int ret = 0;
     if (hdl->start == 0) {
         hdl->start = 1;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern void smart_voice_mcu_mic_suspend();
+        smart_voice_mcu_mic_suspend();
+#endif
         hdl->dump_cnt = 0;
         //不启动ANC动态MIC增益时，由用户自己保证ANC与通话复用的ADC增益一致
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
@@ -643,8 +724,8 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 
         //br50的LPADC需要根据采样率配置模拟部分的时钟分频,需要先设置采样率才能打开MIC
         audio_adc_mic_set_sample_rate(&hdl->mic_ch, hdl->sample_rate);
-        adc_file_cfg_mic_open(&hdl->mic_ch, hdl->adc_f->cfg.mic_en_map, (void *)hdl->adc_f);
-
+        u8 mic_en_num = adc_file_cfg_mic_open(&hdl->mic_ch, hdl->adc_f->cfg.mic_en_map, (void *)hdl->adc_f);
+        ASSERT(mic_en_num > 0, "mic cfg failed, mic_num=%d\n", mic_en_num);
         if (esco_adc_file_g.fixed_buf) {
             hdl->adc_buf = esco_adc_file_g.fixed_buf;
             audio_adc_set_buf_fix(1, &adc_hdl);
@@ -653,7 +734,16 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
             if (!hdl->irq_points) {
                 hdl->irq_points = 256;
             }
-            hdl->adc_buf = zalloc(ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (adc_hdl.max_adc_num));
+            u16 adc_dma_buf_size;
+            if (const_adc_async_en) {
+                adc_dma_buf_size = ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (adc_hdl.max_adc_num);
+                printf("adc_dma_buf_size:%d,ch_num:%d,bit_width:%d", adc_dma_buf_size, adc_hdl.max_adc_num, ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 16 : 24));
+            } else {
+                adc_dma_buf_size = ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (mic_en_num);
+                printf("adc_dma_buf_size:%d,ch_num:%d,bit_width:%d", adc_dma_buf_size, mic_en_num, ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 16 : 24));
+            }
+            hdl->adc_buf = zalloc(adc_dma_buf_size);
+
             if (!hdl->adc_buf) {
                 ret = -1;
                 return ret;
@@ -679,15 +769,24 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 #else
         audio_adc_mic_start(&hdl->mic_ch);
 #endif
+        adc_file_global_open_cnt++;
     }
     hdl->value = 0;
     return ret;
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
 {
     if (hdl->start) {
         hdl->start = 0;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern u16 jl_call_kws_get_status();
+        extern int audio_phone_call_kws_start(void);
+        if (jl_call_kws_get_status() == BT_STATUS_PHONE_INCOME) {
+            audio_phone_call_kws_start();
+        }
+#endif
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
         anc_dynamic_micgain_stop();
 #endif
@@ -708,19 +807,23 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
 
         for (u32 i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
             if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
-                if ((hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) && (hdl->adc_f->platform_cfg[i].power_io != 0)) {
+                if (hdl->adc_f->platform_cfg[i].mic_bias_sel == 0) {
                     if (!audio_adc_is_active()) {
-                        u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
+                        //u32 gpio = uuid2gpio(hdl->adc_f->platform_cfg[i].power_io);
+                        u32 gpio = hdl->adc_f->platform_cfg[i].power_io;
                         gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_LOW);
                     }
                 }
             }
         }
-
+        if (adc_file_global_open_cnt) {
+            adc_file_global_open_cnt--;
+        }
     }
     return 0;
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_update_parm(struct adc_file_hdl *hdl, int parm)
 {
     int i;
@@ -801,3 +904,18 @@ REGISTER_SOURCE_NODE_PLUG(adc_file_plug) = {
 REGISTER_ONLINE_ADJUST_TARGET(adc) = {
     .uuid = NODE_UUID_ADC,
 };
+#else
+
+u8 audio_get_mic_num(u32 mic_ch)
+{
+    return 0;
+}
+u8 audio_adc_file_get_mic_en_map(void)
+{
+    return 0;
+}
+u8 audio_adc_file_get_esco_mic_num(void)
+{
+    return 0;
+}
+#endif

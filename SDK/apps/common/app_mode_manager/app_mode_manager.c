@@ -7,6 +7,7 @@
 #include "app_mode_manager.h"
 #include "system/init.h"
 #include "generic/errno-base.h"
+#include "app_msg.h"
 
 
 
@@ -285,6 +286,30 @@ int app_goto_foreground(u8 mode_name)
     return err;
 }
 
+
+int app_task_switch_to(u8 app_task, int priv)
+{
+    struct app_mode *next_mode;
+    next_mode  =  app_get_mode_by_name(app_task);
+
+    if (next_mode && app_try_enter_mode(next_mode, priv)) {
+        app_send_message(APP_MSG_GOTO_MODE, app_task);
+    }
+    return 0;
+}
+
+u8 app_get_curr_task(void)
+{
+    struct app_mode *mode = app_get_current_mode();
+
+    if (mode) {
+        return mode->name;
+    }
+
+    return 0;
+}
+
+__INITCALL_BANK_CODE
 static int app_mode_mgr_init()
 {
     struct app_mode *mode, *p;

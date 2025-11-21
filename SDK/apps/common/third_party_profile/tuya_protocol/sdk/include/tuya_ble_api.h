@@ -29,6 +29,7 @@
 #include "tuya_ble_type.h"
 #include "tuya_ble_internal_config.h"
 #include "tuya_ble_port.h"
+#include "tuya_ble_port_JL.h"
 
 #if (TUYA_BLE_USE_OS==0)
 /**

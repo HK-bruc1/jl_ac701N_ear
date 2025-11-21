@@ -198,12 +198,12 @@ u16 get_ladc_capless_bud(void)
 
 #define MC_TRIM_BUF_NUM        2
 #define MC_TRIM_IRQ_POINTS     256
-#define MC_TRIM_BUFS_SIZE      (MC_TRIM_BUF_NUM * MC_TRIM_IRQ_POINTS)
+#define MC_TRIM_BUFS_SIZE      (MC_TRIM_BUF_NUM * MC_TRIM_IRQ_POINTS * AUDIO_ADC_MAX_NUM * 2)
 
 struct adc_mc_trim {
     struct audio_adc_output_hdl adc_output;
     struct adc_mic_ch mic_ch;
-    s16 adc_buf[MC_TRIM_BUFS_SIZE];    //align 4Bytes
+    s16 *adc_buf;    //align 4Bytes
 };
 static struct adc_mc_trim *adc_mc = NULL;
 
@@ -226,10 +226,15 @@ static void audio_adc_mic_trim_open(u8 mic_idx, u8 gain)
     printf("audio_adc_mic_trim_open:%d\n", mic_idx);
     audio_adc_init(&adc_hdl, &adc_private);
     adc_mc = zalloc(sizeof(struct adc_mc_trim));
-    if (adc_mc) {
+    adc_mc->adc_buf = zalloc(MC_TRIM_BUFS_SIZE);
+    if (adc_mc && adc_mc->adc_buf) {
         adc_file_mic_open(&adc_mc->mic_ch, adc_cfg->mic_en_map);
         audio_adc_mic_set_sample_rate(&adc_mc->mic_ch, mic_sr);
-        audio_adc_mic_set_buffs(&adc_mc->mic_ch, adc_mc->adc_buf, MC_TRIM_IRQ_POINTS * 2, MC_TRIM_BUF_NUM);
+        int ret = audio_adc_mic_set_buffs(&adc_mc->mic_ch, adc_mc->adc_buf, MC_TRIM_IRQ_POINTS * 2, MC_TRIM_BUF_NUM);
+        if (ret) {//设置失败需要free,设置成功则直接由硬件free即可
+            free(adc_mc->adc_buf);
+            adc_mc->adc_buf = NULL;
+        }
         adc_mc->adc_output.handler = adc_mic_demo_output;
         audio_adc_add_output_handler(&adc_hdl, &adc_mc->adc_output);
         audio_adc_mic_start(&adc_mc->mic_ch);

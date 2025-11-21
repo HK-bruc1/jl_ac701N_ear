@@ -25,15 +25,12 @@
 #endif
 #if AUDIO_CVP_COMMON_AT_RAM
     . = ALIGN(4);
-    *(.aec_mem)
     *(.aec_mux)
     *(.aec_code)
     *(.aec_const)
     *(.res_code)
     *(.res_const)
     *(.bark_const)
-    *(.fft_code)
-    *(.fft_const)
     *(.der_code)
     *(.der_const)
 #endif
@@ -63,6 +60,8 @@
 #if AUDIO_CVP_SMS_AT_RAM
     *(.sms_const)
     *(.sms_code)
+    *(.smsvf_const)
+    *(.smsvf_code)
 #endif
 #if AUDIO_CVP_PREP_AT_RAM
     *(.jlsp_prep_code)

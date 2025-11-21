@@ -39,7 +39,7 @@ u16 app_ntohs(u16 n);
 u32 app_htonl(u32 n);
 u32 app_ntohl(u32 n);
 
-void JL_rcsp_auth_init(int (*send)(u16, u8 *, u8 *, u16, uint16_t, u8), u8 *link_key, u8 *addr);
+void JL_rcsp_auth_init(int (*send)(u16, u8 *, u8 *, u16), u8 *link_key, u8 *addr);
 void JL_rcsp_auth_reset(void);
 
 /**

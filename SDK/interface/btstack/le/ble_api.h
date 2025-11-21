@@ -57,7 +57,7 @@ typedef enum {
     BLE_CMD_SET_HCI_CFG,
     BLE_CMD_SCAN_ENABLE2,
     BLE_CMD_ATT_SERVER_REQ_RESUME,
-
+    BLE_CMD_EXT_SCAN_SET_PRIORITY,
     //MULTI API,多机接口
     BLE_CMD_MULTI_ATT_SEND_INIT,
     BLE_CMD_MULTI_ATT_SET_CONN_HANDLE,
@@ -79,6 +79,8 @@ typedef enum {
     //sync edr pair list
     BLE_CMD_EDR_PAIR_SYNC,
 
+    BLE_CMD_SET_LEAGCY_INIT_PRIORITY,
+    BLE_CMD_SET_LEAGCY_SCAN_PRIORITY,
     //< ble5
     BLE_CMD_EXT_ADV_PARAM = 0x40,
     BLE_CMD_EXT_ADV_DATA,
@@ -95,6 +97,7 @@ typedef enum {
     BLE_CMD_PERIODIC_ADV_TERMINATE_SYNC,
     BLE_CMD_PERIODIC_ADV_CREATE_SYNC_CANCEL,
     BLE_CMD_EXT_ADV_ADRESS,  //如果支持两个广播包，操作地址的配置流程也要统一。
+    BLE_CMD_SET_RXMAXBUF,
 
     //client
     BLE_CMD_SEARCH_PROFILE = 0x80,
@@ -857,6 +860,21 @@ void lib_make_ble_address(u8 *ble_address, u8 *edr_address);
 #define ble_op_ext_create_conn(conn_param,param_len)     \
     ble_user_cmd_prepare(BLE_CMD_EXT_CREATE_CONN, 2, conn_param, param_len)
 
+/*************************************************************************************************/
+/*!
+ *  \brief      EXT SCAN设置优先级.
+ *
+ *  \function   ble_cmd_ret_e ble_op_ext_scan_set_priority(u8 priority).
+ *
+ *  \param      [in] priority  优先级
+ *
+ *  \return     see ble_cmd_ret_e.
+ */
+/*************************************************************************************************/
+/* ble_cmd_ret_e ble_op_ext_scan_set_priority(u8 priority) */
+#define ble_op_ext_scan_set_priority(priority)     \
+    ble_user_cmd_prepare(BLE_CMD_EXT_SCAN_SET_PRIORITY, 1, (int)priority)
+
 
 /*************************************************************************************************/
 /*!
@@ -1165,7 +1183,20 @@ void lib_make_ble_address(u8 *ble_address, u8 *edr_address);
 #define ble_op_latency_close(con_handle)     \
 	ble_user_cmd_prepare(BLE_CMD_LATENCY_CLOSE, 1, con_handle)
 
-
+/*************************************************************************************************/
+/*!
+ *  \brief      设置rxmaxbuf
+ *
+ *  \function   ble_cmd_ret_e ble_op_set_rxmaxbuf(u16 con_handle, u8 rxmaxbuf).
+ *
+ *  \param      [in] con_handle     range：>0.
+ *  \param      [in] rxmaxbuf     range：0~255.
+ *
+ *  \return     see ble_cmd_ret_e.
+ */
+/*************************************************************************************************/
+#define ble_op_set_rxmaxbuf(con_handle, rxmaxbuf)     \
+	ble_user_cmd_prepare(BLE_CMD_SET_RXMAXBUF, 2, con_handle, rxmaxbuf)
 
 /*************************************************************************************************/
 /*!
@@ -1383,7 +1414,14 @@ int att_server_change_profile(u8 const *profile_data);
 void ble_vendor_set_tx_power(u8 level);
 
 
+void update_list_local_addr(u8 *old_local_addr, u8 *new_local_addr);
 
+#define ble_op_set_leagcy_init_priority(param)     \
+	ble_user_cmd_prepare(BLE_CMD_SET_LEAGCY_INIT_PRIORITY, 1, param)
+
+
+#define ble_op_set_leagcy_scan_priority(param)     \
+	ble_user_cmd_prepare(BLE_CMD_SET_LEAGCY_SCAN_PRIORITY, 1, param)
 
 
 

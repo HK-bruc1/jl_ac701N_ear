@@ -6,6 +6,7 @@
 #endif
 #include "tuya_ble_app_demo.h"
 #include "tuya_ota.h"
+#include "app_config.h"
 
 #include "log.h"
 #include "system/includes.h"
@@ -23,6 +24,8 @@
 #include "tuya_ble_main.h"
 #include "app_msg.h"
 #include "app_tone.h"
+#include "app_ble_spp_api.h"
+
 //为了codecheck.sh check加个定义
 #ifndef TUYA_BLE_PROTOCOL_VERSION_HIGN
 #define TUYA_BLE_PROTOCOL_VERSION_HIGN   0x04
@@ -38,6 +41,7 @@ extern void tuya_one_click_connect_init();
 extern u32 sdfile_get_disk_capacity(void);
 extern u32 sdfile_flash_addr2cpu_addr(u32 offset);
 extern int le_controller_set_mac(void *addr);
+extern void *tuya_ble_hdl;
 
 static uint32_t sn = 0;
 
@@ -473,6 +477,7 @@ void tuya_key_reset_indicate()
     tuya_key_info_indicate();
 }
 
+extern void anc_mode_switch(u8 mode, u8 tone_play);
 void tuya_data_parse(tuya_ble_cb_evt_param_t *event)
 {
     uint32_t get_sn = event->dp_received_data.sn;
@@ -847,7 +852,7 @@ void tuya_ble_app_init(void)
         memcpy(device_param.device_id, (void *)device_id_test, DEVICE_ID_LEN);
         memcpy(device_param.mac_addr.addr, mac_test, 6);
 #else
-        uint8_t read_buf[16 + 32 + 6 + 1] = {0};
+        uint8_t read_buf[16 + 32 + 12 + 1] = {0};
         flash_ret = read_tuya_product_info_from_flash(read_buf, sizeof(read_buf));
         if (flash_ret == TRUE) {
             uint8_t mac_data[6];
@@ -888,7 +893,7 @@ void tuya_ble_app_init(void)
     put_buf(device_param.auth_key, 32);
     printf("mac:");
     put_buf(device_param.mac_addr.addr, 6);
-    le_controller_set_mac(device_param.mac_addr.addr);
+    app_ble_set_mac_addr(tuya_ble_hdl, (void *)device_param.mac_addr.addr);
 
     device_param.p_type = TUYA_BLE_PRODUCT_ID_TYPE_PID;
     device_param.product_id_len = 8;

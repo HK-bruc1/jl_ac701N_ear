@@ -13,10 +13,10 @@
 #include "audio_def.h"
 
 struct jl_tws_header {
-    unsigned version : 2;       //版本信息
-    unsigned x : 1;             //扩展信息
-    unsigned reserved : 1;      //保留信息0
-    unsigned frame_num : 4;     //帧数量(duration)
+    unsigned char version : 2;       //版本信息
+    unsigned char x : 1;             //扩展信息
+    unsigned char reserved : 1;      //保留信息0
+    unsigned char frame_num : 4;     //帧数量(duration)
     short drift_sample_rate;    //采样率偏移
     unsigned int timestamp;     //时间戳
 } __attribute__((packed));

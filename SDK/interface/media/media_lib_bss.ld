@@ -15,9 +15,9 @@
     *(.jlsp_far_front_bss)
 
 	*(.lhdc.data.bss)
-	*(.lhdcv4decode.bss)
+	*(.lhdcv4dec_data.bss)
 	*(.lhdc_v5.data.bss)
-	*(.lhdcv5decode.bss)
+	*(.lhdcv5_dec.data.bss)
     *(.ldac_dec.data.bss)
     *(.ldac.data.bss)
     *(.ldac_enc.data.bss)
@@ -28,6 +28,8 @@
     *(.btaac_ron_dec.data.bss)
     *(.aac.data.bss)
 	*(.sbc_eng_bss)
+	*(.sbc_bss)
+	*(.sbc_dec.data.bss)
 	*(.bt_audioplc_bss)
 	*(.lc3_dec.data.bss)
 	*(.lc3_enc.data.bss)
@@ -36,6 +38,18 @@
 	*(.lc3_codec_ari_c_bss)
 	*(.lc3_codec_c_bss)
 #endif
+
+	*(.jla_codec_c_bss)
+	*(.jl_codec_c_bss)
+
+	*(.jla_lw_codec_bss)
+	*(.jla_lw.bss)
+	*(.jla_ll.bss)
+
+	*(.jla_v2_dec_bss)
+	*(.jla_v2_enc_bss)
+	*(.jla_v2_codec_c_bss)
+	*(.jla_v2_codec_ari_c_bss)
 
 	*(.mp3_dec.data.bss)
 	*(.mp3.data.bss)
@@ -68,6 +82,7 @@
 	*(.m4a_dec.data.bss)
 	*(.m4a.data.bss)
 	*(.alac.data.bss)
+	*(.llns_dns.bss)
 
 	*(.audio_track_bss)
 

@@ -17,7 +17,6 @@ typedef  struct   _ENC_DATA_INFO_ {
     u16 sr;            ///<sample rate
     u16 br;            ///<mp2的时候它是bitrate，但是adpcm的时候，它是blockSize,一般配成256/512/1024/2048，超过2048会被限制成2048
     u32 nch;
-    u8 bit_width;
 } ENC_DATA_INFO;
 
 

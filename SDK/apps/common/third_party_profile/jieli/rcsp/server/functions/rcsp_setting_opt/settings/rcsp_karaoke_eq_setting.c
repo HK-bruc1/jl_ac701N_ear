@@ -11,7 +11,7 @@
 #include "rcsp_setting_sync.h"
 #include "rcsp_setting_opt.h"
 
-#if (TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_MODE && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
+#if (RCSP_MODE && TCFG_EQ_ENABLE && MIC_EFFECT_EQ_EN && RCSP_ADV_KARAOKE_EQ_SET_ENABLE && RCSP_ADV_KARAOKE_SET_ENABLE)
 
 #include "effect_cfg.h"
 #include "effect_tool.h"

@@ -7,6 +7,13 @@
 #include "iic_soft.h"
 #include "clock.h"
 
+#define LOG_TAG_CONST       IIC
+#define LOG_TAG             "[iic_soft]"
+#define LOG_ERROR_ENABLE
+#define LOG_DEBUG_ENABLE
+#define LOG_INFO_ENABLE
+#define LOG_CLI_ENABLE
+#include "debug.h"
 static u8 soft_iic_state[MAX_SOFT_IIC_NUM] = {0, 0, 0};
 static struct iic_master_config soft_iic_cfg_cache[MAX_SOFT_IIC_NUM];
 
@@ -55,15 +62,15 @@ struct iic_master_config *get_soft_iic_config(soft_iic_dev iic)
 enum iic_state_enum soft_iic_init(soft_iic_dev iic, struct iic_master_config *i2c_config)
 {
     if (i2c_config == NULL) {
-        printf("error: soft iic%d param error!\n", iic);
+        log_error("soft iic%d param error!\n", iic);
         return IIC_ERROR_PARAM_ERROR;
     }
     if (iic >= MAX_SOFT_IIC_NUM) {
-        printf("error: soft iic index:%d error!\n", iic);
+        log_error("soft iic index:%d error!\n", iic);
         return IIC_ERROR_INDEX_ERROR;
     }
     if ((soft_iic_state[iic]&BIT(7)) != 0) {
-        printf("error: soft iic%d has been occupied!\n", iic);
+        log_error("soft iic%d has been occupied!\n", iic);
         return IIC_ERROR_INIT_FAIL;
     }
     soft_iic_state[iic] = BIT(7);//init ok
@@ -78,10 +85,10 @@ enum iic_state_enum soft_iic_init(soft_iic_dev iic, struct iic_master_config *i2
     return IIC_OK;//ok
 }
 
-enum iic_state_enum soft_iic_uninit(soft_iic_dev iic)
+enum iic_state_enum soft_iic_deinit(soft_iic_dev iic)
 {
     if (soft_iic_state[iic] == 0) {
-        printf("error: soft iic%d has been no init!\n", iic);
+        log_error("soft iic%d has been no init!\n", iic);
         return IIC_ERROR_NO_INIT;
     }
     soft_iic_state[iic] = 0;//no init
@@ -96,11 +103,11 @@ enum iic_state_enum soft_iic_uninit(soft_iic_dev iic)
 enum iic_state_enum soft_iic_suspend(soft_iic_dev iic)
 {
     if ((soft_iic_state[iic] & 0xc0) != 0x80) {
-        printf("error: soft iic%d is no init or suspend!\n", iic);
+        log_error("soft iic%d is no init or suspend!\n", iic);
         return IIC_ERROR_SUSPEND_FAIL;
     }
     if ((soft_iic_state[iic] & 0x3f) != 0) {
-        printf("error: soft iic%d is busy!\n", iic);
+        log_error("soft iic%d is busy!\n", iic);
         return IIC_ERROR_BUSY;
     }
     soft_iic_state[iic] |= BIT(6);//suspend ok
@@ -114,7 +121,7 @@ enum iic_state_enum soft_iic_suspend(soft_iic_dev iic)
 enum iic_state_enum soft_iic_resume(soft_iic_dev iic)
 {
     if ((soft_iic_state[iic] & 0xc0) != 0xc0) {
-        printf("error: soft iic%d is no init or no suspend!\n", iic);
+        log_error("soft iic%d is no init or no suspend!\n", iic);
         return IIC_ERROR_RESUME_FAIL;
     }
     soft_iic_state[iic] &= ~ BIT(6); //resume ok
@@ -140,7 +147,7 @@ void soft_iic_idle(soft_iic_dev iic)
     soft_iic_state[iic] &= 0xf0;//idle
 }
 
-void soft_iic_start(soft_iic_dev iic)
+enum iic_state_enum soft_iic_start(soft_iic_dev iic)
 {
     u32 delay_cnt;
     u32 dly_t = iic_get_delay(iic);
@@ -157,6 +164,7 @@ void soft_iic_start(soft_iic_dev iic)
 
     IIC_SCL_L(soft_iic_cfg_cache[iic].scl_io);
     soft_iic_delay(dly_t);
+    return IIC_OK;//ok
 }
 
 void soft_iic_stop(soft_iic_dev iic)
@@ -178,6 +186,7 @@ void soft_iic_reset(soft_iic_dev iic)//同iic_v2
 {
     soft_iic_start(iic);
     soft_iic_stop(iic);
+    soft_iic_idle(iic);
 }
 
 static u8 soft_iic_check_ack(soft_iic_dev iic)
@@ -240,6 +249,7 @@ u8 soft_iic_tx_byte(soft_iic_dev iic, u8 byte)
 {
     u32 delay_cnt;
     u32 dly_t = iic_get_delay(iic);
+
     local_irq_disable();
     IIC_SCL_L(soft_iic_cfg_cache[iic].scl_io);
     for (u32 i = 0; i < 8; i++) {  //MSB FIRST
@@ -256,8 +266,9 @@ u8 soft_iic_tx_byte(soft_iic_dev iic, u8 byte)
         IIC_SCL_L(soft_iic_cfg_cache[iic].scl_io);
         soft_iic_delay(dly_t);
     }
+    u8 ack = soft_iic_check_ack(iic);//1:有应答, 0:无
     local_irq_enable();
-    return soft_iic_check_ack(iic);//1:有应答, 0:无
+    return ack;
 }
 
 u8 soft_iic_rx_byte(soft_iic_dev iic, u8 ack)
@@ -267,7 +278,6 @@ u8 soft_iic_rx_byte(soft_iic_dev iic, u8 ack)
     u8 byte = 0;
 
     local_irq_disable();
-
     IIC_SDA_DIR(soft_iic_cfg_cache[iic].sda_io, 1);
 
     for (u32 i = 0; i < 8; i++) {
@@ -294,18 +304,18 @@ u8 soft_iic_rx_byte(soft_iic_dev iic, u8 ack)
     }
 
     local_irq_enable();
-
     return byte;
 }
 
 //return: =len:ok
 int soft_iic_read_buf(soft_iic_dev iic, void *buf, int len)
 {
+    int i = 0;
 
     if (!buf || !len) {
         return IIC_ERROR_PARAM_ERROR;
     }
-    for (u32 i = 0; i < len - 1; i++) {
+    for (i = 0; i < len - 1; i++) {
         ((u8 *)buf)[i] = soft_iic_rx_byte(iic, 1);
     }
     ((u8 *)buf)[len - 1] = soft_iic_rx_byte(iic, 0);
@@ -315,7 +325,7 @@ int soft_iic_read_buf(soft_iic_dev iic, void *buf, int len)
 //return: =len:ok
 int soft_iic_write_buf(soft_iic_dev iic, const void *buf, int len)
 {
-    u32 i;
+    int i;
     u8 ack;
 
     if (!buf || !len) {

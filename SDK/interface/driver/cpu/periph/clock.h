@@ -6,6 +6,11 @@
 #define KHz_UNIT	(1000L)
 #define MHz	        (1000000L)
 
+
+#define SYS_CLOCK_INPUT_BT_OSC      0
+#define SYS_CLOCK_INPUT_PLL_RCL     1
+
+
 enum pll_ref_source : u8 {
     PLL_REF_XOSC,       //外部晶振，单端模式
     PLL_REF_XOSC_DIFF,  //外部晶振，差分模式
@@ -13,6 +18,7 @@ enum pll_ref_source : u8 {
     PLL_REF_HRC,
     PLL_REF_RTC_OSC,
     PLL_REF_XCLK,
+    PLL_REF_STD24M,
 };
 
 ///VAD时钟源
@@ -36,6 +42,8 @@ enum pll_ref_source : u8 {
 #define     SYS_96M     (96 * MHz)
 #define     SYS_128M    (128 * MHz)
 #define     SYS_160M    (160 * MHz)
+
+#define     SPI0_MAX_CLK        (12 * MHz)
 
 void clock_dump(void);
 void clock_core_voltage_dump();
@@ -117,6 +125,8 @@ extern struct clock_critical_handler clock_critical_handler_end[];
 #define list_for_each_loop_clock_critical(h) \
 	for (h=clock_critical_handler_begin; h<clock_critical_handler_end; h++)
 
+
+#ifdef CLK_TREE_MODE
 extern struct clock_critical_handler hsb_critical_handler_begin[];
 extern struct clock_critical_handler hsb_critical_handler_end[];
 
@@ -139,6 +149,17 @@ extern struct clock_critical_handler lsb_critical_handler_end[];
 
 #define list_for_each_loop_lsb_critical(h) \
 	for (h=lsb_critical_handler_begin; h<lsb_critical_handler_end; h++)
+
+
+#else
+
+#define     HSB_CRITICAL_HANDLE_REG             CLOCK_CRITICAL_HANDLE_REG
+#define     list_for_each_loop_hsb_critical     list_for_each_loop_clock_critical
+
+#define     LSB_CRITICAL_HANDLE_REG             CLOCK_CRITICAL_HANDLE_REG
+#define     list_for_each_loop_lsb_critical     list_for_each_loop_clock_critical
+
+#endif
 
 
 

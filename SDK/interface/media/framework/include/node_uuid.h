@@ -9,6 +9,7 @@
 
 #define NODE_UUID_TONE              0x768A
 #define NODE_UUID_RING              0xCADC
+#define NODE_UUID_FILEPLAY          0XF03B
 #define NODE_UUID_KEY_TONE          0x8346
 #define NODE_UUID_EQ                0x737B
 #define NODE_UUID_SRC               0x1ECD
@@ -38,8 +39,12 @@
 #define NODE_UUID_CVP_DMS_HYBRID_DNS            0X5DF0
 #define NODE_UUID_CVP_DMS_AWN_DNS               0XF0C3
 #define NODE_UUID_CVP_DEVELOP		0X76EF
+#define NODE_UUID_CVP_V3			0X5FF6
+#define NODE_UUID_CVP_SMS_VF		0X299E
 #define NODE_UUID_AI_TX		      	0xDFDA
+#define NODE_UUID_AI_RX		      	0xDF98
 #define NODE_UUID_NOISE_SUPPRESSOR 	0x3BC9
+#define NODE_UUID_NOISE_SUPPRESSOR_LITE 0XFFF7
 #define NODE_UUID_SURROUND_DEMO		0x3F20
 #define NODE_UUID_AUTOMUTE          0X86B9
 #define NODE_UUID_LINEIN            0X0624
@@ -64,6 +69,8 @@
 #define NODE_UUID_SWITCH            0x2357
 #define NODE_UUID_LOCAL_TWS_SOURCE  0xD45F
 #define NODE_UUID_LOCAL_TWS_SINK  	0x7303
+#define NODE_UUID_TDM_TX            0xB455
+#define NODE_UUID_TDM_RX            0xB413
 
 /*通话CVP子模块UUID*/
 #define NODE_UUID_AEC				0xA9CE
@@ -138,6 +145,7 @@
 #define NODE_UUID_PINGPONG_PCM_DELAY       0xF936//pingpong延时
 #define NODE_UUID_THREE_D                  0x8c21 //three d
 #define NODE_UUID_LLNS                     0x9FE //低延时降噪
+#define NODE_UUID_LLNS_DNS                 0x1CA2 //低延时降噪(神经网络)
 #define NODE_UUID_FADE                     0x1BF5//淡入
 
 #define NODE_UUID_SOURCE_DEV0              0x8FC4//自定义源节点0
@@ -158,6 +166,8 @@
 #define NODE_UUID_HOWLING_GATE             0x30BE//啸叫门限
 #define NODE_UUID_MULTI_CH_IIS0_TX          0xF7FC//多通道iis0
 #define NODE_UUID_MULTI_CH_IIS1_TX          0x845D//多通道iis1
+#define NODE_UUID_MULTI_CH_TDM_TX          	0x4FEC//多通道TDM
+#define NODE_UUID_MULTI_CH_TDM_RX          	0x4FAA//多通道TDM接收
 #define NODE_UUID_MDRC                     0x74CB//多带DRC
 
 #define NODE_UUID_DATA_EXPORT 			   0xDE61//数据导出节点
@@ -179,5 +189,19 @@
 #define NODE_UUID_REPLACE                  0xb5e1
 #define NODE_UUID_SIGNAL_GENERATOR         0x225d
 #define NODE_UUID_REVERB                   0x24AB//混响V2
+#define NODE_UUID_SPLIT_GAIN               0x2A10
+#define NODE_UUID_VIRTUAL_BASS_CLASSIC     0x55C9//virtual bass classic
+#define NODE_UUID_FLANGER                  0xBC44
+#define NODE_UUID_PHASER                   0xD2E8
+#define NODE_UUID_CHORUS_ADVANCE           0x7C2B
+#define NODE_UUID_PINGPONG_ECHO            0xAB66
+#define NODE_UUID_STEREO_SPATIAL_WIDER     0x6700
+#define NODE_UUID_DISTORTION_CLIPPING      0x97AA
+#define NODE_UUID_FREQUENCY_COMPRESSOR     0xBFE4
+#define NODE_UUID_SPATIAL_ADV              0xA64E//空间音频封装
+#define NODE_UUID_LHDC_X                   0x65C5//LHDC-X空间音效
+#define NODE_UUID_VIRTUAL_BASS_PRO         0x02E6//虚拟低音pro算法内部集成，封装节点换成普通节点
+#define NODE_UUID_VIRTUAL_SURROUND_HP      0XDCD4//虚拟环绕音（耳机适用）
+
 
 #endif

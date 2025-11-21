@@ -12,6 +12,7 @@
 #include "le_audio_stream.h"
 #include "reference_time.h"
 #include "app_config.h"
+#include "sync/audio_syncts.h"
 
 #if LE_AUDIO_STREAM_ENABLE
 
@@ -60,6 +61,10 @@ static enum stream_node_state le_audio_get_frame(void *file, struct stream_frame
     le_audio_stream_free_frame(hdl->file, le_audio_frame);
     *pframe = frame;
 
+    if (le_audio_stream_get_frame_num(hdl->file) == 0) {
+        return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
+    }
+
     return NODE_STA_RUN;
 
 }
@@ -69,6 +74,7 @@ static void *le_audio_file_init(void *priv, struct stream_node *node)
     struct le_audio_file_handle *hdl = (struct le_audio_file_handle *)zalloc(sizeof(struct le_audio_file_handle));
 
     hdl->node = node;
+    node->type |= NODE_TYPE_FLOW_CTRL ;
 
     return hdl;
 }
@@ -83,7 +89,11 @@ static void le_audio_rx_tick_handler(void *priv)
 {
     struct le_audio_file_handle *hdl = (struct le_audio_file_handle *)priv;
 
-    if (hdl->start && (hdl->node->state & NODE_STA_SOURCE_NO_DATA)) {
+    if (hdl->start) {
+        if (!(hdl->node->type & NODE_TYPE_IRQ) &&
+            !(hdl->node->state & NODE_STA_SOURCE_NO_DATA)) {
+            return;
+        }
         jlstream_wakeup_thread(NULL, hdl->node, NULL);
     }
 }
@@ -150,6 +160,7 @@ static int le_audio_file_ioctl(void *file, int cmd, int arg)
         break;
     case NODE_IOC_GET_FMT:
         le_audio_file_get_fmt(hdl, (struct stream_fmt *)arg);
+        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, AUDIO_NETWORK_BLE);
         break;
     case NODE_IOC_START:
         le_audio_file_start(hdl);

@@ -17,7 +17,7 @@
 #include "system/includes.h"
 #include "app_config.h"
 #include "audio_cvp.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "app_main.h"
 #include "audio_config.h"
 #include "esco_recoder.h"

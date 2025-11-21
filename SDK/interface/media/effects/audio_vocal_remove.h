@@ -5,13 +5,6 @@
 #include "media/includes.h"
 #include "effects/audio_eq.h"
 
-enum {
-    BYPASS_OFF = 0,
-    BYPASS_ON,
-    FADE_BYPASS_OFF,
-    FADE_BYPASS_ON,
-};
-
 typedef struct _VOCAL_REMOVE_PARM {
     u32 low_cut_en;
     u32 low_cut_freq;

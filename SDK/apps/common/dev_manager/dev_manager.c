@@ -44,7 +44,6 @@ int __dev_manager_add(char *logo, u8 need_mount)
 	if (logo == NULL) {
 		return DEV_MANAGER_ADD_ERR_PARM;
 	}
-	int i;
 	printf("%s add start\n", logo);
 	struct __dev_reg *p = NULL;
 	struct __dev_reg *n;
@@ -1077,6 +1076,12 @@ static void dev_manager_task(void *p)
     set_rec_capacity(512*1024);//需要先设置容量,注意要小于Ini文件设置大小.
     _sdfile_rec_init();
 	dev_manager_add("rec_sdfile");
+#endif
+
+#if TCFG_NANDFLASH_DEV_ENABLE
+    //格式化demo
+    //f_format("nandflash_ftl", "fat", 4096)
+    dev_manager_add("nandflash_ftl");
 #endif
 
 	os_sem_post(&__this->sem);

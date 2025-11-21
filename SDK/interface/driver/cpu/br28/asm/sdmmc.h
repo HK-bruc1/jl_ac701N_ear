@@ -5,7 +5,7 @@
 #include "device/sdmmc/sdmmc.h"
 
 struct sdmmc_platform_data {
-    char port[6];
+    u8 port[6];
     u8 irq;
     u8 data_width;
     u8 priority;

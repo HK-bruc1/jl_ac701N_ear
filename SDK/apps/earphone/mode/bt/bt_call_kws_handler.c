@@ -8,28 +8,48 @@
 #include "app_main.h"
 #include "jl_kws/jl_kws_api.h"
 #include "app_config.h"
-#include "audio_cvp.h"
+#include "audio_aec.h"
 #include "smart_voice.h"
 #include "esco_player.h"
 
+#if (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_AIS)
+#include "aispeech_asr.h"
+#endif/*ASR_CFG_AIS*/
+#if (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_USER_DEFINED)
+#include "user_asr.h"
+#endif/*ASR_CFG_USER_DEFINED*/
+
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE || TCFG_CALL_KWS_SWITCH_ENABLE
+
+static u16 jl_call_status;
+
+u16 jl_call_kws_get_status()
+{
+    return jl_call_status;
+}
+
 static void jl_call_kws_handler(int event)
 {
     if (event == BT_STATUS_PHONE_INCOME) {
+        jl_call_status = BT_STATUS_PHONE_INCOME;
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
-        audio_aec_reboot(1);
+        acoustic_echo_cancel_reboot(1);
         jl_kws_speech_recognition_open();
         jl_kws_speech_recognition_start();
 #endif
 
 #if TCFG_CALL_KWS_SWITCH_ENABLE
-        audio_aec_reboot(1);
+        acoustic_echo_cancel_reboot(1);
         audio_phone_call_kws_start();
 #endif /* #if TCFG_CALL_KWS_SWITCH_ENABLE */
     } else if (event == BT_STATUS_PHONE_ACTIVE) {
+        jl_call_status = BT_STATUS_PHONE_ACTIVE;
+#if ((defined TCFG_AUDIO_ASR_DEVELOP) && (TCFG_AUDIO_ASR_DEVELOP == ASR_CFG_USER_DEFINED))/*用户自定义算法*/
+        user_platform_asr_close();
+#endif
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
         jl_kws_speech_recognition_close();
-        audio_aec_reboot(0);
+        acoustic_echo_cancel_reboot(0);
 #endif
 #ifdef CONFIG_BOARD_AISPEECH_VAD_ASR
         printf("----aispeech_state phone active");
@@ -38,9 +58,10 @@ static void jl_call_kws_handler(int event)
 #endif /*CONFIG_BOARD_AISPEECH_VAD_ASR*/
 #if TCFG_CALL_KWS_SWITCH_ENABLE
         audio_smart_voice_detect_close();
-        audio_aec_reboot(0);
+        acoustic_echo_cancel_reboot(0);
 #endif /* TCFG_CALL_KWS_SWITCH_ENABLE */
     } else if (event == BT_STATUS_PHONE_HANGUP) {
+        jl_call_status = BT_STATUS_PHONE_HANGUP;
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
         jl_kws_speech_recognition_close();
 #endif

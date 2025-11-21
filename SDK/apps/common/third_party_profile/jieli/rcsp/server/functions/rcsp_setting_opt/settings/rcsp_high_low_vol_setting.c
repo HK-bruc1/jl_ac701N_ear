@@ -13,6 +13,7 @@
 
 #include "JL_rcsp_protocol.h"
 #include "effects/audio_bass_treble_eq.h"
+#include "effects/eq_config.h"
 
 #if (RCSP_MODE && RCSP_ADV_HIGH_LOW_SET && TCFG_BASS_TREBLE_NODE_ENABLE)
 
@@ -61,12 +62,22 @@ static void high_low_vol_state_update(void)
     struct high_bass param = {0};
     if (low_vol != high_low_vol.low_vol) {
         param.gain = high_low_vol.low_vol - 12;
+#if 0
         mix_out_high_bass(AUDIO_EQ_BASS, &param);
+#else
+        //printf("low vol %d gain %d\n",high_low_vol.low_vol,param.gain);
+        eq_mode_set_custom_param(2, param.gain);
+#endif
         low_vol = high_low_vol.low_vol;
     }
     if (high_vol != high_low_vol.high_vol) {
         param.gain = high_low_vol.high_vol - 12;
+#if 0
         mix_out_high_bass(AUDIO_EQ_HIGH, &param);
+#else
+        //printf("high vol %d gain %d\n",high_low_vol.high_vol,param.gain);
+        eq_mode_set_custom_param(8, param.gain);
+#endif
         high_vol = high_low_vol.high_vol;
     }
 }

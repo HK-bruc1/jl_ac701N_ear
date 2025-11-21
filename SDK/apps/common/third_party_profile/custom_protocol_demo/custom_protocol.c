@@ -1,6 +1,6 @@
 #include "sdk_config.h"
 #include "app_msg.h"
-#include "earphone.h"
+// #include "earphone.h"
 #include "bt_tws.h"
 #include "app_main.h"
 #include "btstack/avctp_user.h"
@@ -11,6 +11,13 @@
 
 void *custom_demo_ble_hdl = NULL;
 void *custom_demo_spp_hdl = NULL;
+
+#if ATT_OVER_EDR_DEMO_EN
+void *att_over_edr_hdl = NULL;
+#define EDR_ATT_HDL_UUID \
+	(((u8)('E' + 'D' + 'R') << (1 * 8)) | \
+	 ((u8)('A' + 'T' + 'T') << (0 * 8)))
+#endif
 
 /*************************************************
                   BLE 相关内容
@@ -121,7 +128,7 @@ static uint16_t custom_att_read_callback(void *hdl, hci_con_handle_t connection_
         break;
     case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
         if (buffer) {
-            buffer[0] = att_get_ccc_config(handle);
+            buffer[0] = multi_att_get_ccc_config(connection_handle, handle);
             buffer[1] = 0;
         }
         att_value_len = 2;
@@ -151,7 +158,7 @@ static int custom_att_write_callback(void *hdl, hci_con_handle_t connection_hand
         break;
     case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
         printf("\nwrite ccc:%04x, %02x\n", handle, buffer[0]);
-        att_set_ccc_config(handle, buffer[0]);
+        multi_att_set_ccc_config(connection_handle, handle, buffer[0]);
         break;
     default:
         break;
@@ -216,6 +223,21 @@ int custom_demo_ble_send(u8 *data, u32 len)
     }
     return ret;
 }
+
+#if ATT_OVER_EDR_DEMO_EN
+int custom_demo_gatt_over_edr_send(u8 *data, u32 len)
+{
+    int ret = 0;
+    int i;
+    printf("custom_demo_ble_send len = %d", len);
+    put_buf(data, len);
+    ret = app_ble_att_send_data(att_over_edr_hdl, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, data, len, ATT_OP_AUTO_READ_CCC);
+    if (ret) {
+        printf("send fail\n");
+    }
+    return ret;
+}
+#endif
 /*************************************************
                   BLE 相关内容 end
 *************************************************/
@@ -235,6 +257,7 @@ static void custom_spp_state_callback(void *hdl, void *remote_addr, u8 state)
         break;
     case SPP_USER_ST_DISCONN:
         printf("custom spp disconnect#########\n");
+        app_spp_clean_filter_remote_addr(custom_demo_spp_hdl);
         break;
     };
 }
@@ -257,6 +280,18 @@ int custom_demo_spp_send(u8 *data, u32 len)
                   SPP 相关内容 end
 *************************************************/
 
+#define CUSTOM_BLE_HDL_UUID \
+    (((u8)('C' + 'U' + 'S') << (3 * 8)) | \
+     ((u8)('T' + 'O' + 'M') << (2 * 8)) | \
+     ((u8)('B' + 'L' + 'E') << (1 * 8)) | \
+     ((u8)('H' + 'D' + 'L') << (0 * 8)))
+
+#define CUSTOM_SPP_HDL_UUID \
+    (((u8)('C' + 'U' + 'S') << (3 * 8)) | \
+     ((u8)('T' + 'O' + 'M') << (2 * 8)) | \
+     ((u8)('S' + 'P' + 'P') << (1 * 8)) | \
+     ((u8)('H' + 'D' + 'L') << (0 * 8)))
+
 void custom_demo_all_init(void)
 {
     printf("custom_demo_all_init\n");
@@ -271,6 +306,7 @@ void custom_demo_all_init(void)
             printf("custom_demo_ble_hdl alloc err !\n");
             return;
         }
+        app_ble_hdl_uuid_set(custom_demo_ble_hdl, CUSTOM_BLE_HDL_UUID);
         app_ble_set_mac_addr(custom_demo_ble_hdl, (void *)edr_addr);
         app_ble_profile_set(custom_demo_ble_hdl, custom_demo_profile_data);
         app_ble_att_read_callback_register(custom_demo_ble_hdl, custom_att_read_callback);
@@ -290,11 +326,32 @@ void custom_demo_all_init(void)
             printf("custom_demo_spp_hdl alloc err !\n");
             return;
         }
+        app_spp_hdl_uuid_set(custom_demo_spp_hdl, CUSTOM_SPP_HDL_UUID);
         app_spp_recieve_callback_register(custom_demo_spp_hdl, custom_spp_recieve_callback);
         app_spp_state_callback_register(custom_demo_spp_hdl, custom_spp_state_callback);
         app_spp_wakeup_callback_register(custom_demo_spp_hdl, NULL);
     }
     // SPP init end
+
+#if ATT_OVER_EDR_DEMO_EN
+    // att_over_edr init
+    if (att_over_edr_hdl == NULL) {
+        att_over_edr_hdl = app_ble_hdl_alloc();
+        if (att_over_edr_hdl == NULL) {
+            printf("att_over_edr_hdl alloc err !\n");
+            return;
+        }
+        app_ble_profile_set(att_over_edr_hdl, custom_demo_profile_data);
+        app_ble_adv_address_type_set(att_over_edr_hdl, 0);
+        app_ble_gatt_over_edr_connect_type_set(att_over_edr_hdl, 1);
+        app_ble_hdl_uuid_set(att_over_edr_hdl, EDR_ATT_HDL_UUID);
+        app_ble_att_read_callback_register(att_over_edr_hdl, custom_att_read_callback);
+        app_ble_att_write_callback_register(att_over_edr_hdl, custom_att_write_callback);
+        app_ble_att_server_packet_handler_register(att_over_edr_hdl, custom_cbk_packet_handler);
+        app_ble_hci_event_callback_register(att_over_edr_hdl, custom_cbk_packet_handler);
+        app_ble_l2cap_packet_handler_register(att_over_edr_hdl, custom_cbk_packet_handler);
+    }
+#endif
 }
 
 void custom_demo_all_exit(void)
@@ -314,6 +371,15 @@ void custom_demo_all_exit(void)
     }
     app_spp_hdl_free(custom_demo_spp_hdl);
     custom_demo_spp_hdl = NULL;
+
+#if ATT_OVER_EDR_DEMO_EN
+    // gatt over edr exit
+    if (app_ble_get_hdl_con_handle(att_over_edr_hdl)) {
+        app_ble_disconnect(att_over_edr_hdl);
+    }
+    app_ble_hdl_free(att_over_edr_hdl);
+    att_over_edr_hdl = NULL;
+#endif
 }
 
 #endif

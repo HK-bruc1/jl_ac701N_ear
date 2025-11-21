@@ -88,9 +88,9 @@ static int ui_app_msg_handler(int *msg)
         // 等待手机连接状态
         log_info("APP_MSG_BT_IN_PAIRING_MODE\n");
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-        if (!bt_get_total_connect_dev() && !is_cig_phone_conn() && !is_cig_other_phone_conn()) {
+        if ((bt_get_total_connect_dev() == 0) && !is_cig_phone_conn() && !is_cig_other_phone_conn() && !app_var.goto_poweroff_flag) {
 #else
-        if (bt_get_total_connect_dev() == 0) {
+        if ((bt_get_total_connect_dev() == 0) && !app_var.goto_poweroff_flag) {
 #endif
             led_ui_set_state(LED_STA_BLUE_FLASH_1TIMES_PER_1S, DISP_TWS_SYNC);
         }
@@ -177,10 +177,12 @@ static int led_ui_app_connected_conn_status_event_handler(int *msg)
         break;
     case CIG_EVENT_ACL_DISCONNECT:
         break;
+    case CIG_EVENT_JL_DONGLE_CONNECT:
     case CIG_EVENT_PHONE_CONNECT:
         log_info("CIG_EVENT_PHONE_CONNECT\n");
         led_ui_set_state(LED_STA_BLUE_ON_1S, DISP_NON_INTR);
         break;
+    case CIG_EVENT_JL_DONGLE_DISCONNECT:
     case CIG_EVENT_PHONE_DISCONNECT:
         break;
     default:

@@ -73,7 +73,7 @@
  *点烟器需要做延时估计
  *其他的暂时不需要做
  */
-const u8 CONST_AEC_DLY_EST = 0;
+//const u8 CONST_AEC_DLY_EST = 0;
 
 /*骨传导配置*/
 const u8 CONST_BONE_CONDUCTION_ENABLE = 0;	/*骨传导使能*/
@@ -106,9 +106,9 @@ const u8 CONST_DMS_VERSION = DMS_V200;
 
 /********DNS配置********/
 /* SNR估计,可以实现场景适配 */
-const u8 CONST_DNS_SNR_EST = 0;//注意：双麦没有该功能
+//const u8 CONST_DNS_SNR_EST = 0;//注意：双麦没有该功能
 /* DNS后处理 */
-const u8 CONST_DNS_POST_ENHANCE = 0;
+//const u8 CONST_DNS_POST_ENHANCE = 0;
 /*
  *风噪自适应GainFloor使能控制
  *0:关闭, 1:开启
@@ -129,6 +129,13 @@ const u8 CONST_DMS_WINDREPLACE = 1;
  */
 const u8 CONST_DMS_REF_MIC_AEC_ENABLE = 0;
 
+/*
+ * 2mic-hybrid在线调音EQ选择
+ * 0 : 更新fb eq曲线,调融合EQ(可视化界面->noise_level_db_T0设置90)
+ * 1 : 更新talk eq曲线,调非融合EQ (可视化界面->noise_level_db_T0设置10)
+ */
+const u8 CONST_DMS_HYBRID_ONLINE_TYPE = 1;
+
 //**************************DMS_GLOBAL_V100配置 end*******************************//
 
 //*********************************************************************************//
@@ -142,7 +149,10 @@ const u8 CONST_DMS_REF_MIC_AEC_ENABLE = 0;
  双麦耳机使用ans时,需要配置使用DMS_GLOBAL_V100
  话务耳机使用dns时,需要配置使用DMS_GLOBAL_V100
  */
-#if ((TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200) && (TCFG_AUDIO_DMS_SEL == DMS_NORMAL) && (TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE))
+#if (TCFG_AUDIO_CVP_DMS_DNS_MODE && TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+//话务耳机DNS和Beamforming DNS共存时，仅支持V100算法
+const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V100;
+#elif ((TCFG_AUDIO_DMS_GLOBAL_VERSION == DMS_GLOBAL_V200) && (TCFG_AUDIO_DMS_SEL == DMS_NORMAL) && (TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE))
 const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V200;
 #else
 const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V100;
@@ -154,7 +164,7 @@ const u8 CONST_DMS_GLOBAL_VERSION = DMS_GLOBAL_V100;
  * JLSP_NLP_MODE2: 模式2下回声信号会先经过AEC线性压制，然后进行NLP非线性压制
  *                 此模式NLP不能单独打开需要同时打开AEC,使用AEC模块压制不够时，建议开启该模式
  */
-const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
+//const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
 
 /*
  * 风噪降噪模式选择
@@ -174,45 +184,7 @@ __attribute__((weak))u32 usb_mic_is_running()
     return 0;
 }
 
-/*复用lmp rx buf(一般通话的时候复用)
- *rx_buf概率产生碎片，导致alloc失败，因此默认配0
- */
-#define MALLOC_MULTIPLEX_EN		0
-extern void *lmp_malloc(int);
-extern void lmp_free(void *);
-void *zalloc_mux(int size)
-{
-#if MALLOC_MULTIPLEX_EN
-    void *p = NULL;
-    do {
-        p = lmp_malloc(size);
-        if (p) {
-            break;
-        }
-        printf("aec_malloc wait...\n");
-        os_time_dly(2);
-    } while (1);
-    if (p) {
-        memset(p, 0, size);
-    }
-    printf("[malloc_mux]p = 0x%x,size = %d\n", p, size);
-    return p;
-#else
-    return zalloc(size);
-#endif
-}
-
-void free_mux(void *p)
-{
-#if MALLOC_MULTIPLEX_EN
-    printf("[free_mux]p = 0x%x\n", p);
-    lmp_free(p);
-#else
-    free(p);
-#endif
-}
-
-struct audio_aec_hdl {
+struct cvp_dms_hdl {
     u8 start;				//aec模块状态
     u8 inbuf_clear_cnt;		//aec输入数据丢掉
     u8 output_fade_in;		//aec输出淡入使能
@@ -225,19 +197,27 @@ struct audio_aec_hdl {
 #endif
     struct dms_attr attr;	//aec模块参数属性
     struct audio_cvp_pre_param_t pre;	//预处理配置
-    void *transfer_func;
+    const struct cvp_2mic_adapter *adapter;
 };
+
+struct dms_hybrid_coeff_format {
+    u16 length;
+    u16 mix_flag;
+    u16 fft_size;
+    u16 sample_rate;
+};
+
 #if AEC_USER_MALLOC_ENABLE
-struct audio_aec_hdl *aec_hdl = NULL;
+struct cvp_dms_hdl *cvp_dms = NULL;
 #else
-struct audio_aec_hdl aec_handle;
-struct audio_aec_hdl *aec_hdl = &aec_handle;
+struct cvp_dms_hdl cvp_dms_handle;
+struct cvp_dms_hdl *cvp_dms = &cvp_dms_handle;
 #endif/*AEC_USER_MALLOC_ENABLE*/
 
 int audio_cvp_probe_param_update(struct audio_cvp_pre_param_t *cfg)
 {
-    if (aec_hdl) {
-        aec_hdl->pre = *cfg;
+    if (cvp_dms) {
+        cvp_dms->pre = *cfg;
     }
     return 0;
 }
@@ -272,15 +252,21 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
     }
 #endif
 
-    if (aec_hdl->pre.pre_gain_en) {
-        GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
-        GainProcess_16Bit(talk_ref_mic, talk_ref_mic, aec_hdl->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
+    if (cvp_dms->pre.pre_gain_en) {
+        GainProcess_16Bit(talk_mic, talk_mic, cvp_dms->pre.talk_mic_gain, 1, 1, 1, len >> 1);
+        GainProcess_16Bit(talk_ref_mic, talk_ref_mic, cvp_dms->pre.talk_ref_mic_gain, 1, 1, 1, len >> 1);
     }
 #if TCFG_SUPPORT_MIC_CAPLESS
-    if (aec_hdl->dcc_hdl) {
-        audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
+    if (cvp_dms->dcc_hdl) {
+        audio_dc_offset_remove_run(cvp_dms->dcc_hdl, (void *)talk_mic, len);
     }
 #endif
+    if (cvp_dms->inbuf_clear_cnt) {
+        cvp_dms->inbuf_clear_cnt--;
+        memset(talk_mic, 0, len);
+        memset(talk_ref_mic, 0, len);
+    }
+
     return 0;
 }
 
@@ -312,7 +298,7 @@ static void sys_memory_trace(void)
 
 int audio_aec_sync_buffer_set(s16 *data, int len)
 {
-    return cvp_node_output_handle(data, len);
+    return cvp_dms_node_output_handle(data, len);
 }
 /*
  *********************************************************************
@@ -339,20 +325,20 @@ static int audio_aec_output(s16 *data, u16 len)
     sys_memory_trace();
 #endif/*CVP_MEM_TRACE_ENABLE*/
 
-    if (aec_hdl->dump_packet) {
-        aec_hdl->dump_packet--;
+    if (cvp_dms->dump_packet) {
+        cvp_dms->dump_packet--;
         memset(data, 0, len);
     } else  {
-        if (aec_hdl->output_fade_in) {
+        if (cvp_dms->output_fade_in) {
             s32 tmp_data;
-            //printf("fade:%d\n",aec_hdl->output_fade_in_gain);
+            //printf("fade:%d\n",cvp_dms->output_fade_in_gain);
             for (int i = 0; i < len / 2; i++) {
                 tmp_data = data[i];
-                data[i] = tmp_data * aec_hdl->output_fade_in_gain >> 7;
+                data[i] = tmp_data * cvp_dms->output_fade_in_gain >> 7;
             }
-            aec_hdl->output_fade_in_gain += 12;
-            if (aec_hdl->output_fade_in_gain >= 128) {
-                aec_hdl->output_fade_in = 0;
+            cvp_dms->output_fade_in_gain += 12;
+            if (cvp_dms->output_fade_in_gain >= 128) {
+                cvp_dms->output_fade_in = 0;
             }
         }
     }
@@ -360,7 +346,7 @@ static int audio_aec_output(s16 *data, u16 len)
     audio_cvp_sync_run(data, len);
     return len;
 #endif/*TCFG_AUDIO_CVP_SYNC*/
-    return cvp_node_output_handle(data, len);
+    return cvp_dms_node_output_handle(data, len);
 }
 
 /*
@@ -373,12 +359,13 @@ static int audio_aec_output(s16 *data, u16 len)
 *			   认参数配置
 *********************************************************************
 */
-static void audio_aec_param_init(struct dms_attr *p)
+__CVP_BANK_CODE
+static void audio_aec_param_init(struct dms_attr *p, u16 node_uuid)
 {
     int ret = 0;
     AEC_DMS_CONFIG cfg;
     //读取工具配置参数+预处理参数
-    ret = cvp_node_param_cfg_read(&cfg, 0);
+    ret = cvp_dms_node_param_cfg_read(&cfg, 0, node_uuid);
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
     //APP在线调试，APP参数覆盖工具配置参数(不覆盖预处理参数)
     ret = aec_cfg_online_update_fill(&cfg, sizeof(AEC_DMS_CONFIG));
@@ -521,15 +508,16 @@ static void audio_aec_param_init(struct dms_attr *p)
         p->Bone_AEC_Process_MinFrequency  = 100;
     }
 
-    //aec_param_dump(p);
+    //cvp_dms_param_dump(p,DMS_NORMAL);
 }
 
-static void audio_dms_flexible_param_init(struct dms_attr *p)
+__CVP_BANK_CODE
+static void audio_dms_flexible_param_init(struct dms_attr *p, u16 node_uuid)
 {
     int ret = 0;
     DMS_FLEXIBLE_CONFIG cfg;
     //读取工具配置参数+预处理参数
-    ret = cvp_node_param_cfg_read(&cfg, 0);
+    ret = cvp_dms_node_param_cfg_read(&cfg, 0, node_uuid);
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
     ret = aec_cfg_online_update_fill(&cfg, sizeof(DMS_FLEXIBLE_CONFIG));
 #endif/*TCFG_AEC_TOOL_ONLINE_ENABLE*/
@@ -625,21 +613,60 @@ static void audio_dms_flexible_param_init(struct dms_attr *p)
 
     p->AGC_echo_hold = 0;
     p->AGC_echo_look_ahead = 0;
-    //aec_param_dump(p);
+    //cvp_dms_param_dump(p,DMS_FLEXIBLE);
 }
 
-#define AUDIO_DMS_HYBRID_COEFF_FILE 	(FLASH_RES_PATH"dms_hybrid.bin")
-void *read_dms_hybrid_mic_coeff()
+enum cvp_coeff_type {
+    EQ,
+    REF_EQ,
+};
+char *cvp_coeff_name[] = {"EQ", "REF_EQ"};
+
+#define AUDIO_DMS_HYBRID_TALK_COEFF_FILE 	(FLASH_RES_PATH"TALK_Coeff.bin")
+#define AUDIO_DMS_HYBRID_FB_COEFF_FILE 		(FLASH_RES_PATH"DNSFB_Coeff.bin")
+void *dms_hybrid_coeff_get_mag(void *hdl, enum cvp_coeff_type type)
 {
-    if (aec_hdl == NULL) {
+    printf("received type: %s\n", cvp_coeff_name[type]);
+    if (!hdl) {
         return NULL;
     }
+    int coeff_offset = 0;
+    struct dms_hybrid_coeff_format *coeff_format = (struct dms_hybrid_coeff_format *)hdl;
+    u8 *hdl_data = (u8 *)hdl;
+    u8 coeff_algo_type = coeff_format->mix_flag & 0xF;          // 算法类型
+    int eq_points = (coeff_format->fft_size >> 1) + 1;
+
+    if (type == REF_EQ) {
+        coeff_offset = 2;
+    } else {
+        coeff_offset = 2 + eq_points ;
+    }
+    float *coeff_file = (float *)zalloc(eq_points * sizeof(float));
+    if (!coeff_file) {
+        printf("[error] zalloc coeff_file failed\n");
+        return NULL;
+    }
+    float *coeff_file_offset = (float *)hdl_data + coeff_offset;
+
+    for (int i = 0; i < eq_points; i++) {
+        coeff_file[i] = eq_db2mag(coeff_file_offset[i]);
+    }
+    return coeff_file;
+
+}
+
+void *read_dms_hybrid_mic_coeff(const char *file)
+{
+    if (cvp_dms == NULL) {
+        return NULL;
+    }
+    void *tmp_coeff_file = NULL;
     RESFILE *fp = NULL;
     u32 param_len = 0;
     //===============================//
     //          打开参数文件         //
     //===============================//
-    fp = resfile_open(AUDIO_DMS_HYBRID_COEFF_FILE);
+    fp = resfile_open(file);
     if (!fp) {
         printf("[err] open dms_hybrid.bin fail !!!");
         return NULL;
@@ -649,27 +676,32 @@ void *read_dms_hybrid_mic_coeff()
     printf("param_len %d", param_len);
 
     if (param_len) {
-        aec_hdl->transfer_func = zalloc(param_len);
+        tmp_coeff_file = zalloc(param_len);
     }
-    if (aec_hdl->transfer_func == NULL) {
+    if (tmp_coeff_file == NULL) {
+        resfile_close(fp);
         return NULL;
     }
     /* resfile_seek(fp, ptr, RESFILE_SEEK_SET); */
-    int rlen = resfile_read(fp, aec_hdl->transfer_func, param_len);
+    int rlen = resfile_read(fp, tmp_coeff_file, param_len);
     if (rlen != param_len) {
         printf("[error] read dms_hybrid.bin err !!! %d =! %d", rlen, param_len);
+        free(tmp_coeff_file);
+        tmp_coeff_file = NULL;
+        resfile_close(fp);
         return NULL;
     }
     resfile_close(fp);
-    return aec_hdl->transfer_func;
+    return tmp_coeff_file;
 }
 
-static void audio_dms_hybrid_param_init(struct dms_attr *p)
+__CVP_BANK_CODE
+static void audio_dms_hybrid_param_init(struct dms_attr *p, u16 node_uuid)
 {
     int ret = 0;
     DMS_HYBRID_CONFIG cfg;
     //读取工具配置参数+预处理参数
-    ret = cvp_node_param_cfg_read(&cfg, 0);
+    ret = cvp_dms_node_param_cfg_read(&cfg, 0, node_uuid);
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
     ret = aec_cfg_online_update_fill(&cfg, sizeof(DMS_HYBRID_CONFIG));
 #endif/*TCFG_AEC_TOOL_ONLINE_ENABLE*/
@@ -712,13 +744,14 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p)
         p->aggressfactor = cfg.aggressfactor;
         p->minsuppress = cfg.minsuppress;
         p->init_noise_lvl = cfg.init_noise_lvl;
+        p->compensate = cfg.compensate;
 
         p->FB_EnableBit = AEC_EN | NLP_EN;
         p->enc_process_maxfreq = cfg.enc_process_maxfreq;
         p->enc_process_minfreq = cfg.enc_process_minfreq;//sir设定阈值
-        p->snr_db_T0 = cfg.snr_db_T0;//sir设定阈值
-        p->snr_db_T1 = cfg.snr_db_T1;//sir设定阈值
-        p->floor_noise_db_T = cfg.floor_noise_db_T;
+        p->noise_level_db_T0 = cfg.noise_level_db_T0;
+        p->noise_level_db_T1 = cfg.noise_level_db_T1;
+
         p->compen_db = cfg.compen_db;//mic补偿增益
 
         p->coh_val_T = cfg.coh_val_T;
@@ -763,13 +796,13 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p)
         p->aggressfactor = 1.0f;
         p->minsuppress = 0.1f;
         p->init_noise_lvl = -75.f;
+        p->compensate = 16.0f;
 
         p->FB_EnableBit = AEC_EN | NLP_EN;
         p->enc_process_maxfreq = 8000;
         p->enc_process_minfreq = 0;//sir设定阈值
-        p->snr_db_T0 = 0.0f;//sir设定阈值
-        p->snr_db_T1 = 5.5f;//sir设定阈值
-        p->floor_noise_db_T = 55.0f;
+        p->noise_level_db_T0 = 55.0f;
+        p->noise_level_db_T1 = 65.0f;
         p->compen_db = 12.f;//mic补偿增益
 
         p->coh_val_T = 0.85f;
@@ -783,24 +816,36 @@ static void audio_dms_hybrid_param_init(struct dms_attr *p)
     log_info("DMS_HYBRID:WNC[%d] AEC[%d] NLP[%d] NS[%d] ENC[%d] AGC[%d] WNC[%d]", !!(p->EnableBit & WNC_EN), !!(p->EnableBit & AEC_EN), !!(p->EnableBit & NLP_EN), !!(p->EnableBit & ANS_EN), !!(p->EnableBit & ENC_EN), !!(p->EnableBit & AGC_EN), !!(p->EnableBit & WNC_EN));
 
     /* p->transfer_func = (float *)fb2talk_eq; */
-    p->transfer_func = read_dms_hybrid_mic_coeff();
-    if (p->transfer_func) {
-        printf("dms_hybrid_coeff read ok %x", (int)p->transfer_func);
+    void *dms_hybrid_talk_coeff;//非融合指针
+    dms_hybrid_talk_coeff = read_dms_hybrid_mic_coeff(AUDIO_DMS_HYBRID_TALK_COEFF_FILE);
+    if (dms_hybrid_talk_coeff) {
+        printf("dms_hybrid_talk_coeff read ok %x", (int)dms_hybrid_talk_coeff);
     }
+    p->filter_eq = dms_hybrid_coeff_get_mag(dms_hybrid_talk_coeff, REF_EQ);
 
+    void *dms_hybrid_fb_coeff;//融合指针
+    dms_hybrid_fb_coeff = read_dms_hybrid_mic_coeff(AUDIO_DMS_HYBRID_FB_COEFF_FILE);
+    if (dms_hybrid_fb_coeff) {
+        printf("dms_hybrid_fb_coeff read ok %x", (int)dms_hybrid_fb_coeff);
+    }
+    p->transfer_func = dms_hybrid_coeff_get_mag(dms_hybrid_fb_coeff, REF_EQ);
+
+    free(dms_hybrid_talk_coeff);
+    free(dms_hybrid_fb_coeff);
     p->AGC_echo_hold = 0;
     p->AGC_echo_look_ahead = 0;
 
-    //aec_param_dump(p);
+    //cvp_dms_param_dump(p,DMS_HYBRID);
 }
 
 
-static void audio_dms_awn_param_init(struct dms_attr *p)
+__CVP_BANK_CODE
+static void audio_dms_awn_param_init(struct dms_attr *p, u16 node_uuid)
 {
     int ret = 0;
     DMS_AWN_CONFIG cfg;
     //读取工具配置参数+预处理参数
-    ret = cvp_node_param_cfg_read(&cfg, 0);
+    ret = cvp_dms_node_param_cfg_read(&cfg, 0, node_uuid);
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
     ret = aec_cfg_online_update_fill(&cfg, sizeof(DMS_AWN_CONFIG));
 #endif/*TCFG_AEC_TOOL_ONLINE_ENABLE*/
@@ -903,7 +948,7 @@ static void audio_dms_awn_param_init(struct dms_attr *p)
     p->AGC_echo_hold = 0;
     p->AGC_echo_look_ahead = 0;
 
-    //aec_param_dump(p);
+    //cvp_dms_param_dump(p,DMS_AWN);
 }
 
 /*
@@ -969,6 +1014,7 @@ static int audio_cvp_advanced_options(void *aec, void *nlp, void *ns, void *enc,
 *			   数据输出回调函数
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int (*out_hdl)(s16 *data, u16 len))
 {
     s16 sample_rate = init_param->sample_rate;
@@ -978,9 +1024,9 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     printf("audio_dms_open\n");
     mem_stats();
 #if AEC_USER_MALLOC_ENABLE
-    aec_hdl = zalloc(sizeof(struct audio_aec_hdl));
-    if (aec_hdl == NULL) {
-        log_error("aec_hdl malloc failed");
+    cvp_dms = zalloc(sizeof(struct cvp_dms_hdl));
+    if (cvp_dms == NULL) {
+        log_error("cvp_dms malloc failed");
         return -ENOMEM;
     }
 #endif/*AEC_USER_MALLOC_ENABLE*/
@@ -992,11 +1038,14 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
 
-    aec_hdl->dump_packet = AEC_OUT_DUMP_PACKET;
-    aec_hdl->inbuf_clear_cnt = AEC_IN_DUMP_PACKET;
-    aec_hdl->output_fade_in = 1;
-    aec_hdl->output_fade_in_gain = 0;
-    aec_param = &aec_hdl->attr;
+    /*初始化dac read的资源*/
+    audio_dac_read_init();
+
+    cvp_dms->dump_packet = AEC_OUT_DUMP_PACKET;
+    cvp_dms->inbuf_clear_cnt = AEC_IN_DUMP_PACKET;
+    cvp_dms->output_fade_in = 1;
+    cvp_dms->output_fade_in_gain = 0;
+    aec_param = &cvp_dms->attr;
     aec_param->cvp_advanced_options = audio_cvp_advanced_options;
     aec_param->aec_probe = audio_aec_probe;
     aec_param->aec_post = audio_aec_post;
@@ -1020,15 +1069,37 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
     aec_param->ref_channel = ref_channel;
 
-#if (TCFG_AUDIO_DMS_SEL == DMS_NORMAL)
-    audio_aec_param_init(aec_param);
-#elif (TCFG_AUDIO_DMS_SEL == DMS_FLEXIBLE)
-    audio_dms_flexible_param_init(aec_param);
-#elif (TCFG_AUDIO_DMS_SEL == DMS_HYBRID)
-    audio_dms_hybrid_param_init(aec_param);
-#elif (TCFG_AUDIO_DMS_SEL == DMS_AWN)
-    audio_dms_awn_param_init(aec_param);
-#endif/*TCFG_AUDIO_DMS_SEL*/
+    switch (init_param->node_uuid) {
+    case NODE_UUID_CVP_DMS_AWN_DNS:
+        printf("CVP 2mic Algo:AWN");
+#if TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE
+        audio_dms_awn_param_init(aec_param, init_param->node_uuid);
+        cvp_dms->adapter = cvp_2mic_awn_adapter();
+#endif
+        break;
+    case NODE_UUID_CVP_DMS_HYBRID_DNS:
+        printf("CVP 2mic Algo:Hybrid");
+#if TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE
+        audio_dms_hybrid_param_init(aec_param, init_param->node_uuid);
+        cvp_dms->adapter = cvp_2mic_hybrid_adapter();
+#endif
+        break;
+    case NODE_UUID_CVP_DMS_FLEXIBLE_DNS:
+    case NODE_UUID_CVP_DMS_FLEXIBLE_ANS:
+        printf("CVP 2mic Algo:Flexible");
+#if (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE || TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE)
+        audio_dms_flexible_param_init(aec_param, init_param->node_uuid);
+        cvp_dms->adapter = cvp_2mic_flexible_adapter();
+#endif
+        break;
+    default:
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE || TCFG_AUDIO_CVP_DMS_DNS_MODE)
+        printf("CVP 2mic Algo:Beamfroming");
+        audio_aec_param_init(aec_param, init_param->node_uuid);
+        cvp_dms->adapter = cvp_2mic_beamforming_adapter();
+#endif
+        break;
+    }
 
     if (enablebit >= 0) {
         aec_param->EnableBit = enablebit;
@@ -1066,12 +1137,12 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
 #if TCFG_SUPPORT_MIC_CAPLESS
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
-        aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
+        cvp_dms->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
 #endif
 
-    //aec_param_dump(aec_param);
-    aec_hdl->EnableBit = aec_param->EnableBit;
+    //cvp_dms_param_dump(aec_param);
+    cvp_dms->EnableBit = aec_param->EnableBit;
     aec_param->aptfilt_only = 0;
 #if (((defined TCFG_KWS_VOICE_RECOGNITION_ENABLE) && TCFG_KWS_VOICE_RECOGNITION_ENABLE) || \
      ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE))
@@ -1085,6 +1156,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
     }
 #endif/*TCFG_KWS_VOICE_RECOGNITION_ENABLE*/
 
+    //cppcheck-suppress knownConditionTrueFalse
     if (CONST_DMS_WNC || CONST_JLSP_WD_EN) {
         aec_param->EnableBit |= WNC_EN;
     }
@@ -1093,12 +1165,12 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
         aec_param->EnableBit |= ENC_EN;
     }
 
-    y_printf("[aec_user]aec_open\n");
+    y_printf("cvp-2mic_open:%x\n", init_param->node_uuid);
 #if CVP_TOGGLE
-    int ret = aec_open(aec_param);
-    ASSERT(ret == 0, "aec_open err %d!!", ret);
+    int ret = cvp_dms->adapter->init(aec_param);
+    ASSERT(ret == 0, "cvp-2mic open err %d!!", ret);
 #endif
-    aec_hdl->start = 1;
+    cvp_dms->start = 1;
     mem_stats();
     printf("audio_dms_open succ\n");
     return 0;
@@ -1114,6 +1186,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 int audio_aec_init(struct audio_aec_init_param_t *init_param)
 {
     return audio_aec_open(init_param, -1, NULL);
@@ -1130,17 +1203,17 @@ int audio_aec_init(struct audio_aec_init_param_t *init_param)
 */
 void audio_aec_reboot(u8 reduce)
 {
-    if (aec_hdl) {
-        printf("audio_aec_dms_reboot:%x,%x,start:%d", aec_hdl->EnableBit, aec_hdl->attr.EnableBit, aec_hdl->start);
-        if (aec_hdl->start) {
+    if (cvp_dms) {
+        printf("audio_aec_dms_reboot:%x,%x,start:%d", cvp_dms->EnableBit, cvp_dms->attr.EnableBit, cvp_dms->start);
+        if (cvp_dms->start) {
             if (reduce) {
-                aec_hdl->attr.EnableBit = AEC_EN;
-                aec_hdl->attr.aptfilt_only = 1;
-                aec_dms_reboot(aec_hdl->attr.EnableBit);
+                cvp_dms->attr.EnableBit = AEC_EN;
+                cvp_dms->attr.aptfilt_only = 1;
+                aec_dms_reboot(cvp_dms->attr.EnableBit);
             } else {
-                if (aec_hdl->EnableBit != aec_hdl->attr.EnableBit) {
-                    aec_hdl->attr.aptfilt_only = 0;
-                    aec_dms_reboot(aec_hdl->EnableBit);
+                if (cvp_dms->EnableBit != cvp_dms->attr.EnableBit) {
+                    cvp_dms->attr.aptfilt_only = 0;
+                    aec_dms_reboot(cvp_dms->EnableBit);
                 }
             }
         }
@@ -1163,14 +1236,14 @@ void audio_aec_reboot(u8 reduce)
 */
 void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 {
-    if (aec_hdl)	{
+    if (cvp_dms)	{
         printf("dms_output_sel:%d\n", sel);
         if (agc) {
-            aec_hdl->attr.EnableBit |= AGC_EN;
+            cvp_dms->attr.EnableBit |= AGC_EN;
         } else {
-            aec_hdl->attr.EnableBit &= ~AGC_EN;
+            cvp_dms->attr.EnableBit &= ~AGC_EN;
         }
-        aec_hdl->attr.output_sel = sel;
+        cvp_dms->attr.output_sel = sel;
     }
 }
 
@@ -1183,13 +1256,15 @@ void audio_aec_output_sel(CVP_OUTPUT_ENUM sel, u8 agc)
 * Note(s)    : None.
 *********************************************************************
 */
+__CVP_BANK_CODE
 void audio_aec_close(void)
 {
-    printf("audio_aec_close:%x", (u32)aec_hdl);
-    if (aec_hdl) {
-        aec_hdl->start = 0;
+    printf("audio_aec_close:%x", (u32)cvp_dms);
+    if (cvp_dms) {
+        cvp_dms->start = 0;
 
 #if CVP_TOGGLE
+        //cppcheck-suppress knownConditionTrueFalse
         if (CONST_DMS_MALFUNCTION_DETECT && CONST_DMS_SET_MFDT_STATE) {
             int malfunc_state = cvp_dms_get_malfunc_state();
             int ret = syscfg_write(CFG_DMS_MALFUNC_STATE_ID, &malfunc_state, sizeof(int));
@@ -1199,7 +1274,7 @@ void audio_aec_close(void)
             printf("cvp_dms_get_malfunc_state:%d", malfunc_state);
         }
 
-        aec_close();
+        cvp_dms->adapter->exit();
 #endif
 
 #if TCFG_AUDIO_CVP_SYNC
@@ -1207,23 +1282,31 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
+        /*释放dac read的资源*/
+        audio_dac_read_exit();
+
 #if TCFG_SUPPORT_MIC_CAPLESS
-        if (aec_hdl->dcc_hdl) {
-            audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
-            aec_hdl->dcc_hdl = NULL;
+        if (cvp_dms->dcc_hdl) {
+            audio_dc_offset_remove_close(cvp_dms->dcc_hdl);
+            cvp_dms->dcc_hdl = NULL;
         }
 #endif
 
-        if (aec_hdl->transfer_func) {
-            free(aec_hdl->transfer_func);
-            aec_hdl->transfer_func = NULL;
+        if (cvp_dms->attr.transfer_func) {
+            free(cvp_dms->attr.transfer_func);
+            cvp_dms->attr.transfer_func = NULL;
+        }
+
+        if (cvp_dms->attr.filter_eq) {
+            free(cvp_dms->attr.filter_eq);
+            cvp_dms->attr.filter_eq = NULL;
         }
 
         local_irq_disable();
 #if AEC_USER_MALLOC_ENABLE
-        free(aec_hdl);
+        free(cvp_dms);
 #endif/*AEC_USER_MALLOC_ENABLE*/
-        aec_hdl = NULL;
+        cvp_dms = NULL;
         local_irq_enable();
 
         aec_code_movable_unload();
@@ -1241,8 +1324,8 @@ void audio_aec_close(void)
 */
 u8 audio_aec_status(void)
 {
-    if (aec_hdl) {
-        return aec_hdl->start;
+    if (cvp_dms) {
+        return cvp_dms->start;
     }
     return 0;
 }
@@ -1252,29 +1335,30 @@ u8 audio_aec_status(void)
 *                  Audio AEC Input
 * Description: AEC源数据输入
 * Arguments  : buf	输入源数据地址
-*			   len	输入源数据长度
+*			   len	输入源数据长度(Byte)
 * Return	 : None.
 * Note(s)    : 输入一帧数据，唤醒一次运行任务处理数据，默认帧长256点
 *********************************************************************
 */
 void audio_aec_inbuf(s16 *buf, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
-        if (aec_hdl->input_clear) {
+    if (len != 512) {
+        printf("[error] aec point fault\n"); //aec一帧长度需要256 points,需修改文件(esco_recorder.c/pc_mic_recorder.c)的ADC中断点数
+
+    }
+
+    if (cvp_dms && cvp_dms->start) {
+        if (cvp_dms->input_clear) {
             memset(buf, 0, len);
         }
 #if CVP_TOGGLE
-        if (aec_hdl->inbuf_clear_cnt) {
-            aec_hdl->inbuf_clear_cnt--;
-            memset(buf, 0, len);
-        }
-        int ret = aec_in_data(buf, len);
+        int ret = cvp_dms->adapter->push_mic0_data(buf, len);
         if (ret == -1) {
         } else if (ret == -2) {
             log_error("aec inbuf full\n");
         }
 #else
-        aec_hdl->attr.output_handle(buf, len);
+        cvp_dms->attr.output_handle(buf, len);
 #endif/*CVP_TOGGLE*/
     }
 }
@@ -1291,8 +1375,8 @@ void audio_aec_inbuf(s16 *buf, u16 len)
 */
 void audio_aec_inbuf_ref(s16 *buf, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
-        aec_in_data_ref(buf, len);
+    if (cvp_dms && cvp_dms->start) {
+        cvp_dms->adapter->push_mic1_data(buf, len);
     }
 }
 
@@ -1308,9 +1392,9 @@ void audio_aec_inbuf_ref(s16 *buf, u16 len)
 */
 void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
 {
-    if (aec_hdl && aec_hdl->start) {
+    if (cvp_dms && cvp_dms->start) {
 #if CVP_TOGGLE
-        aec_ref_data(data0, data1, len);
+        cvp_dms->adapter->push_ref_data(data0, data1, len);
 #endif/*CVP_TOGGLE*/
     }
 }
@@ -1330,10 +1414,10 @@ void audio_aec_refbuf(s16 *data0, s16 *data1, u16 len)
 */
 int audio_cvp_ioctl(int cmd, int value, void *priv)
 {
-    if (!aec_hdl) {
+    if (!cvp_dms) {
         return -1;
     }
-    return aec_dms_ioctl(cmd, value, priv);
+    return cvp_dms->adapter->ioctl(cmd, value, priv);
 }
 
 /*
@@ -1347,7 +1431,7 @@ int audio_cvp_ioctl(int cmd, int value, void *priv)
 */
 int audio_cvp_toggle_set(u8 toggle)
 {
-    if (aec_hdl) {
+    if (cvp_dms) {
         aec_dms_toggle(toggle);
         return 0;
     }
@@ -1358,7 +1442,7 @@ int audio_cvp_toggle_set(u8 toggle)
 int audio_cvp_dms_wnc_state(void)
 {
     int state = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         state = cvp_dms_get_wind_detect_state();
         printf("wnc state : %d", state);
     } else {
@@ -1375,7 +1459,7 @@ int audio_cvp_dms_wnc_state(void)
 int audio_cvp_dms_malfunc_state()
 {
     int state = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         state = cvp_dms_get_malfunc_state();
         printf("malfunc state : %d", state);
     } else {
@@ -1394,7 +1478,7 @@ int audio_cvp_dms_malfunc_state()
 float audio_cvp_dms_mic_energy(u8 mic)
 {
     float mic_db = 0;
-    if (aec_hdl) {
+    if (cvp_dms) {
         mic_db = cvp_dms_get_mic_energy(mic);
         printf("malfunc mic[%d] energy : %d", mic, (int)mic_db);
     } else {
@@ -1410,8 +1494,8 @@ float audio_cvp_dms_mic_energy(u8 mic)
 //pbg profile use it,don't delete
 void aec_input_clear_enable(u8 enable)
 {
-    if (aec_hdl) {
-        aec_hdl->input_clear = enable;
+    if (cvp_dms) {
+        cvp_dms->input_clear = enable;
         log_info("aec_input_clear_enable= %d\n", enable);
     }
 }

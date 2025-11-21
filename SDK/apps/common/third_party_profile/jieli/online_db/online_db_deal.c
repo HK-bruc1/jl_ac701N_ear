@@ -89,7 +89,24 @@ static int db_data_send_msg_evt = 0;
 static struct db_online_info_t  *online_global_info;
 #define __this  (online_global_info)
 
-static int db_cb_api_table[DB_PKT_TYPE_MAX];
+static const u8 db_type_table[] = {
+    DB_PKT_TYPE_ACK,
+    DB_PKT_TYPE_PRINT,
+    DB_PKT_TYPE_EQ,
+    DB_PKT_TYPE_ANC,
+    DB_PKT_TYPE_AEC,
+    DB_PKT_TYPE_EXPORT,
+    DB_PKT_TYPE_TOUCH,
+    DB_PKT_TYPE_DMS,
+    DB_PKT_TYPE_SPK_EQ,
+    DB_PKT_TYPE_DAT_CH0,
+    DB_PKT_TYPE_DAT_CH1,
+    DB_PKT_TYPE_DAT_CH2,
+    DB_PKT_TYPE_MIC_DUT,
+    DB_PKT_TYPE_SPATIAL_EFFECT,
+};
+
+static int db_cb_api_table[ARRAY_SIZE(db_type_table)];
 static volatile u8 db_active = DB_COM_TYPE_NULL;
 
 #define JUST_THIS_IS_NULL() (__this == NULL)
@@ -257,7 +274,13 @@ static void db_packet_handle(u8 *packet, u16 size)
 
 
     /* int (*db_parse_data)(u8 *packet,u8 size,u8 *ext_data,ext_size); */
-    int (*db_parse_data)(u8 * packet, u8 size, u8 * ext_data, u16 ext_size) = (void *)(db_cb_api_table[db_ptr->type]);
+    int (*db_parse_data)(u8 * packet, u8 size, u8 * ext_data, u16 ext_size) = NULL;
+    for (int i = 0; i < ARRAY_SIZE(db_type_table); i++) {
+        if (db_type_table[i] == db_ptr->type) {
+            db_parse_data = (int (*)(u8 *, u8, u8 *, u16))db_cb_api_table[i];
+            break;
+        }
+    }
 
     if (db_parse_data) {
         /* log_info("db_parse_data,%08x",db_parse_data); */
@@ -524,8 +547,12 @@ void app_online_db_register_handle(db_pkt_e type, int (*db_parse_data)(u8 *packe
         log_error("reg_type_err");
         return;
     }
-    log_info("register_handle %d,%08x", type, db_parse_data);
-    db_cb_api_table[type] = (int)db_parse_data;
+    log_info("register_handle %d,%08x", type, (void *)db_parse_data);
+    for (int i = 0; i < ARRAY_SIZE(db_type_table); i++) {
+        if (db_type_table[i] == type) {
+            db_cb_api_table[i] = (int)db_parse_data;
+        }
+    }
 }
 
 //获取可发送数据的长度

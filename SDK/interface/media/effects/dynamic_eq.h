@@ -2,7 +2,6 @@
 #define __DYNAMIC_EQ_H__
 
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/DynamicEQ_api.h"
 #include "effects/DynamicEQ_Detection_api.h"
 #include "effects/audio_eq.h"

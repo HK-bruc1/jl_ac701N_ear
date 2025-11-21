@@ -9,25 +9,27 @@
 /*                                | UPDATE_STORAGE_DEV_EN | UPDATE_BLE_TEST_EN | UPDATE_APP_EN | UPDATE_UART_EN; */
 /* #endif */
 
-#if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE == 0
 //是否采用双备份升级方案:0-单备份;1-双备份
 #if CONFIG_DOUBLE_BANK_ENABLE
 const int support_dual_bank_update_en = 1;
 #else
 const int support_dual_bank_update_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
-#else
 
-//是否采用双备份升级方案:0-单备份;1-双备份
-#if CONFIG_DOUBLE_BANK_ENABLE
-const int support_dual_bank_update_en = 1;
+//是否双备份升级方案，但appcore1的区域相比appcore0更小
+#if CONFIG_DOUBLE_BANK_LESS
+const int support_dual_bank_less_en = 1;
 #else
-const int support_dual_bank_update_en = 0;
+const int support_dual_bank_less_en = 0;
 #endif  //CONFIG_DOUBLE_BANK_ENABLE
-#endif
 
 // 是否支持双备份升级前和升级失败对升级区域全擦，升级过程只写的功能
+// 即允许边升级边播歌
+#ifdef TCFG_DUAL_BANK_UPDATE_NO_ERASE
+const int support_dual_bank_update_no_erase = TCFG_DUAL_BANK_UPDATE_NO_ERASE;
+#else
 const int support_dual_bank_update_no_erase = 0;
+#endif
 
 // 是否支持双备份断点续传升级
 const int support_dual_bank_update_breakpoint = 0;
@@ -35,13 +37,16 @@ const int support_dual_bank_update_breakpoint = 0;
 // 是否支持tws双备份升级，从机收错包重发机制
 const int support_dual_bank_slave_recv_again = 1;
 
+// 双备份tws升级主从同步校验使能
+const int support_dual_bank_sync_verify_en = 1;
+
 #if OTA_TWS_SAME_TIME_NEW       //使用新的同步升级流程
 const int support_ota_tws_same_time_new =  1;
 #else
 const int support_ota_tws_same_time_new =  0;
 #endif
 //是否支持升级之后保留vm数据
-const int support_vm_data_keep = 0;
+const int support_vm_data_keep = 1;
 
 //是否支持外挂flash升级,需要打开Board.h中的TCFG_NOR_FS_ENABLE
 const int support_norflash_update_en  = 0;

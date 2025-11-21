@@ -2,7 +2,7 @@
 #define _AEC_DAC_CH_REF_DATA_H__
 
 #include "generic/typedef.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 
 int aec_ref_dac_ch_data_read_init();
 int aec_ref_dac_ch_data_read_exit();

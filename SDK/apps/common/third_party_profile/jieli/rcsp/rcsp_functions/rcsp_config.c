@@ -100,6 +100,14 @@ void rcsp_config(struct RcspModel *rcspModel)
     rcspModel->function_mask |= BIT(COLOR_LED_MASK);
 #endif
 
+#if TCFG_APP_SPDIF_EN
+    rcspModel->function_mask |= BIT(SPDIF_FUNCTION_MASK);
+#endif
+
+#if 0//(TCFG_APP_PC_EN && TCFG_USB_SLAVE_AUDIO_SPK_ENABLE)
+    rcspModel->function_mask |= BIT(PC_FUNCTION_MASK);
+#endif
+
 #if (TCFG_APP_MUSIC_EN && !RCSP_APP_MUSIC_EN)
     rcspModel->music_icon_mask = DEV_ICON_ALL_DISPLAY
                                  | BIT(USB_ICON_DISPLAY)
@@ -144,13 +152,13 @@ void rcsp_config(struct RcspModel *rcspModel)
     rcspModel->sound_effects_disable = RCSP_SOUND_EFFECT_FUNC_DISABLE;
 #endif
 
-#if (JL_RCSP_EXTRA_FLASH_OPT)
-    rcspModel->extra_flash_en = JL_RCSP_EXTRA_FLASH_OPT;
+#if (JL_RCSP_EXTRA_FLASH_OPT || RCSP_TONE_FILE_TRANSFER_ENABLE)
+    rcspModel->extra_flash_en = 1;
+    rcspModel->file_transfer_mode = 1;
 #endif
 
 #if (WATCH_FILE_TO_FLASH && TCFG_DEV_MANAGER_ENABLE)
     rcspModel->file_trans_back_mode = 1;
-    rcspModel->file_transfer_mode = 1;
 #if (TCFG_NOR_FAT)
     rcspModel->file_trans_nor_fat = 1;
 #endif

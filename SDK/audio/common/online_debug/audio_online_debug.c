@@ -27,6 +27,7 @@ int audio_online_debug_init(void)
     return 0;
 }
 
+__INITCALL_BANK_CODE
 int audio_online_debug_open()
 {
     printf("%s", __func__);

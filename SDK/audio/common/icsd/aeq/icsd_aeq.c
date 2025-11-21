@@ -15,10 +15,8 @@
 #include "icsd_aeq_app.h"
 #include "effects/audio_eq.h"
 
-struct eq_function EQ_FUNC;
 struct aeq_default_seg_tab *AEQ_DEF;
-
-int (*aeq_printf)(const char *format, ...);
+int (*aeq_printf)(const char *format, ...) = _aeq_printf;
 
 void aeq_seg_design(void *seg_tmp, int sample_rate, void *coef)
 {
@@ -27,8 +25,12 @@ void aeq_seg_design(void *seg_tmp, int sample_rate, void *coef)
 
 void eq_func_init()
 {
-    EQ_FUNC.aeq_seg_design = aeq_seg_design;
+    EQ_FUNC->aeq_seg_design = aeq_seg_design;
 }
+const struct eq_function EQ_FUNC_t = {
+    .aeq_seg_design = aeq_seg_design,
+};
+struct eq_function *EQ_FUNC = (struct eq_function *)(&EQ_FUNC_t);
 
 void aeq_get_par(struct aeq_default_seg_tab *aeq_def, void *eq_par)
 {
@@ -58,7 +60,7 @@ void aeq_get_par(struct aeq_default_seg_tab *aeq_def, void *eq_par)
     //aeq_def->seg.gain      = eq_def->seg->gain    ;
     //aeq_def->seg.q         = eq_def->seg->q       ;
 
-    printf("finish get par\n");
+    /* printf("finish get par\n"); */
 
 }
 

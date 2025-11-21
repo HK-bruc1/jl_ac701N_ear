@@ -183,24 +183,21 @@ struct key_event {
 
 struct key_driver_para {
     u8 last_key;  			//上一次get_value按键值
-//== 用于消抖类参数
     u8 filter_value; 		//用于按键消抖
     u8 filter_cnt;  		//用于按键消抖时的累加值
-//== 用于判定连击事件参数
     u8 click_delay_cnt;  	//按键被抬起后等待连击事件延时计数
     u8 press_cnt;  		 	//与long_time和hold_time对比, 判断long_event和hold_event
-    u16 press_sum_cnt;
-    const u8 key_type;
-    const u8 filter_time;	//当filter_cnt累加到base_cnt值时, 消抖有效
-    const u8 long_time;  	//按键判定长按数量
-    const u8 hold_time;  	//按键判定HOLD数量
-    const u8 click_delay_time;	//按键被抬起后等待连击事件延时数量
-    const u32 scan_time;	//按键扫描频率, 单位ms
 };
 
 struct key_driver_ops {
-    const u8 idle_query_en;
-    const struct key_driver_para *param;
+    u8 idle_query_en;
+    u8 key_type;
+    u8 filter_time;	//当filter_cnt累加到base_cnt值时, 消抖有效
+    u8 long_time;  	//按键判定长按数量
+    u8 hold_time;  	//按键判定HOLD数量
+    u8 click_delay_time;	//按键被抬起后等待连击事件延时数量
+    u32 scan_time;	//按键扫描频率, 单位ms
+    struct key_driver_para *param;
     u8(*get_value)(void);
     int (*key_init)(void);
 };

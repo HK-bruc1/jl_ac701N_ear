@@ -9,7 +9,7 @@
 #include "circular_buf.h"
 #include "cvp_node.h"
 #include "app_config.h"
-#include "audio_iis.h"
+#include "media/audio_iis.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
@@ -86,13 +86,15 @@ struct cvp_node_hdl {
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
     u8 talk_mic_ch;					//通话MIC
+    void (*lock)(void);
+    void (*unlock)(void);
     struct CVP_REF_MIC_CONFIG ref_mic;
     u8 ref_mic_num; //回采mic个数
 };
 
 static struct cvp_node_hdl *g_cvp_hdl;
 
-int cvp_node_output_handle(s16 *data, u16 len)
+int cvp_sms_node_output_handle(s16 *data, u16 len)
 {
     struct stream_frame *frame;
     frame = jlstream_get_frame(hdl_node(g_cvp_hdl)->oport, len);
@@ -106,7 +108,8 @@ int cvp_node_output_handle(s16 *data, u16 len)
 }
 
 extern float eq_db2mag(float x);
-void cvp_node_param_cfg_update(struct cvp_cfg_t *cfg, AEC_CONFIG *p)
+__CVP_BANK_CODE
+void cvp_sms_node_param_cfg_update(struct cvp_cfg_t *cfg, AEC_CONFIG *p)
 {
     if (cfg == NULL) {
         return;
@@ -167,8 +170,8 @@ void cvp_node_param_cfg_update(struct cvp_cfg_t *cfg, AEC_CONFIG *p)
     }
 }
 
-struct cvp_cfg_t global_cvp_cfg;
-int cvp_param_cfg_read(void)
+static struct cvp_cfg_t global_cvp_cfg;
+int cvp_sms_param_cfg_read(void)
 {
     u8 subid;
     if (g_cvp_hdl) {
@@ -208,7 +211,7 @@ int cvp_param_cfg_read(void)
 
 u8 cvp_get_talk_mic_ch(void)
 {
-    u8 talk_mic_ch = audio_adc_file_get_mic_en_map();;
+    u8 talk_mic_ch = audio_adc_file_get_mic_en_map();
 
     if (global_cvp_cfg.ref_mic.en) { //参考数据硬回采
         u8 ref_mic_ch = global_cvp_cfg.ref_mic.ref_mic_ch;
@@ -229,7 +232,8 @@ u8 cvp_get_talk_mic_ch(void)
     return talk_mic_ch;
 }
 
-int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
+__CVP_BANK_CODE
+int cvp_sms_node_param_cfg_read(void *priv, u8 ignore_subid, u16 algo_uuid)
 {
     AEC_CONFIG *p = (AEC_CONFIG *)priv;
     struct cvp_cfg_t cfg;
@@ -275,7 +279,7 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
             }
         }
     }
-    cvp_node_param_cfg_update(&cfg, p);
+    cvp_sms_node_param_cfg_update(&cfg, p);
 
     return sizeof(AEC_CONFIG);
 }
@@ -310,7 +314,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             if (++hdl->buf_cnt > ((CVP_INPUT_SIZE / 256) - 1)) {
                 hdl->buf_cnt = 0;
             }
-
+            hdl->lock();
             /*查找对应mic的数据index*/
             u8 mic_cnt = 0, ref_cnt = 0;
             for (int i = 0; i < AUDIO_ADC_MIC_MAX_NUM; i++) {
@@ -342,6 +346,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             }
             audio_aec_refbuf(ref_buf, NULL, wlen << hdl->ref_mic_num);
             audio_aec_inbuf(mic_buf, wlen << 1);
+            hdl->unlock();
         } else {//参考数据软回采
             dat = hdl->buf + (in_frame->len / 2 * hdl->buf_cnt);
             //模仿ADCbuff的存储方法
@@ -355,15 +360,49 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
     }
 }
 
+static int cvp_sms_lock_init(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+#if (TCFG_AUDIO_CVP_SMS_ANS_MODE)
+        case NODE_UUID_CVP_SMS_ANS:
+            if (TCFG_AUDIO_SMS_SEL == SMS_TDE) { // TDE
+                hdl->lock   = audio_cvp_sms_tde_lock;
+                hdl->unlock = audio_cvp_sms_tde_unlock;
+            } else { // DEFAULT
+                hdl->lock   = audio_cvp_sms_lock;
+                hdl->unlock = audio_cvp_sms_unlock;
+            }
+#endif
+            break;
+#if (TCFG_AUDIO_CVP_SMS_DNS_MODE)
+        case NODE_UUID_CVP_SMS_DNS:
+            hdl->lock   = audio_cvp_sms_lock;
+            hdl->unlock = audio_cvp_sms_unlock;
+#endif
+            break;
+        default:
+            ASSERT(0, "cvp_sms_lock_init: unknown node UUID\n");
+            break;
+        }
+        ret = true;
+    }
+    return ret;
+}
+
 /*节点预处理-在ioctl之前*/
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
-
+    /*初始化spinlock*/
+    cvp_sms_lock_init(hdl);
     node->type = NODE_TYPE_ASYNC;
     g_cvp_hdl = hdl;
     /*先读取节点需要用的参数*/
-    cvp_node_param_cfg_read(NULL, 0);
+    cvp_sms_node_param_cfg_read(NULL, 0, uuid);
+    cvp_node_context_setup(uuid);
     return 0;
 }
 
@@ -416,6 +455,7 @@ static int cvp_ioc_negotiate(struct stream_iport *iport)
 }
 
 /*节点start函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 {
     struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt;
@@ -423,6 +463,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
     init_param.sample_rate = fmt->sample_rate;
     init_param.ref_sr = hdl->ref_sr;
     init_param.ref_channel = hdl->ref_mic_num;
+    init_param.node_uuid = hdl_node(hdl)->uuid;
     u8 mic_num; //算法需要使用的MIC个数
 
 #if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
@@ -453,6 +494,7 @@ static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 }
 
 /*节点stop函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
 {
     if (hdl) {
@@ -463,13 +505,18 @@ static void cvp_ioc_stop(struct cvp_node_hdl *hdl)
     }
 }
 
+__CVP_BANK_CODE
 static int cvp_ioc_update_parm(struct cvp_node_hdl *hdl, int parm)
 {
     int ret = false;
     struct cvp_cfg_t *cfg = (struct cvp_cfg_t *)parm;
     if (hdl) {
-        cvp_node_param_cfg_update(cfg, &hdl->online_cfg);
+        cvp_sms_node_param_cfg_update(cfg, &hdl->online_cfg);
+#if (TCFG_AUDIO_SMS_SEL == SMS_DEFAULT)
         aec_cfg_update(&hdl->online_cfg);
+#elif (TCFG_AUDIO_SMS_SEL == SMS_TDE)
+        sms_tde_cfg_update(&hdl->online_cfg);
+#endif
         ret = true;
     }
     return ret;
@@ -511,7 +558,9 @@ static int cvp_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         }
         break;
     case NODE_IOC_SET_PARAM:
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
         ret = cvp_ioc_update_parm(hdl, arg);
+#endif
         break;
     case NODE_IOC_SET_PRIV_FMT:
         hdl->source_uuid = (u16)arg;
@@ -530,6 +579,7 @@ static void cvp_adapter_release(struct stream_node *node)
         g_cvp_hdl->buf_1 = NULL;
     }
     g_cvp_hdl = NULL;
+    cvp_node_context_setup(0);
 }
 
 /*节点adapter 注意需要在sdk_used_list声明，否则会被优化*/

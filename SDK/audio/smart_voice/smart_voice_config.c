@@ -55,10 +55,3 @@ void get_kws_api(struct kws_multi_keyword_model *api)
     memcpy(api, &kws_model_api, sizeof(struct kws_multi_keyword_model));
 }
 
-/*重新封装远场语音识别库使用的系统函数接口*/
-u32 sys_cfg_read_otp(u32 id, u8 *buf, u32 len)
-{
-    extern u32 syscfg_read_otp(u32 id, u8 * buf, u32 len);
-    return syscfg_read_otp(id, buf, len);
-}
-

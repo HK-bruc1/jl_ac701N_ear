@@ -9,7 +9,7 @@
 #include "system/includes.h"
 #include "asm/cpu.h"
 #include "asm/charge.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "user_cfg.h"
 #include "app_chargestore.h"
 #include "device/vm.h"
@@ -32,6 +32,7 @@
 
 #if (THIRD_PARTY_PROTOCOLS_SEL&RCSP_MODE_EN)
 #include "ble_rcsp_server.h"
+#include "ble_rcsp_adv.h"
 #endif
 
 #define LOG_TAG_CONST       APP_CHARGESTORE

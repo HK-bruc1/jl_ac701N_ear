@@ -139,4 +139,12 @@ struct le_adv_link_param_cfg {
     u8 param5;
 };
 
+typedef struct _bt_fre_offset_compensation_api_t {
+    u8(*init)(s16 *fre_offset, u8 *once_trim_flag);
+    u8(*write)(s16 fre_offset, u8 *once_trim_flag);
+    u8(*ex_init)(u8 mode, u8 *offset_data, u8 len, u8 *once_trim_flag);
+    u8(*ex_write)(u8 mode, u8 *offset_data, u8 len, u8 *once_trim_flag);
+
+} bt_fre_offset_compensation_api_t;
+
 #endif

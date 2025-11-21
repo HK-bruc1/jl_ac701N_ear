@@ -1,7 +1,6 @@
 #ifndef _AUDIO_VBASS_API_H_
 #define _AUDIO_VBASS_API_H_
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/VirtualBass_api.h"
 
 typedef struct _VirtualBassUdateParam {

@@ -21,11 +21,11 @@ SECTIONS {
 
     .text ALIGN(32): SUBALIGN(4)
     {
-        media_lib_bss_begin = .;
+        media_lib_text_begin = .;
         . = ALIGN(4);
 #include "media/media_lib_text.ld"
-        media_lib_bss_end = .;
-        media_lib_bss_size = media_lib_bss_end - media_lib_bss_begin ;
+        media_lib_text_end = .;
+        media_lib_text_size = media_lib_text_end - media_lib_text_begin ;
         . = ALIGN(4);
     } > code0
 }

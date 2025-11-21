@@ -154,6 +154,7 @@ u32 midi_desc_config(const usb_dev usb_id, u8 *ptr, u32 *cur_itf_num)
     log_debug("midi interface num:%d\n", *cur_itf_num);
     memcpy(ptr, sMidiDescriptor, sizeof(sMidiDescriptor));
     ptr[2] = *cur_itf_num;
+    ptr[9 + 8] = *cur_itf_num + 1;
     ptr[9 + 9 + 2] = *cur_itf_num + 1;
     if (usb_set_interface_hander(usb_id, *cur_itf_num, midi_itf_hander) != *cur_itf_num) {
         ASSERT(0, "midi set interface_hander fail");

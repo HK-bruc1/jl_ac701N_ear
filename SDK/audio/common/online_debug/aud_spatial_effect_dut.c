@@ -83,7 +83,7 @@ int spatial_effect_imu_dut_start()
 {
 
     if (send_timer == 0) {
-        send_timer = usr_timer_add(NULL, spatial_effect_imu_dut_data_timer, IMU_DATA_SEND_INTERVAL, 1);
+        send_timer = sys_timer_add(NULL, spatial_effect_imu_dut_data_timer, IMU_DATA_SEND_INTERVAL);
     }
     return 0;
 }
@@ -91,7 +91,7 @@ int spatial_effect_imu_dut_start()
 int spatial_effect_imu_dut_stop()
 {
     if (send_timer) {
-        usr_timer_del(send_timer);
+        sys_timer_del(send_timer);
         send_timer = 0;
     }
     return 0;
@@ -159,6 +159,7 @@ int spatial_effect_online_parse(u8 *packet, u8 size, u8 *ext_data, u16 ext_size)
     return 0;
 }
 
+__INITCALL_BANK_CODE
 int aud_spatial_effect_dut_open()
 {
     app_online_db_register_handle(DB_PKT_TYPE_SPATIAL_EFFECT, spatial_effect_online_parse);

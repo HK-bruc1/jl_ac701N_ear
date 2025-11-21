@@ -2,7 +2,6 @@
 #define ASM_INCLUDES_H
 
 #include "asm/cpu.h"
-#include "asm/crc16.h"
 #include "clock.h"
 #include "gpio.h"
 #include "asm/spiflash.h"
@@ -12,8 +11,7 @@
 #include "asm/efuse.h"
 #include "asm/wdt.h"
 #include "asm/debug.h"
-#include "asm/rtc.h"
-
+#include "rtc/rtc_dev.h"
 
 
 

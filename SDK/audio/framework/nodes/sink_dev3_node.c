@@ -15,7 +15,6 @@
 
 struct sink_dev3_hdl {
     struct stream_fmt fmt;		//节点参数
-    struct stream_node *node;	//节点句柄
 };
 
 /*
@@ -58,7 +57,7 @@ static void sink_dev3_run(struct sink_dev3_hdl *hdl, void *data, int data_len)
 
 static void sink_dev3_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
-    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->private_data;
+    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->node->private_data;
     struct stream_frame *frame;
 
     while (1) {
@@ -76,15 +75,12 @@ static void sink_dev3_handle_frame(struct stream_iport *iport, struct stream_not
 static int sink_dev3_bind(struct stream_node *node, u16 uuid)
 {
     printf("sink_dev3_bind");
-    struct sink_dev3_hdl *hdl = zalloc(sizeof(*hdl));
-    hdl->node = node;
-    node->private_data = hdl;
+
     return 0;
 }
 
 static void sink_dev3_open_iport(struct stream_iport *iport)
 {
-    iport->private_data = iport->node->private_data;
     iport->handle_frame = sink_dev3_handle_frame;
 }
 
@@ -104,7 +100,7 @@ static void sink_dev3_open_iport(struct stream_iport *iport)
 static int sink_dev3_ioc_fmt_nego(struct stream_iport *iport)
 {
     struct stream_fmt *in_fmt = &iport->prev->fmt;	//上一个节点的参数
-    /* struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->private_data; */
+    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->node->private_data;
 
     //1、固定节点参数, 向前级节点传递
 #if SINK_DEV3_MSBC_TEST_ENABLE
@@ -115,7 +111,7 @@ static int sink_dev3_ioc_fmt_nego(struct stream_iport *iport)
     printf("sink_dev nego,type=%x,sr=%d,ch_mode=%x\n", in_fmt->coding_type, in_fmt->sample_rate, in_fmt->channel_mode);
 
     //2、继承前一节点的参数
-    /* hdl->fmt = &in_fmt; */
+    memcpy(&hdl->fmt, in_fmt, sizeof(struct stream_fmt));
     return NEGO_STA_ACCPTED;
 }
 
@@ -135,7 +131,7 @@ static int sink_dev3_ioc_stop(struct sink_dev3_hdl *hdl)
 
 static int sink_dev3_ioctl(struct stream_iport *iport, int cmd, int arg)
 {
-    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->private_data;
+    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)iport->node->private_data;
 
     switch (cmd) {
     case NODE_IOC_OPEN_IPORT:
@@ -165,9 +161,7 @@ static int sink_dev3_ioctl(struct stream_iport *iport, int cmd, int arg)
 //释放当前节点资源
 static void sink_dev3_release(struct stream_node *node)
 {
-    struct sink_dev3_hdl *hdl = (struct sink_dev3_hdl *)node->private_data;
     printf("sink_dev3_release");
-    free(hdl);
 }
 
 REGISTER_STREAM_NODE_ADAPTER(sink_dev3_adapter) = {
@@ -176,6 +170,7 @@ REGISTER_STREAM_NODE_ADAPTER(sink_dev3_adapter) = {
     .bind       = sink_dev3_bind,
     .ioctl      = sink_dev3_ioctl,
     .release    = sink_dev3_release,
+    .hdl_size   = sizeof(struct sink_dev3_hdl),
 };
 
 #endif

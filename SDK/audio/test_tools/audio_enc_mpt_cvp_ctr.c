@@ -22,6 +22,7 @@
 #include "overlay_code.h"
 #include "adc_file.h"
 #include "cvp_node.h"
+#include "esco_recoder.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
@@ -45,6 +46,7 @@
 extern struct adc_platform_data adc_data;
 extern struct audio_dac_hdl dac_hdl;
 extern struct audio_adc_hdl adc_hdl;
+extern const u16 audio_cvp_uuid_table[10];
 extern void clock_refurbish(void);
 
 #define MIC_BUF_NUM        	3
@@ -90,6 +92,8 @@ extern int aec_uart_fill(u8 ch, void *buf, u16 size);
 extern void aec_uart_write(void);
 extern int aec_uart_close(void);
 #endif/*AUDIO_PCM_DEBUG*/
+
+static u16 audio_enc_mpt_cvp_uuid_get(void);
 
 /*监听输出：默认输出到dac*/
 static int cvp_monitor_output(s16 *data, int len)
@@ -488,6 +492,7 @@ int audio_enc_mpt_cvp_close(void)
 int audio_enc_mpt_cvp_open(u16 mic_ch)
 {
     int ret = 0;
+    u16 uuid = 0;
     u8 mic_gain[AUDIO_ENC_MPT_MIC_NUM];
     if (cvp_hdl) {
         //支持重入
@@ -515,6 +520,14 @@ int audio_enc_mpt_cvp_open(u16 mic_ch)
         struct audio_aec_init_param_t init_param;
         init_param.sample_rate = CVP_MIC_SR;
         init_param.ref_sr = 0;
+        //获取ADC(esco_adc)节点后的算法节点UUID
+        uuid = audio_enc_mpt_cvp_uuid_get();
+        if (!uuid) {
+            ret = -1;
+            goto __exit;
+        }
+        cvp_node_context_setup(uuid);
+
         audio_aec_open(&init_param, -1, cvp_output_hdl);
 #if 1//TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE
         //默认关闭DNS
@@ -527,6 +540,21 @@ int audio_enc_mpt_cvp_open(u16 mic_ch)
 #endif/*TCFG_AUDIO_CVP_NS_MODE*/
     }
     ret = mic_open(mic_gain, CVP_MIC_SR);
+    return ret;
+
+__exit:
+#if AUDIO_ENC_MPT_UART_DEBUG_EN && (defined AUDIO_PCM_DEBUG)
+    if (cvp_hdl->dut_mic_ch & AUDIO_ENC_MPT_CVP_OUT) {
+        aec_uart_close();
+    }
+#endif
+#if CVP_MONITOR_SEL != CVP_MONITOR_DIS
+    if (cvp_hdl->monitor) {
+        cvp_monitor_en(0, CVP_MIC_SR);
+    }
+#endif
+    free(cvp_hdl);
+    cvp_hdl = NULL;
     return ret;
 }
 
@@ -545,6 +573,26 @@ void audio_enc_mpt_fre_response_close(void)
     audio_enc_mpt_cvp_close();
 }
 
+static u16 audio_enc_mpt_cvp_uuid_get(void)
+{
+    u16 uuid = 0;
+    u8 table_size = ARRAY_SIZE(audio_cvp_uuid_table);
+    struct jlstream *stream = esco_recoder_stream_search(NULL);//获取通话数据流
+    struct stream_node *node = &stream->snode->node;
+    if (stream) {
+        //在通话数据流中遍历通话算法节点，找到对应uuid
+        for (int i = 0; i < table_size; i++) {
+            /* dut_cvp_log("uuid_get %d, 0x%x\n", i, audio_cvp_uuid_table[i]); */
+            if (jlstream_is_contains_node_from(node, audio_cvp_uuid_table[i])) {
+                uuid = audio_cvp_uuid_table[i];
+                dut_cvp_log("%s get succ! uuid[%d]:0x%x\n", __func__, i, uuid);
+                break;
+            }
+        }
+        jlstream_release(stream);
+    }
+    return uuid;
+}
 
 static u8 audio_cvp_idle_query()
 {

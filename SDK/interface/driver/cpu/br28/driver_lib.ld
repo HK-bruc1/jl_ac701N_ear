@@ -86,6 +86,13 @@ SECTIONS
         PROVIDE(deepsleep_target_end = .);
 
 		. = ALIGN(4);
+        sleep_target_begin = .;
+        PROVIDE(sleep_target_begin = .);
+        KEEP(*(.sleep_target))
+        sleep_target_end = .;
+        PROVIDE(sleep_target_end = .);
+
+		. = ALIGN(4);
 		p2m_msg_handler_begin = .;
 		PROVIDE(p2m_msg_handler_begin = .);
 		KEEP(*(.p2m_msg_handler))

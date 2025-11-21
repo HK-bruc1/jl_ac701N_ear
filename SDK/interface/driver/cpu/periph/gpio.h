@@ -11,13 +11,19 @@ enum gpio_mode {
     PORT_HIGHZ = 2,               //高阻模式
 
     PORT_INPUT_FLOATING = 0x10,   //浮空输入
-    PORT_INPUT_PULLUP_10K = 0x11,
-    PORT_INPUT_PULLUP_100K,
-    PORT_INPUT_PULLUP_1M,
 
-    PORT_INPUT_PULLDOWN_10K = 0x21,
-    PORT_INPUT_PULLDOWN_100K,
-    PORT_INPUT_PULLDOWN_1M,
+    //不同芯片的上下拉不一样，具体的阻值请查阅对应芯片的gpio_hw.h
+    //gpio 函数接口的参数请使用PORT_INPUT_PULLUP_10K,..._100K,..._200K,..._1M宏定义
+    //当芯片不支持对应的阻值的时候，具体的映射关系请查阅对应芯片的gpio_hw.h
+    //比如：br56 没有100k，头文件有如此定义 #define PORT_INPUT_PULLUP_100K PORT_INPUT_PULLUP_200K
+    // 就是说 PORT_INPUT_PULLUP_100K的时候，实际上上拉阻值为PORT_INPUT_PULLUP_200K
+    PORT_INPUT_PULLUP_LEVEL1 = 0x11,
+    PORT_INPUT_PULLUP_LEVEL2,
+    PORT_INPUT_PULLUP_LEVEL3,
+
+    PORT_INPUT_PULLDOWN_LEVEL1 = 0x21,//参考上拉注释
+    PORT_INPUT_PULLDOWN_LEVEL2,
+    PORT_INPUT_PULLDOWN_LEVEL3,
 
     PORT_KEEP_STATE = 0x30,
 };
@@ -131,6 +137,8 @@ struct gpio_irq_config_st {
 //禁止同一个io同一边沿多次注册
 //单边沿与双边沿切换: 请先注销(PORT_IRQ_DISABLE)再注册
 int gpio_irq_config(enum gpio_port port, const struct gpio_irq_config_st *config);//pa,pb,pc,pp0,usb
+//注销io中断接口
+int gpio_irq_deinit(enum gpio_port port, u32 pin);
 //修改中断回调函数
 int gpio_irq_set_callback(enum gpio_port port, u32 pin, gpio_irq_callback_p callback);
 //快速切换使能同组多个io中断响应

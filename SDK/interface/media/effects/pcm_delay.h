@@ -2,7 +2,6 @@
 #define _PCM_DELAY_H_
 
 #include "effects/Effect_delay_api.h"
-#include "media/audio_stream.h"
 
 struct pcm_delay_update_parm {
     int link;
@@ -12,6 +11,7 @@ struct pcm_delay_update_parm {
     float ch1_delay;
     float ch2_delay;
     float ch3_delay;
+    float max_delay;
 };
 
 struct pcm_delay_open_parm {

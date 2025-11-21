@@ -40,6 +40,6 @@ int noiseGate_init(void *workbuf, NoiseGateParam *param);
 int noiseGate_update(void *work_buf, NoiseGateParam *param);
 
 int noiseGate_run(void *work_buf, short *in_buf, short *out_buf, int per_channel_npoint);
-
+int *get_noisegate_gain(void *work_buf);
 #endif // NOISEGATE_API_H
 

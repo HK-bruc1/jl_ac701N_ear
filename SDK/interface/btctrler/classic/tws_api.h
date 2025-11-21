@@ -298,4 +298,7 @@ extern u32 tws_conn_get_mclkn(u32 *timebase);
 extern int bredr_clkn2offset(int clkn_begin, int clkn_end);
 
 u32 bt_audio_reference_clock_time(u8 network);
+
+void tws_traffic_statistics(int reset);
+
 #endif

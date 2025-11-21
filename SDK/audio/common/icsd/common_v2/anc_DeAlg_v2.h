@@ -12,15 +12,22 @@ struct icsd_anc_buf_v2 {
     float Wz_fd_init[DE_FLEN * 2];
     float Wz_fd_g[DE_FLEN * 2];
     float perfm[DE_FLEN];
-    float perfm2[DE_FLEN];
     float mse[DE_FLEN * 2];
     float fitness_sv[60];
     float biquad_coef_g[31];
     float biquad_coef_co_g[31];
     float biquad_coef_List_i[SWARM_NUM][31];
     float biquad_coef_best_de[31];
-    float mse_tmp[DE_FLEN];
-    float target_gain_db[FLEN_V2];
+    float ff_wz[DE_FLEN];
+    float fb_gz[DE_FLEN];
+    float pz_fd[DE_FLEN];
+    float sz_fd[DE_FLEN];
+
+    float pzfd_gain;
+    float szfd_gain;
+
+    float pz_cmp_en;
+    float *hp_cmp;
 };
 
 struct icsd_De_param_v2 {
@@ -29,9 +36,6 @@ struct icsd_De_param_v2 {
     float weight[DE_FLEN];
     float exp_w1[DE_FLEN * 2];
     float exp_w2[DE_FLEN * 2];
-
-    float exp_w1_ndsp[DE_FLEN * 2];
-    float exp_w2_ndsp[DE_FLEN * 2];
 
     float biquad_init_lcl[31];
     float biquad_init_fix[31];
@@ -51,7 +55,6 @@ struct icsd_De_param_v2 {
     int idx_200Hz;
     int De_fast_en;
     float freqz[DE_FLEN];
-    float freqz_ndsp[DE_FLEN];
     float gain_limit;
     float gain_limit_all;
     float over_mse_begin;
@@ -60,6 +63,10 @@ struct icsd_De_param_v2 {
     float limit_mse_end;
     int swarm_num;
     int flen;
+
+    float fitness;
+    u8 high_fgq_fix; // default:0
+    u8 de_alg_sel;   // default:0
 };
 
 struct icsd_ff_candidate_v2 {
@@ -114,12 +121,18 @@ struct icsd_norm_candidate_v2 {
     float gain_limit_all;
 };
 
-void anc_de_init();
-//void target_reshape(float *target, float *sz, int pz_reshape_en, int sz_reshape_en, int target_reshape_en);
-//void target_cmp_out(float *target, float *freqz, float *sz, int *tight_degree, int ear_mem_en);
+
+typedef struct {
+    struct icsd_anc_buf_v2		anc_buf;
+    struct icsd_De_param_v2 	De_param;
+    struct icsd_ff_candidate_v2 ff_candidate2;
+    struct icsd_ff_candidate_v2 cmp_candidate2;
+    struct icsd_target_param 	target_param;
+} __icsd_de_ram;
+extern __icsd_de_ram *ICSD_DE_RAM;
+
 void get_weight_mse_by_tight_degree(struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree, int flen);
 void get_biquad_by_tight_degree(struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree, int iir_num_flex, int iir_num_fix);
-
 
 void De_reconfig(float *target, int flen, struct icsd_ff_candidate_v2 *_FF_CANDI2, struct icsd_De_param_v2 *de_param, int tight_degree_MS, int tight_degree_self, struct icsd_anc_buf_v2 *_ANC_BUF);
 void DE_init(float *freqz, float fs, int flen, struct icsd_De_param_v2 *_de_param);

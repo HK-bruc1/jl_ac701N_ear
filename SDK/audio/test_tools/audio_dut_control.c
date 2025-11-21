@@ -16,7 +16,7 @@
 #include "system/includes.h"
 #include "app_config.h"
 #include "audio_cvp.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "app_main.h"
 #include "audio_config.h"
 #include "a2dp_player.h"
@@ -101,6 +101,7 @@ void cvp_dut_mode_set(u8 mode)
     audio_dut_log("%s mode %d\n", __func__, mode);
 }
 
+__AUDIO_INIT_BANK_CODE
 void audio_dut_init(void)
 {
     audio_dut_log("audio_dut init");

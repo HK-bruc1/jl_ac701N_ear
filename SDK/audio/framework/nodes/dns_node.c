@@ -74,9 +74,8 @@ int dns_param_cfg_read(struct stream_node *node)
      * */
     if (config_audio_cfg_online_enable) {
         ret = jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config));
-        if (ret != sizeof(config)) {
-            printf("get dns online param err\n");
-            return -1 ;
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config))) {
+            printf("get dns online param succ\n");
         }
     }
 
@@ -136,8 +135,8 @@ static void dns_handle_frame(struct stream_iport *iport, struct stream_note *not
             break;
         }
 
-        if (hdl->cfg.ns_type == AUDIO_NS_TYPE_ESCO_DL) {
-            if (hdl->cfg.call_active_trigger && (!hdl->trigger)) {
+        if ((hdl->cfg.ns_type == AUDIO_NS_TYPE_ESCO_DL) && hdl->cfg.call_active_trigger) {
+            if (!hdl->trigger) {
                 if (bt_get_call_status_for_addr(hdl->bt_addr) == BT_CALL_ACTIVE) {
                     hdl->trigger = 1;
                 }
@@ -161,6 +160,7 @@ static void dns_handle_frame(struct stream_iport *iport, struct stream_note *not
         if (out_frame_len) {
             hdl->out_frame = jlstream_get_frame(node->oport, out_frame_len);
             if (!hdl->out_frame) {
+                jlstream_return_frame(iport, in_frame);
                 return;
             }
         }

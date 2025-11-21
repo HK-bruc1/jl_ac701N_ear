@@ -67,6 +67,7 @@ extern int app_ble_att_server_packet_handler_register(void *_hdl, app_ble_packet
 extern int app_ble_hci_event_callback_register(void *_hdl, app_ble_packet_handler_t handler);
 extern int app_ble_l2cap_packet_handler_register(void *_hdl, app_ble_packet_handler_t handler);
 extern int app_ble_sm_event_callback_register(void *_hdl, app_ble_sm_event_callback_t callback);
+extern int app_ble_att_client_status(void *_hdl, u8 *addr);
 
 
 
@@ -102,6 +103,9 @@ extern int app_ble_hdl_uuid_set(void *_hdl, u32 uuid);
 extern int app_ble_all_sync_data_size(void);
 extern int app_ble_all_sync_data_get(u8 *sync_buf);
 extern int app_ble_all_sync_data_set(u8 *sync_buf, int buf_len);
+
+extern int app_ble_att_connect_type_set(void *_hdl, u8 connect_type);
+extern int app_ble_gatt_over_edr_connect_type_set(void *_hdl, u8 en);
 
 
 /**********************************************

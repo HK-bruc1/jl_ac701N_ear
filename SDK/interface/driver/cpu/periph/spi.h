@@ -39,7 +39,7 @@ typedef struct spi_platform_data {
 
 struct spi_platform_data *get_hw_spi_config(hw_spi_dev spi);
 int spi_open(hw_spi_dev spi, spi_hardware_info *spi_info);
-void spi_close(hw_spi_dev spi);
+void spi_deinit(hw_spi_dev spi);
 void spi_suspend(hw_spi_dev spi);
 void spi_resume(hw_spi_dev spi);
 

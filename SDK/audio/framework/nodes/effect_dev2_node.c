@@ -3,6 +3,8 @@
 #include "effects/effects_adj.h"
 #include "app_config.h"
 #include "effect_dev_node.h"
+#include "effects_dev.h"
+#include "audio_splicing.h"
 
 #if TCFG_EFFECT_DEV2_NODE_ENABLE
 
@@ -23,26 +25,30 @@
  * 0   : 等长输入输出，输入数据算法需要全部处理完
  * 非0 : 按照帧长输入数据到算法处理接口
  */
-#define EFFECT_DEV2_FRAME_POINTS  (256)
+#define EFFECT_DEV2_FRAME_POINTS  0 //(256)
+
+/*
+ *声道转换类型选配
+ *支持立体声转4声道协商使能,须在第三方音效节点后接入声道拆分节点
+ * */
+#define CHANNEL_ADAPTER_AUTO   0 //自动协商,通常用于无声道数转换的场景,结果随数据流配置自动适配
+#define CHANNEL_ADAPTER_2TO4   1 //立体声转4声道协商使能,支持2to4,结果随数据流配置自动适配
+#define CHANNEL_ADAPTER_1TO2   2 //单声道转立体声协商使能,支持1to2,结果随数据流配置自动适配
+#define CHANNEL_ADAPTER_TYPE   CHANNEL_ADAPTER_AUTO //默认无声道转换
 
 struct effect_dev2_node_hdl {
     char name[16];
-    void *effect_dev2;
-    s16 *remain_buf;
-    struct stream_frame *pack_frame;
+    void *user_priv;//用户可使用该变量做模块指针传递
     struct user_effect_tool_param cfg;//工具界面参数
+    struct packet_ctrl dev;
 
-    u32 sample_rate;
-    u16 remain_len; //记录算法消耗的剩余的数据长度
-    u16 frame_len;
-    u8 ch_num;
-    u8 bit_width;
 };
 
 /* 自定义算法，初始化
- * hdl->sample_rate:采样率
- * hdl->ch_num:通道数，单声道 1，立体声 2, 四声道 4
- * hdl->bit_width:位宽 0，16bit  1，32bit
+ * hdl->dev.sample_rate:采样率
+ * hdl->dev.in_ch_num:通道数，单声道 1，立体声 2, 四声道 4
+ * hdl->dev.out_ch_num:通道数，单声道 1，立体声 2, 四声道 4
+ * hdl->dev.bit_width:位宽 0，16bit  1，32bit
  **/
 static void audio_effect_dev2_init(struct effect_dev2_node_hdl *hdl)
 {
@@ -50,84 +56,56 @@ static void audio_effect_dev2_init(struct effect_dev2_node_hdl *hdl)
 }
 
 /* 自定义算法，运行
- * hdl->sample_rate:采样率
- * hdl->ch_num:通道数，单声道 1，立体声 2, 四声道 4
- * hdl->bit_width:位宽 0，16bit  1，32bit
- * *data:输入输出数据同地址
- * data_len :输入数据长度,byte
+ * hdl->dev.sample_rate:采样率
+ * hdl->dev.in_ch_num:通道数，单声道 1，立体声 2, 四声道 4
+ * hdl->dev.out_ch_num:通道数，单声道 1，立体声 2, 四声道 4
+ * hdl->dev.bit_width:位宽 0，16bit  1，32bit
+ * *indata:输入数据地址
+ * *outdata:输出数据地址
+ * indata_len :输入数据长度,byte
  * */
-static void audio_effect_dev2_run(struct effect_dev2_node_hdl *hdl, s16 *data, u32 data_len)
+static void audio_effect_dev2_run(struct effect_dev2_node_hdl *hdl, s16 *indata, s16 *outdata, u32 indata_len)
 {
+#if 0
+    //test 2to4
+    if (hdl->dev.bit_width && ((hdl->dev.out_ch_num == 4) && (hdl->dev.in_ch_num == 2))) {
+        pcm_dual_to_qual_with_slience_32bit(outdata, indata, indata_len, 0);
+    }
+#endif
     //do something
     /* printf("effect dev2 do something here\n"); */
 }
 /* 自定义算法，关闭
  **/
-static void audio_effect_dev2_exit()
+static void audio_effect_dev2_exit(struct effect_dev2_node_hdl *hdl)
 {
+    //do something
+
+}
+
+/* 自定义算法，更新参数
+ **/
+static void audio_effect_dev2_update(struct effect_dev2_node_hdl *hdl)
+{
+    //打印在线调音发送下来的参数
+    printf("effect dev2 name : %s \n", hdl->name);
+    for (int i = 0 ; i < 8; i++) {
+        printf("cfg.int_param[%d] %d\n", i, hdl->cfg.int_param[i]);
+    }
+    for (int i = 0 ; i < 8; i++) {
+        printf("cfg.float_param[%d] %d.%02d\n", i, (int)hdl->cfg.float_param[i], debug_digital(hdl->cfg.float_param[i]));
+    }
     //do something
 
 }
 /*节点输出回调处理，可处理数据或post信号量*/
 static void effect_dev2_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
-    struct stream_frame *frame;
+
     struct effect_dev2_node_hdl *hdl = (struct effect_dev2_node_hdl *)iport->node->private_data;
-    struct stream_node *node = iport->node;
 
-    while (1) {
-        frame = jlstream_pull_frame(iport, note);		//从iport读取数据
-        if (!frame) {
-            break;
-        }
-#if EFFECT_DEV2_FRAME_POINTS
-        /*算法出来一帧的数据长度，byte*/
-        hdl->remain_len += frame->len;  //记录目前还有多少数据
-        u16 tmp_remain = 0;             //记录上一次剩余多少
-        u8 pack_frame_num = hdl->remain_len / hdl->frame_len;//每次数据需要跑多少帧
-        u16 pack_frame_len = pack_frame_num * hdl->frame_len;       //记录本次需要跑多少数据
-        u16 offset = 0;
 
-        if (pack_frame_num) {
-            if (!hdl->pack_frame) {
-                /*申请资源存储输出输出*/
-                hdl->pack_frame = jlstream_get_frame(node->oport, pack_frame_len);
-                if (!hdl->pack_frame) {
-                    return;
-                }
-            }
-            tmp_remain = hdl->remain_len - frame->len;//上一次剩余的数据大小
-            /*拷贝上一次剩余的数据*/
-            memcpy(hdl->pack_frame->data, hdl->remain_buf, tmp_remain);
-            /*拷贝本次数据*/
-            memcpy((void *)((int)hdl->pack_frame->data + tmp_remain), frame->data, pack_frame_len - tmp_remain);
-            while (pack_frame_num--) {
-                audio_effect_dev2_run(hdl, (s16 *)((int)hdl->pack_frame->data + offset), hdl->frame_len);
-                offset += hdl->frame_len;
-            }
-            hdl->remain_len -= pack_frame_len;//剩余数据长度
-            hdl->pack_frame->len = pack_frame_len;
-            jlstream_push_frame(node->oport, hdl->pack_frame);	//将数据推到oport
-            hdl->pack_frame = NULL;
-
-            /*保存剩余不够一帧的数据*/
-            memcpy(hdl->remain_buf, (void *)((int)frame->data + frame->len - hdl->remain_len), hdl->remain_len);
-            jlstream_free_frame(frame);	//释放iport资源
-        } else {
-            /*当前数据不够跑一帧算法时*/
-            memcpy((void *)((int)hdl->remain_buf + hdl->remain_len - frame->len), frame->data, frame->len);
-            jlstream_free_frame(frame);	//释放iport资源
-        }
-#else
-        audio_effect_dev2_run(hdl, (s16 *)frame->data, frame->len);
-
-        if (node->oport) {
-            jlstream_push_frame(node->oport, frame);	//将数据推到oport
-        } else {
-            jlstream_free_frame(frame);	//释放iport资源
-        }
-#endif
-    }
+    effect_dev_process(&hdl->dev, iport,  note); //音效处理
 }
 
 /*节点预处理-在ioctl之前*/
@@ -148,8 +126,37 @@ static void effect_dev2_ioc_open_iport(struct stream_iport *iport)
 /*节点参数协商*/
 static int effect_dev2_ioc_negotiate(struct stream_iport *iport)
 {
+    int ret = 0;
+    ret = NEGO_STA_ACCPTED;
+    struct stream_oport *oport = iport->node->oport;
+    struct stream_fmt *in_fmt = &iport->prev->fmt;
+    struct effect_dev2_node_hdl *hdl = (struct effect_dev2_node_hdl *)iport->node->private_data;
 
-    return 0;
+    if (oport->fmt.channel_mode == 0xff) {
+        return 0;
+    }
+
+    hdl->dev.out_ch_num = AUDIO_CH_NUM(oport->fmt.channel_mode);
+    hdl->dev.in_ch_num = AUDIO_CH_NUM(in_fmt->channel_mode);
+#if (CHANNEL_ADAPTER_TYPE == CHANNEL_ADAPTER_2TO4)
+    if (hdl->dev.out_ch_num == 4) {
+        if (hdl->dev.in_ch_num != 2) {
+            in_fmt->channel_mode = AUDIO_CH_LR;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+#elif (CHANNEL_ADAPTER_TYPE == CHANNEL_ADAPTER_1TO2)
+    if (hdl->dev.out_ch_num == 2) {
+        if (hdl->dev.in_ch_num != 1) {
+            in_fmt->channel_mode = AUDIO_CH_MIX;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+#endif
+    log_debug(" effecs_dev in_ch_num %d, out_ch_num %d\n", hdl->dev.in_ch_num, hdl->dev.out_ch_num);
+
+
+    return ret;
 }
 
 /*节点start函数*/
@@ -159,8 +166,8 @@ static void effect_dev2_ioc_start(struct effect_dev2_node_hdl *hdl)
     /* struct jlstream *stream = jlstream_for_node(hdl_node(hdl)); */
 
 
-    hdl->sample_rate = fmt->sample_rate;
-    hdl->ch_num = AUDIO_CH_NUM(fmt->channel_mode);
+    hdl->dev.sample_rate = fmt->sample_rate;
+
 
     /*
      *获取配置文件内的参数,及名字
@@ -186,12 +193,14 @@ static void effect_dev2_ioc_start(struct effect_dev2_node_hdl *hdl)
     for (int i = 0 ; i < 8; i++) {
         printf("cfg.float_param[%d] %d.%02d\n", i, (int)hdl->cfg.float_param[i], debug_digital(hdl->cfg.float_param[i]));
     }
-    hdl->bit_width = hdl_node(hdl)->iport->prev->fmt.bit_wide;
-    printf("effect_dev2_ioc_start, sr: %d, ch: %d, bitw: %d", hdl->sample_rate, hdl->ch_num, hdl->bit_width);
-#if EFFECT_DEV2_FRAME_POINTS
-    hdl->frame_len = EFFECT_DEV2_FRAME_POINTS * hdl->ch_num * (2 << hdl->bit_width);
-    hdl->remain_buf = zalloc(hdl->frame_len);
-#endif
+    hdl->dev.bit_width = hdl_node(hdl)->iport->prev->fmt.bit_wide;
+    hdl->dev.qval = hdl_node(hdl)->iport->prev->fmt.Qval;
+    printf("effect_dev2_ioc_start, sr: %d, in_ch: %d, out_ch: %d, bitw: %d, %d", hdl->dev.sample_rate, hdl->dev.in_ch_num, hdl->dev.out_ch_num, hdl->dev.bit_width, hdl->dev.qval);
+
+    hdl->dev.node_hdl = hdl;
+    hdl->dev.effect_run = (void (*)(void *, s16 *, s16 *, u32))audio_effect_dev2_run;
+    effect_dev_init(&hdl->dev, EFFECT_DEV2_FRAME_POINTS);
+
     audio_effect_dev2_init(hdl);
 }
 
@@ -199,18 +208,8 @@ static void effect_dev2_ioc_start(struct effect_dev2_node_hdl *hdl)
 /*节点stop函数*/
 static void effect_dev2_ioc_stop(struct effect_dev2_node_hdl *hdl)
 {
-    audio_effect_dev2_exit();
-#if EFFECT_DEV2_FRAME_POINTS
-    hdl->remain_len = 0;
-    if (hdl->remain_buf) {
-        free(hdl->remain_buf);
-        hdl->remain_buf = NULL;
-    }
-    if (hdl->pack_frame) {
-        jlstream_free_frame(hdl->pack_frame);
-        hdl->pack_frame = NULL;
-    }
-#endif
+    audio_effect_dev2_exit(hdl);
+    effect_dev_close(&hdl->dev);
 }
 
 static int effect_dev2_ioc_update_parm(struct effect_dev2_node_hdl *hdl, int parm)
@@ -230,14 +229,8 @@ static int effect_ioc_update_parm(struct effect_dev2_node_hdl *hdl, int parm)
     struct user_effect_tool_param *cfg = (struct user_effect_tool_param *)parm;
     if (hdl) {
         memcpy(&hdl->cfg, cfg, sizeof(struct user_effect_tool_param));
-        //打印在线调音发送下来的参数
-        printf("effect dev2 name : %s \n", hdl->name);
-        for (int i = 0 ; i < 8; i++) {
-            printf("cfg->int_param[%d] %d\n", i, cfg->int_param[i]);
-        }
-        for (int i = 0 ; i < 8; i++) {
-            printf("cfg->float_param[%d] %d.%02d\n", i, (int)cfg->float_param[i], debug_digital(cfg->float_param[i]));
-        }
+
+        audio_effect_dev2_update(hdl);
 
         ret = true;
     }
@@ -297,6 +290,11 @@ REGISTER_STREAM_NODE_ADAPTER(effect_dev2_node_adapter) = {
     .ioctl      = effect_dev2_adapter_ioctl,
     .release    = effect_dev2_adapter_release,
     .hdl_size   = sizeof(struct effect_dev2_node_hdl),
+#if (CHANNEL_ADAPTER_TYPE != CHANNEL_ADAPTER_AUTO)
+    .ability_channel_out = 0x80 | 1 | 2 | 4,
+    .ability_channel_convert = 1,
+#endif
+
 };
 
 REGISTER_ONLINE_ADJUST_TARGET(effect_dev2) = {

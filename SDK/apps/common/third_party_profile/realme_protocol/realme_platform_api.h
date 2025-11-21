@@ -14,7 +14,7 @@ extern void realme_ota_breakpoint_init(void);
 extern u8 realme_platform_get_battery_left(void);
 extern u8 realme_platform_get_battery_right(void);
 extern u8 realme_platform_get_battery_box(void);
-
+extern int realme_tws_sync_state_send(void);
 
 // lib api
 extern int  realme_connected_num_get(void);
@@ -25,6 +25,8 @@ extern void realme_info_register(struct __realme_info *ptr);
 extern void realme_product_test_set(uint8_t enable, int (*func)(uint8_t *buf, uint16_t len));
 extern void realme_message_callback_register(int (*handler)(u8 *remote_addr, int id, int opcode, u8 *data, u32 len));
 extern void realme_is_tws_master_callback_register(bool (*handler)(void));
+extern int realme_tws_sync_data_recv(void *priv, u8 *data, u32 len);
+extern int realme_tws_sync_state_manually(void);
 extern void realme_set_ota_delay_ms(u16 delay_ms);
 extern int  realme_all_init(u8 melody_id, u8 realme_link_id);
 extern int  realme_all_exit();
@@ -35,7 +37,7 @@ extern void realme_debug_log_param_set(u32 frame_size, u32 timer_ms);
 extern void realme_get_host_utc_time(u8 *remote_addr);
 extern int  dual_bank_erase_other_bank(void);
 extern int  realme_check_other_upgrade_bank(void);
-
+extern void realme_app_set_local_utc_time(u32 time_stamp);
 /*
  realme_send_operation_to_host
 

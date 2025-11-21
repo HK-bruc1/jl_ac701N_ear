@@ -15,6 +15,11 @@
 #elif (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+#include "icsd_cmp_app.h"
+#endif
+
 #include "audio_anc_fade_ctr.h"
 
 /*******************ANC User Config***********************/
@@ -28,6 +33,12 @@
 #define ANC_MODE_EN_MODE_NEXT_SW	0	/*ANC提示音结束后才允许下一次模式切换*/
 #define ANC_MODE_FADE_LVL			1	/*降噪模式淡入步进*/
 #define ANC_LR_LOWPOWER_EN	  	    0	/*ANC立体声省功耗使能, 开启之后ANC可用滤波器数会减少*/
+
+#define ANC_DUT_MIC_CMP_GAIN_ENABLE 1   /*产测补偿ANC MIC增益使能； 仅支持多场景滤波器*/
+
+//支持OTA 更新 ANC COEFF参数：复位/开机后 参数会以下载目录的anc_coeff.bin为准
+#define ANC_COEFF_OTA_UPDATE_ENABLE 0
+
 
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
 /*立体声方案*/
@@ -70,9 +81,9 @@
  -------------------------------------------------------------*/
 #define ANC_DEVELOPER_MODE_EN		0	/*开发者强制模式强制使能,启动后不支持产测, 优先级最高, 不受工具控制*/
 
-#define ANC_EAR_ADAPTIVE_EN					TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN  /*ANC耳道自适应使能, 耳道是变量*/
+#define ANC_EAR_ADAPTIVE_EN					TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN  /*ANC耳道自适应使能, 耳道是变量，主动触发校准一次性能*/
 #define ANC_POWEOFF_SAVE_ADAPTIVE_DATA		1							    /*保存耳道自适应数据 0 每次保存；1 关机保存*/
-#define ANC_EAR_ADAPTIVE_CMP_EN				ANC_ADAPTIVE_CMP_EN				/*ANC耳道自适应音乐补偿使能*/
+#define ANC_EAR_ADAPTIVE_CMP_EN				TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN	/*ANC耳道自适应音乐补偿使能*/
 #define ANC_EAR_ADAPTIVE_EVERY_TIME			0                           	/*每次切ANC_ON都进行自适应*/
 
 /*
@@ -191,6 +202,7 @@ enum {
     ANC_MSG_DOT,
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
     ANC_MSG_AFQ_CMD,
+    ANC_MSG_46KOUT_DEMO,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -278,11 +290,6 @@ void anc_mode_switch_lock_clean(void);
 /*获取anc记录的最新的目标ANC模式*/
 u8 anc_new_target_mode_get(void);
 
-#define ANC_DAC_CH_L	0
-#define ANC_DAC_CH_R	1
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch);
-
 /*获取anc模式，ref_mic的增益*/
 u8 anc_mic_gain_get(void);
 
@@ -365,8 +372,11 @@ void anc_param_fill(u8 cmd, anc_gain_t *cfg);
 /*ANC_DUT audio模块使能函数，用于分离功耗*/
 void audio_anc_dut_enable_set(u8 enablebit);
 
-/*设置fb  mic为复用mic*/
-void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
+/*设置对应的mic为anc 复用mic, , mic_ch ff:0 ; fb:1*/
+void audio_anc_mic_mult_flag_set(u32 mic_ch, u8 mult_flag);
+
+/*获取对应的mic是否为anc 复用mic，左右耳有一个复用则认为被复用, , mic_ch ff:0 ; fb:1*/
+u8 audio_anc_mic_mult_flag_get(u32 mic_ch);
 
 /* 获取ANC MIC param 参数信息 */
 audio_adc_mic_mana_t *audio_anc_mic_param_get(void);
@@ -434,8 +444,10 @@ u8 get_anc_l_transyorder();
 void *get_anc_ltrans_fb_coeff();
 float get_anc_gains_lfb_transgain();
 u8 get_anc_lfb_transyorder();
-void set_anc_adt_state(u8 state);
 int anc_mode_change_tool(u8 dat);
+
+/*设置ANC模式变量*/
+void audio_anc_mode_set(u8 mode);
 
 /*获取ANC alogm参数，type 滤波器类型 */
 u32 audio_anc_gains_alogm_get(enum ANC_IIR_TYPE type);
@@ -455,4 +467,7 @@ void audio_ear_adaptive_train_app_suspend(void);
  */
 void audio_anc_param_reset(u8 fade_en);
 
+void audio_anc_howldet_fade_set(u16 gain);
+
+u8 anc_btspp_train_again(u8 mode, u32 dat);
 #endif/*AUDIO_ANC_H*/

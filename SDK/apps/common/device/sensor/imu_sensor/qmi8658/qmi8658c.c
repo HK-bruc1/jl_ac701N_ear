@@ -168,7 +168,7 @@ IMU_write   Qmi8658_write    = qmi8658_I2C_Write_Byte;
 #define spi_dma_write(x, y)         spi_dma_send(qmi8658_info->spi_hdl, x, y)
 #define spi_set_width(x)            spi_set_bit_mode(qmi8658_info->spi_hdl, x)
 #define spi_init(cfg)              spi_open(qmi8658_info->spi_hdl, cfg)
-#define spi_closed()            spi_close(qmi8658_info->spi_hdl)
+#define spi_closed()            spi_deinit(qmi8658_info->spi_hdl)
 #define spi_suspend()           hw_spi_suspend(qmi8658_info->spi_hdl)
 #define spi_resume()            hw_spi_resume(qmi8658_info->spi_hdl)
 

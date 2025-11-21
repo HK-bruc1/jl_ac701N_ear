@@ -20,5 +20,13 @@ enum {
     af_DATABIT_NOTSUPPORT = 0x404   //不支持的PCM数据类型返回错误
 };
 
+struct effects_func_api {
+    unsigned int(*need_buf)(void *param);
+    unsigned int(*tmp_buf_size)(void *param);
+    int (*init)(void *ptr, void *param, void *tmpbuf);
+    int (*set_tmpbuf)(void *ptr, void *tmpbuf);
+    int (*run)(void *ptr, void *indata, void *outdata, int PointsPerChannel);
+    int (*update)(void *ptr, void *param);
+};
 
 #endif

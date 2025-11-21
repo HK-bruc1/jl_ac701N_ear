@@ -42,14 +42,19 @@ const struct audio_overlay_type  aotype[] = {
     {AUDIO_CODING_AAC, OVERLAY_M4A },
 };
 
-
 void overlay_load_code(u32 type)
 {
+    static u32 type_flag = OVERLAY_RES;
     int i = 0;
     for (i = 0; i < ARRAY_SIZE(ctype); i++) {
         if (type == ctype[i].type) {
-            if (ctype[i].dst != 0) {
-                memcpy((void *)ctype[i].dst, (void *)ctype[i].src, (int)ctype[i].size);
+            if (type != type_flag) {
+                type_flag = type;
+                if (ctype[i].dst != 0) {
+                    memcpy((void *)ctype[i].dst, (void *)ctype[i].src, (int)ctype[i].size);
+                }
+            } else {
+                puts("overlay: the same type, do NOT load again");
             }
             break;
         }

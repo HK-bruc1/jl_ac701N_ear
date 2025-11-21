@@ -9,11 +9,10 @@
 
 #include "rcsp_misc_setting.h"
 #include "ble_rcsp_server.h"
+#include "node_param_update.h"
 
-#if (RCSP_MODE && RCSP_DRC_VAL_SETTING && TCFG_AUDIO_OUT_EQ_ENABLE && TCFG_DRC_ENABLE && TCFG_AUDIO_OUT_DRC_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
-#include "audio_dec.h"
+#if (RCSP_MODE && RCSP_DRC_VAL_SETTING &&  TCFG_LIMITER_NODE_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 
-extern int high_bass_drc_set_filter_info(int th);
 
 static s16 drc_val = 0;
 
@@ -21,7 +20,8 @@ static int drc_setting_set(u8 *misc_setting, u8 is_conversion)
 {
     u32 offset = 0;
     if (is_conversion) {
-        drc_val = misc_setting[offset++] << 8 | misc_setting[offset++];
+        drc_val = misc_setting[0] << 8 | misc_setting[1];
+        offset += 2;
         drc_val = drc_val < 0 ? (drc_val + 61) : drc_val;
     } else {
         memcpy((u8 *)&drc_val, misc_setting, sizeof(drc_val));
@@ -49,7 +49,7 @@ static int drc_state_update(u8 *misc_setting)
     // 值不相同才设置
     static s16 prev_drc_val = -1;
     if (-1 == prev_drc_val || prev_drc_val != drc_val) {
-        high_bass_drc_set_filter_info(drc_val > 0 ? drc_val - 61 : drc_val);
+        user_limiter_update_parm(0, "Limiter1", 0, (drc_val > 0 ? drc_val - 61 : drc_val));
         prev_drc_val = drc_val;
     }
     return 0;

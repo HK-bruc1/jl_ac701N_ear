@@ -201,8 +201,8 @@ int syscfg_tools_init(void);
 //=========== btif & cfg_tool.bin & vm ============//
 #define		CFG_BT_NAME    				101
 #define     CFG_BT_MAC_ADDR             102
-#define     VM_OLD_RTC_TIME             105
-#define     VM_OLD_REAL_TIME            106
+#define     VM_RTC_ALM_TIME             105
+#define     VM_RTC_TIME_TRIM            106
 #define     VM_BLE_LOCAL_INFO           109
 #define     CFG_BT_FRE_OFFSET			110
 #define 	VM_GMA_ALI_PARA				111
@@ -243,6 +243,13 @@ int syscfg_tools_init(void);
 
 #define		DUAL_BANK_BP_STEP			139
 #define		DUAL_BANK_BP_FW_CODE		140
+
+#define     CFG_BT_FRE_OFFSET1			141
+#define     CFG_BT_FRE_OFFSET2			142
+#define     CFG_BT_FRE_OFFSET3			143
+#define     CFG_BT_FRE_OFFSET4			144
+
+#define     VM_ID_XOSC_TRIM             145
 
 #define     CFG_ONLINE_EQ_DRC_DATA_ID   254//在线调试保存参数的id
 #define     CFG_ONLINE_SAVE_ID          255//在线保存文件大小的id
@@ -324,6 +331,7 @@ int syscfg_tools_init(void);
 //其它类配置项[651 ~ 700]
 #define 	CFG_STORE_BIN_ONLY_END		700
 
+#define     CFG_CONSTANT_CURRENT_CALI   1026//烧写器方案充电电流校准
 
 // votp区域
 #define     CFG_VOTP_CFG_GROUP_START     (0xD00)

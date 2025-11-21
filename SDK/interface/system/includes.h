@@ -8,6 +8,7 @@
 #include "task.h"
 #include "timer.h"
 #include "fs/fs.h"
+#include "sdfile.h"
 #include "bank_switch.h"
 #include "movable.h"
 

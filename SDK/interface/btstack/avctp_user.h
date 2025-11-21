@@ -140,6 +140,9 @@ typedef enum {
     USER_CTRL_HFP_CMD_FUNCTION1,            //预留HFP命令位置
     USER_CTRL_HFP_CMD_FUNCTION2,            //预留HFP命令位置
     USER_CTRL_HFP_CMD_END,
+    USER_CTRL_HFP_MIC_VOLUME_UP,
+    USER_CTRL_HFP_MIC_VOLUME_DOWN,
+    USER_CTRL_HFP_MIC_SET_VOLUME,
 
     //音乐控制部分
     USER_CTRL_AVCTP_CMD_BEGIN       = 0x40,
@@ -261,6 +264,8 @@ typedef enum {
     USER_CTRL_IAP_SEND_DATA, //len <= 512
     //serial port profile disconnect command
     USER_CTRL_IAP_DISCONNECT,
+    USER_CTRL_IAP_CONN,
+    USER_CTRL_IAP_CONN_RFCOMM,
     USER_CTRL_IAP_CMD_END,
 
 ///pbg发送命令
@@ -327,6 +332,11 @@ typedef enum {
     USER_CTRL_PAN_SEND_DATA,
     USER_CTRL_PAN_CMD_END,
 
+    //OPP功能发送命令
+    USER_CTRL_OPP_CMD_BEGIN       = 0xF5,
+    USER_CTRL_OPP_CONNECTION,
+    USER_CTRL_OPP_DISCONNECTION,
+    USER_CTRL_OPP_CMD_END,
 
     //蓝牙其他操作
     //蓝牙关闭
@@ -362,6 +372,7 @@ typedef enum {
     USER_CTRL_TWS_AUDIO_SHARE_START_CONNECT,
     USER_CTRL_ATWS_AUDIO_SHARE_CMD_START					,
     USER_CTRL_ATWS_AUDIO_SHARE_CMD_SUSPEND					,
+    USER_CTRL_ADT_SYNC_CONNECT_FLAG,
 
     USER_CTRL_LAST
 } USER_CMD_TYPE;
@@ -443,6 +454,7 @@ typedef enum {
 
     BT_STATUS_TRIM_OVER,        /*测试盒TRIM完成*/
     BT_STATUS_PHONE_NAME,   /*获取来电号码name*/
+    BT_STATUS_CALL_MIC_VOL_CHANGE,
 } STATUS_FOR_USER;
 
 typedef enum {
@@ -641,7 +653,8 @@ extern void bt_set_support_lhdc_flag(bool flag);
 extern void bt_set_support_lhdc_v5_flag(bool flag);
 /*配置协议栈使用支持LDAC的信息*/
 extern void bt_set_support_ldac_flag(bool flag);
-
+/*配置协议栈使用支持Super Wide Band Speech*/
+extern void bt_set_support_hfp_swb_flag(bool flag);
 
 
 /*有些自选接口用来实现个性化功能流程，回调函数注册，记得常来看看哟*/
@@ -697,6 +710,8 @@ extern u8 bt_a2dp_is_source_dev_null();
 // 配置LDAC支持的采样率
 extern void bt_set_a2dp_ldac_sampling_freq(u8 a2dp_ldac_sampling_freq);
 #define LE_AUDIO_CLASS              BIT(14)
+//VIVO special
+#define LE_AUDIO_VIVO_CLASS         BIT(15)
 
 //LHDC_V5 采样率
 #define LHDC_V5_SAMPLING_FREQ_192000    0x01
@@ -865,4 +880,5 @@ bool is_have_dongle_dev_conn();
 extern u8 get_inband_ringtone_flag_for_addr(u8 *addr);
 u8 *get_other_dev_addr(u8 *addr);
 extern void make_rand_num(u8 *buf);
+extern u32 unactice_device_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 #endif

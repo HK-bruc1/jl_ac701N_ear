@@ -67,6 +67,28 @@ int audio_afq_common_start(void)
     return 0;
 }
 
+static void audio_afq_common_fre_out_free(void)
+{
+    if (common_hdl) {
+        if (common_hdl->fre_out.sz_l.out) {
+            free(common_hdl->fre_out.sz_l.out);
+            common_hdl->fre_out.sz_l.out = NULL;
+        }
+        if (common_hdl->fre_out.sz_l.msc) {
+            free(common_hdl->fre_out.sz_l.msc);
+            common_hdl->fre_out.sz_l.msc = NULL;
+        }
+        if (common_hdl->fre_out.sz_r.out) {
+            free(common_hdl->fre_out.sz_r.out);
+            common_hdl->fre_out.sz_r.out = NULL;
+        }
+        if (common_hdl->fre_out.sz_r.msc) {
+            free(common_hdl->fre_out.sz_r.msc);
+            common_hdl->fre_out.sz_r.msc = NULL;
+        }
+    }
+}
+
 int audio_afq_common_close(void)
 {
     common_log("%s\n", __func__);
@@ -82,23 +104,7 @@ int audio_afq_common_close(void)
         }
         return 0;
     }
-    if (common_hdl->fre_out.sz_l.out) {
-        free(common_hdl->fre_out.sz_l.out);
-        common_hdl->fre_out.sz_l.out = NULL;
-    }
-    if (common_hdl->fre_out.sz_l.msc) {
-        free(common_hdl->fre_out.sz_l.msc);
-        common_hdl->fre_out.sz_l.msc = NULL;
-    }
-    if (common_hdl->fre_out.sz_r.out) {
-        free(common_hdl->fre_out.sz_r.out);
-        common_hdl->fre_out.sz_r.out = NULL;
-    }
-    if (common_hdl->fre_out.sz_r.msc) {
-        free(common_hdl->fre_out.sz_r.msc);
-        common_hdl->fre_out.sz_r.msc = NULL;
-    }
-
+    audio_afq_common_fre_out_free();
     task_kill("afq_common");
 
     switch (common_hdl->data_sel) {
@@ -116,11 +122,18 @@ int audio_afq_common_close(void)
     return 0;
 }
 
+//异步处理，先存数据
 int audio_afq_common_output_post_msg(__afq_output *out)
 {
     struct audio_afq_output *p = &common_hdl->fre_out;
 
+    if (!common_hdl->fre_use_cnt) {	//有人使用才存数据
+        return 0;
+    }
     p->state = out->state;
+
+    //先释放上一次内存
+    audio_afq_common_fre_out_free();
     if (out->sz_l) {
         /* for (int i = 0; i < out->sz_l->len; i++) { */
         /* common_log("%d\n", (int)(out->sz_l->out[i] * 1000)); */
@@ -152,6 +165,7 @@ int audio_afq_common_output_post_msg(__afq_output *out)
     }
     memcpy(p->sz_l.out, out->sz_l->out, p->sz_l.len * sizeof(float));
 
+    //printf("get sz_freqs, %d, %d \n", (int)(p->sz_l.out[2] * 1000), (int)(p->sz_l.out[3] * 1000));
     os_taskq_post_msg("afq_common", 1, AFQ_COMMON_MSG_RUN);
     return 0;
 }

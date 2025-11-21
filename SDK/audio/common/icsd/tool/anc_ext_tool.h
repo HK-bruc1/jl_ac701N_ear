@@ -3,6 +3,7 @@
 
 #include "typedef.h"
 #include "generic/list.h"
+#include "app_config.h"
 
 //自适应类型
 #define ANC_ADAPTIVE_TYPE_TWS            	1 //显示: TWS
@@ -14,10 +15,17 @@
 
 //ANC_EXT功能列表
 #define ANC_EXT_FUNC_EN_ADAPTIVE			BIT(0)	//自适应功能
+#define ANC_EXT_FUNC_EN_RTANC				BIT(1)	//RTANC
+#define ANC_EXT_FUNC_EN_ADAPTIVE_CMP		BIT(2)	//自适应CMP
+#define ANC_EXT_FUNC_EN_ADAPTIVE_EQ			BIT(3)	//自适应EQ
+#define ANC_EXT_FUNC_EN_WIND_DET			BIT(4)	//风噪检测
+#define ANC_EXT_FUNC_EN_SOFT_HOWL_DET		BIT(5)	//软件啸叫检测
+#define ANC_EXT_FUNC_EN_ADAPTIVE_DCC		BIT(6)	//自适应DCC
 
 //文件 SUBFILE ID
 enum {
     /* FILE_ID_ANC_EXT_START = 0XB0, */
+    //耳道自适应 配置
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_BASE = 0XB0,		//BASE 界面参数 文件ID
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_IIR = 0XB1,		//FF->滤波器设置文件ID
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_WEIGHT = 0XB2,	//FF->权重和性能设置文件ID
@@ -28,12 +36,36 @@ enum {
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_RECORDER = 0xB5,//FF->耳道记忆 文件ID
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_TIME_DOMAIN = 0xB6,//时域文件ID 文件ID
 
-    FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP = 0xB7,		//耳道自适应产测补偿 文件ID
+    FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP = 0xB7,	//产测：耳道自适应产测补偿 文件ID
+
+    //RTANC 配置
+    FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG = 0xB8,		//RTANC adaptive 配置文件ID
+    FILE_ID_ANC_EXT_RTANC_DEBUG_DATA = 0xB9,		//debug: RTANC adaptive debug 数据 文件ID
+
+    //CMP 配置
+    FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA = 0xBA,		//自适应CMP配置 文件ID
+
+    //AEQ 配置
+    FILE_ID_ANC_EXT_ADAPTIVE_EQ_DATA = 0xBB,		//自适应EQ配置 文件ID
+    FILE_ID_ANC_EXT_REF_SZ_DATA = 0xBC,				//参数SZ 文件ID
+
+    FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA = 0xBD,	//debug: EQ adaptive debug 数据 文件ID
+
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_PZ_SZ_CMP = 0xBE,      //ANC自适应产测补偿 文件ID    
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_GOLD_DATA = 0xBF,		//ANC自适应金机数据 文件ID
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_SZ_DATA = 0xC0,		//产测SZ小机数据 文件ID
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_PZ_DATA = 0xC1,		//产测PZ小机数据 文件ID
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_BYPASS_DATA = 0xC2,	//产测BYPASS小机数据 文件ID
+    // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_SZ_BYPASS_DATA = 0xC3,	//产测SZ_BYPASS小机数据 文件ID
+
+    FILE_ID_ANC_EXT_WIND_DET_CFG = 0xC4,			//风噪检测配置 文件ID
+    FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG = 0xC5,		//软件-啸叫检测配置 文件ID
+    FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG = 0xC6,			//自适应DCC配置 文件ID
 
     /* FILE_ID_ANC_EXT_STOP = 0XD0, */
 };
 
-//数据类型 ID
+//anc_ext.bin数据类型 ID
 enum {
     //BASE 界面参数 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_BASE
     ANC_EXT_EAR_ADAPTIVE_BASE_CFG_ID = 0x1,				//base 界面下的参数
@@ -112,13 +144,106 @@ enum {
     //FF->耳道记忆设置界面 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_RECORDER
     ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_PARAM_ID = 0x3B,	//耳道记忆相关参数配置(右)
     ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_PZ_ID = 0x3C,	//耳道记忆PZ配置(右)
+    // ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_SZ_ID = 0x3D,	//↑位置上移
     ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_SZ_ID = 0x3E,	//耳道记忆SZ配置(右)
 
     //FF->耳道自适应产测数据
-    ANC_EXT_EAR_ADAPTIVE_FF_DUT_PZ_CMP_ID = 0x3F,			//产测PZ补偿
-    ANC_EXT_EAR_ADAPTIVE_FF_DUT_SZ_CMP_ID = 0x40,			//产测SZ补偿
-    ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_PZ_CMP_ID = 0x41,			//产测PZ补偿(右)
-    ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_SZ_CMP_ID = 0x42,			//产测SZ补偿(右)
+    ANC_EXT_EAR_ADAPTIVE_FF_DUT_PZ_CMP_ID = 0x3F,		//产测PZ补偿
+    ANC_EXT_EAR_ADAPTIVE_FF_DUT_SZ_CMP_ID = 0x40,		//产测SZ补偿
+    ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_PZ_CMP_ID = 0x41,		//产测PZ补偿(右)
+    ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_SZ_CMP_ID = 0x42,		//产测SZ补偿(右)
+
+    //RTANC adaptive 配置 文件ID FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG
+    ANC_EXT_RTANC_ADAPTIVE_CFG_ID = 0x43,				//RTANC adptive 配置
+
+    //CMP 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA
+    ANC_EXT_ADAPTIVE_CMP_GAINS_ID = 0x44,				//CMP gain相关参数配置
+    ANC_EXT_ADAPTIVE_CMP_IIR_ID = 0x45,					//CMP 滤波器
+    ANC_EXT_ADAPTIVE_CMP_WEIGHT_ID = 0x46,				//CMP 权重
+    ANC_EXT_ADAPTIVE_CMP_MSE_ID = 0x47,					//CMP 性能
+
+    ANC_EXT_ADAPTIVE_CMP_R_GAINS_ID = 0x48,				//CMP gain相关参数配置(右)
+    ANC_EXT_ADAPTIVE_CMP_R_IIR_ID = 0x49,				//CMP 滤波器(右)
+    ANC_EXT_ADAPTIVE_CMP_R_WEIGHT_ID = 0x4A,			//CMP 权重(右)
+    ANC_EXT_ADAPTIVE_CMP_R_MSE_ID = 0x4B,				//CMP 性能(右)
+
+    //AEQ 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_EQ_DATA
+    ANC_EXT_ADAPTIVE_EQ_GAINS_ID = 0x4C,				//AEQ gain相关参数配置
+    ANC_EXT_ADAPTIVE_EQ_IIR_ID = 0x4D,					//AEQ 滤波器
+    ANC_EXT_ADAPTIVE_EQ_WEIGHT_ID = 0x4E,				//AEQ 权重
+    ANC_EXT_ADAPTIVE_EQ_MSE_ID = 0x4F,					//AEQ 性能
+    ANC_EXT_ADAPTIVE_EQ_THR_ID = 0x50,					//AEQ 上限阈值
+
+    ANC_EXT_ADAPTIVE_EQ_R_GAINS_ID = 0x51,				//AEQ gain相关参数配置(右)
+    ANC_EXT_ADAPTIVE_EQ_R_IIR_ID = 0x52,				//AEQ 滤波器(右)
+    ANC_EXT_ADAPTIVE_EQ_R_WEIGHT_ID = 0x53,				//AEQ 权重(右)
+    ANC_EXT_ADAPTIVE_EQ_R_MSE_ID = 0x54,				//AEQ 性能(右)
+    ANC_EXT_ADAPTIVE_EQ_R_THR_ID = 0x55,				//AEQ 上限阈值(右)
+
+    //参考 SZ 数据 文件ID FILE_ID_ANC_EXT_REF_SZ_DATA
+    ANC_EXT_REF_SZ_DATA_ID = 0x56,						//REF_SZ 参考数据
+    ANC_EXT_REF_SZ_R_DATA_ID = 0x57,					//REF_SZ 参考数据(右)
+
+    ANC_EXT_RTANC_R_ADAPTIVE_CFG_ID = 0x58,				//RTANC adptive 配置(右)
+
+    //产测：耳道自适应金机/小机 PZ/SZ 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_GOLD_PZ_ID = 0x59,      //产测PZ金机数据
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_GOLD_SZ_ID = 0x5A,      //产测SZ金机数据
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_GOLD_SZ_BP_ID = 0x5B,   //产测SZ_bp金机数据
+
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_LOCAL_SZ_ID = 0x5C,     //产测SZ小机数据
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_LOCAL_PZ_ID = 0x5D,   //产测PZ小机数据
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_LOCAL_BYPASS_ID = 0x5E,  //产测BYPASS小机数据
+    // ANC_EXT_EAR_ADAPTIVE_FF_DUT_LOCAL_SZ_BYPASS_ID = 0x5F,  //产测SZ_BYPASS小机数据
+
+    //风噪检测 配置 文件ID FILE_ID_ANC_EXT_WIND_DET_CFG
+    ANC_EXT_WIND_DET_CFG_ID = 0x60,						//风噪检测配置
+
+    //软件啸叫检测 配置 文件ID FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG
+    ANC_EXT_SOFT_HOWL_DET_CFG_ID = 0x61,				//软件啸叫检测配置
+
+    //风噪检测 配置 文件ID FILE_ID_ANC_EXT_WIND_DET_CFG
+    ANC_EXT_WIND_TRIGGER_CFG_ID = 0x62,				//风噪触发配置
+
+    //自适应DCC配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG
+    ANC_EXT_ADAPTIVE_DCC_CFG_ID = 0x63,				//自适应DCC配置
+};
+
+//工具debug bin文件 数据ID
+enum ANC_EXT_DEBUG_DATA_ID {
+
+    //--------滤波器ID--------
+    //0x0 - 0x3 FF/FB/CMP/TRANS
+    AEQ_L_IIR_VOL_LOW = 0x04,
+    AEQ_L_IIR_VOL_MIDDLE = 0x05,
+    AEQ_L_IIR_VOL_HIGH = 0x06,
+
+    //0x10 - 0x13 FF/FB/CMP/TRANS
+    AEQ_R_IIR_VOL_LOW = 0x14,
+    AEQ_R_IIR_VOL_MIDDLE = 0x15,
+    AEQ_R_IIR_VOL_HIGH = 0x16,
+
+    //------频响/曲线ID-------
+    ANC_L_ADAP_FRE = 0x20,
+    ANC_L_ADAP_PZ = 0x21,
+    ANC_L_ADAP_SZPZ = 0x22,
+    ANC_L_ADAP_TARGET = 0x23,
+    ANC_L_ADAP_TARGET_CMP = 0x25,
+    ANC_L_ADAP_TARGET_BEFORE_CMP = 0x26,
+    ANC_L_ADAP_CMP_FORM_TRAIN = 0x27,
+    ANC_L_ADAP_FRE_2 = 0x28,
+    ANC_L_ADAP_MSE = 0x29,
+
+    //----------- R ------------
+    ANC_R_ADAP_FRE = 0x30,
+    ANC_R_ADAP_PZ = 0x31,
+    ANC_R_ADAP_SZPZ = 0x32,
+    ANC_R_ADAP_TARGET = 0x33,
+    ANC_R_ADAP_TARGET_CMP = 0x35,
+    ANC_R_ADAP_TARGET_BEFORE_CMP = 0x36,
+    ANC_R_ADAP_CMP_FORM_TRAIN = 0x37,
+    ANC_R_ADAP_FRE_2 = 0x38,
+    ANC_R_ADAP_MSE = 0x39,
 };
 
 //自适应训练模式
@@ -197,6 +322,7 @@ struct __anc_ext_iir {
 };
 
 //耳道自适应 - 滤波器界面-滤波器参数单元 高/中/低
+//AEQ/CMP 滤波器参数
 struct __anc_ext_ear_adaptive_iir {
     u8 type;								//滤波器类型
     u8 fixed_en;							//固定使能
@@ -214,7 +340,7 @@ struct __anc_ext_ear_adaptive_iir_general {
     float total_gain_freq_l;		//总增益对齐频率下限 default:350  range:0~2700
     float total_gain_freq_h;		//总增益对齐频率上限 default:650  range:0~2700
     float total_gain_limit;			//滤波器最高增益限制 default:20   range:-80~80
-};	//32byte
+};	//16byte
 
 //耳道自适应 - 滤波器界面 gain参数 高/中/低
 struct __anc_ext_ear_adaptive_iir_gains {
@@ -222,7 +348,7 @@ struct __anc_ext_ear_adaptive_iir_gains {
     float def_total_gain;			//默认增益  default 1.0(0dB)  range 0.0316(-30dB) - 31.622(+30dB);
     float upper_limit_gain;			//增益调整上限 default 2.0(6dB) range 0.0316(-30dB) - 31.622(+30dB);
     float lower_limit_gain;			//增益调整下限 default 0.5(-6dB) range 0.0316(-30dB) - 31.622(+30dB);
-};	//32byte
+};	//16byte
 
 //耳道自适应 - 权重和性能界面 参数
 struct __anc_ext_ear_adaptive_weight_param {
@@ -275,6 +401,127 @@ struct __anc_ext_ear_adaptive_dut_data {
     float data[0];
 };
 
+//RTANC 配置
+struct __anc_ext_rtanc_adaptive_cfg {
+    u8 angle_direct;		//def:1	; range:[0, 1]
+    u8 dov_cnt;				//def:3	; range:[0, 20]
+    s8 ref_cali;			//def:-20; range:[-100, 100]
+    s8 err_cali;			//def:-17; range:[-100, 100]
+    s8 hz_db_thr[3];		//def:[-4, -2, 1]; range:[-100, 100]
+    u8 frame_cnt;			//def:4; range:[0, 20]
+
+    s8 num_thr;				//def:-2; range:[-10, 20]
+    s8 n_mse_thr;			//def:-5; range:[-10, 20]
+    s8 pz_min_thr;			//def:-15; range:[-100, 100]
+
+    s8 pz_iir_thr1;			//def:0; range:[-100, 100]
+    s8 pz_iir_thr2;			//def:-16; range:[-100, 100]
+
+    u8 idx_thr;				//def:5; range:[0, 20]
+    u8 hist_select_l;		//def:5; range:[0, 25]
+    u8 hist_select_h;		//def:13; range:[0, 25]
+    u8 trim_lock;			//def:5; range:[0, 20]
+
+    u8 spk_pwr_min;			//def:80; range:[0, 200]
+    u8 ref_pwr_max;			//def:100; range:[0, 200]
+    s8 spk2ref;				//def:6; range:[-100, 100]
+
+    s8 undefine_par2[10];	//def:0; range:[-100, 100]
+
+    s16 angle_thr[6];		//def:[-40, 120, -20, 180, -20, 180]; range:[-180， 180]
+    s16 dov_thr;			//def:200; range:[0, 1000]
+
+    s16 angle_pz_thr1;		//def:110; range:[-180, 180]
+    s16 angle_pz_thr2;		//def:110; range:[-180, 180]
+
+    float mse_ctl_thr1;		//def:5; range:[-100, 100]
+    float mse_ctl_thr2;		//def:5; range:[-100, 100]
+    float mse_ctl_thr3;		//def:0.2; range:[-100, 100]
+    float anc_performance;	//def:-30; range:[-100, 100]
+    // bypass2
+    float pz_db_thr0;		//def:7; range:[-100, 100]
+    float pz_db_thr1;		//def:7; range:[-100, 100]
+    float fitness;			//def:150; range:[0, 2000]
+    float hist_select_thr;	//def:1.5; range:[0, 20]
+    // target_judge
+    float diff_thr;			//def:2; range:[0, 20]
+    float sz_stable_thr;	//def:2; range:[0, 20]
+    float sz_iir_thr;		//def:1.5; range:[0, 20]
+    float sz_diff_cmp_thr;	//def:1.0; range:[0, 20]
+    float sz_diff_tp_thr;	//def:1.0; range:[0, 20]
+
+    float undefine_par1[10];			//def:0; range:[-1000, 1000]
+};
+
+//参考SZ
+struct __anc_ext_sz_data {
+    float data[120];
+};
+
+//AEQ 阈值配置
+struct __anc_ext_adaptive_eq_thr {
+    /*
+       音量分档: 当前音量vol
+       1、vol > vol_thr2 			  	判定:小
+       2、vol_thr2 >= vol > vol_thr1 	判定:中
+       3、vol_thr1  >= vol				判定:大
+    */
+    u8 vol_thr1;		//def:5;	range:[0, 16]
+    u8 vol_thr2;		//def:10;	range:[0, 16]
+    u8 max_dB[3][3];	//[松紧度档位][音量档位] def [[22,12,3],[20,14,2],[15,10,1]]; range:[0, 30]
+    /*
+       松紧度分档：阈值thr
+       1、thr > dot_thr2 			  	判定:紧
+       2、dot_thr1 >= thr > dot_thr2 	判定:正常
+       3、dot_thr1  >= thr				判定:松
+     */
+    float dot_thr1;		//def:-6.0f;	range:[-100, 100]
+    float dot_thr2;		//def:0.0f;		range:[-100, 100]
+};
+
+//风噪检测配置
+struct __anc_ext_wind_det_cfg {
+    u8 wind_lvl_scale;
+    u8 icsd_wind_num_thr1;
+    u8 icsd_wind_num_thr2;
+    u8 reserved;
+    float wind_iir_alpha;
+    float corr_thr;
+    float msc_lp_thr;
+    float msc_mp_thr;
+    float cpt_1p_thr;
+    float ref_pwr_thr;
+    float param[6];
+};
+
+//风噪触发配置
+struct __anc_ext_wind_trigger_cfg {
+    u16 thr[5]; //def:[30,60,90,120,150] range [0, 255]
+    u16 gain[5]; //def[10000, 8000, 6000, 3000, 0] range [0, 16384]
+};
+
+//软件啸叫检测配置
+struct __anc_ext_soft_howl_det_cfg {
+    float hd_scale;
+    int hd_sat_thr;
+    float hd_det_thr;
+    float hd_diff_pwr_thr;
+    int hd_maxind_thr1;
+    int hd_maxind_thr2;
+    float param[6];
+};
+
+//自适应DCC配置
+struct __anc_ext_adaptive_dcc_cfg {
+    u8 ff_dc_par;				// default:6, range:0-15
+    u8 reserved[3];
+    u16 refmic_max_thr;			// default:300, range:0-32768
+    u16 refmic_mp_thr;			// default:300, range:0-512
+    u16 param1[10];				// default:0, range:-256-256
+    float err_overload_list[4];	// default:[90, 90, 85, 80], range:0-300
+    float param2[10];			// default:0, range:-256-256
+};
+
 //耳道自适应工具参数
 struct anc_ext_ear_adaptive_param {
 
@@ -284,6 +531,7 @@ struct anc_ext_ear_adaptive_param {
     u8 *time_domain_buf;					//时域debug buff
     int time_domain_len;					//时域debug buff len
 
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
     struct __anc_ext_ear_adaptive_base_cfg	*base_cfg;
 
     /*----------------头戴式 左声道 / TWS LR------------------*/
@@ -341,17 +589,59 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_dut_data *ff_dut_sz_cmp;
     struct __anc_ext_ear_adaptive_dut_data *rff_dut_pz_cmp;
     struct __anc_ext_ear_adaptive_dut_data *rff_dut_sz_cmp;
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //RTANC 配置
+    struct __anc_ext_rtanc_adaptive_cfg *rtanc_adaptive_cfg;
+    struct __anc_ext_rtanc_adaptive_cfg *r_rtanc_adaptive_cfg;
+#endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //RTCMP 配置
+    struct __anc_ext_ear_adaptive_iir_gains	*cmp_gains;
+    struct __anc_ext_ear_adaptive_iir *cmp_iir; //[6]
+    struct __anc_ext_ear_adaptive_weight *cmp_weight;	//[60]
+    struct __anc_ext_ear_adaptive_mse *cmp_mse;	//[60]
+    struct __anc_ext_ear_adaptive_iir_gains	*rcmp_gains;
+    struct __anc_ext_ear_adaptive_iir *rcmp_iir; //[6]
+    struct __anc_ext_ear_adaptive_weight *rcmp_weight;	//[60]
+    struct __anc_ext_ear_adaptive_mse *rcmp_mse;	//[60]
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //RTAEQ
+    struct __anc_ext_ear_adaptive_iir_gains	*aeq_gains;
+    struct __anc_ext_ear_adaptive_iir *aeq_iir; //[10]
+    struct __anc_ext_ear_adaptive_weight *aeq_weight;	//[60]
+    struct __anc_ext_ear_adaptive_mse *aeq_mse;	//[60]
+    struct __anc_ext_adaptive_eq_thr *aeq_thr;
+    struct __anc_ext_ear_adaptive_iir_gains	*raeq_gains;
+    struct __anc_ext_ear_adaptive_iir *raeq_iir; //[10]
+    struct __anc_ext_ear_adaptive_weight *raeq_weight;	//[60]
+    struct __anc_ext_ear_adaptive_mse *raeq_mse;	//[60]
+    struct __anc_ext_adaptive_eq_thr *raeq_thr;
+#endif
+
+    //参考SZ
+    struct __anc_ext_sz_data *sz_ref; //[120]
+    struct __anc_ext_sz_data *rsz_ref; //[120]
+
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    //风噪检测配置
+    struct __anc_ext_wind_det_cfg *wind_det_cfg;
+    struct __anc_ext_wind_trigger_cfg *wind_trigger_cfg;
+#endif
+
+    //啸叫检测配置
+    struct __anc_ext_soft_howl_det_cfg *soft_howl_det_cfg;
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    //自适应DCC配置
+    struct __anc_ext_adaptive_dcc_cfg *adaptive_dcc_cfg;
+#endif
 
 };
-
-struct __anc_ext_tool_hdl {
-    enum ANC_EXT_UART_SEL  uart_sel;				//工具协议选择
-    u8 tool_online;									//工具在线连接标志
-    u8 tool_ear_adaptive_en;						//工具启动耳道自适应标志
-    struct list_head alloc_list;
-    struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
-};
-
 
 
 void anc_ext_tool_init(void);
@@ -366,6 +656,9 @@ int anc_ext_rsfile_read(void);
 
 u8 *anc_ext_rsfile_get(u32 *file_len);
 
+//subfile数据文件拼接
+struct anc_ext_subfile_head *anc_ext_subfile_catch_init(u32 file_id);
+struct anc_ext_subfile_head *anc_ext_subfile_catch(struct anc_ext_subfile_head *head, u8 *buf, u32 len, u32 id);
 // 获取工具是否连接
 u8 anc_ext_tool_online_get(void);
 
@@ -395,6 +688,14 @@ u8 anc_ext_ear_adaptive_param_check(void);
 			alloc_flag : 是否需要申请缓存空间（flash 文件解析传0，工具调试传1）
 */
 int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag);
+
+//获取RTANC 工具参数
+struct __anc_ext_rtanc_adaptive_cfg *anc_ext_rtanc_adaptive_cfg_get(void);
+
+//ANC_EXT 工具 RTANC挂起标志清0
+void anc_ext_tool_rtanc_suspend_clear(void);
+
+u8 anc_ext_debug_tool_function_get(void);
 
 /*-------------------ANCTOOL交互接口---------------------*/
 //事件处理

@@ -4,6 +4,7 @@
 #pragma const_seg(".tuya_ota.text.const")
 #pragma code_seg(".tuya_ota.text")
 #endif
+#include "app_config.h"
 #include "tuya_ota.h"
 #include "tuya_ble_app_demo.h"
 #include "dual_bank_updata_api.h"
@@ -16,6 +17,8 @@
 #include "update_tws_new.h"
 #include "btstack/avctp_user.h"
 #include "os/os_api.h"
+
+#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
 
 u8 dual_bank_update_verify_without_crc(int (*verify_result_hdl)(int calc_crc));
 tuya_ble_status_t tuya_ble_ota_response(tuya_ble_ota_response_t *p_data);
@@ -52,7 +55,7 @@ void tuya_ota_reset(void *priv)
 int tuya_ota_boot_info_cb(int err)
 {
     printf("tuya_ota_boot_info_cb:%d", err);
-#if (OTA_TWS_SAME_TIME_ENABLE)
+#if (TCFG_USER_TWS_ENABLE && OTA_TWS_SAME_TIME_ENABLE)
     extern int tws_ota_result(u8 err);
     tws_ota_result(err);
 #else
@@ -290,7 +293,9 @@ void tuya_ota_proc(u16 type, u8 *recv_data, u32 recv_len)
         break;
     case TUYA_BLE_OTA_END:
         printf("Pend the second last ota data sibling rsp");
+#if TCFG_USER_TWS_ENABLE
         tws_ota_data_send_pend();
+#endif
         printf("TUYA_BLE_OTA_END\n");
         if (tuya_ota.buff_size != 0) {          //把剩余的数据写入flash
 #if (OTA_TWS_SAME_TIME_ENABLE)
@@ -315,3 +320,4 @@ void tuya_ota_proc(u16 type, u8 *recv_data, u32 recv_len)
     tuya_ble_ota_response(&response);
 }
 
+#endif

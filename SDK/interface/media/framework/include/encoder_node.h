@@ -17,6 +17,7 @@ struct encoder_fmt {
     u8 complexity;
     u8 sw_hw_option;
     u8 ch_num;
+    u8 format;
     u8 bit_width;
     u16 frame_dms;
     u32 bit_rate;

@@ -98,36 +98,33 @@ static int le_audio_source_frame_timestamp_handler(struct le_audio_source_contex
 
     return 0;
 }
-
 static void le_audio_source_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
     struct le_audio_source_iport *hdl = (struct le_audio_source_iport *)iport->private_data;
     struct le_audio_source_context *ctx = (struct le_audio_source_context *)iport->node->private_data;
     struct stream_frame *frame;
+    int wlen;
 
     while (1) {
-        frame = hdl->frame;
+        frame = jlstream_pull_frame(iport, note);
         if (!frame) {
-            frame = jlstream_pull_frame(iport, note);
-            if (!frame) {
-                break;
-            }
-            hdl->frame = frame;
+            break;
         }
 
         if (hdl->attribute == LE_AUDIO_TX_SOURCE) {
             le_audio_source_frame_timestamp_handler(ctx, frame);
-            int wlen = le_audio_stream_tx_write(ctx->tx_stream, frame->data, frame->len);
-            if (wlen < frame->len) {
-                break;
-            }
+            wlen = le_audio_stream_tx_write(ctx->tx_stream, frame->data, frame->len);
         } else {
             le_audio_source_frame_timestamp_handler(ctx, frame);
-            le_audio_stream_rx_write(ctx->rx_stream, frame->data, frame->len);
+            wlen = le_audio_stream_rx_write(ctx->rx_stream, frame->data, frame->len);
+        }
+        if (wlen < frame->len) {
+            jlstream_return_frame(iport, frame);
+            note->state |= NODE_STA_OUTPUT_BLOCKED;
+            break;
         }
 
         jlstream_free_frame(frame);
-        hdl->frame = NULL;
     }
 }
 

@@ -2,13 +2,13 @@
 #include "app_config.h"
 #include "system/includes.h"
 #include "asm/charge.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "app_charge.h"
 #include "earphone.h"
 #include "btstack/avctp_user.h"
 #include "poweroff.h"
 #include "clock_manager/clock_manager.h"
-
+#include "audio_anc.h"
 #if TCFG_ANC_BOX_ENABLE && TCFG_AUDIO_ANC_ENABLE
 
 #ifdef SUPPORT_MS_EXTENSIONS
@@ -18,7 +18,6 @@
 #pragma  code_seg(".anc_box.text")
 #endif/*SUPPORT_MS_EXTENSIONS*/
 
-#include "audio_anc.h"
 #include "user_cfg.h"
 #include "device/vm.h"
 #include "app_action.h"
@@ -69,6 +68,8 @@
 #include "debug.h"
 
 #define ANC_VERSION             1//有必要时才更新该值(例如结构体数据改了)
+#define ANC_USE_TASK            1//使用独立任务
+#define ANC_POW_SIZE            15
 
 enum {
     FILE_ID_COEFF = 0,  		//系数文件ID号
@@ -116,6 +117,9 @@ struct _ear_parm {
 
 struct _ancbox_info {
     u8 ancbox_status;//anc测试盒在线状态
+#if ANC_USE_TASK
+    u8 ancbox_task_init;
+#endif
     u8 err_flag;
     u8 status;
     u8 test_flag;
@@ -163,6 +167,15 @@ struct _ancbox_info {
     u32 type_id;
     u32 type_value;
     anc_gain_t gain;
+    u8 anc_pow[ANC_POW_SIZE];
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    u8 eq_buffer[32];
+    u8 eq_len;
+#endif
+#if TCFG_AUDIO_DUT_ENABLE
+    int audio_dut_len;
+    u8 *audio_dut_buffer;
+#endif
 };
 
 #define DEFAULT_BAUDRATE            9600
@@ -248,19 +261,8 @@ enum {
     CMD_ANC_FAIL = 0xFE,
 };
 
-#define ANC_POW_SIZE    15
-static u8 anc_pow[ANC_POW_SIZE];
-#if TCFG_SPEAKER_EQ_NODE_ENABLE
-static u8 eq_buffer[32];
-static u8 eq_len;
-#endif
-
-#if TCFG_AUDIO_DUT_ENABLE
-static int audio_dut_len;
-static u8 *audio_dut_buffer;
-#endif/*TCFG_AUDIO_DUT_ENABLE*/
-static struct _ancbox_info ancbox_info;
-#define __this  (&ancbox_info)
+static struct _ancbox_info *ancbox_info;
+#define __this  ancbox_info
 extern void set_temp_link_key(u8 *linkkey);
 extern void chargestore_set_baudrate(u32 baudrate);
 extern int anc_mode_change_tool(u8 dat);
@@ -300,21 +302,12 @@ static void ancbox_pow_callback(anc_ack_msg_t *msg, u8 step)
         __this->wz_adap_pow = anc_powdat_analysis(msg->temp_pow);
         if (msg->status == ANC_WZ_ADAP_STATUS) {
             for (u8 i = 0; i < (ANC_POW_SIZE - 1); i++) {
-                anc_pow[i] = anc_pow[i + 1];
+                __this->anc_pow[i] = __this->anc_pow[i + 1];
             }
-            anc_pow[ANC_POW_SIZE - 1] = anc_powdat_analysis(msg->temp_pow);
+            __this->anc_pow[ANC_POW_SIZE - 1] = anc_powdat_analysis(msg->temp_pow);
         }
         break;
     }
-}
-
-static void anc_event_to_user(u8 event, u32 value)
-{
-    struct ancbox_event e;
-
-    e.event = event;
-    e.value = value;
-    app_send_message_from(MSG_FROM_ANCBOX, sizeof(e), (int *)&e);
 }
 
 static void anc_cmd_timeout_deal(void *priv)
@@ -744,7 +737,7 @@ int app_ancbox_event_handler(int *msg)
         __this->err_flag = 0;
         sys_auto_shut_down_disable();
         anc_cmd_timeout_del();
-        memset(anc_pow, 0, ANC_POW_SIZE);
+        memset(__this->anc_pow, 0, ANC_POW_SIZE);
         break;
     case CMD_ANC_MUTE_TRAIN:
         log_info("event_CMD_ANC_MUTE_TRAIN\n");
@@ -1020,8 +1013,8 @@ int app_ancbox_event_handler(int *msg)
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
     case CMD_ANC_EQ_DATA:
         log_info("CMD_ANC_EQ_DATA\n");
-        log_info_hexdump(eq_buffer, eq_len);
-        int anc_eq_ret = spk_eq_spp_rx_packet(eq_buffer, eq_len);
+        log_info_hexdump(__this->eq_buffer, __this->eq_len);
+        int anc_eq_ret = spk_eq_spp_rx_packet(__this->eq_buffer, __this->eq_len);
         if (anc_eq_ret == -1) {
             cmd[0] = CMD_ANC_MODULE;
             cmd[1] = CMD_ANC_FAIL;
@@ -1034,20 +1027,20 @@ int app_ancbox_event_handler(int *msg)
         break;
     case CMD_ANC_NEW_EQ_DATA:
         log_info("CMD_ANC_EQ_DATA\n");
-        log_info_hexdump(eq_buffer, eq_len);
+        log_info_hexdump(__this->eq_buffer, __this->eq_len);
         spk_eq_set_send_data_handler(anc_ack_spk_eq);
-        spk_eq_app_online_parse(eq_buffer, eq_len, NULL, 0);
+        spk_eq_app_online_parse(__this->eq_buffer, __this->eq_len, NULL, 0);
         spk_eq_set_send_data_handler(NULL);
         break;
 #endif
 #if TCFG_AUDIO_DUT_ENABLE
     case CMD_ANC_AUDIO_DUT_DATA:
         log_info("CMD_ANC_AUDIO_DUT_DATA\n");
-        log_info_hexdump(audio_dut_buffer, audio_dut_len);
+        log_info_hexdump(__this->audio_dut_buffer, __this->audio_dut_len);
         audio_dut_new_send_data_handler(anc_ack_audio_dut);
-        audio_dut_new_rx_packet(audio_dut_buffer, audio_dut_len);
+        audio_dut_new_rx_packet(__this->audio_dut_buffer, __this->audio_dut_len);
         audio_dut_new_send_data_handler(NULL);
-        free(audio_dut_buffer);
+        free(__this->audio_dut_buffer);
         break;
 #endif/*TCFG_AUDIO_DUT_ENABLE*/
     case CMD_ANC_SET_MUSIC_VOL:
@@ -1116,11 +1109,77 @@ int app_ancbox_event_handler(int *msg)
     }
     return false;
 }
+
+#if ANC_USE_TASK
+
+static int app_ancbox_get_message(int *msg, int max_num)
+{
+    while (1) {
+        int res = os_taskq_pend(NULL, msg, max_num);
+        if (res != OS_TASKQ) {
+            continue;
+        }
+        if (msg[0] & Q_MSG) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void app_ancbox_task_loop(void *p)
+{
+    int msg[8];
+    log_info("app_ancbox_task_loop!\n");
+    while (1) {
+        app_ancbox_get_message(msg, ARRAY_SIZE(msg));
+        if (msg[0] == MSG_FROM_ANCBOX) {
+            app_ancbox_event_handler(&msg[1]);
+        }
+    }
+}
+
+//创建线程
+static void app_ancbox_task_create(void)
+{
+    int err;
+    if (__this->ancbox_task_init == 0) {
+        err = task_create(app_ancbox_task_loop, NULL, "anc_box");
+        if (err == 0) {
+            __this->ancbox_task_init = 1;
+        }
+    }
+}
+
+void app_ancbox_send_message_from(int from, int argc, int *msg)
+{
+    os_taskq_post_type("anc_box", from, (argc + 3) / 4, msg);
+}
+
+static void anc_event_to_user(u8 event, u32 value)
+{
+    struct ancbox_event e;
+    e.event = event;
+    e.value = value;
+    app_ancbox_send_message_from(MSG_FROM_ANCBOX, sizeof(e), (int *)&e);
+}
+
+#else
+
 APP_MSG_HANDLER(ancbox_msg_entry) = {
     .owner      = 0xff,
     .from       = MSG_FROM_ANCBOX,
     .handler    = app_ancbox_event_handler,
 };
+
+static void anc_event_to_user(u8 event, u32 value)
+{
+    struct ancbox_event e;
+    e.event = event;
+    e.value = value;
+    app_send_message_from(MSG_FROM_ANCBOX, sizeof(e), (int *)&e);
+}
+
+#endif
 
 static int app_ancbox_module_deal(u8 *buf, u8 len)
 {
@@ -1138,6 +1197,12 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
     struct _ear_parm parm;
     sendbuf[0] = CMD_ANC_MODULE;
     sendbuf[1] = buf[1];
+
+    if (__this == NULL) {
+        __this = zalloc(sizeof(struct _ancbox_info));
+        ASSERT(__this != NULL);
+    }
+
     __this->ancbox_status = 1;
     __this->baud_counter = 0;
     anc_online_busy_set(1);	//设置ANC在线调试标志
@@ -1145,6 +1210,16 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
     if (buf[1] != 129) {
         printf("cmd = %d\n", buf[1]);
     }
+
+#if ANC_USE_TASK
+    if (__this->ancbox_task_init == 0) {
+        int msg[3];
+        msg[0] = (int)app_ancbox_task_create;
+        msg[1] = 1;
+        msg[2] = 0;
+        os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
+    }
+#endif
 
     cmd = buf[1];
     switch (buf[1]) {
@@ -1194,6 +1269,15 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
     case CMD_ANC_STATUS:
     case CMD_ANC_TOOLS_SYNC:
         //在idle
+#if ANC_USE_TASK
+        if (__this->ancbox_task_init == 0) {
+            sendbuf[1] = CMD_ANC_FAIL;
+            chargestore_api_write(sendbuf, 2);
+            log_info("task not init ok, return!\n");
+            return 1;
+        }
+#endif
+
 #if TCFG_CHARGESTORE_PORT == LDOIN_BIND_IO
         if (__this->idle_flag == 0) {
             sendbuf[1] = CMD_ANC_FAIL;
@@ -1380,7 +1464,7 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
         return 1;
     case CMD_ANC_GET_TRAIN_POW:
         for (i = (ANC_POW_SIZE / 3), j = 2; i < (ANC_POW_SIZE * 2 / 3); i++, j++) {
-            sendbuf[j] = anc_pow[i];
+            sendbuf[j] = __this->anc_pow[i];
         }
         chargestore_api_write(sendbuf, j);
         return 1;
@@ -1433,22 +1517,22 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
 
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
     case CMD_ANC_EQ_DATA:
-        eq_len = len - 2;
-        memcpy(eq_buffer, buf + 2, eq_len);
+        __this->eq_len = len - 2;
+        memcpy(__this->eq_buffer, buf + 2, __this->eq_len);
         chargestore_api_set_timeout(100);
         break;
     case CMD_ANC_NEW_EQ_DATA:
-        eq_len = len - 2;
-        memcpy(eq_buffer, buf + 2, eq_len);
+        __this->eq_len = len - 2;
+        memcpy(__this->eq_buffer, buf + 2, __this->eq_len);
         chargestore_api_set_timeout(50);
         break;
 #endif/*TCFG_SPEAKER_EQ_NODE_ENABLE*/
 
 #if TCFG_AUDIO_DUT_ENABLE
     case CMD_ANC_AUDIO_DUT_DATA:
-        audio_dut_len = len - 2;
-        audio_dut_buffer = malloc(audio_dut_len);
-        memcpy(audio_dut_buffer, buf + 2, audio_dut_len);
+        __this->audio_dut_len = len - 2;
+        __this->audio_dut_buffer = malloc(__this->audio_dut_len);
+        memcpy(__this->audio_dut_buffer, buf + 2, __this->audio_dut_len);
         chargestore_api_set_timeout(50);
         break;
 #endif/*TCFG_AUDIO_DUT_ENABLE*/
@@ -1544,11 +1628,17 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
 
 u8 ancbox_get_status(void)
 {
+    if (__this == NULL) {
+        return 0;
+    }
     return __this->ancbox_status;
 }
 
 void ancbox_clear_status(void)
 {
+    if (__this == NULL) {
+        return;
+    }
     __this->ancbox_status = 0;
 }
 

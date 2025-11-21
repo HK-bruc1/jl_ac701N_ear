@@ -100,7 +100,7 @@ static void sink_dev1_open_iport(struct stream_iport *iport)
 static int sink_dev1_ioc_fmt_nego(struct stream_iport *iport)
 {
     struct stream_fmt *in_fmt = &iport->prev->fmt;	//上一个节点的参数
-    /* struct sink_dev1_hdl *hdl = (struct sink_dev1_hdl *)iport->node->private_data; */
+    struct sink_dev1_hdl *hdl = (struct sink_dev1_hdl *)iport->node->private_data;
 
     //1、固定节点参数, 向前级节点传递
 #if SINK_DEV1_MSBC_TEST_ENABLE
@@ -111,7 +111,7 @@ static int sink_dev1_ioc_fmt_nego(struct stream_iport *iport)
     printf("sink_dev nego,type=%x,sr=%d,ch_mode=%x\n", in_fmt->coding_type, in_fmt->sample_rate, in_fmt->channel_mode);
 
     //2、继承前一节点的参数
-    /* hdl->fmt = &in_fmt; */
+    memcpy(&hdl->fmt, in_fmt, sizeof(struct stream_fmt));
     return NEGO_STA_ACCPTED;
 }
 

@@ -544,6 +544,7 @@ typedef struct {
         uint32_t aux_offset;    // Aux offset  (uints:us).
         uint8_t  adv_cnt;       // ADV counter
         uint8_t  max_pdu;       // Max PDU size(uints:octets)
+        uint32_t iso_interval;  // ISO interval(uints:us).
     };
 
     // for CIG
@@ -642,6 +643,7 @@ int ll_hci_create_conn(u8 *conn_param, u8 *addr_param);
 int ll_hci_create_conn_ext(void *param);
 
 int ll_hci_create_conn_cancel(void);
+int ll_hci_read_remote_feature(u16 conn_handle);
 
 int ll_hci_vendor_send_key_num(u16 con_handle, u8 num);
 
@@ -650,6 +652,11 @@ int ll_vendor_latency_hold_cnt(u16 conn_handle, u16 hold_cnt);
 int ll_vendor_open_latency(u16 conn_handle);
 
 int ll_vendor_close_latency(u16 conn_handle);
+
+int ll_vendor_rxmaxbuf(u16 conn_handle, u8 rxmaxbuf);
+
+int ll_vendor_leagcy_scan_priority(u16 param);
+int ll_vendor_leagcy_init_priority(u16 param);
 
 int ll_hci_encryption(u8 *key, u8 *plaintext_data);
 
@@ -739,6 +746,8 @@ void ll_cig_set_vendor_param(uint8_t *vendor_param, size_t size);
 void ll_cig_tx_align_callback_register(uint8_t cig_id, const void *callback);
 void ll_conn_rx_acl_callback_register(void (*callback)(uint8_t *packet, size_t size));
 void ll_set_scan_priority(uint8_t priority);
+void ll_hci_ext_scan_set_priority(uint8_t priority);
+void ll_set_ext_scan_priority(uint8_t priority);
 void rf_mdm_con_ble_sync_word(int tws_esco);
 uint8_t ll_iso_unpack_hdr(const uint8_t *sdu, hci_iso_hdr_t *hdr);
 void access_addr_generate(u8 *aa);

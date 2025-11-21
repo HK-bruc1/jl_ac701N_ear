@@ -133,6 +133,7 @@ int music_player_scan_disk(struct music_player *player_hd);
 const char *music_player_get_phy_dev(struct music_player *player_hd, int *len);
 //歌词分析
 int music_player_lrc_analy_start(struct music_player *player_hd);
-
+//获取music app当前的断点地址
+extern struct audio_dec_breakpoint *music_app_get_dbp_addr(void);
 #endif//__MUSIC_PLAYER_H__
 

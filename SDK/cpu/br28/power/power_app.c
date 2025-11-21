@@ -5,14 +5,21 @@
 #pragma code_seg(".power_app.text")
 #endif
 #include "asm/power_interface.h"
+#include "rtc/rtc_dev.h"
 #include "app_config.h"
 #include "includes.h"
 #include "gpio_config.h"
+#include "gSensor/gSensor_manage.h"
+#if TCFG_HRSENSOR_ENABLE
+#include "hr_sensor/hrSensor_manage.h"
+#endif
+
+
 
 //-------------------------------------------------------------------
 /*config
  */
-#define CONFIG_UART_DEBUG_ENABLE	CONFIG_DEBUG_ENABLE
+#define CONFIG_UART_DEBUG_ENABLE	(CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE)
 #ifdef TCFG_DEBUG_UART_TX_PIN
 #define CONFIG_UART_DEBUG_PORT		TCFG_DEBUG_UART_TX_PIN
 #else
@@ -77,9 +84,22 @@ static void __mask_io_cfg()
 
 u8 power_soff_callback()
 {
+#if TCFG_GSENSOR_ENABLE || TCFG_HRSENSOR_ENABLE
+    extern void sensor_del_data_check_cb();
+    sensor_del_data_check_cb();
+#endif
+#if TCFG_GSENSOR_ENABLE
+    gsensor_disable();
+#endif      //end if CONFIG_GSENSOR_ENABLE
+#if TCFG_HRSENSOR_ENABLE
+    hr_sensor_measure_hr_stop();
+#endif
+
     DO_PLATFORM_UNINITCALL();
 
     __mask_io_cfg();
+
+    poweroff_save_rtc_time();
 
     void gpio_config_soft_poweroff(void);
     gpio_config_soft_poweroff();
@@ -91,8 +111,8 @@ u8 power_soff_callback()
 
 void power_early_flowing()
 {
-    // 默认关闭长按复位0，由key_driver配置
-    gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, 1);
+    /* // 默认关闭长按复位0，由key_driver配置 */
+    /* gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, 1, 0); */
     // 不开充电功能，将长按复位关闭
 #if (!TCFG_CHARGE_ENABLE)
     gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 0, 0, 0);

@@ -90,15 +90,16 @@
 
 //uboot and ota.bin串口tx
 #ifndef CONFIG_UBOOT_DEBUG_PIN
-#define CONFIG_UBOOT_DEBUG_PIN                  PB02
+#define CONFIG_UBOOT_DEBUG_PIN                  PA05
 #endif
 
 //uboot and ota.bin串口波特率[EXTRA_CFG_PARAM]
 #ifndef CONFIG_UBOOT_DEBUG_BAUD_RATE
-#define CONFIG_UBOOT_DEBUG_BAUD_RATE            1000000
+#define CONFIG_UBOOT_DEBUG_BAUD_RATE            2000000
 #endif
 
 [EXTRA_CFG_PARAM]
+OTP_CFG_SIZE = 256;
 #if CONFIG_DOUBLE_BANK_ENABLE
 BR22_TWS_DB = YES;	//dual bank flash framework enable
 FLASH_SIZE = CONFIG_FLASH_SIZE;		//flash_size cfg
@@ -125,7 +126,7 @@ ENTRY = CONFIG_ENTRY_ADDRESS;
 PID = CONFIG_PID;
 VID = CONFIG_VID;
 
-SDK_VERSION = AC701N_V300; //jenkins脚本生成
+SDK_VERSION = AC701N_V3.0.0; //jenkins脚本生成
 
 RESERVED_OPT = 0;
 /* OTP_CFG_SIZE = 512; //votp区域 */
@@ -251,6 +252,13 @@ CONFIG_CUSTOM_CFG3_TYPE = CONFIG_CUSTOM_CFG3_VALUE;
 #ifndef CONFIG_VM_ADDR
 #define CONFIG_VM_ADDR		0
 #endif
+
+#if TCFG_VM_SIZE
+#define __VM_SIZE(size)     size##K
+#define _VM_SIZE(size)      __VM_SIZE(size)
+#define CONFIG_VM_LEAST_SIZE	_VM_SIZE(TCFG_VM_SIZE)
+#endif
+
 
 #ifndef CONFIG_VM_LEAST_SIZE
 #if ALIGN_UNIT_256B
@@ -385,6 +393,7 @@ CAT2(CONFIG_RESERVED_AREA2, FILE) = CONFIG_RESERVED_AREA2_FILE;
 #endif
 
 #endif
+
 /*
  ****************************************************************************
  *								ANC配置区
@@ -487,14 +496,16 @@ REALME_LEN = 0x1000;
 REALME_OPT = 0;
 #endif
 
-[RESERVED_EXPAND_CONFIG]
 #if CONFIG_FINDMY_INFO_ENABLE
-//INI里面有个规则是VM一定会放到最前面
-
+[RESERVED_EXPAND_CONFIG]
 #if (CONFIG_FLASH_SIZE == 0x100000)
-#define CONFIG_FINDMY_INFO_ADDR	                0xFD000 //config user space
-#else
-#define CONFIG_FINDMY_INFO_ADDR	                0x1FD000 //config user space
+#define CONFIG_FINDMY_INFO_ADDR                 0xFC000 //config user space
+
+#elif (CONFIG_FLASH_SIZE == 0x200000)
+#define CONFIG_FINDMY_INFO_ADDR                 0x1FC000 //config user space
+
+#elif (CONFIG_FLASH_SIZE == 0x400000)
+#define CONFIG_FINDMY_INFO_ADDR                 0x3FC000 //config user space
 #endif
 
 #define CONFIG_FINDMY_INFO_LEN	                0x2000  //need 8K
@@ -509,8 +520,21 @@ FINDMY_OPT = CONFIG_FINDMY_INFO_OPT;
 FILE_LIST = (file = file_authrunFindmy.tkn: type = 0xec);
 #endif
 
+[BURNER_PASSTHROUGH_CFG]
+FLASH_WRITE_PROTECT = YES;
+
 [BURNER_CONFIG]
 SIZE = CONFIG_BURNER_INFO_SIZE;
 
-
+#if TCFG_DUAL_BANK_ENABLE
+#if TCFG_UPDATE_COMPRESS
+[COMPRESS_BACKUP]
+AREA_SIZE = 0;
+BLOCK_SIZE = 65536;
+#elif TCFG_UPDATE_UPDIFF
+[COMPRESS_BACKUP]
+AREA_SIZE = 256K;
+DIFF_UPGRADE = YES;
+#endif
+#endif
 

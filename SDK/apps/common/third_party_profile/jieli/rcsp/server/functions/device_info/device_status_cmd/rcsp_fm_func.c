@@ -11,6 +11,8 @@
 #include "rcsp_event.h"
 #include "app_action.h"
 #include "key_event_deal.h"
+#include "JL_rcsp_api.h"
+#include "JL_rcsp_attr.h"
 
 #if (RCSP_MODE && TCFG_APP_FM_EN)
 #include "fm_api.h"
@@ -25,8 +27,6 @@ struct _FM_STATUS_INFO {
 };
 #pragma pack()
 
-#define FM_INFO_ATTR_STATUS                    (0)
-#define FM_INFO_ATTR_FRE                       (1)
 
 #define  SCANE_ALL        					(0x01)
 #define  SCANE_DOWN        					(0x02)
@@ -86,7 +86,7 @@ static void fm_scan_state_func(void *priv)
         return;
     }
     if (fm_scan_timer) {
-        sys_hi_timer_del(fm_scan_timer);
+        sys_timer_del(fm_scan_timer);
         fm_scan_timer = 0;
     }
     // 更新
@@ -154,7 +154,7 @@ bool rcsp_fm_func_set(void *priv, u8 *data, u16 len)
                 break;
             }
             if (0 == fm_scan_timer) {
-                fm_scan_timer = sys_hi_timer_add(NULL, fm_scan_state_func, 1000);
+                fm_scan_timer = sys_timer_add(NULL, fm_scan_state_func, 1000);
             }
         }
         break;
@@ -194,6 +194,7 @@ bool rcsp_fm_func_set(void *priv, u8 *data, u16 len)
     case FM_FUNC_SET_STATION:
         // 更新状态
         rcsp_msg_post(USER_MSG_RCSP_FM_UPDATE_STATE, 1, (int)priv);
+        app_send_message(APP_MSG_FM_REFLASH, 0);
         break;
     }
 
@@ -263,6 +264,34 @@ void rcsp_fm_msg_deal(int msg)
     if (rcspModel == NULL) {
         return ;
     }
+
+    switch (msg) {
+    case APP_MSG_MUSIC_PP:
+    case APP_MSG_FM_PREV_FREQ:
+    case APP_MSG_FM_NEXT_FREQ:
+    case APP_MSG_FM_PREV_STATION:
+    case APP_MSG_FM_NEXT_STATION:
+    case (int)-1:
+        rcsp_device_status_update(FM_FUNCTION_MASK, BIT(FM_INFO_ATTR_STATUS) | BIT(FM_INFO_ATTR_FRE));
+        break;
+    case APP_MSG_FM_SCAN_ALL:
+    case APP_MSG_FM_SCAN_ALL_UP:
+    case APP_MSG_FM_SCAN_ALL_DOWN:
+    case APP_MSG_FM_SCAN_DOWN:
+    case APP_MSG_FM_SCAN_UP:
+        if (!fm_get_scan_flag()) {
+            rcsp_device_status_update(FM_FUNCTION_MASK, BIT(FM_INFO_ATTR_STATUS) | BIT(FM_INFO_ATTR_FRE));
+        }
+        break;
+    }
+
+}
+
+void rcsp_fm_func_stop(void)
+{
+    /* if (!fm_get_fm_dev_mute()) { */
+    /*     app_send_message(APP_MSG_MUSIC_PP, 0); */
+    /* } */
 }
 
 #endif

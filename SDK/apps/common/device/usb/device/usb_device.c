@@ -9,6 +9,7 @@
 #include "usb/device/usb_stack.h"
 #include "usb_config.h"
 #include "usb/device/msd.h"
+#include "usb/device/mtp.h"
 #include "usb/scsi.h"
 #include "usb/device/hid.h"
 #include "usb/device/custom_hid.h"
@@ -100,6 +101,10 @@ int usb_device_mode(const usb_dev usb_id, const u32 class)
         hid_release(usb_id);
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+        mtp_release(usb_id);
+#endif
+
 #if TCFG_USB_CUSTOM_HID_ENABLE
         custom_hid_release();
 #endif
@@ -176,6 +181,14 @@ int usb_device_mode(const usb_dev usb_id, const u32 class)
     }
 #endif
 
+#if TCFG_USB_SLAVE_MTP_ENABLE
+    if ((class & MTP_CLASS) == MTP_CLASS) {
+        log_info("add desc std mtp");
+        usb_add_desc_config(usb_id, class_index++, mtp_desc_config);
+        mtp_register(usb_id);
+    }
+#endif
+
 #if TCFG_USB_SLAVE_CDC_ENABLE
     if ((class & CDC_CLASS) == CDC_CLASS) {
         log_info("add desc cdc");
@@ -216,6 +229,9 @@ static int usb_ep_conflict_check(const usb_dev usb_id)
 #if TCFG_USB_SLAVE_HID_ENABLE
         HID_EP_IN,
 #endif
+#if TCFG_USB_SLAVE_MTP_ENABLE
+        MTP_BULK_EP_IN,
+#endif
 #if TCFG_USB_SLAVE_AUDIO_MIC_ENABLE
         MIC_ISO_EP_IN,
 #endif
@@ -232,6 +248,9 @@ static int usb_ep_conflict_check(const usb_dev usb_id)
 #endif
 #if TCFG_USB_SLAVE_HID_ENABLE
         HID_EP_OUT,
+#endif
+#if TCFG_USB_SLAVE_MTP_ENABLE
+        MTP_BULK_EP_OUT,
 #endif
 #if TCFG_USB_SLAVE_AUDIO_SPK_ENABLE
         SPK_ISO_EP_OUT,

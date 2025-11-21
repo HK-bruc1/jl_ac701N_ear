@@ -17,6 +17,7 @@ enum iic_state_enum {
     IIC_ERROR_REG_ADDR_ACK_ERROR = -8,
     IIC_ERROR_INDEX_ERROR = -9,
     IIC_ERROR_FREQUENCY_ERROR = -10,
+    IIC_ERROR_RESLOCK_BUSY = -11,
 };
 
 enum iic_role {IIC_MASTER, IIC_SLAVE};
@@ -29,6 +30,7 @@ struct iic_master_config {
     enum gpio_drive_strength hdrive;   //enum GPIO_HDRIVE 0:2.4MA, 1:8MA, 2:26.4MA, 3:40MA
     u32 master_frequency; //软件iic频率(hz 不准)
     u8 ie_en;     //中断使能
+    u8 irq_priority;     //中断
     //br27,28,36:0:close filter; 1:enable filter
     //br50:0:close filter; 1:<1*Tiic_baud_clk, 2:<2*Tiic_baud_clk, 3:<3*Tiic_baud_clk
     u8 io_filter;
@@ -41,20 +43,14 @@ struct iic_master_config {
 #endif
 
 /******************************soft iic*****************************/
-//return: <0:error,  =read_len:ok
-int soft_i2c_master_read_nbytes_from_device(soft_iic_dev iic,   //iic索引
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *read_buf, int read_len);//缓存buf, 读取长度
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: <0:error,  =read_len:ok
 int soft_i2c_master_read_nbytes_from_device_reg(soft_iic_dev iic,
         unsigned char dev_addr, //设备地址
         unsigned char *reg_addr, unsigned char reg_len,//设备寄存器地址，长度
         unsigned char *read_buf, int read_len);//缓存buf，读取长度
 
-//return: =write_len:ok, other:error
-int soft_i2c_master_write_nbytes_to_device(soft_iic_dev iic,
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *write_buf, int write_len); //数据buf, 写入长度
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: =write_len:ok, other:error
 int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
         unsigned char dev_addr, //设备地址
@@ -65,20 +61,14 @@ int soft_i2c_master_write_nbytes_to_device_reg(soft_iic_dev iic,
 
 
 /******************************hw iic master*****************************/
-//return: <0:error,  =read_len:ok
-int hw_i2c_master_read_nbytes_from_device(hw_iic_dev iic,   //iic索引
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *read_buf, int read_len);//缓存buf, 读取长度
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: <0:error,  =read_len:ok
 int hw_i2c_master_read_nbytes_from_device_reg(hw_iic_dev iic,
         unsigned char dev_addr, //设备地址
         unsigned char *reg_addr, unsigned char reg_len,//设备寄存器地址，长度
         unsigned char *read_buf, int read_len);//缓存buf，读取长度
 
-//return: =write_len:ok, other:error
-int hw_i2c_master_write_nbytes_to_device(hw_iic_dev iic,
-        unsigned char dev_addr, //设备地址 //无设备寄存器地址
-        unsigned char *write_buf, int write_len); //数据buf, 写入长度
+//如果无reg_addr:reg_addr=NULL,reg_len=0
 //return: =write_len:ok, other:error
 int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
         unsigned char dev_addr, //设备地址
@@ -86,10 +76,11 @@ int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
         unsigned char *write_buf, int write_len);//数据buf, 写入长度
 
 
+
 #ifdef _IIC_USE_HW
 #define get_iic_config(iic)                 get_hw_iic_config(iic)
 #define iic_init(iic, config)               hw_iic_init(iic, config)
-#define iic_uninit(iic)                     hw_iic_uninit(iic)
+#define iic_deinit(iic)                     hw_iic_deinit(iic)
 #define iic_start(iic)                      hw_iic_start(iic)
 #define iic_stop(iic)                       hw_iic_stop(iic)
 #define iic_reset(iic)                      hw_iic_reset(iic)
@@ -100,18 +91,14 @@ int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
 #define iic_suspend(iic)                    hw_iic_suspend(iic)
 #define iic_resume(iic)                     hw_iic_resume(iic)
 
-#define i2c_master_read_nbytes_from_device(iic, dev_addr, read_buf, read_len) \
-        hw_i2c_master_read_nbytes_from_device(iic, dev_addr, read_buf, read_len)
 #define i2c_master_read_nbytes_from_device_reg(iic, dev_addr, reg_addr, reg_len, read_buf, read_len) \
         hw_i2c_master_read_nbytes_from_device_reg(iic, dev_addr, reg_addr, reg_len, read_buf, read_len)
-#define i2c_master_write_nbytes_to_device(iic, dev_addr, write_buf, write_len) \
-        hw_i2c_master_write_nbytes_to_device(iic, dev_addr, write_buf, write_len)
 #define i2c_master_write_nbytes_to_device_reg(iic, dev_addr, reg_addr, reg_len, write_buf, write_len) \
         hw_i2c_master_write_nbytes_to_device_reg(iic, dev_addr, reg_addr, reg_len, write_buf, write_len)
 #else
 #define get_iic_config(iic)                 get_soft_iic_config(iic)
 #define iic_init(iic, config)               soft_iic_init(iic, config)
-#define iic_uninit(iic)                     soft_iic_uninit(iic)
+#define iic_deinit(iic)                     soft_iic_deinit(iic)
 #define iic_start(iic)                      soft_iic_start(iic)
 #define iic_stop(iic)                       soft_iic_stop(iic)
 #define iic_reset(iic)                      soft_iic_reset(iic)
@@ -122,12 +109,8 @@ int hw_i2c_master_write_nbytes_to_device_reg(hw_iic_dev iic,
 #define iic_suspend(iic)                    soft_iic_suspend(iic)
 #define iic_resume(iic)                     soft_iic_resume(iic)
 
-#define i2c_master_read_nbytes_from_device(iic, dev_addr, read_buf, read_len) \
-        soft_i2c_master_read_nbytes_from_device(iic, dev_addr, read_buf, read_len)
 #define i2c_master_read_nbytes_from_device_reg(iic, dev_addr, reg_addr, reg_len, read_buf, read_len) \
         soft_i2c_master_read_nbytes_from_device_reg(iic, dev_addr, reg_addr, reg_len, read_buf, read_len)
-#define i2c_master_write_nbytes_to_device(iic, dev_addr, write_buf, write_len) \
-        soft_i2c_master_write_nbytes_to_device(iic, dev_addr, write_buf, write_len)
 #define i2c_master_write_nbytes_to_device_reg(iic, dev_addr, reg_addr, reg_len, write_buf, write_len) \
         soft_i2c_master_write_nbytes_to_device_reg(iic, dev_addr, reg_addr, reg_len, write_buf, write_len)
 #endif

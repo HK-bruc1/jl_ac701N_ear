@@ -168,44 +168,6 @@ int broadcast_set_sync_data(u8 big_hdl, void *data, size_t length)
     return 0;
 }
 
-static u32 broadcast_audio_reference_time(void *priv, u8 cmd, void *arg)
-{
-#if 0
-    struct broadcast_hdl *broadcast = (struct broadcast_hdl *)priv;
-    u32 time = 0;
-    u8 i = 0;
-    u8 bis_num = get_bis_num(strcmp(broadcast->role_name, "big_tx") == 0 ? BROADCAST_ROLE_TRANSMITTER : BROADCAST_ROLE_RECEIVER);
-    u32 bis_hdl = 0;
-
-    for (i = 0; i < bis_num; i++) {
-        if (broadcast->bis_hdl_info[i].bis_hdl) {
-            bis_hdl = broadcast->bis_hdl_info[i].bis_hdl;
-            break;
-        }
-    }
-
-    switch (cmd) {
-    case LE_AUDIO_SYNC_ENABLE:
-        wireless_trans_audio_sync_enable(broadcast->role_name, (void *)bis_hdl, 0);
-        break;
-    case LE_AUDIO_CURRENT_TIME:
-        wireless_trans_get_cur_clk(broadcast->role_name, (void *)&time);
-        return time;
-    case LE_AUDIO_LATCH_ENABLE:
-        wireless_trans_trigger_latch_time(broadcast->role_name, (void *)bis_hdl);
-        break;
-    case LE_AUDIO_GET_LATCH_TIME:
-        wireless_trans_get_latch_time_us(broadcast->role_name,
-                                         &((struct le_audio_latch_time *)arg)->us_1_12th,
-                                         &((struct le_audio_latch_time *)arg)->us,
-                                         &((struct le_audio_latch_time *)arg)->event,
-                                         (void *)bis_hdl);
-        break;
-    }
-#endif
-
-    return 0;
-}
 
 /* --------------------------------------------------------------------------*/
 /**
@@ -463,12 +425,11 @@ int broadcast_transmitter_connect_deal(void *priv, u8 mode)
     params.fmt.sample_rate = LE_AUDIO_CODEC_SAMPLERATE;
     params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
     params.latency = get_big_tx_latency();
-    params.reference_time = broadcast_audio_reference_time;
-    params.conn = broadcast_hdl;
 
     broadcast_mutex_pend(&broadcast_mutex, __LINE__);
     for (i = 0; i < bis_num; i++) {
         broadcast_hdl->bis_hdl_info[i].bis_hdl = hdl->bis_hdl[i];
+        params.conn = broadcast_hdl->bis_hdl_info[i].bis_hdl;
         //打开广播音频播放
         if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
             broadcast_hdl->bis_hdl_info[i].recorder = le_audio_switch_ops->tx_le_audio_open(&params);
@@ -616,13 +577,12 @@ int broadcast_receiver_connect_deal(void *priv)
     params.fmt.sample_rate = get_big_sample_rate();
     params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
     params.fmt.bit_rate = get_big_audio_coding_bit_rate();
-    params.reference_time = broadcast_audio_reference_time;
-    params.conn = broadcast_hdl;
     log_info("bis auido param nch[%d]coding_type[%x]frame_dms[%d]sdu_period_us[%d]sample_rate[%d]dec_ch_mode[%d]bit_rate[%d]\n", params.fmt.nch, params.fmt.coding_type, params.fmt.frame_dms, params.fmt.sdu_period, params.fmt.sample_rate, params.fmt.dec_ch_mode, params.fmt.bit_rate);
 
     broadcast_mutex_pend(&broadcast_mutex, __LINE__);
     for (u8 i = 0; i < bis_num; i++) {
         broadcast_hdl->bis_hdl_info[i].bis_hdl = hdl->bis_hdl[i];
+        params.conn = broadcast_hdl->bis_hdl_info[i].bis_hdl;
         //打开广播音频播放
         if (le_audio_switch_ops && le_audio_switch_ops->rx_le_audio_open) {
             le_audio_switch_ops->rx_le_audio_open(&broadcast_hdl->bis_hdl_info[i].rx_player, &params);
@@ -1218,12 +1178,11 @@ int broadcast_audio_recorder_reset(u16 big_hdl)
             params.fmt.sample_rate = LE_AUDIO_CODEC_SAMPLERATE;
             params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
             params.latency = get_big_tx_latency();
-            params.reference_time = broadcast_audio_reference_time;
-            params.conn = p;
 
             //重新打开新的recorder
             for (i = 0; i < bis_num; i++) {
                 if (!p->bis_hdl_info[i].recorder) {
+                    params.conn = p->bis_hdl_info[i].bis_hdl;
                     if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
                         recorder = le_audio_switch_ops->tx_le_audio_open(&params);
                     }

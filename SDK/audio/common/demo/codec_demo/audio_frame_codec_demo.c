@@ -1,11 +1,18 @@
 //////////////////////////////////////////////////////////////
-//
-// demo流程： adc->pcm_data->enc->enc_data->dec->pcm_data->dac
-//
-// 示例格式及参数： LC3  :  sample_rate = 48000;
-//							frame_len = 100;
-//							channel = 1;
-//							bit_rate = 96000;
+/*
+	demo流程： adc->pcm_data->enc->enc_data->dec->pcm_data->dac
+
+	 示例格式及参数： LC3  : sample_rate = 48000;
+							 frame_len = 100;
+							 channel = 1;
+							 bit_rate = 96000;
+
+	注意：不同的类型仅编解码格式及参数配置不同，本流程可以更改成适配不同格式的demo 测试流程
+
+	注意： 整个流程是根据adc 的节奏进行运行，adc 产生一帧数据，编码一次，解码一次，输出到dac,
+ 		   所以要保证adc 产生的数据正好够一帧数据(ADC_DEMO_IRQ_POINTS 配置adc 起一次中断出来的点数)，
+		   才能稳定运行，要注意声道,采样率和中断节奏的适配,
+*/
 //////////////////////////////////////////////////////////////
 #include "audio_splicing.h"
 #include "system/includes.h"
@@ -13,11 +20,13 @@
 #include "app_main.h"
 #include "audio_config.h"
 #include "audio_base.h"
-#include "asm/audio_adc.h"
-#include "asm/dac.h"
+#include "audio_adc.h"
+#include "audio_dac.h"
 #include "codec/lc3_codec_api.h"
 #include "codec/audio_decode_common_api.h"
 
+
+#if 0   //这里打开代码模块使能
 
 /*编码参数，不同的类型，使用的参数也不同，有些参数是一些类型特有的*/
 struct audio_demo_codec_params {
@@ -40,8 +49,14 @@ static int audio_demo_enc_data_read(void *priv, void *buf, u16 len);
 //   dac demo
 //-----------------------------------------------------------------------------
 extern struct audio_dac_hdl dac_hdl;
+static u8 fill_zero_data = 0;
 static int audio_demo_dac_write(void *priv, u8 *data, u16 len)
 {
+    if (fill_zero_data) { //初始填一些0数据，避免dac播空， 实际使用不需要
+        u8 zero_data[128 * 2] = {0};
+        audio_dac_write(&dac_hdl, zero_data, sizeof(zero_data));
+        fill_zero_data = 0;
+    }
     int wlen = audio_dac_write(&dac_hdl, data, len);
     if (wlen != len) {
         printf("DAC_W : %d,%d\n", len, wlen);
@@ -52,6 +67,7 @@ static int audio_demo_dac_write(void *priv, u8 *data, u16 len)
 
 static int audio_demo_dac_open(u32 sample_rate)
 {
+    fill_zero_data = 1;
     app_audio_state_switch(APP_AUDIO_STATE_MUSIC, app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
     audio_dac_set_volume(&dac_hdl, app_audio_get_volume(APP_AUDIO_STATE_MUSIC));
     audio_dac_set_sample_rate(&dac_hdl, sample_rate);
@@ -486,7 +502,7 @@ static void mic_demo_output_data(void *priv, s16 *data, int len)
 #endif
 
     if (mic_hdl->mic_nch == 1 && mic_hdl->out_ch_num >= 2) { //硬件配置单声道，需要输出双声道
-        if (mic_hdl->sample_buffer) {
+        if (!mic_hdl->sample_buffer) {
             mic_hdl->sample_buffer = zalloc(len * 2);
         }
         pcm_single_to_dual(mic_hdl->sample_buffer, data, len);
@@ -542,6 +558,11 @@ static void *audio_demo_mic_open(void *priv, int sample_rate, u8 gain, u8 out_ch
     mic_param.mic_bias_sel  = AUDIO_MIC_BIAS_CH0;
     mic_param.mic_bias_rsel = 4;
     mic_param.mic_dcc       = 8;
+#if 1 //可视化分支重置读到的mic配置，改成打开一个adc 通道
+    memset(adc_hdl.adc_sel, 0xff, sizeof(adc_hdl.adc_sel));
+    adc_hdl.max_adc_num = 0;
+    audio_adc_add_ch(&adc_hdl, 0);
+#endif
     audio_adc_mic_open(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, &adc_hdl, &mic_param);
     audio_adc_mic_set_gain(&mic_demo->mic_ch, AUDIO_ADC_MIC_0, gain);
     audio_adc_mic_gain_boost(AUDIO_ADC_MIC_0, 1);
@@ -767,4 +788,4 @@ int audio_demo_enc_dec_test_close(void *priv)
     return 0;
 }
 
-
+#endif

@@ -453,11 +453,6 @@
 /*空间音频独立EQ使能*/
 #define TCFG_SPATIAL_EFFECT_EQ_ENABLE               DISABLE_THIS_MOUDLE
 
-/*陀螺仪数据导出配置:支持BT_SPP\UART载体导出*/
-#define SENSOR_DATA_EXPORT_USE_UART 	1
-#define SENSOR_DATA_EXPORT_USE_SPP 	    2
-#define TCFG_SENSOR_DATA_EXPORT_ENABLE				DISABLE_THIS_MOUDLE
-
 //*********************************************************************************//
 //                                  IIS 配置                                     //
 //*********************************************************************************//
@@ -503,6 +498,8 @@
 //#define TCFG_CHARGE_MA						CHARGE_mA_50
 /*涓流充电电流配置*/
 //#define TCFG_CHARGE_TRICKLE_MA              CHARGE_mA_10
+//是否支持满电电压为参考电压,重新划分电量等级,优化电池电量检测。
+#define TCFG_REFERENCE_V_ENABLE                (DISABLE && TCFG_CHARGE_ENABLE)
 
 //*********************************************************************************//
 //                                  LED 配置                                       //
@@ -546,64 +543,17 @@
 #define TCFG_GSENSOR_ENABLE                       0     //gSensor使能
 #define TCFG_DA230_EN                             0
 #define TCFG_SC7A20_EN                            0
-#define TCFG_STK8321_EN                           0
+#define TCFG_STK832x_EN                           0
 #define TCFG_IRSENSOR_ENABLE                      0
 #define TCFG_JSA1221_ENABLE                       0
 #define TCFG_GSENOR_USER_IIC_TYPE                 0     //0:软件IIC  1:硬件IIC
 
 //*********************************************************************************//
-//                                  imu-sensor配置                                   //
+//                                  hr-sensor配置                                   //
 //*********************************************************************************//
-#define TCFG_IMUSENSOR_ENABLE                	1    //imu Sensor使能
-//mpu6887 cfg
-#define TCFG_MPU6887P_ENABLE                  	1
-#define TCFG_MPU6887P_INTERFACE_TYPE          	0 //0:iic, 1:spi
-#define TCFG_MPU6887P_USER_IIC_TYPE           	0 //iic有效:1:硬件iic, 0:软件iic
-#define TCFG_MPU6887P_USER_IIC_INDEX          	0 //IIC 序号
-#define TCFG_MPU6887P_DETECT_IO               	(-1) //传感器中断io
-#define TCFG_MPU6887P_AD0_SELETE_IO             IO_PORTC_03 //iic地址选择io
-//icm42607p cfg
-#define TCFG_ICM42670P_ENABLE                  	0
-#define TCFG_ICM42670P_INTERFACE_TYPE          	0 //0:iic, 1:spi
-#define TCFG_ICM42670P_USER_IIC_TYPE           	0 //iic有效:1:硬件iic, 0:软件iic
-#define TCFG_ICM42670P_USER_IIC_INDEX          	0 //IIC 序号
-#define TCFG_ICM42670P_DETECT_IO               	(-1) //传感器中断io
-#define TCFG_ICM42670P_AD0_SELETE_IO            (-1) //iic地址选择io
-//mpu9250 cfg
-#define TCFG_TP_MPU9250_ENABLE                	0
-#define TCFG_MPU9250_INTERFACE_TYPE           	0 //不支持.0:iic, 1:spi
-#define TCFG_MPU9250_USER_IIC_TYPE            	0 //iic有效:1:硬件iic, 0:软件iic
-#define TCFG_MPU9250_USER_IIC_INDEX           	0 //IIC 序号
-#define TCFG_MPU9250_DETECT_IO              	IO_PORTB_03 //传感器中断io
-//sh3001 cfg
-#define TCFG_SH3001_ENABLE                    	0
-#define TCFG_SH3001_INTERFACE_TYPE            	0 //0:iic, 1:spi
-#define TCFG_SH3001_USER_IIC_TYPE		      	0 //1:硬件iic, 0:软件iic
-#define TCFG_SH3001_USER_IIC_INDEX            	0 //IIC 序号
-#define TCFG_SH3001_DETECT_IO                 	IO_PORTB_03 //传感器中断io
-//qmi8658 cfg
-#define TCFG_QMI8658_ENABLE                     0
-#define TCFG_QMI8658_INTERFACE_TYPE             0 //0:iic, 1:spi, 2:i3c
-#define TCFG_QMI8658_USER_IIC_TYPE              0 //1:硬件iic, 0:软件iic
-#define TCFG_QMI8658_USER_IIC_INDEX          	0 //IIC 序号
-#define TCFG_QMI8658_DETECT_IO               	(-1) //传感器中断io
-#define TCFG_QMI8658_AD0_SELETE_IO              (-1) //iic地址选择io
-//lsm6dsl cfg
-#define TCFG_LSM6DSL_ENABLE                     0
-#define TCFG_LSM6DSL_INTERFACE_TYPE             0 //0:iic, 1:spi
-#define TCFG_LSM6DSL_USER_IIC_TYPE              0 //1:硬件iic, 0:软件iic
-#define TCFG_LSM6DSL_USER_IIC_INDEX          	0 //IIC 序号
-#define TCFG_LSM6DSL_DETECT_IO               	(-1) //传感器中断io
-#define TCFG_LSM6DSL_AD0_SELETE_IO              (-1) //iic地址选择io
-//mpu6050 cfg
-#define TCFG_MPU6050_EN                     	0
-//qmc5883 cfg
-
-/*
- *imu-sensor power manager
- *不用独立IO供电，则配置 NO_CONFIG_PORT
- */
-#define TCFG_IMU_SENSOR_PWR_PORT				IO_PORTG_05
+#define TCFG_HRSENSOR_ENABLE                      0     //hr-sensor使能
+#define TCFG_HX3918_ENABLE                        0
+#define TCFG_HRSENOR_USER_IIC_TYPE                0     //0:软件IIC  1:硬件IIC
 
 
 //*********************************************************************************//

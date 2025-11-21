@@ -19,8 +19,11 @@
 #include "audio_config_def.h"
 #include "effects/audio_vbass.h"
 #include "framework/include/decoder_node.h"
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
 
-#if TCFG_APP_MUSIC_EN
+#if TCFG_MUSIC_PLAYER_ENABLE
 
 struct music_file_player_hdl {
     u8 player_id ;
@@ -70,6 +73,9 @@ static void music_player_callback(void *_player_id, int event)
     case STREAM_EVENT_START:
 #if AUDIO_VBASS_LINK_VOLUME
         vbass_link_volume();
+#endif
+#if AUDIO_EQ_LINK_VOLUME
+        eq_link_volume();
 #endif
         if (list_empty(&(g_file_player.head))) {          //先判断是否为空防止触发异常
             break;
@@ -196,10 +202,10 @@ static int music_file_close(void *file)
 
 static int music_file_get_fmt(void *file, struct stream_fmt *fmt)
 {
-    u8 name[16];
+    u8 name[12 + 1] = {0}; //8.3+\0
     struct file_player *player = (struct file_player *)file;
 
-    fget_name(player->file, name, 16);
+    fget_name(player->file, name, sizeof(name));
     struct stream_file_info info = {
         .file = player,
         .fname = (char *)name,
@@ -632,7 +638,7 @@ int file_dec_id3_post(struct file_player *player)
     info.set.item_limit_len = 64;
     info.set.frame_id_att[0] = 0x3f; // 0x3E;  0x3f;
     int ret = jlstream_node_ioctl(player->stream, NODE_UUID_DECODER, NODE_IOC_GET_ID3, (int)&info);
-    if (ret == 0) {
+    if ((ret == 0) && (info.data.len_list)) {
         for (int i = 0; i < info.set.n_items; i++) {
             if ((info.data.len_list[i] != 0) && info.data.mptr[i] != 0) {
                 printf("%d\t :  %s\n", i, info.data.mptr[i]);        //显示字符串.
@@ -643,6 +649,24 @@ int file_dec_id3_post(struct file_player *player)
     return true;
 }
 
+#if TCFG_DEC_ID3_V1_ENABLE || TCFG_DEC_ID3_V2_ENABLE
+static int file_name_match_mp3(char *file_name)
+{
+    const char *ext_name;
+    for (int i = 0; file_name[i] != '\0'; i++) {
+        if (file_name[i] == '.') {
+            ext_name = file_name + i + 1;
+            goto __match;
+        }
+    }
+    return 0;
+__match:
+    if (!strncasecmp(ext_name, "mp3", 3)) {
+        return 1;
+    }
+    return 0;
+}
+#endif
 static int music_file_player_start(struct file_player *player)
 {
     int err = -EINVAL;
@@ -677,9 +701,12 @@ static int music_file_player_start(struct file_player *player)
 
     jlstream_set_dec_file(player->stream, player, &music_file_ops);
 
-    err = jlstream_start(player->stream);
-
-    if (player->stream->coding_type == AUDIO_CODING_MP3) {
+#if TCFG_DEC_ID3_V1_ENABLE || TCFG_DEC_ID3_V2_ENABLE
+    u8 mp3_flag = 0;
+    u8 name[12 + 1] = {0}; //8.3+\0
+    fget_name(player->file, name, sizeof(name));
+    if (file_name_match_mp3((char *)name)) {
+        mp3_flag = 1;
 #if TCFG_DEC_ID3_V1_ENABLE
         if (player->p_mp3_id3_v1) {
             id3_obj_post(&player->p_mp3_id3_v1);
@@ -692,11 +719,16 @@ static int music_file_player_start(struct file_player *player)
         }
         player->p_mp3_id3_v2 = id3_v2_obj_get(player->file);
 #endif
-    } else {
-#if (TCFG_DEC_ID3_V1_ENABLE || TCFG_DEC_ID3_V2_ENABLE)
-        file_dec_id3_post(player);
-#endif
     }
+#endif
+    err = jlstream_start(player->stream);
+
+
+#if TCFG_DEC_ID3_V1_ENABLE || TCFG_DEC_ID3_V2_ENABLE
+    if (!mp3_flag) {
+        file_dec_id3_post(player);
+    }
+#endif
 
     if (err) {
         goto __exit1;

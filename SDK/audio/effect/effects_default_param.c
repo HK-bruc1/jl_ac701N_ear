@@ -139,15 +139,55 @@ int get_eff_default_param(int arg)
     struct _name {
         char name[16];
     };
+    //cppcheck-suppress unreadVariable
     struct _name *name = (struct _name *)arg;
+#if TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE
+    if (!strncmp(name->name, "VBassPro", strlen("VBassPro"))) {
+        struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+        get_parm->cfg_index = 0;//目标配置项
+        get_parm->mode_index = get_current_scene();
+        ret = 1;
+    }
+#endif
+
+
+#if TCFG_3D_PLUS_MODULE_NODE_ENABLE
+//3D plus 模块节点默认参数配置, 3D Plus节点名需配置成：3dPlus,此处默认配置才会生效
+    char threeD_Plus[16];
+#if TCFG_EQ_ENABLE
+    char *eqname_tab[] = {"LowEQ", "MidEQ"};//子节点名
+    for (int i = 0; i < ARRAY_SIZE(eqname_tab); i++) {
+        jlstream_module_node_get_name(eqname_tab[i], "3dPlus", threeD_Plus);
+        if (!strcmp(name->name, threeD_Plus)) {
+            struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
+            get_eq_parm->cfg_index = 0;
+            get_eq_parm->mode_index = get_current_scene();
+            ret = 1;
+            break;
+        }
+    }
+#endif
+
+    char *_3dPlus_name[] = {"LRGain", "MidSMix", "LowSMix", "MixerGain"};//子节点名
+    for (int i = 0; i < ARRAY_SIZE(_3dPlus_name); i++) {
+        jlstream_module_node_get_name(_3dPlus_name[i], "3dPlus", threeD_Plus);
+        if (!strcmp(name->name, threeD_Plus)) {
+            struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+            get_parm->mode_index = get_current_scene();
+            get_parm->cfg_index = 0;//目标配置项
+            ret = 1;
+            break;
+        }
+    }
+#endif
 
 #if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
-
+// virtual surround pro/2to4/2to5 模块节点默认参数配置, virtual surround pro/2to4/2to5节点名需配置成：VSPro,此处默认配置才会生效
     char out[16];
 #if TCFG_EQ_ENABLE
-    char *eqname_tab[] = {"CEqVSPro", "LRSEqVSPro"};
-    for (int i = 0; i < ARRAY_SIZE(eqname_tab); i++) {
-        jlstream_node_name_to_uuid(eqname_tab[i], out);
+    char *vsp_eqname_tab[] = {"CEq", "LRSEq"}; //子节点名
+    for (int i = 0; i < ARRAY_SIZE(vsp_eqname_tab); i++) {
+        jlstream_module_node_get_name(vsp_eqname_tab[i], "VSPro", out);
         if (!strcmp(name->name, out)) {
             struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
             get_eq_parm->cfg_index = 0;
@@ -158,12 +198,14 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-    char *vspro_name[] = {"PreLimiterVSPro", "LRLimiterVSPro", "CLimiterVSPro", "LRSLimiterVSPro", "MBLimiter0Media",
-                          "CDrcAdvVSPro", "LRSDrcAdvVSPro", "LRCrossVSPro", "LRBandVSPro", "LSCBandVSPro", "RSCBandVSPro",
-                          "VBassMedia", "LRPcmDlyVSPro", "LRSNsGateVSPro", "UpMix2to5VSPro"
-                         };
+    char *vspro_name[] = {"PreLimiter", "LRLimiter", "CLimiter", "LRSLimiter",
+                          "CDrcAdv", "LRSDrcAdv", "LRCross", "LRBand", "LR3Band", "LSCBand", "RSCBand",
+                          "LRPcmDly", "LRSNsGate", "UpMix2to5", "RLSCBand", "RRSCBand",
+                          "SPWider", "StereoSpat6"
+                         };//子节点名,其中"StereoSpat6"是virtual surround 2to5流程内子节点名
+
     for (int i = 0; i < ARRAY_SIZE(vspro_name); i++) {
-        jlstream_node_name_to_uuid(vspro_name[i], out);
+        jlstream_module_node_get_name(vspro_name[i], "VSPro", out);
         if (!strcmp(name->name, out)) {
             struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
             get_parm->mode_index = get_current_scene();
@@ -172,6 +214,18 @@ int get_eff_default_param(int arg)
             break;
         }
     }
+
+    char *vspro_media_name[] = {"MBLimiter0Media", "VBassMedia"};
+    for (int i = 0; i < ARRAY_SIZE(vspro_media_name); i++) {
+        if (!strcmp(name->name, vspro_media_name[i])) {
+            struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+            get_parm->mode_index = get_current_scene();
+            get_parm->cfg_index = 0;//目标配置项
+            ret = 1;
+            break;
+        }
+    }
+
 #endif
 
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
@@ -180,12 +234,14 @@ int get_eff_default_param(int arg)
     }
 #endif
 
+#if TCFG_PITCH_SPEED_NODE_ENABLE
     if (!strncmp(name->name, "PitchSpeed", strlen("PitchSpeed"))) { //音乐变速变调 默认参数获取
         struct pitch_speed_update_parm *get_parm = (struct pitch_speed_update_parm *)arg;
         get_parm->speedV = 80;
         get_parm->pitchV = effect_default.pitchV;
         ret = 1;
     }
+#endif
 
 #if TCFG_EQ_ENABLE
     if (!strncmp(name->name, "MusicEq", strlen("MusicEq"))) { //音乐eq命名默认： MusicEq + 类型，例如蓝牙音乐eq：MusicEqBt
@@ -205,6 +261,7 @@ int get_eff_default_param(int arg)
     }
 #endif
 
+#if TCFG_ENERGY_DETECT_NODE_ENABLE
     if (!strncmp(name->name, "EnergyDet", strlen("EnergyDet"))) {//能量检查 回调接口配置
         struct energy_detect_get_parm *get_parm = (struct energy_detect_get_parm *)arg;
         if (get_parm->type == SET_ENERGY_DET_EVENT_HANDLER) {
@@ -212,6 +269,7 @@ int get_eff_default_param(int arg)
             ret = 1;
         }
     }
+#endif
 
 #if TCFG_WDRC_NODE_ENABLE
     if (!strncmp(name->name, "MusicDrc", strlen("MusicDrc"))) {
@@ -306,6 +364,8 @@ int get_eff_default_param(int arg)
 #endif
 
 #if TCFG_EQ_ENABLE
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
     if (!effect_strcmp(name->name, "EscoDlEq") || !effect_strcmp(name->name, "EscoUlEq")) {
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         int type = lmp_private_get_esco_packet_type();
@@ -317,6 +377,7 @@ int get_eff_default_param(int arg)
         }
         ret = 1;
     }
+#endif
 #endif
 
 #if TCFG_SPECTRUM_ADVANCE_NODE_ENABLE
@@ -351,7 +412,7 @@ int get_eff_default_param(int arg)
 #endif
 #endif
 
-#ifdef TCFG_EQ_ENABLE
+#if TCFG_EQ_ENABLE
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     if (!strcmp(name->name, ADAPTIVE_EQ_TARGET_NODE_NAME)) { //音乐eq命名默认： MusicEq + 类型，例如蓝牙音乐eq：MusicEqBt
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;

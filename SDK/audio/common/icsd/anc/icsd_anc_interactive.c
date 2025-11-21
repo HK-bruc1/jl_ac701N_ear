@@ -22,7 +22,9 @@
 #include "app_tone.h"
 #include "esco_player.h"
 #include "a2dp_player.h"
+#include "le_audio_player.h"
 #include "dac_node.h"
+#include "adc_file.h"
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
 #endif/*TCFG_USER_TWS_ENABLE*/
@@ -220,7 +222,8 @@ int audio_anc_mode_ear_adaptive_permit(void)
     if (hdl->busy) { //重入保护
         return 1;
     }
-    if (esco_player_runing()) { //通话不支持
+    if (adc_file_is_runing()) { //通话不支持
+        /* if (esco_player_runing()) { //通话不支持 */
         return 1;
     }
     if (anc_mode_switch_lock_get()) { //其他切模式过程不支持
@@ -280,7 +283,11 @@ int audio_anc_mode_ear_adaptive(u8 tws_sync_en)
     anc_log("EAR_ADAPTIVE_STATE:INIT\n");
     hdl->adaptive_state = EAR_ADAPTIVE_STATE_INIT;
 
-    if (a2dp_player_runing()) {	//当前处于音乐播放状态, 注册解码任务打断，进入自适应
+    if (a2dp_player_runing()
+#if LE_AUDIO_STREAM_ENABLE
+        || le_audio_player_is_playing()
+#endif
+       ) {	//当前处于音乐播放状态, 注册解码任务打断，进入自适应
         jlstream_global_pause();
     } else {
         audio_anc_ear_adaptive_open();

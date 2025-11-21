@@ -16,8 +16,35 @@
 //**************************************
 // 			ASS通用配置
 //**************************************
-#define MEDIA_24BIT_ENABLE		TCFG_AUDIO_BIT_WIDTH
+#define MEDIA_24BIT_ENABLE					TCFG_AUDIO_BIT_WIDTH
+#define AUD_DAC_TRIM_ENABLE					1
+#define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
+#define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 
+/*
+ * Hi-Res Audio使能LHDC/LDAC要求：
+ * <1>DAC最高采样率调整到96K
+ * <2>同时全局采样率至少要96kHz，或者Disable（即自适应）
+ */
+#ifdef TCFG_HI_RES_AUDIO_ENEBALE
+#undef AUDIO_DAC_MAX_SAMPLE_RATE
+#define AUDIO_DAC_MAX_SAMPLE_RATE           96000
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE && (TCFG_AUDIO_GLOBAL_SAMPLE_RATE < 96000))
+#error "Hi-Res Audio：请将全局采样率TCFG_AUDIO_GLOBAL_SAMPLE_RATE设置到至少96000，或Disable！"
+#endif
+#endif
+
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE && (TCFG_AUDIO_GLOBAL_SAMPLE_RATE > AUDIO_DAC_MAX_SAMPLE_RATE))
+#undef AUDIO_DAC_MAX_SAMPLE_RATE
+#define AUDIO_DAC_MAX_SAMPLE_RATE           TCFG_AUDIO_GLOBAL_SAMPLE_RATE
+#endif
+
+#define TCFG_AUDIO_IIS_CLOCK_CLOSE          0
+
+//**************************************
+// 		    场景参数更新使能
+//**************************************
+#define TCFG_SCENE_UPDATE_ENABLE            0
 
 //**************************************
 // 			音频模块链接配置
@@ -30,11 +57,26 @@
 #define AFx_DRC_AT_RAM 					    1	//DRC
 #define AFx_HARMONIC_EXCITER_AT_RAM 	    1	//谐波激励
 #define AFx_DYN_EQ_AT_RAM 				    1	//动态EQ
+#define AFx_DYN_EQ_PRO_AT_RAM 				0	//动态EQ Pro
 #define AFx_NOTCH_HOWLING_AT_RAM 		    1	//啸叫抑制：陷波
 #define AFx_FREQ_SHIFT_AT_RAM	 		    1	//啸叫抑制：移频
 #define AFx_NOISEGATE_AT_RAM	 		    1	//噪声门
 #define AFx_ADVAUDIO_PLC_AT_RAM	    	    1
-#define AFx_SPATIAL_EFFECT_AT_RAM           1 //空间音效
+#define AFX_AUDIO_LINK_AT_RAM               0   //iis驱动
+#define AFX_AUDIO_SYNC_AT_RAM               0   //sync
+#define AFx_EQ_AT_RAM                       0	//eq
+#define AFx_VOCAL_TRACK_AT_RAM              0   //声道组合与声道拆分
+#define AFX_AUDIO_DIGITAL_VOL_AT_RAM        0   //数字音量
+#define AFX_AUDIO_ENERGY_DET_AT_RAM         0   //能量检测
+#define AFX_LIMITER_AT_RAM                  0   //限幅器
+#define AFX_MULTIBAND_CROSSOVER_AT_RAM      0   //多带限幅器与多带drc使用的多带分频器
+#define AFX_MULTIBAND_LIMITER_AT_RAM        0   //多带限幅器
+#define AFX_MULTIBAND_DRC_AT_RAM            0   //多带drc
+#define AFX_VIRTUAL_SURRUOUND_PRO_AT_RAM    0   //虚拟环绕声pro/2t4/2t5
+#define AFX_SW_EQ_AT_RAM                    0   //软件EQ
+#define AFx_SPATIAL_EFFECT_AT_RAM           1   //空间音效
+#define AFx_STEREO_TO_LCR_AT_RAM            0   //virtual surround headphone 2t4
+#define AUDIO_LLNS_DNS_CODEC_AT_RAM         0   //llns_dns
 
 /*通话语音处理算法*/
 #define AUDIO_CVP_TEXT_AT_RAM	    	    0	//COMMON TEXT
@@ -53,10 +95,17 @@
 /*编解码编译链接配置*/
 #define AUD_AAC_DEC_AT_RAM		            1   //AAC解码
 #define AUDIO_LDAC_AT_RAM			        1	//LDAC解码
+#define AUDIO_LHDC_AT_RAM			        0	//LHDCv3/v4解码 :78K左右,如果ram不够可以只放L2的段，40K左右
+#define AUDIO_LHDC_V5_AT_RAM			    0	//LHDCV5解码 : 18K左右
 #define AUDIO_MSBC_CODEC_AT_RAM		        0	//MSBC 编解码
 #define AUDIO_CVSD_CODEC_AT_RAM		        0	//CVSD 编解码
 #define AUDIO_JLA_CODEC_AT_RAM			    1	//JLA 编解码
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#define AUDIO_LC3_CODEC_AT_RAM			    1	//LC3 编解码
+#else
 #define AUDIO_LC3_CODEC_AT_RAM			    0	//LC3 编解码
+#endif
+#define AUDIO_JLA_V2_CODEC_AT_RAM		0	//JLA_V2 编解码
 
 /*语音识别算法编译链接配置*/
 #define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram
@@ -72,6 +121,15 @@
 
 //***************End********************
 
+//**************************************
+// 			音效使能控制
+//**************************************
+#define AUDIO_VBASS_LINK_VOLUME     0 //虚拟低音与音量联动调节
+#define AUDIO_EQ_LINK_VOLUME        0 //EQ与音量联动调节
+//**************************************
+// 			麦克风音效配置
+//**************************************
+#define DUAL_ADC_EFFECT     0 //两路ADC输入使能(如：麦克风+吉他)
 #if TCFG_BT_VOL_SYNC_ENABLE
 #define TCFG_MAX_VOL_PROMPT						 0
 #else
@@ -93,7 +151,6 @@
 #define AUDIO_LINEIN_IRQ_POINTS 128
 #endif
 
-#define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 //**************************************
 // 			IIS模块配置
 //**************************************
@@ -101,25 +158,6 @@
 #define AUDIO_IIS_IRQ_POINTS 128
 //***************End********************
 
-
-/*
- *br36 支持24bit位宽输出
- * */
-#define TCFG_AUDIO_DAC_24BIT_MODE           0
-#define AUDIO_DAC_MAX_SAMPLE_RATE           48000
-
-/*
- * Hi-Res Audio使能LHDC/LDAC要求：
- * <1>DAC最高采样率调整到96K
- * <2>同时全局采样率至少要96kHz，或者Disable（即自适应）
- */
-#ifdef TCFG_HI_RES_AUDIO_ENEBALE
-#undef AUDIO_DAC_MAX_SAMPLE_RATE
-#define AUDIO_DAC_MAX_SAMPLE_RATE           96000
-#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE && (TCFG_AUDIO_GLOBAL_SAMPLE_RATE < 96000))
-#error "Hi-Res Audio：请将全局采样率TCFG_AUDIO_GLOBAL_SAMPLE_RATE设置到至少96000，或Disable！"
-#endif
-#endif
 
 /*
  *该配置适用于没有音量按键的产品，防止打开音量同步之后
@@ -220,8 +258,6 @@
 #if TCFG_AUDIO_ANC_ENABLE
 #if (TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE == ANC_CLIPPING_MODE_MUSIC_LIMIT)
 #define ANC_MODE_DIG_VOL_LIMIT	(TCFG_ANC_MUSIC_FIXED_LIMIT_GAIN)
-#else
-#define ANC_MODE_DIG_VOL_LIMIT	(0.0f)
 #endif
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
 
@@ -229,17 +265,6 @@
 #define BT_MUSIC_VOL_LEAVE_MAX	16		/*高级音频音量等级*/
 #define BT_CALL_VOL_LEAVE_MAX	15		/*通话音量等级*/
 // #define BT_CALL_VOL_STEP		(-2.0f)	[>通话音量等级衰减步进<]
-
-/*
- *audio state define
- */
-#define APP_AUDIO_STATE_IDLE        0
-#define APP_AUDIO_STATE_MUSIC       1
-#define APP_AUDIO_STATE_CALL        2
-#define APP_AUDIO_STATE_WTONE       3
-#define APP_AUDIO_STATE_KTONE       4
-#define APP_AUDIO_STATE_RING       	5
-#define APP_AUDIO_CURRENT_STATE     6
 
 #define TONE_BGM_FADEOUT            0   //播叠加提示音时是否将背景音淡出
 

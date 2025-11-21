@@ -56,6 +56,10 @@ const struct btif_item btif_table[] = {
 // 	 	item id 		   	   len   	//
     {CFG_BT_MAC_ADDR, 			6 },
     {CFG_BT_FRE_OFFSET,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET1,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET2,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET3,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET4,   		6 },   //测试盒矫正频偏值
 #if TCFG_CHARGE_CALIBRATION_ENABLE
     {VM_CHARGE_CALIBRATION,     sizeof(calibration_result) },   //充电电流校准
 #endif
@@ -70,6 +74,7 @@ const int vm_max_page_align_size_config   = TCFG_VM_SIZE; 		//page对齐vm管理
 const int vm_max_sector_align_size_config = TCFG_VM_SIZE; 	//sector对齐vm管理空间最大值配置
 //======================================================================================//
 
+#if TCFG_BT_SNIFF_ENABLE
 const struct lp_ws_t lp_winsize = {
     .lrc_ws_inc = CONFIG_LRC_WIN_STEP,      //260
     .lrc_ws_init = CONFIG_LRC_WIN_SIZE,
@@ -77,10 +82,15 @@ const struct lp_ws_t lp_winsize = {
     .bt_osc_ws_init = CONFIG_OSC_WIN_SIZE,
     .osc_change_mode = 1,                       //低功耗时钟，0：仅使用LRC 1：自动切换 2：保留
 };
+#endif
 
 u16 bt_get_tws_device_indicate(u8 *tws_device_indicate)
 {
-    return bt_cfg.tws_device_indicate;
+    u16 crc = 0;
+#if CONFIG_TWS_DIFF_NAME_NOT_MATCH
+    crc = CRC16(bt_get_local_name(), strlen(bt_get_local_name()));
+#endif
+    return bt_cfg.tws_device_indicate + crc;
 }
 
 const u8 *bt_get_mac_addr()
@@ -144,7 +154,7 @@ const char *bt_get_pin_code()
 #define USE_CONFIG_VOL_SETTING               1					        //音量表读配置
 
 
-__BANK_INIT_ENTRY
+__INITCALL_BANK_CODE
 void cfg_file_parse(u8 idx)
 {
     u8 tmp[128] = {0};
@@ -169,7 +179,9 @@ void cfg_file_parse(u8 idx)
         memset(bt_cfg.edr_name, 0x00, LOCAL_NAME_LEN);
         memcpy(bt_cfg.edr_name, tmp, ret);
     }
+#if TCFG_BT_NAME_SEL_BY_AD_ENABLE
     bt_name_config_parse((char *)bt_cfg.edr_name);
+#endif
 
     /* g_printf("bt name config:%s", bt_cfg.edr_name); */
     log_info("bt name config:%s", bt_cfg.edr_name);

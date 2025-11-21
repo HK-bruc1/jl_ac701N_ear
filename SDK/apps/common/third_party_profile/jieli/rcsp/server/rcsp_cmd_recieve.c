@@ -31,6 +31,10 @@
 #include "rcsp_manage.h"
 #include "rcsp_command.h"
 #include "adv_1t2_setting.h"
+#include "rcsp_rtc_func.h"
+#include "rcsp_translator.h"
+#include "pub_mutual_set_cmd_opt.h"
+#include "file_transfer_sync.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
@@ -349,8 +353,38 @@ static void find_device_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u1
 #endif // RCSP_MODE == RCSP_MODE_EARPHONE
 
 }
-
 #endif // RCSP_ADV_FIND_DEVICE_ENABLE
+
+static void get_device_config_info(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
+{
+    struct RcspModel *rcspModel = (struct RcspModel *)priv;
+    u8 resp_buf[3] = {0};
+    if (rcspModel == NULL) {
+        return ;
+    }
+    if (!rcspModel->find_dev_en) {
+        return;
+    }
+    //产品标识
+#if RCSP_MODE == RCSP_MODE_EARPHONE
+    resp_buf[0] = 1;
+#elif RCSP_MODE == RCSP_MODE_WATCH
+    resp_buf[0] = 0;
+#endif
+    //版本号
+    resp_buf[1] = 0x01;
+#if RCSP_ADV_TRANSLATOR
+    resp_buf[2] |= BIT(1);
+    if (!JL_rcsp_translator_whether_play_by_ai_rx()) {
+        resp_buf[2] |= BIT(2);
+    }
+#endif
+    JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, resp_buf, sizeof(resp_buf), ble_con_handle, spp_remote_addr);
+    /* #if (TCFG_DEV_MANAGER_ENABLE || RCSP_TONE_FILE_TRANSFER_ENABLE) 传音大文件传输提示音方案 */
+    /*     u8 device_info[] = {0x01, 0x00, 0x01}; */
+    /*     JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, device_info, sizeof(device_info), ble_con_handle, spp_remote_addr); */
+    /* #endif */
+}
 
 #define RES_MD5_FILE	FLASH_RES_PATH"md5.bin"
 static void get_md5_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
@@ -396,7 +430,7 @@ static void get_low_latency_param(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data,
     JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, low_latency_param, 6, ble_con_handle, spp_remote_addr);
 }
 
-#if TCFG_RTC_ENABLE
+#if TCFG_APP_RTC_EN
 static void rcsp_alarm_ex(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     u16 rlen = 0;
@@ -421,20 +455,20 @@ static void rcsp_alarm_ex(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len
 }
 #endif
 
-#if TCFG_DEV_MANAGER_ENABLE
-static void rcsp_device_parm_extra(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len)
+#if (TCFG_DEV_MANAGER_ENABLE || RCSP_TONE_FILE_TRANSFER_ENABLE)
+static void rcsp_device_parm_extra(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     u8 op = data[0];
     switch (op) {
     case 0x0:
-        rcsp_file_transfer_download_parm_extra(OpCode_SN, data, len);
+        file_trans_parm_extra(OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;;
     case 0x1:
         break;;
     case 0x2:
         break;;
     default:
-        JL_CMD_response_send(OpCode, JL_PRO_STATUS_PARAM_ERR, OpCode_SN, 0, 0, 0, NULL);
+        JL_CMD_response_send(OpCode, JL_PRO_STATUS_PARAM_ERR, OpCode_SN, 0, 0, ble_con_handle, spp_remote_addr);
         break;
     }
 }
@@ -549,6 +583,9 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
         find_device_handle(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
 #endif
+    case JL_OPCODE_GET_DEVICE_CONFIG_INFO:
+        get_device_config_info(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
+        break;
     case JL_OPCODE_GET_MD5:
         get_md5_handle(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
@@ -558,16 +595,35 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
     case JL_OPCODE_CUSTOMER_USER:
         rcsp_user_cmd_recieve(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
+#if ((TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT) || RCSP_TONE_FILE_TRANSFER_ENABLE)
     case JL_OPCODE_ACTION_PREPARE:
+#if (RCSP_MODE != RCSP_MODE_EARPHONE)
         app_rcsp_task_prepare(1, data[0], OpCode_SN);
+#else
+        file_trans_init(1, ble_con_handle, spp_remote_addr);
+        JL_CMD_response_send(JL_OPCODE_ACTION_PREPARE, JL_PRO_STATUS_SUCCESS, OpCode_SN, NULL, 0, ble_con_handle, spp_remote_addr);
+#endif
         break;
-#if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     case JL_OPCODE_FILE_TRANSFER_START:
-        rcsp_file_transfer_download_start(priv, OpCode_SN, data, len);
+        file_trans_start(priv, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
     case JL_OPCODE_FILE_TRANSFER_CANCEL:
-        rcsp_file_transfer_download_passive_cancel(OpCode_SN, data, len);
+        rcsp_file_transfer_download_passive_cancel(OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
+    case JL_OPCODE_DEVICE_PARM_EXTRA:
+#if (RCSP_MODE && (JL_RCSP_EXTRA_FLASH_OPT || RCSP_TONE_FILE_TRANSFER_ENABLE))
+        rcsp_device_parm_extra(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
+#endif
+        break;
+    case JL_OPCODE_PUBLIC_SET_CMD:
+        public_settings_interaction_command(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
+        break;
+    case JL_OPCODE_MASS_DATA:
+        extern void mass_data_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 * data, u16 len, u16 ble_con_handle, u8 * spp_remote_addr);
+        mass_data_recieve(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
+        break;
+#endif
+#if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     case JL_OPCODE_FILE_DELETE:
         rcsp_file_delete_start(OpCode_SN, data, len);
         break;
@@ -583,16 +639,13 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
     case JL_OPCODE_FILE_BLUK_TRANSFER:
         rcsp_file_bluk_trans_prepare(priv, OpCode_SN, data, len);
         break;
-    case JL_OPCODE_DEVICE_PARM_EXTRA:
-        rcsp_device_parm_extra(priv, OpCode, OpCode_SN, data, len);
-        break;
 #endif
 #if (TCFG_DEV_MANAGER_ENABLE && JL_RCSP_SIMPLE_TRANSFER)
     case JL_OPCODE_SIMPLE_FILE_TRANS:
         rcsp_file_simple_transfer_for_small_file(priv, OpCode_SN, data, len);
         break;
 #endif
-#if TCFG_RTC_ENABLE
+#if TCFG_APP_RTC_EN
     case JL_OPCODE_ALARM_EXTRA:
         rcsp_alarm_ex(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
@@ -625,6 +678,11 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
 #endif
 #if RCSP_UPDATE_EN
         if (0 == JL_rcsp_update_cmd_resp(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr)) {
+            break;
+        }
+#endif
+#if RCSP_ADV_TRANSLATOR
+        if (0 == JL_rcsp_translator_functions(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr)) {
             break;
         }
 #endif

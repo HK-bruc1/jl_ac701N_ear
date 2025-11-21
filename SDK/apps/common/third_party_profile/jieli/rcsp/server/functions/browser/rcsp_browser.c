@@ -11,6 +11,7 @@
 #include "file_operate/file_bs_deal.h"
 #include "rcsp_event.h"
 #include "ble_rcsp_server.h"
+#include "JL_rcsp_api.h"
 
 #if RCSP_MODE && RCSP_FILE_OPT
 #include "music/music_player.h"

@@ -9,12 +9,20 @@
 #include "tws_dual_share.h"
 #include "low_latency.h"
 #include "poweroff.h"
+#include "earphone.h"
 
 #include "bt_event_func.h"
 #include "app_tone.h"
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 
 void bt_volume_up(u8 inc)
 {
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
+
     u8 test_box_vol_up = 0x41;
     s8 cur_vol = 0;
     u8 call_status = bt_get_call_status();
@@ -87,6 +95,9 @@ void bt_volume_up(u8 inc)
 
 void bt_volume_down(u8 dec)
 {
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
     u8 test_box_vol_down = 0x42;
     u8 call_status = bt_get_call_status();
     u8 cur_state;
@@ -249,6 +260,18 @@ void bt_key_vol_up(void)
     app_send_message(APP_MSG_VOL_CHANGED, vol);
 }
 
+void bt_key_rcsp_vol_up(void)
+{
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN))
+    u8 vol;
+    u8 call_status;
+    if (bt_get_call_status() == BT_CALL_ACTIVE && bt_sco_state() == 0) {
+        return;
+    }
+    bt_volume_up(1);
+#endif
+}
+
 /*************************************************************************************************/
 /*!
  *  \brief      蓝牙模式 vol down 按键处理
@@ -276,6 +299,18 @@ void bt_key_vol_down(void)
     }
     printf("music_vol:vol=%d, state:%d", vol, app_audio_get_state());
     app_send_message(APP_MSG_VOL_CHANGED, vol);
+}
+
+void bt_key_rcsp_vol_down(void)
+{
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN))
+    u8 vol;
+    u8 call_status;
+    if (bt_get_call_status() == BT_CALL_ACTIVE && bt_sco_state() == 0) {
+        return;
+    }
+    bt_volume_down(1);
+#endif
 }
 
 /*************************************************************************************************/
@@ -440,6 +475,10 @@ void bt_send_a2dp_cmd(int msg)
     u8 addr[6];
     u8 *bt_addr = NULL;
 
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_EDR) {
+        return;
+    }
+
     if (a2dp_player_get_btaddr(addr)) {
         bt_addr = addr;
     }
@@ -478,4 +517,31 @@ void bt_send_a2dp_cmd(int msg)
         break;
     }
 }
+
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+void bt_send_jl_cis_cmd(int msg)
+{
+    if (g_bt_hdl.control_device_type != CONTROL_ALL && g_bt_hdl.control_device_type != CONTROL_CIS) {
+        return;
+    }
+
+    u8 data[1];
+
+    switch (msg) {
+    case APP_MSG_MUSIC_PP:
+        puts("LE_AUDIO APP_MSG_MUSIC_PP\n");
+        data[0] = CIG_EVENT_OPID_PLAY;
+        break;
+    case APP_MSG_MUSIC_PREV:
+        puts("LE_AUDIO APP_MSG_MUSIC_PREV\n");
+        data[0] = CIG_EVENT_OPID_PREV;
+        break;
+    case APP_MSG_MUSIC_NEXT:
+        puts("LE_AUDIO APP_MSG_MUSIC_NEXT\n");
+        data[0] = CIG_EVENT_OPID_NEXT;
+        break;
+    }
+    le_audio_media_control_cmd(data, 1);
+}
+#endif
 

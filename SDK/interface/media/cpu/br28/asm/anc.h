@@ -4,7 +4,7 @@
 #include "generic/typedef.h"
 #include "system/task.h"
 #include "media/audio_def.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 
 enum {
     ANCDB_ERR_CRC = 1,
@@ -84,23 +84,8 @@ typedef enum {
     ANC_R_TRANS_PARM = 0x1D,     //右通透参数ID
 
     //OTHER
-    ANC_L_ADAP_FRE = 0x20,
-    ANC_L_ADAP_PZ = 0x21,
-    ANC_L_ADAP_SZPZ = 0x22,
-    ANC_L_ADAP_TARGET = 0x23,
     ANC_L_ADAP_GOLD_CURVE = 0x24,//自适应金机曲线
-    ANC_L_ADAP_TARGET_CMP = 0x25,
-    ANC_L_ADAP_TARGET_BEFORE_CMP = 0x26,
-    ANC_L_ADAP_CMP_FORM_TRAIN = 0x27,
-
-    ANC_R_ADAP_FRE = 0x30,
-    ANC_R_ADAP_PZ = 0x31,
-    ANC_R_ADAP_SZPZ = 0x32,
-    ANC_R_ADAP_TARGET = 0x33,
     ANC_R_ADAP_GOLD_CURVE = 0x34,
-    ANC_R_ADAP_TARGET_CMP = 0x35,
-    ANC_R_ADAP_TARGET_BEFORE_CMP = 0x36,
-    ANC_R_ADAP_CMP_FORM_TRAIN = 0x37,
 
 } ANC_config_seg_id_t;
 
@@ -441,6 +426,14 @@ typedef struct {
     // u8 reserve[236 - 128];	//236 + 20byte(header)
 } anc_gain_t;
 
+struct anc_mic_gain_cmp_cfg {
+    u8 en;                             //MIC 补偿值使能控制  range 0-1;    default 0;
+    float lff_gain;            //ANCL FFmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+
+    float lfb_gain;            //ANCL FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+
+    float rff_gain;            //ANCR FFmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+
+    float rfb_gain;            //ANCR FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+
+};
+
 typedef struct {
     u8 start;                       //ANC状态
     u8 mode;                        //ANC模式：降噪关;降噪开;通透...
@@ -524,6 +517,7 @@ typedef struct {
     anc_ear_adaptive_param_t *adaptive;
     anc_adt_param_t *adt;
     struct anc_sz_fft_t sz_fft;
+    struct anc_mic_gain_cmp_cfg mic_cmp;
 
     void (*train_callback)(u8, u8);
     void (*pow_callback)(anc_ack_msg_t *msg_t, u8 setp);

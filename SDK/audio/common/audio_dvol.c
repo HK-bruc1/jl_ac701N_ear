@@ -1,9 +1,3 @@
-#ifdef SUPPORT_MS_EXTENSIONS
-#pragma bss_seg(".audio_dvol.data.bss")
-#pragma data_seg(".audio_dvol.data")
-#pragma const_seg(".audio_dvol.text.const")
-#pragma code_seg(".audio_dvol.text")
-#endif
 /*
  ****************************************************************
  *							AUDIO DIGITAL VOLUME
@@ -17,16 +11,22 @@
 #include "system/spinlock.h"
 #include "effects/audio_eq.h"
 
-#if 0
+#if 1
 #define dvol_log	y_printf
 #else
 #define dvol_log(...)
 #endif
 
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".audio_dvol.data.bss")
+#pragma data_seg(".audio_dvol.data")
+#pragma const_seg(".audio_dvol.text.const")
+#pragma code_seg(".audio_dvol.text")
+#endif
+
 #define __AUDIO_DIGITAL_VOL_CACHE_CODE	__attribute__((section(".digital_vol.text.cache.L2.run")))
 
 #define DIGITAL_FADE_EN 	1
-#define DIGITAL_FADE_STEP 	4
 
 #define BG_DVOL_MAX			14
 #define BG_DVOL_MID			10
@@ -35,15 +35,20 @@
 #define BG_DVOL_MID_FADE	3	/*>= BG_DVOL_MID:自动淡出BG_DVOL_MID_FADE*/
 #define BG_DVOL_MIN_FADE	1	/*>= BG_DVOL_MIN:自动淡出BG_DVOL_MIN_FADE*/
 
+
 typedef struct {
     u8 bg_dvol_fade_out;
     u8 start;
     u16 digital_vol_max;
     u16 *dig_vol_table;
+#if BG_DVOL_FADE_ENABLE
     struct list_head dvol_head;
     spinlock_t lock;
+#endif
 } dvol_t;
+
 static dvol_t dvol_attr;
+
 /*
  *数字音量级数 DEFAULT_DIGITAL_VOL_MAX
  *数组长度 DEFAULT_DIGITAL_VOL_MAX + 1
@@ -94,18 +99,22 @@ const u16 default_dig_vol_table[DEFAULT_DIGITAL_VOL_MAX + 1] = {
 * Note(s)    : None.
 *********************************************************************
 */
+__AUDIO_INIT_BANK_CODE
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
 {
     memset(&dvol_attr, 0, sizeof(dvol_attr));
+
+#if BG_DVOL_FADE_ENABLE
     INIT_LIST_HEAD(&dvol_attr.dvol_head);
     spin_lock_init(&dvol_attr.lock);
+#endif
 
     if (vol_table != NULL) {
         dvol_attr.dig_vol_table = vol_table;
         dvol_attr.digital_vol_max = vol_max;
     } else {
         dvol_attr.dig_vol_table = (u16 *)default_dig_vol_table;
-        dvol_attr.digital_vol_max = DIGITAL_VOLUME_LEVEL_MAX;
+        dvol_attr.digital_vol_max = DEFAULT_DIGITAL_VOL_MAX;
     }
 
     return 0;
@@ -118,6 +127,43 @@ void audio_digital_vol_bg_fade(u8 fade_out)
     dvol_attr.bg_dvol_fade_out = fade_out;
 }
 
+void audio_digital_vol_db_2_gain(float *db_table, int table_size, u16 *gain_table)
+{
+    for (int i = 0; i < table_size; i++) {
+        gain_table[i] = (s16)(DVOL_MAX_FLOAT  * dB_Convert_Mag(db_table[i]) + 0.5f);
+    }
+}
+
+float audio_digital_vol_2_dB(dvol_handle *dvol, u16 volume)
+{
+    u16 step = (dvol->vol_max - 1 > 0) ? (dvol->vol_max - 1) : 1;
+    float step_db = (dvol->max_db - dvol->min_db) / (float)step;
+    float dvol_db = dvol->min_db  + (volume - 1) * step_db;
+    printf("vol_dB :%d, %d\n", volume, (int)dvol_db);
+    return (dvol_db);
+}
+
+static s16 audio_digital_vol_2_gain(dvol_handle *dvol, u16 volume)
+{
+    s16 gain;
+
+    if (volume == 0) {
+        gain = 0;
+    } else if (dvol->vol_table) {
+        gain = dvol->vol_table[volume - 1];
+    } else if (dvol->vol_table_default) {
+        if (volume > dvol->vol_max) {
+            volume = dvol->vol_max;
+        }
+        int vol_level = volume * dvol_attr.digital_vol_max / dvol->vol_max;
+        gain = dvol_attr.dig_vol_table[vol_level];
+    } else {
+        float db = audio_digital_vol_2_dB(dvol, volume);
+        gain = (s16)(DVOL_MAX_FLOAT * dB_Convert_Mag(db) + 0.5f);
+    }
+    printf("vol_2_gain: %d, %d, %d\n", volume, dvol->vol_max, gain);
+    return gain;
+}
 /*
 *********************************************************************
 *                  Audio Digital Volume Open
@@ -132,82 +178,77 @@ void audio_digital_vol_bg_fade(u8 fade_out)
 *				(2)淡出的时候可以快一点，尽快淡出到0
 *********************************************************************
 */
-/* dvol_handle *audio_digital_vol_open(u16 vol, u16 vol_max, u16 fade_step, s16 vol_limit) */
-dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
+__VOLUME_BANK_CODE
+dvol_handle *audio_digital_vol_open(struct audio_vol_params *params)
 {
-    u16 vol       = params.vol;
-    u16 vol_max   = params.vol_max;
-    u16 fade_step = params.fade_step;
-    s16 vol_limit = params.vol_limit;
+    dvol_handle *dvol;
 
-    dvol_log("dvol_open:%d-%d-%d-%d\n", vol, vol_max, fade_step, vol_limit);
-    dvol_handle *dvol = NULL;
     dvol = zalloc(sizeof(dvol_handle));
-    if (dvol) {
-        u8 vol_level;
-        dvol->bit_wide  = params.bit_wide;
-        dvol->fade 		= DIGITAL_FADE_EN;
-        dvol->vol 		= (vol > vol_max) ? vol_max : vol;
-        if (vol > vol_max) {
-            printf("[warning]cur digital_vol(%d) > digital_vol_max(%d)!!", vol, vol_max);
-        }
-        dvol->vol_max 	= vol_max;
-        if (vol_limit == -1) {
-            dvol->vol_limit = dvol_attr.digital_vol_max;
+    if (!dvol) {
+        return NULL;
+    }
+    u16 vol       = params->vol;
+    u16 vol_max   = params->vol_max;
+    if (vol > vol_max) {
+        vol = vol_max;
+        printf("[warning]cur digital_vol(%d) > digital_vol_max(%d)!!", vol, vol_max);
+    }
+    dvol->bit_wide  = params->bit_wide;
+    dvol->min_db    = params->min_db;
+    dvol->max_db    = params->max_db;
+    dvol->vol_table = params->vol_table;
+    dvol->fade_step = params->fade_step;
+    dvol->fade 		= DIGITAL_FADE_EN;
+    dvol->vol 		= vol;
+    dvol->vol_max 	= vol_max;
+    dvol->toggle 	= 1;
+    if (params->min_db == -45 && params->max_db == 0 && params->vol_max == 31) {
+        dvol->vol_table_default = 1; //使用默认的音量表
+    }
+    dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
+#if AUDIO_DVOL_OFFSET_ENABLE
+    if (dvol->vol_table_default) {
+        dvol->min_vol = default_dig_vol_table[0];
+        dvol->max_vol = default_dig_vol_table[dvol->vol_max];
+    } else {
+        if (dvol->vol_table) {
+            dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->vol_table[0]) *  DVOL_MAX_FLOAT);//dB转换倍数
+            dvol->max_vol = (s16)(eq_db2mag(dvol->vol_table[dvol->vol_max]) *  DVOL_MAX_FLOAT);
         } else {
-            dvol->vol_limit = (vol_limit > dvol_attr.digital_vol_max) ? dvol_attr.digital_vol_max : vol_limit;
+            dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->cfg_vol_min) *  DVOL_MAX_FLOAT);//dB转换倍数
+            dvol->max_vol = (s16)(eq_db2mag(dvol->max_db) *  DVOL_MAX_FLOAT);
         }
-        vol_level 		= dvol->vol * dvol->vol_limit / vol_max;
-        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
-        dvol->vol_fade 	= dvol->vol_target;
-        dvol->fade_step 	= fade_step;
-        dvol->toggle 	= 1;
-        spin_lock(&dvol_attr.lock);
-        list_add(&dvol->entry, &dvol_attr.dvol_head);
+    }
+    /* printf("dvol_offset,max_vol:%d,min_vol:%d",dvol->max_vol,dvol->min_vol); */
+#endif
+
 #if BG_DVOL_FADE_ENABLE
-        dvol->vol_bk = -1;
-        if (dvol_attr.bg_dvol_fade_out) {
-            dvol_handle *hdl;
-            list_for_each_entry(hdl, &dvol_attr.dvol_head, entry) {
-                if (hdl != dvol) {
-                    hdl->vol_bk = hdl->vol;
-                    if (hdl->vol >= BG_DVOL_MAX) {
-                        hdl->vol -= BG_DVOL_MAX_FADE;
-                    } else if (hdl->vol >= BG_DVOL_MID) {
-                        hdl->vol -= BG_DVOL_MID_FADE;
-                    } else if (hdl->vol >= BG_DVOL_MIN) {
-                        hdl->vol -= BG_DVOL_MIN_FADE;
-                    } else {
-                        hdl->vol_bk = -1;
-                        continue;
-                    }
-                    vol_level = hdl->vol * hdl->vol_limit / hdl->vol_max;
-                    if (hdl->vol_table_default) {
-                        hdl->vol_target = dvol_attr.dig_vol_table[vol_level];
-                    } else {
-                        if (vol_level == 0) {
-                            hdl->vol_target = 0;
-                        } else {
-                            if (!hdl->vol_table) {
-                                u16 step = (hdl->cfg_level_max - 1 > 0) ? (hdl->cfg_level_max - 1) : 1;
-                                float step_db = (hdl->cfg_vol_max - hdl->cfg_vol_min) / (float)step;
-                                float hdl_db = hdl->cfg_vol_min  + (vol_level - 1) * step_db;
-                                float hdl_gain = eq_db2mag(hdl_db);//dB转换倍数
-                                hdl->vol_target = (s16)(DVOL_MAX_FLOAT  * hdl_gain + 0.5f);
-                                /* printf("vol param:%d,%d,%d,%d,%d",(int)hdl_gain,hdl->vol_target,(int)step_db,hdl->cfg_level_max - vol_level,(int)hdl_db); */
-                            } else {
-                                hdl->vol_target = hdl->vol_table[vol_level - 1];
-                            }
-                        }
-                    }
-                    //y_printf("bg_dvol fade_out:%x,vol_bk:%d,vol_set:%d,tartget:%d",hdl,hdl->vol_bk,hdl->vol,hdl->vol_target);
+    spin_lock(&dvol_attr.lock);
+    list_add(&dvol->entry, &dvol_attr.dvol_head);
+    dvol->vol_bk = -1;
+
+    if (dvol_attr.bg_dvol_fade_out) {
+        dvol_handle *hdl;
+        list_for_each_entry(hdl, &dvol_attr.dvol_head, entry) {
+            if (hdl != dvol) {
+                hdl->vol_bk = hdl->vol;
+                if (hdl->vol >= BG_DVOL_MAX) {
+                    hdl->vol -= BG_DVOL_MAX_FADE;
+                } else if (hdl->vol >= BG_DVOL_MID) {
+                    hdl->vol -= BG_DVOL_MID_FADE;
+                } else if (hdl->vol >= BG_DVOL_MIN) {
+                    hdl->vol -= BG_DVOL_MIN_FADE;
+                } else {
+                    hdl->vol_bk = -1;
+                    continue;
                 }
+                hdl->vol_target = audio_digital_vol_2_gain(hdl, hdl->vol);
             }
         }
-#endif/*BG_DVOL_FADE_ENABLE*/
-        spin_unlock(&dvol_attr.lock);
-        /*dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, fade_step);*/
     }
+    spin_unlock(&dvol_attr.lock);
+#endif
+    /* dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, dvol->fade_step); */
     return dvol;
 }
 
@@ -231,29 +272,9 @@ void audio_digital_vol_close(dvol_handle  *dvol)
         list_for_each_entry(hdl, &dvol_attr.dvol_head, entry) {
             if ((hdl != dvol) && (hdl->vol_bk >= 0)) {
                 //y_printf("bg_dvol fade_in:%x,%d",hdl,hdl->vol_bk);
-                hdl->vol =  hdl->vol_bk;
-                u8 vol_level = hdl->vol_bk * hdl->vol_limit / hdl->vol_max;
-                if (hdl->vol_table_default) {
-                    hdl->vol_target = dvol_attr.dig_vol_table[vol_level];
-                    hdl->vol_bk = -1;
-                } else {
-                    if (vol_level == 0) {
-                        hdl->vol_target = 0;
-                        hdl->vol_bk = -1;
-                    } else {
-                        if (!hdl->vol_table) {
-                            u16 step = (hdl->cfg_level_max - 1 > 0) ? (hdl->cfg_level_max - 1) : 1;
-                            float step_db = (hdl->cfg_vol_max - hdl->cfg_vol_min) / (float)step;
-                            float hdl_db = hdl->cfg_vol_min  + (vol_level - 1) * step_db;
-                            float hdl_gain = eq_db2mag(hdl_db);//dB转换倍数
-                            hdl->vol_target = (s16)(DVOL_MAX_FLOAT  * hdl_gain + 0.5f);
-                            hdl->vol_bk = -1;
-                        } else {
-                            hdl->vol_target = hdl->vol_table[vol_level - 1];
-                            hdl->vol_bk = -1;
-                        }
-                    }
-                }
+                hdl->vol        =  hdl->vol_bk;
+                hdl->vol_bk     = -1;
+                hdl->vol_target = audio_digital_vol_2_gain(hdl, hdl->vol);
             }
         }
         spin_unlock(&dvol_attr.lock);
@@ -272,12 +293,62 @@ void audio_digital_vol_close(dvol_handle  *dvol)
 * Note(s)    : None.
 *********************************************************************
 */
-void audio_digital_vol_mute_set(dvol_handle *dvol, u8 mute_en)
+void audio_digital_vol_set_mute(dvol_handle *dvol, u8 mute_en)
 {
+    dvol->mute_en = mute_en;
+    if (mute_en) {
+        dvol->fade = 1;
+        dvol->vol_fade = dvol->vol_target;
+    } else {
+        dvol->vol_fade = 0;
+    }
+}
+
+/*
+*********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量偏移大小
+* Arguments  : dvol     数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset	音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_set(dvol_handle *dvol, s16 offset)
+{
+#if AUDIO_DVOL_OFFSET_ENABLE
     if (dvol == NULL) {
         return;
     }
-    dvol->mute_en = mute_en;
+    dvol->offset = offset;
+#endif
+}
+
+/*
+*********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量dB偏移大小
+* Arguments  : dvol         数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset_dB	音量偏移大小，单位dB
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB)
+{
+#if AUDIO_DVOL_OFFSET_ENABLE
+    if (dvol == NULL) {
+        return;
+    }
+    s16 cur_vol = dvol->vol_target;
+    dvol->offset_dB = offset_dB;
+    float tar_dB = 20 * log10_float(cur_vol / DVOL_MAX_FLOAT) + offset_dB;
+    s16 tar_vol = (s16)(eq_db2mag(tar_dB) * DVOL_MAX_FLOAT + 0.5f);
+    dvol->offset = tar_vol - cur_vol;
+    printf("dvol_offset_dB");
+    put_float(offset_dB);
+    printf("dvol offset:%d = target(%d) - current(%d)", dvol->offset, tar_vol, cur_vol);
+#endif
 }
 
 /*
@@ -305,26 +376,14 @@ void audio_digital_vol_set(dvol_handle *dvol, u16 vol)
     }
 #endif
     dvol->fade = DIGITAL_FADE_EN;
-    u8 vol_level = dvol->vol * dvol->vol_limit / dvol->vol_max;
-    if (dvol->vol_table_default) {
-        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
-    } else {
-        if (vol_level == 0) {
-            dvol->vol_target = 0;
-        } else {
-            if (!dvol->vol_table) {
-                u16 step = (dvol->cfg_level_max - 1 > 0) ? (dvol->cfg_level_max - 1) : 1;
-                float step_db = (dvol->cfg_vol_max - dvol->cfg_vol_min) / (float)step;
-                float dvol_db = dvol->cfg_vol_min  + (vol_level - 1) * step_db;
-                float dvol_gain = eq_db2mag(dvol_db);//dB转换倍数
-                dvol->vol_target = (s16)(DVOL_MAX_FLOAT  * dvol_gain + 0.5f);
-                /* printf("vol param:%d,%d,%d,%d,%d",(int)dvol_gain,dvol->vol_target,(int)step_db,dvol->cfg_level_max - vol_level,(int)dvol_db); */
-            } else {
-                dvol->vol_target = dvol->vol_table[vol_level - 1];
-            }
-        }
+    dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
+
+#if AUDIO_DVOL_OFFSET_ENABLE
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
     }
-    dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
+#endif
 }
 /*********************************************************************
 *                  Audio Digital Volume Set
@@ -351,27 +410,15 @@ void audio_digital_vol_set_no_fade(dvol_handle *dvol, u8 vol)
         dvol->vol_bk = vol;
     }
 #endif
-    dvol->fade = DIGITAL_FADE_EN;
-    u8 vol_level = dvol->vol * dvol->vol_limit / dvol->vol_max;
-    if (dvol->vol_table_default) {
-        dvol->vol_fade = dvol_attr.dig_vol_table[vol_level];
-    } else {
-        if (vol_level == 0) {
-            dvol->vol_target = 0;
-        } else {
-            if (!dvol->vol_table) {
-                u16 step = (dvol->cfg_level_max - 1 > 0) ? (dvol->cfg_level_max - 1) : 1;
-                float step_db = (dvol->cfg_vol_max - dvol->cfg_vol_min) / (float)step;
-                float dvol_db = dvol->cfg_vol_min  + (vol_level - 1) * step_db;
-                float dvol_gain = eq_db2mag(dvol_db);//dB转换倍数
-                dvol->vol_fade = (s16)(DVOL_MAX_FLOAT  * dvol_gain + 0.5f);
-                /* printf("vol param:%d,%d,%d,%d,%d",(int)dvol_gain,dvol->vol_target,(int)step_db,dvol->cfg_level_max - vol_level,(int)dvol_db); */
-            } else {
-                dvol->vol_target = dvol->vol_table[vol_level - 1];
-            }
-        }
+    dvol->fade = 0;
+    dvol->vol_target = audio_digital_vol_2_gain(dvol, dvol->vol);
+
+#if AUDIO_DVOL_OFFSET_ENABLE
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
     }
-    dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
+#endif
 }
 
 void audio_digital_vol_reset_fade(dvol_handle *dvol)
@@ -392,7 +439,6 @@ void audio_digital_vol_reset_fade(dvol_handle *dvol)
 * Note(s)    : None.
 *********************************************************************
 */
-//#define DIGITAL_VOLUME_SAT_ENABLE
 __AUDIO_DIGITAL_VOL_CACHE_CODE
 int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
 {
@@ -405,6 +451,19 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
     }
 
     s16 vol_target = dvol->vol_target;
+
+#if AUDIO_DVOL_OFFSET_ENABLE
+    /*音量不为0时，才做偏移*/
+    if (vol_target && dvol->offset) {
+        vol_target += dvol->offset;
+        if (vol_target < dvol->min_vol) {
+            vol_target = dvol->min_vol;
+        } else if (vol_target > dvol->max_vol) {
+            vol_target = dvol->max_vol;
+        }
+    }
+#endif
+
     if (dvol->mute_en) {
         vol_target = 0;
     }

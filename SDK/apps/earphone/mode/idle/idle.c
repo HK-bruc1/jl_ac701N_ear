@@ -71,6 +71,7 @@ static void app_idle_enter_softoff(void)
 
     dac_power_off();    // 关机前先关dac
 
+    dlog_flush2flash(100);
     power_set_soft_poweroff();
 }
 

@@ -11,17 +11,17 @@
 
 #if CONFIG_DEBUG_ENABLE == 0
 
-int putchar(int a)
+int (putchar)(int a)
 {
     return a;
 }
 
-int puts(const char *out)
+int (puts)(const char *out)
 {
     return 0;
 }
 
-int printf(const char *format, ...)
+int (printf)(const char *format, ...)
 {
     return 0;
 }
@@ -31,7 +31,7 @@ void printf_buf(u8 *buf, u32 len)
 
 }
 
-void put_buf(const u8 *buf, int len)
+void (put_buf)(const u8 *buf, int len)
 {
 
 }

@@ -5,7 +5,7 @@
 #include "app_power_manage.h"
 #include "bt_tws.h"
 #include "battery_manager.h"
-#include "earphone.h"
+// #include "earphone.h"
 #include "asm/charge.h"
 #include "app_chargestore.h"
 

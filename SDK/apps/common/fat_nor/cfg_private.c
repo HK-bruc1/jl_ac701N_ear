@@ -23,6 +23,15 @@ typedef struct {
 
 CFG_PRIVATE_HDL *cp_hdl = NULL;
 
+#define CFG_PRIVARE_LEN_TYPE  1 //保持最大限制下，写头为实际长度
+
+static int cfg_private_addr_check(u32 addr)
+{
+    if (addr < cp_hdl->cfg_private_part_flash_addr || addr >= (cp_hdl->cfg_private_part_flash_addr + cp_hdl->cfg_private_part_maxsize)) {
+        return CFG_PRIVATE_ADDR_CHECK_ERR;
+    }
+    return CFG_PRIVATE_OK;
+}
 
 static RESFILE *cfg_private_create(const char *path, const char *mode)
 {
@@ -39,7 +48,14 @@ static RESFILE *cfg_private_create(const char *path, const char *mode)
         int addr = cp_hdl->cfg_private_part_flash_addr + i * sizeof(SDFILE_FILE_HEAD);
         norflash_read(NULL, (void *)&cp_hdl->head, sizeof(SDFILE_FILE_HEAD), addr);
         if (CRC16((u8 *)&cp_hdl->head + 2, sizeof(SDFILE_FILE_HEAD) - 2) == cp_hdl->head.head_crc) {
-            file_head_len += cp_hdl->head.len;
+#if CFG_PRIVARE_LEN_TYPE
+            if (cp_hdl->cfg_private_file_maxsize) {
+                file_head_len += cp_hdl->cfg_private_file_maxsize;
+            } else
+#endif
+            {
+                file_head_len += cp_hdl->head.len;
+            }
             continue;
         }
         memset(&cp_hdl->head, 0, sizeof(SDFILE_FILE_HEAD));
@@ -79,7 +95,7 @@ __exit:
 
 RESFILE *cfg_private_open(const char *path, const char *mode)
 {
-    int res;
+    /* int res; */
     RESFILE *file = resfile_open(path);
     if (!file) {
         if (mode[0] == 'w' && mode[1] == '+') {
@@ -88,6 +104,9 @@ RESFILE *cfg_private_open(const char *path, const char *mode)
                 //置上标志，close时修改最终实际写入长度
                 cp_hdl->cfg_private_create_flag = 1;
             }
+#if CFG_PRIVARE_LEN_TYPE
+            cp_hdl->cfg_private_create_flag = 1;
+#endif
         }
     }
     cp_hdl->cfg_private_file_maxsize = 0;
@@ -96,20 +115,26 @@ RESFILE *cfg_private_open(const char *path, const char *mode)
 
 int cfg_private_read(RESFILE *file, void *buf, u32 len)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     return resfile_read(file, buf, len);
 }
 
 void cfg_private_erase(u32 addr, u32 len)
 {
+    if (cfg_private_addr_check(addr)) {
+        return;
+    }
     /* r_printf(">>>[test]:addr = 0x%x, len = %d\n", addr, len); */
     u32 erase_total_size = len;
     u32 erase_addr = addr;
     u32 erase_size = 4096;
     u32 erase_cmd = IOCTL_ERASE_SECTOR;
     //flash不同支持的最小擦除单位不同(page/sector)
-    //boot_info.vm.align == 1: 最小擦除单位page;
-    //boot_info.vm.align != 1: 最小擦除单位sector;
-    if (boot_info.vm.align == 1) {
+    //get_boot_info()->vm.align == 1: 最小擦除单位page;
+    //get_boot_info()->vm.align != 1: 最小擦除单位sector;
+    if (get_boot_info()->vm.align == 1) {
         erase_size = 256;
         erase_cmd = IOCTL_ERASE_PAGE;
     }
@@ -133,6 +158,9 @@ static int cfg_private_check(char *buf, int len)
 
 int cfg_private_write(RESFILE *file, void *buf, u32 len)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     struct resfile_attrs attrs = {0};
     resfile_get_attrs(file, &attrs);
     /* r_printf(">>>[test]:attrs.sclust = 0x%x\n", attrs.sclust); */
@@ -150,19 +178,24 @@ int cfg_private_write(RESFILE *file, void *buf, u32 len)
         u32 align_addr = (attrs.sclust + fptr) / cp_hdl->cfg_private_align_size * cp_hdl->cfg_private_align_size;
         u32 w_pos = attrs.sclust + fptr - align_addr;
         wlen = cp_hdl->cfg_private_align_size - w_pos;
-        /* y_printf(">>>[test]:wpos = %d, wlen = %d\n", w_pos, wlen); */
         if (wlen > len) {
             wlen = len;
         }
+        //y_printf(">>>[test]:wpos = %d, wlen = %d\n", w_pos, wlen);
         norflash_read(NULL, (void *)buf_temp, cp_hdl->cfg_private_align_size, align_addr);
         if (0 == cfg_private_check(buf_temp, cp_hdl->cfg_private_align_size)) {
             cfg_private_erase(align_addr, cp_hdl->cfg_private_align_size);
         }
         memcpy(buf_temp + w_pos, buf, wlen);
         /* put_buf(buf_temp, cp_hdl->cfg_private_align_size); */
+        if (cfg_private_addr_check(align_addr)) {
+            res = -1;
+            goto __exit;
+        }
         norflash_write(NULL, (void *)buf_temp, cp_hdl->cfg_private_align_size, align_addr);
         fptr += wlen;
         len -= wlen;
+        buf += wlen;
     }
 __exit:
     free(buf_temp);
@@ -172,6 +205,9 @@ __exit:
 
 int cfg_private_erase_file(RESFILE *file)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     struct resfile_attrs attrs = {0};
     resfile_get_attrs(file, &attrs);
     attrs.sclust = sdfile_cpu_addr2flash_addr(attrs.sclust);
@@ -202,6 +238,9 @@ int cfg_private_erase_file(RESFILE *file)
 
 int cfg_private_close(RESFILE *file)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     if (cp_hdl->cfg_private_create_flag) {
         int i = 0;
         char name[SDFILE_NAME_LEN];
@@ -236,6 +275,9 @@ int cfg_private_close(RESFILE *file)
 
 int cfg_private_seek(RESFILE *file, int offset, int fromwhere)
 {
+    if (!file) {
+        return CFG_PRIVATE_FILE_HANDLE_ERR;
+    }
     return resfile_seek(file, offset, fromwhere);
 }
 
@@ -253,7 +295,7 @@ int cfg_private_init(int file_num, const char *part_path)
     //给与初值
     cp_hdl->cfg_private_file_num = 5;
     cp_hdl->cfg_private_align_size = 4096;
-    if (boot_info.vm.align == 1) {
+    if (get_boot_info()->vm.align == 1) {
         cp_hdl->cfg_private_align_size = 256;
     }
 
@@ -338,7 +380,7 @@ void cfg_private_test_demo(void)
 
     ///////////创建文件//////////
     y_printf(">>>[test]:创建第一个文件-------------\n");
-    RESFILE *fp = cfg_private_open_by_maxsize(path1, "w+", 2 * 1024);
+    RESFILE *fp = cfg_private_open_by_maxsize(path1, "w+", 60 * 1024);
     if (!fp) {
         r_printf(">>>[test]:open fail!!!!!\n");
         goto _exit;
@@ -350,13 +392,17 @@ void cfg_private_test_demo(void)
     /* cfg_private_seek(fp, 0, SEEK_SET); */
 
     y_printf(">>>[test]:写第一个文件-------------\n");
-    cfg_private_write(fp, test_buf, N);
+    for (int i = 0; i < 20; i++) {
+        cfg_private_write(fp, test_buf, N);
+    }
 
     cfg_private_close(fp);
     y_printf(">>>[test]:读第一个文件-------------\n");
-    fp = cfg_private_open_by_maxsize(path1, "r", 2 * 1024);
-    cfg_private_read(fp, r_buf, 512);
-    put_buf((const u8 *)r_buf, 512);
+    fp = cfg_private_open_by_maxsize(path1, "r", 60 * 1024);
+    for (int i = 0; i < 20; i++) {
+        cfg_private_read(fp, r_buf, 512);
+        put_buf((const u8 *)r_buf, 512);
+    }
     cfg_private_close(fp);
     //////////////////////
 

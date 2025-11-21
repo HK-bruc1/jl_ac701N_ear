@@ -5,6 +5,8 @@
 #ifndef _AUDIO_NN_VAD_H_
 #define _AUDIO_NN_VAD_H_
 
+extern const u8 jlvad_model[];
+
 void *audio_nn_vad_open(void);
 
 int audio_nn_vad_data_handler(void *vad, void *data, int len);

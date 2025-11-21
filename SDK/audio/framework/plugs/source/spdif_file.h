@@ -111,5 +111,11 @@ extern bool spdif_player_runing(void);
 //spdif 切源的时候解mute
 extern void spdif_switch_source_unmute();
 
+//设置spdif source
+extern void spdif_set_port_by_index(u8 index);
+
+//获取当前spdif source
+extern u8 spdif_get_cur_port_index();
+
 #endif
 

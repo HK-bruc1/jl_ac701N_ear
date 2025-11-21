@@ -15,10 +15,10 @@
 #include "fs/resfile.h"
 #include "system/includes.h"
 
-#if 1
+#if 0
 #define anc_file_log	printf
 #else
-#define anc_file_log	(...)
+#define anc_file_log(...)
 #endif
 
 #define ANC_EXT_FILE_DATA_FORMAT_ERR	-1
@@ -88,7 +88,7 @@ u8 *anc_ext_rsfile_get(u32 *file_len)
 
     fp = resfile_open(CFG_ANC_EXT_FILE);
     if (!fp) {
-        anc_file_log("[anc_ext.bin] read_faild\n");
+        printf("[anc_ext.bin] read_faild\n");
         return NULL;
     }
     struct resfile_attrs attr;
@@ -138,7 +138,7 @@ __exit:
 //解析anc_ext.bin
 static int anc_ext_rsfile_analysis(u8 *file_data, int flen)
 {
-    int ret = 0;
+    int ret;
     struct anc_ext_subfile_head *head = NULL;
     //解析文件长度 = anc_ext.bin 长度 - ANC_EXT_HEAD_LEN
     file_data += ANC_EXT_HEAD_LEN;
@@ -166,6 +166,64 @@ __err:
     anc_file_log("%s, error! ret = %d", __func__, ret);
     return -EINVAL;
 
+}
+
+// 初始化函数
+struct anc_ext_subfile_head  *anc_ext_subfile_catch_init(u32 file_id)
+{
+    struct anc_ext_subfile_head *head = (struct anc_ext_subfile_head *)malloc(sizeof(struct anc_ext_subfile_head));
+    if (!head) {
+        anc_file_log("Failed to allocate memory");
+        return NULL;
+    }
+    head->file_id = file_id;
+    head->file_len = sizeof(struct anc_ext_subfile_head);
+    head->version = 0;
+    head->id_cnt = 0;
+    return head;
+}
+
+// 拼接函数
+struct anc_ext_subfile_head  *anc_ext_subfile_catch(struct anc_ext_subfile_head *head, u8 *buf, u32 len, u32 id)
+{
+    struct anc_ext_id_head *new_id_head;
+    u32 new_file_len = head->file_len + sizeof(struct anc_ext_id_head) + len;
+    // 重新分配内存
+    struct anc_ext_subfile_head *new_head = (struct anc_ext_subfile_head *)malloc(new_file_len);
+    if (new_head) {
+        // 复制文件头
+        memcpy(new_head, head, head->file_len);
+        // 复制数据
+        u32 last_id_head_offset = (head->id_cnt) * sizeof(struct anc_ext_id_head);
+        u32 new_id_head_offset = (head->id_cnt + 1) * sizeof(struct anc_ext_id_head);
+        memcpy(new_head->data + new_id_head_offset, head->data + last_id_head_offset, head->file_len - sizeof(struct anc_ext_subfile_head) - last_id_head_offset);
+        free(head);
+        head = new_head;
+    }
+    if (!head) {
+        anc_file_log("Failed to reallocate memory");
+        return NULL;
+    }
+
+    // 更新文件头信息
+    head->file_len = new_file_len;
+    head->id_cnt += 1;
+
+    // 定位到新ID头的位置
+    new_id_head = (struct anc_ext_id_head *)(head->data + (head->id_cnt - 1) * sizeof(struct anc_ext_id_head));
+    new_id_head->id = id;
+
+    // 计算新的offset
+    // 获取前一个ID头
+    u32 data_offset = head->id_cnt * sizeof(struct anc_ext_id_head);
+    struct anc_ext_id_head *prev_id_head = (struct anc_ext_id_head *)(head->data + (head->id_cnt - 2) * sizeof(struct anc_ext_id_head));
+    new_id_head->offset = ((head->id_cnt == 1) ? 0 : (prev_id_head->offset + prev_id_head->len));
+    new_id_head->len = len;
+
+    // 复制数据
+    memcpy((u8 *)head->data + data_offset + new_id_head->offset, buf, len);
+
+    return head;
 }
 
 #endif

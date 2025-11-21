@@ -7,7 +7,7 @@
 #include "init.h"
 #include "app_config.h"
 #include "system/includes.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "asm/charge.h"
 #include "app_charge.h"
 #include "user_cfg.h"
@@ -56,17 +56,11 @@ typedef struct testbox_uart_update_info {
 } TESTBOX_UP_UART;
 
 extern void chargestore_set_baudrate(u32 baudrate);
-/* extern void ldo5v_change_off_filter(u32 inc); */
 static void app_testbox_loader_update_recv(u8 cmd, u8 *buf, u32 len);
-
-_WEAK_
-void  ldo5v_change_off_filter(u32 inc)
-{
-}
 
 extern const char updata_file_name[];
 
-static protocal_frame_t protocal_frame __attribute__((aligned(4)));
+static protocal_frame_t *protocal_frame;
 static OS_SEM loader_sem;
 static u32 uart_file_offset = 0;
 static u32 update_baudrate = 0;
@@ -77,19 +71,18 @@ static bool app_testbox_loader_send_packet(u8 *buf, u16 length)
     u16 crc;
     u8 *buffer;
 
-    buffer = (u8 *)&protocal_frame;
-    protocal_frame.data.mark0 = SYNC_MARK0;
-    protocal_frame.data.mark1 = SYNC_MARK1;
-    protocal_frame.data.length = length;
+    buffer = (u8 *)protocal_frame;
+    protocal_frame->data.mark0 = SYNC_MARK0;
+    protocal_frame->data.mark1 = SYNC_MARK1;
+    protocal_frame->data.length = length;
     memcpy((char *)&buffer[4], buf, length);
     crc = CRC16(buffer, length + SYNC_SIZE - 2);
     memcpy(buffer + 4 + length, &crc, 2);
     /* put_buf((u8 *)&protocal_frame, length + SYNC_SIZE); */
     os_sem_set(&loader_sem, 0);
 
-    ldo5v_change_off_filter(100);
 
-    loader_uart_write((u8 *)&protocal_frame, length + SYNC_SIZE);
+    loader_uart_write((u8 *)protocal_frame, length + SYNC_SIZE);
     chargestore_api_wait_complete();
     /* chargestore_api_set_mode(0);  // 设置为接收 */
     if (OS_TIMEOUT == os_sem_pend(&loader_sem, 35)) {
@@ -98,7 +91,6 @@ static bool app_testbox_loader_send_packet(u8 *buf, u16 length)
         goto __exit;
     }
 __exit:
-    ldo5v_change_off_filter(0);
     return ret;
 }
 
@@ -116,12 +108,12 @@ static u32 app_testbox_loader_receive_data(void *buf, u32 relen, u32 addr)
         if (app_testbox_loader_send_packet((u8 *)&file_cmd, sizeof(file_cmd)) == FALSE) {
             continue;
         }
-        memcpy(&file_cmd, protocal_frame.data.data, sizeof(file_cmd));
+        memcpy(&file_cmd, protocal_frame->data.data, sizeof(file_cmd));
         if ((file_cmd.cmd != CMD_UPDATE_READ) || (file_cmd.addr != addr) || (file_cmd.len != relen)) {
             continue;
         }
-        memcpy(buf, &protocal_frame.data.data[sizeof(file_cmd)], protocal_frame.data.length - sizeof(file_cmd));
-        return (protocal_frame.data.length - sizeof(file_cmd));
+        memcpy(buf, &protocal_frame->data.data[sizeof(file_cmd)], protocal_frame->data.length - sizeof(file_cmd));
+        return (protocal_frame->data.length - sizeof(file_cmd));
     }
     putchar('R');
     return relen;
@@ -131,14 +123,14 @@ static bool app_testbox_loader_send_cmd(u8 cmd, u8 *buf, u32 len)
 {
     u8 *pbuf, i;
     for (i = 0; i < RETRY_TIME; i++) {
-        pbuf = protocal_frame.data.data;
+        pbuf = protocal_frame->data.data;
         pbuf[0] = cmd;
         memcpy(pbuf + 1, buf, len);
         if (app_testbox_loader_send_packet(pbuf, len + 1) == FALSE) {
             continue;
         }
-        if (cmd == protocal_frame.data.data[0]) {
-            app_testbox_loader_update_recv(cmd, &protocal_frame.data.data[1], protocal_frame.data.length - 1);
+        if (cmd == protocal_frame->data.data[0]) {
+            app_testbox_loader_update_recv(cmd, &protocal_frame->data.data[1], protocal_frame->data.length - 1);
             return TRUE;
         }
     }
@@ -303,26 +295,26 @@ static void app_testbox_loader_data_decode(u8 *buf, u32 len)
 __recheck:
         if (rx_cnt == 0) {
             if (ch == SYNC_MARK0) {
-                protocal_frame.raw_data[rx_cnt++] = ch;
+                protocal_frame->raw_data[rx_cnt++] = ch;
             }
         } else if (rx_cnt == 1) {
-            protocal_frame.raw_data[rx_cnt++] = ch;
+            protocal_frame->raw_data[rx_cnt++] = ch;
             if (ch != SYNC_MARK1) {
                 rx_cnt = 0;
                 goto __recheck;
             }
         } else if (rx_cnt < 4) {
-            protocal_frame.raw_data[rx_cnt++] = ch;
+            protocal_frame->raw_data[rx_cnt++] = ch;
         } else {
-            protocal_frame.raw_data[rx_cnt++] = ch;
-            if (rx_cnt == (protocal_frame.data.length + SYNC_SIZE)) {
+            protocal_frame->raw_data[rx_cnt++] = ch;
+            if (rx_cnt == (protocal_frame->data.length + SYNC_SIZE)) {
                 rx_cnt = 0;
-                crc = CRC16(protocal_frame.raw_data, protocal_frame.data.length + SYNC_SIZE - 2);
-                memcpy(&crc0, &protocal_frame.raw_data[protocal_frame.data.length + SYNC_SIZE - 2], 2);
+                crc = CRC16(protocal_frame->raw_data, protocal_frame->data.length + SYNC_SIZE - 2);
+                memcpy(&crc0, &protocal_frame->raw_data[protocal_frame->data.length + SYNC_SIZE - 2], 2);
                 if (crc0 == crc) {
                     os_sem_post(&loader_sem);
 #if 0/*{{{*/
-                    switch (protocal_frame.data.data[0]) {
+                    switch (protocal_frame->data.data[0]) {
                     case CMD_UART_UPDATE_START:
                         log_info("CMD_UART_UPDATE_START\n");
                         os_taskq_post_msg(THIS_TASK_NAME, 1, MSG_UART_UPDATE_START_RSP);
@@ -370,6 +362,10 @@ u8 app_testbox_enter_loader_update(void)
 
     os_time_dly(2);   // 延时等待串口回复数据完成
     os_sem_create(&loader_sem, 0);
+    protocal_frame = dma_malloc(sizeof(protocal_frame_t));
+    ASSERT(protocal_frame != NULL);
+    //设置接收数据包长度
+    chargestore_set_buffer_len(512);
     // 设置波特率
     chargestore_set_baudrate(FIXED_LOADER_BAUDRATE);
     // 设置协议为loader

@@ -4,7 +4,7 @@
 #pragma const_seg(".setup.text.const")
 #pragma code_seg(".setup.text")
 #endif
-#include "asm/includes.h"
+#include "cpu/includes.h"
 #include "system/includes.h"
 #include "app_config.h"
 
@@ -114,10 +114,10 @@ void cpu1_setup_arch()
 
     //用于控制其他核进入停止状态。
     extern void cpu_suspend_handle(void);
-    request_irq(IRQ_SOFT0_IDX, 7, cpu_suspend_handle, 0);
-    request_irq(IRQ_SOFT1_IDX, 7, cpu_suspend_handle, 1);
-    irq_unmask_set(IRQ_SOFT0_IDX, 0, 0); //设置CPU0软中断0为不可屏蔽中断
-    irq_unmask_set(IRQ_SOFT1_IDX, 0, 1); //设置CPU1软中断1为不可屏蔽中断
+    request_irq(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 7, cpu_suspend_handle, 0);
+    request_irq(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 7, cpu_suspend_handle, 1);
+    irq_unmask_set(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 0, 0); //设置CPU0软中断0为不可屏蔽中断
+    irq_unmask_set(IRQ_SOFT0_IDX + OS_SYNC_SOFT_IRQ_ID, 0, 1); //设置CPU1软中断1为不可屏蔽中断
 
     debug_init();
 }
@@ -158,9 +158,39 @@ void app_main()
         asm("idle");
     }
 }
+void port_hd_init(u32 hd_lev)
+{
+    u16 port_hd_mask[6];
 
+    port_hd_mask[PORTA_GROUP] = -1;
+    port_hd_mask[PORTB_GROUP] = -1;
+    port_hd_mask[PORTC_GROUP] = -1;
+    port_hd_mask[PORTD_GROUP] = -1;
+    port_hd_mask[PORTE_GROUP] = -1;
+    port_hd_mask[PORTG_GROUP] = -1;
+
+
+    switch (hd_lev) {
+    case 0:
+        break;
+    case 1:
+        JL_PORTA->HD0 |= port_hd_mask[PORTA_GROUP];
+        JL_PORTB->HD0 |= port_hd_mask[PORTB_GROUP];
+        JL_PORTC->HD0 |= port_hd_mask[PORTC_GROUP];
+        JL_PORTD->HD0 |= port_hd_mask[PORTD_GROUP];
+        JL_PORTE->HD0 |= port_hd_mask[PORTE_GROUP];
+        JL_PORTG->HD0 |= port_hd_mask[PORTG_GROUP];
+        break;
+    }
+}
 void setup_arch()
 {
+    q32DSP(core_num())->PMU_CON1 &= ~BIT(8); //open bpu
+
+    //IO开1档强驱，避免IO短路的时候烧毁IO
+    //开启后需要确认是否对蓝牙，audio，EMI指标造成影响
+    port_hd_init(1);
+
     //关闭所有timer的ie使能
     bit_clr_ie(IRQ_TIME0_IDX);
     bit_clr_ie(IRQ_TIME1_IDX);
@@ -170,9 +200,9 @@ void setup_arch()
     bit_clr_ie(IRQ_TIME5_IDX);
 
 #if TCFG_LONG_PRESS_RESET_ENABLE
-    gpio_longpress_pin0_reset_config(TCFG_LONG_PRESS_RESET_PORT, TCFG_LONG_PRESS_RESET_LEVEL, TCFG_LONG_PRESS_RESET_TIME, 1, TCFG_LONG_PRESS_RESET_INSIDE_PULL_UP_DOWN);
+    gpio_longpress_pin0_reset_config(TCFG_LONG_PRESS_RESET_PORT, TCFG_LONG_PRESS_RESET_LEVEL, TCFG_LONG_PRESS_RESET_TIME, 1, TCFG_LONG_PRESS_RESET_INSIDE_PULL_UP_DOWN, 0);
 #else
-    gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, 1);
+    gpio_longpress_pin0_reset_config(IO_PORTB_01, 0, 0, 1, 1, 0);
 #endif
 
     memory_init();
@@ -182,6 +212,8 @@ void setup_arch()
 
     wdt_init(WDT_16S);
     /* wdt_close(); */
+
+    gpadc_mem_init(8);
 
     efuse_init();
     clk_voltage_init(TCFG_CLOCK_MODE, SYSVDD_VOL_SEL_126V);
@@ -231,6 +263,16 @@ void setup_arch()
     __crc16_mutex_init();
 
     app_main();
+}
+
+void exception_analyze_user_callback(int unsigned *sp)
+{
+    exception_lock();
+    // debug something after exception
+    printf("exception_analyze_user_callback:\n");
+    extern void mem_unfree_dump();
+    mem_unfree_dump();
+    exception_unlock();
 }
 
 

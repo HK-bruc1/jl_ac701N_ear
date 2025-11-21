@@ -7,7 +7,7 @@
 #include "audio_pdm.h"
 #include "includes.h"
 #include "asm/includes.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "media/includes.h"
 
 /* #define PLNK_DEBUG_ENABLE */
@@ -83,22 +83,48 @@ static void plnk_set_shift_scale(u8 order, u8 m)
     PLNK_CH1_SCALE(scale_sel);
 }
 
+/******************************************************
+--------------ch0-----------------ch1-----------------
+                       |
+-----buf0------buf1----------buf0-------buf1----------
+******************************************************/
 
 ___interrupt
 static void plnk_isr(void)
 {
     u8 buf_flag;
     u32 *buf = (u32 *)__this->buf;
-    u32 len = __this->dma_len / 4;
-    u32 *data_buf;
+    u32 point_per_ch = __this->dma_len / 4;  // 256point
+    u32 *ch0_base;
+    u32 *ch1_base;
+    int i = 0;
     if (PLNK_PND_IS()) {
-        PLNK_PND_CLR();
-        buf_flag = PLNK_USING_BUF() ? 0 : 1;
-        data_buf = (u32 *)buf;
-        data_buf += buf_flag * len;
-        if (__this && __this->isr_cb) {
-            __this->isr_cb(__this->private_data, data_buf, __this->dma_len);
+        buf_flag = PLNK_USING_BUF() ? 0 : 1; // buf_flag = 0代表buffer0可被读写，buf_flag=1代表buffer1可被读写
+        if (JL_PLNK->CON & BIT(9)) {  		 // 读ch0/ch1 buffer0
+            ch0_base = buf;
+            ch1_base = buf + point_per_ch * 2;
+        } else {         						 // 读ch0/ch1 buffer1
+            ch0_base = buf + point_per_ch;
+            ch1_base = buf + point_per_ch + point_per_ch * 2;
         }
+        if (__this && __this->ch_num == 1) {
+            if (__this->isr_cb) {
+                __this->isr_cb(__this->private_data, __this->ch_cfg[0].en ? ch0_base : ch1_base, __this->dma_len);
+            }
+        } else {
+            s16 *dst   = (s16 *)__this->stereo_buf;
+            s16 *src1  = (s16 *)ch0_base;
+            s16 *src2  = (s16 *)ch1_base;
+            for (int j = 0; j < __this->dma_len / 2; j++) {  // __this->dma_len = 256 poins
+                dst[i]     = src1[j];
+                dst[i + 1] = src2[j];
+                i += 2;
+            }
+            if (__this && __this->isr_cb) {
+                __this->isr_cb(__this->private_data, __this->stereo_buf, __this->dma_len);
+            }
+        }
+        PLNK_PND_CLR();
     }
 }
 
@@ -146,18 +172,26 @@ void *plnk_init(void *hw_plink)
     }
     __this = (PLNK_PARM *)hw_plink;
 
-    u8 m = 2;
+    if (__this->sr % 8000) {
+        __this->sclk_fre = 3000000;
+    } else {
+        __this->sclk_fre = 2400000;
+    }
+    u8 m = 1;
     __this->ch_num = __this->ch_cfg[0].en + __this->ch_cfg[1].en;
 
     PLNK_RESET();
 
-    PLNK_DMA_LEN(__this->dma_len / 2);
-    __this->buf = dma_malloc(__this->dma_len  * 2 * __this->ch_num);
-    memset(__this->buf, 0x00, __this->dma_len  * 2 * __this->ch_num);
+    PLNK_DMA_LEN(__this->dma_len / 2);      			// __this->dma = 512, PLK_DMA_LEN = 256 points
+    __this->buf = dma_malloc(__this->dma_len  * 2 * 2);
+    memset(__this->buf, 0x00, __this->dma_len  * 2 * 2);
+    if (__this->ch_num > 1) {
+        __this->stereo_buf = dma_malloc(__this->dma_len  * __this->ch_num);
+    }
     ASSERT(__this->buf);
     PLNK_BUF_SET((u32)__this->buf);
-
-    PLNK_CH0_DFDLY(m - 1);
+    /* 0：M = 1; 1:M=2  */
+    PLNK_CH0_DFDLY(m - 1);              				// m-1 = 0 : 差分延迟因子M = 1
     PLNK_CH1_DFDLY(m - 1);
     PLNK_CH0_ORDER(plnk_cic_order_reg[PLNK_CIC_ORDER - 1]);
     PLNK_CH1_ORDER(plnk_cic_order_reg[PLNK_CIC_ORDER - 1]);
@@ -228,8 +262,14 @@ void plnk_uninit(void *hw_plink)
         dma_free(__this->buf);
         __this->buf = NULL;
     }
+    if (__this->stereo_buf) {
+        dma_free(__this->stereo_buf);
+        __this->stereo_buf = NULL;
+    }
+
     __this = NULL;
 }
+
 
 
 

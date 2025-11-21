@@ -30,6 +30,7 @@ void a2dp_close_media_file(void *file);
 void a2dp_media_start_play(void *_file);
 
 void a2dp_media_stop_play(void *_file);
+void a2dp_media_suspend_play(void *_file);
 
 int a2dp_media_set_rx_notify(void *_file, void *priv, void (*notify)(void *));
 
@@ -76,6 +77,7 @@ extern int aac_energy_check(u8 *packet, u16 size);
 extern void aac_decoder_energy_det_close();
 
 void a2dp_media_update_delay_report_time(void *_file, u16 time);
+int a2dp_media_get_sbc_data_len(void *_file);
 
 
 

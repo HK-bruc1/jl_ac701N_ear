@@ -15,7 +15,7 @@
 #include "online_db_deal.h"
 #include "app_config.h"
 #include "app_tone.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_anc_coeff.h"
 #include "btstack/avctp_user.h"
 #include "app_main.h"
@@ -336,13 +336,6 @@ u8 get_anc_lfb_transyorder()
     }
 }
 
-void set_anc_adt_state(u8 state)
-{
-    if (anc_hdl) {
-        anc_hdl->param.adt_state = state;
-    }
-}
-
 static void anc_task(void *p)
 {
     int res;
@@ -481,7 +474,6 @@ static void anc_task(void *p)
                     }
                 }
 #endif/*TCFG_AUDIO_DYNAMIC_ADC_GAIN*/
-                anc_hdl->mode_switch_lock = 0;
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
                 if (speak_to_chat_flag) {
@@ -535,6 +527,7 @@ static void anc_task(void *p)
                 }
                 set_adt_switch_trans_state(0);
 #endif
+                anc_hdl->mode_switch_lock = 0;
                 break;
             case ANC_MSG_MODE_SYNC:
                 user_anc_log("anc_mode_sync:%d", msg[2]);
@@ -602,7 +595,12 @@ static void anc_task(void *p)
                 anc_ear_adaptive_cmd_handler(&anc_hdl->param, msg);
                 break;
 #endif/*ANC_EAR_ADAPTIVE_EN*/
-
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+            case ANC_MSG_46KOUT_DEMO:
+                extern void icsd_anc_46kout_demo();
+                icsd_anc_46kout_demo();
+                break;
+#endif
             case ANC_MSG_MIC_DATA_GET:
                 /* extern void anc_spp_mic_data_get(audio_anc_t *param); */
                 /* anc_spp_mic_data_get(&anc_hdl->param); */
@@ -905,6 +903,10 @@ void anc_init(void)
     audio_anc_music_dynamic_gain_init();
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
 
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+    audio_anc_mic_gain_cmp_init(&anc_hdl->param.mic_cmp);
+#endif
+
     anc_hdl->param.post_msg_drc = audio_anc_post_msg_drc;
     anc_hdl->param.post_msg_debug = audio_anc_post_msg_debug;
 #if TCFG_ANC_MODE_ANC_EN
@@ -948,7 +950,6 @@ void anc_init(void)
     anc_hdl->param.howling_detect_toggle = ANC_HOWLING_DETECT_EN;
 
     anc_hdl->param.gains.version = ANC_GAINS_VERSION;
-    anc_hdl->param.gains.dac_gain = 3;
     anc_hdl->param.gains.l_ffmic_gain = 4;
     anc_hdl->param.gains.l_fbmic_gain = 4;
     anc_hdl->param.gains.r_ffmic_gain = 4;
@@ -1038,6 +1039,9 @@ void anc_init(void)
     anc_hdl->param.gains.adaptive_ref_fb_q = 0.4;
 #if ANC_COEFF_SAVE_ENABLE
     anc_db_init();
+#if ANC_COEFF_OTA_UPDATE_ENABLE
+    anc_config_rsfile_read(&anc_hdl->param);
+#endif
     audio_anc_db_cfg_read();
 #endif/*ANC_COEFF_SAVE_ENABLE*/
 
@@ -1370,8 +1374,8 @@ void audio_anc_fade_gain_set(int gain)
 {
     anc_hdl->param.anc_fade_gain = gain;
     if (anc_hdl->param.mode != ANC_OFF) {
-        //用户层操作 ANC_FADE_MODE_SWITCH 的模式
-        audio_anc_fade_ctr_set(ANC_FADE_MODE_SWITCH, AUDIO_ANC_FDAE_CH_ALL, gain);
+        //用户层操作 ANC_FADE_MODE_USER 的模式
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_USER, AUDIO_ANC_FDAE_CH_ALL, gain);
     }
 }
 /*ANC淡入淡出增益接口*/
@@ -1783,8 +1787,6 @@ void anc_mode_next(void)
 
 #if ANC_EAR_ADAPTIVE_EN && ANC_EAR_ADAPTIVE_EVERY_TIME		//非通话状态下，每次切模式都自适应
         if ((anc_mode_switch_tab[next_mode] == ANC_ON) && (esco_player_runing() == 0)) {
-            anc_hdl->param.mode = ANC_ON;
-            anc_hdl->new_mode = anc_hdl->param.mode;
             audio_anc_mode_ear_adaptive(1);
         } else
 #endif/*ANC_EAR_ADAPTIVE_EVERY_TIME*/
@@ -1858,16 +1860,6 @@ u8 anc_new_target_mode_get(void)
         return anc_hdl->new_mode;
     }
     return 0;
-}
-
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch)
-{
-    u8 gain = 0;
-    if (anc_hdl) {
-        gain = anc_hdl->param.gains.dac_gain;
-    }
-    return gain;
 }
 
 /*获取anc模式，ff_mic的增益*/
@@ -2098,7 +2090,6 @@ int anc_cfg_online_deal(u8 cmd, anc_gain_t *cfg)
     anc_param_fill(cmd, cfg);
     if (cmd == ANC_CFG_WRITE) {
         /*实时更新ANC配置*/
-        audio_anc_dac_gain(gains->dac_gain, gains->dac_gain);
         audio_anc_mic_management(&anc_hdl->param);
         audio_anc_mic_gain(anc_hdl->param.mic_param, 0);
         anc_mix_out_audio_drc_thr(gains->audio_drc_thr);
@@ -2443,16 +2434,48 @@ void audio_anc_mic_mana_set_gain(audio_anc_t *param, u8 num, u8 type)
     }
 }
 
-/*设置fb  mic为复用mic*/
-void audio_anc_mic_mana_fb_mult_set(u8 mult_flag)
+/*获取对应的mic是否为anc 复用mic, mic_ch ff:0 ; fb:1*/
+u8 audio_anc_mic_mult_flag_get(u32 mic_ch)
 {
     if (anc_hdl) {
         audio_anc_t *param = &anc_hdl->param;
-        for (int i = 0; i < 4; i++) {
-            if ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || (param->mic_param[i].type == ANC_MIC_TYPE_RFB)) {
-                param->mic_param[i].mult_flag = mult_flag;
+        for (int i = 0; i <  AUDIO_ADC_MAX_NUM; i++) {
+            if ((mic_ch == 0) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFF) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFF))) {
+                return param->mic_param[i].mult_flag;
+            }
+            if ((mic_ch == 1) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFB))) {
+                return param->mic_param[i].mult_flag;
             }
         }
+    }
+    return 0;
+}
+
+/*设置对应的mic为anc 复用mic, mic_ch ff:0 ; fb:1*/
+void audio_anc_mic_mult_flag_set(u32 mic_ch, u8 mult_flag)
+{
+    int i;
+    if (anc_hdl) {
+        audio_anc_t *param = &anc_hdl->param;
+        for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+            if ((mic_ch == 0) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFF) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFF))) {
+                param->mic_param[i].mult_flag = mult_flag;
+                break;
+            }
+            if ((mic_ch == 1) && param->mic_param[i].en && \
+                ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || \
+                 (param->mic_param[i].type == ANC_MIC_TYPE_RFB))) {
+                param->mic_param[i].mult_flag = mult_flag;
+                break;
+            }
+        }
+        r_printf("mic_ch %d, mic %d, mult_flag %d", mic_ch, i, param->mic_param[i].mult_flag);
     }
 }
 
@@ -2563,6 +2586,19 @@ void audio_anc_param_reset(u8 fade_en)
     }
 }
 
+/*
+ 	设置ANC模式变量，仅在耳道自适应启动使用，使用ANC_ON的模式调用对应的库接口
+ */
+void audio_anc_mode_set(u8 mode)
+{
+    if (anc_hdl && (strcmp(os_current_task(), "anc") == 0)) {
+        anc_hdl->param.mode = mode;
+        anc_hdl->new_mode = mode;
+    } else {
+        user_anc_log("anc_mode_set err ,task %s\n", os_current_task());
+    }
+}
+
 #if ANC_EAR_ADAPTIVE_EN
 void audio_ear_adaptive_en_set(u8 en)
 {
@@ -2575,6 +2611,9 @@ void audio_ear_adaptive_en_set(u8 en)
 void audio_ear_adaptive_train_app_suspend(void)
 {
     anc_mode_change_tool(ANC_FF_EN);					//设置仅FF通路
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_suspend();
+#endif
 #if ANC_ADAPTIVE_EN
     //关闭场景自适应功能
     audio_anc_power_adaptive_suspend();
@@ -2587,6 +2626,9 @@ void audio_ear_adaptive_train_app_suspend(void)
 void audio_ear_adaptive_train_app_resume(void)
 {
     anc_mode_change_tool(TCFG_AUDIO_ANC_TRAIN_MODE);
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_resume();
+#endif
 #if ANC_ADAPTIVE_EN
     //恢复场景自适应功能
     audio_anc_power_adaptive_resume();
@@ -2607,7 +2649,7 @@ int audio_anc_mult_scene_set(u16 scene_id)
     anc_hdl->scene_id = scene_id;
 #if ANC_EAR_ADAPTIVE_EN
     if (anc_ear_adaptive_busy_get()) {
-        anc_ear_adaptive_forced_exit(1);
+        anc_ear_adaptive_forced_exit(1, 0);
         return 1;
     }
     //非自适应训练状态，切场景自动切回普通参数
@@ -2622,7 +2664,9 @@ int audio_anc_mult_scene_set(u16 scene_id)
 int audio_anc_mult_scene_update(u16 scene_id)
 {
     int ret = audio_anc_mult_scene_set(scene_id);
-    audio_anc_param_reset(1);
+    if (!ret) {
+        audio_anc_param_reset(1);
+    }
     return ret;
 }
 

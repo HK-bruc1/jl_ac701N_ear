@@ -8,7 +8,7 @@
 #include "boot.h"
 #include "ioctl_cmds.h"
 #include "app_online_cfg.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "asm/cpu.h"
 #include "app_config.h"
 #include "online_db_deal.h"
@@ -21,6 +21,7 @@
 #include "sniff.h"
 #include "system/malloc.h"
 #include "system/task.h"
+#include "jlstream.h"
 #include "cfg_tool_statistics.h"
 #include "cfg_tool_cdc.h"
 
@@ -162,6 +163,13 @@ RESFILE *cfg_open_file(u32 file_id)
         cfg_fp = resfile_open(CFG_STREAM_FILE);
     } else if (file_id == CFG_EFFECT_CFG_FILEID) {
         cfg_fp = resfile_open(CFG_EFFECT_CFG_FILE);
+    } else if (file_id == CFG_DNSFB_COEFF_FILEID) {
+        /*目前工具共用一个ID,不支持3mic和cvp_v3 3mic同时存在一个流程且在无aec流程启动时，读取bin文件*/
+#if TCFG_AUDIO_CVP_V3_MODE
+        cfg_fp = resfile_open(CFG_CVP_V3_COEFF_FILE);
+#else
+        cfg_fp = resfile_open(CFG_DNSFB_COEFF_FILE);
+#endif
     }
     return cfg_fp;
 }
@@ -207,9 +215,15 @@ void all_assemble_package_send_to_pc(u8 id, u8 sq, u8 *buf, u32 len)
 void app_cfg_tool_event_handler(struct cfg_tool_event *cfg_tool_dev)
 {
     u8 *buf = NULL;
+#if TCFG_USER_TWS_ENABLE
+    spin_lock(&cfg_packet.lock);
+#endif
     buf = (u8 *)malloc(cfg_tool_dev->size);
     if (buf == NULL) {
         ASSERT(0, "buf malloc err!");
+#if TCFG_USER_TWS_ENABLE
+        spin_unlock(&cfg_packet.lock);
+#endif
         return;
     }
 
@@ -218,6 +232,9 @@ void app_cfg_tool_event_handler(struct cfg_tool_event *cfg_tool_dev)
     /* printf("cfg_tool_event_handler rx:\n"); */
     /* printf_buf(cfg_tool_dev->packet, cfg_tool_dev->size); */
     memcpy(buf, cfg_tool_dev->packet, cfg_tool_dev->size);
+#if TCFG_USER_TWS_ENABLE
+    spin_unlock(&cfg_packet.lock);
+#endif
 
     const struct tool_interface *p;
     list_for_each_tool_interface(p) {
@@ -243,13 +260,30 @@ static void reset_rx_resource()
  *
  *	@param buf 数据
  *	@param rlen 接收数据长度
+ *
+ *	@result 0:success 非0:fail
  */
-void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
+u8 cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
 {
     /* printf("cfg_tool combine rx:\n"); */
     /* put_buf(buf, rlen); */
 
     if ((buf[0] == 0x5A) && (buf[1] == 0xAA) && (buf[2] == 0xA5)) {
+
+        if (rlen <= 255) {
+            u8 rx_data_len = buf[5] + 6;
+#if (TCFG_COMM_TYPE == TCFG_USB_COMM)
+            if ((rx_data_len == rlen) && (rlen != 64)) {
+#else
+            // USB收到的数据是64长度会导致该判断不合理
+            if (rx_data_len == rlen) {
+#endif
+                // 不支持旧协议数据
+                printf("cfg_tool rx data is not right!!!\n");
+                return -1;
+            }
+        }
+
         reset_rx_resource();
         tool_buf_total_len = CFG_TOOL_READ_LIT_U16(buf + 5);
         buf_rx = zalloc(CFG_TOOL_PROTOCOL_HEAD_SIZE + tool_buf_total_len);
@@ -268,11 +302,11 @@ void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
         if (!buf_rx) {
             printf("%s, buf_rx null!\n", __FUNCTION__);
             reset_rx_resource();
-            return;
+            return -1;
         }
         if ((rx_len_count + rlen) > (CFG_TOOL_PROTOCOL_HEAD_SIZE + tool_buf_total_len)) {
             reset_rx_resource();
-            return;
+            return -1;
         }
         memcpy(buf_rx + rx_len_count, buf, rlen);
         /* printf("cfg_tool combine need total len2 = %d\n", tool_buf_total_len); */
@@ -286,6 +320,7 @@ void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
             rx_len_count += rlen;
         }
     }
+    return 0;
 }
 
 u8 online_cfg_tool_data_deal(void *buf, u32 len)
@@ -392,16 +427,24 @@ static void online_cfg_tool_tws_sibling_data_deal(void *_data, u16 len, bool rx)
     if (rx) {
         cfg_packet.event = DEFAULT_ACTION;
         cfg_packet.size = len;
+        spin_lock(&cfg_packet.lock);
         if (local_packet != NULL) {
             local_packet_free();
         }
         local_packet = local_packet_malloc(cfg_packet.size);
         cfg_packet.packet = local_packet;
         memcpy(cfg_packet.packet, (u8 *)_data, cfg_packet.size);
+        spin_unlock(&cfg_packet.lock);
         if (OS_NO_ERR != os_taskq_post_type("app_core", MSG_FROM_CFGTOOL_TWS_SYNC, 0, NULL)) {
             local_packet_free();
         }
     }
+}
+
+static int cfg_tool_tws_init(void)
+{
+    spin_lock_init(&cfg_packet.lock);
+    return 0;
 }
 
 static int cfg_tool_tws_sync_rx_data(int *msg)
@@ -420,6 +463,8 @@ APP_MSG_HANDLER(tws_msg_entry) = {
     .from       = MSG_FROM_CFGTOOL_TWS_SYNC,
     .handler    = cfg_tool_tws_sync_rx_data,
 };
+
+early_initcall(cfg_tool_tws_init);
 #endif//#if TCFG_USER_TWS_ENABLE
 
 // 在线检测设备
@@ -506,10 +551,16 @@ static void cfg_tool_callback(u8 *packet, u32 size)
     u32 write_len = 0;
     u32 send_len = 0;
     u8 crc_temp_len, sdkname_temp_len;
-    u8 *buf = NULL;
+    u8 *buf;
     u8 *buf_temp = NULL;
     struct resfile_attrs attr;
     RESFILE *cfg_fp = NULL;
+    R_QUERY_SYS_INFO upload_param = {0};
+    int cpu_use[CPU_CORE_NUM] = {0};
+
+    u8 use_malloc_buf = 0;
+    u32 local_buf[128 / 4];
+    buf = (u8 *)local_buf;
 
     switch (cfg_packet.event) {
     case ONLINE_SUB_OP_QUERY_BASIC_INFO:
@@ -548,16 +599,47 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         __this->s_basic_info.support_node_merge = EFF_SUPPORT_NODE_MERGE;
         __this->s_basic_info.comm_type = TCFG_COMM_TYPE;
         send_len = sizeof(__this->s_basic_info);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_basic_info), send_len);
+        buf = (u8 *)&__this->s_basic_info;
         break;
 
     case ONLINE_SUB_OP_CPU_RESET:
         send_len = 2;
-        u8 cpu_reset_ret[] = "OK";
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, cpu_reset_ret, send_len);
+        buf = (u8 *)ok_return;
         sys_timeout_add(NULL, delay_cpu_reset, 500);
+        break;
+    case ONLINE_SUB_OP_NODE_REPORT:
+        // 0x01, 开启
+        // 0x02, 关闭
+        // 0x03, 获取字符描述
+        // 0x04, 读取节点信息
+        /*printf("node_report: %d\n", cfg_packet.packet[8]);*/
+        if (cfg_packet.packet[8] <= 0x2) {
+            int err = 0;
+            u16 uuid = cfg_packet.packet[9] | (cfg_packet.packet[10] << 8);
+            u8 subid = cfg_packet.packet[11];
+            if (cfg_packet.packet[8] == 0x1) {
+                err = jlstream_node_report_create(uuid, subid);
+            } else if (cfg_packet.packet[8] == 0x2) {
+                jlstream_node_report_free(uuid, subid);
+            }
+            if (err == 0) {
+                buf = (u8 *)ok_return;
+            } else {
+                buf = (u8 *)er_return;
+            }
+            send_len = 2;
+        } else if (cfg_packet.packet[8] == 0x3) {
+            buf = (u8 *)jlstream_get_node_report_description();
+            send_len = strlen((const char *)buf);
+        } else if (cfg_packet.packet[8] == 0x4) {
+            bool is_end;
+            int len = jlstream_node_report_read(buf + 4, sizeof(local_buf) - 4, &is_end);
+            buf[0] = len;
+            buf[1] = len >> 8;
+            buf[2] = is_end;
+            buf[3] = 0;
+            send_len = len + 4;
+        }
         break;
 
     case ONLINE_SUB_OP_QUERY_FILE_SIZE:
@@ -565,14 +647,15 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         cfg_fp = cfg_open_file(__this->r_file_size.file_id);
         if (cfg_fp == NULL) {
             log_error("file open error!\n");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;//文件打开失败返回FA
+            break;
         }
 
         resfile_get_attrs(cfg_fp, &attr);
         __this->s_file_size.file_size = attr.fsize;
         send_len = sizeof(__this->s_file_size.file_size);//长度
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_file_size.file_size), send_len);
+        buf = (u8 *)&__this->s_file_size.file_size;
         resfile_close(cfg_fp);
         break;
 
@@ -584,7 +667,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         cfg_fp = cfg_open_file(__this->r_file_content.file_id);
         if (cfg_fp == NULL) {
             log_error("file open error!\n");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;//文件打开失败返回FA
+            break;
         }
         resfile_get_attrs(cfg_fp, &attr);
         if (__this->r_file_content.size > attr.fsize) {
@@ -594,16 +679,15 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         }
 
         u32 flash_addr = sdfile_cpu_addr2flash_addr(attr.sclust);
-        buf_temp = (u8 *)malloc(__this->r_file_content.size);
-        if (buf_temp == NULL) {
-            log_error("buf_temp malloc err!");
-            goto _exit_;
-        }
-        norflash_read(NULL, (void *)buf_temp, __this->r_file_content.size, flash_addr + __this->r_file_content.offset);
         send_len = __this->r_file_content.size;
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, buf_temp, __this->r_file_content.size);
-        free(buf_temp);
+        if (send_len > sizeof(local_buf)) {
+            buf = malloc(send_len);
+            if (!buf) {
+                break;
+            }
+            use_malloc_buf = 1;
+        }
+        norflash_read(NULL, buf, __this->r_file_content.size, flash_addr + __this->r_file_content.offset);
         resfile_close(cfg_fp);
         break;
 
@@ -617,33 +701,37 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             break;
         }
         resfile_get_attrs(cfg_fp, &attr);
+        resfile_close(cfg_fp);
 
         __this->s_prepare_write_file.file_size = attr.fsize;
         __this->s_prepare_write_file.file_addr = sdfile_cpu_addr2flash_addr(attr.sclust);
-        __this->s_prepare_write_file.earse_unit = boot_info.vm.align * 256;
+        __this->s_prepare_write_file.earse_unit = get_boot_info()->vm.align * 256;
         send_len = sizeof(__this->s_prepare_write_file);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &(__this->s_prepare_write_file), send_len);
-        resfile_close(cfg_fp);
+        buf = (u8 *)&__this->s_prepare_write_file;
 
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"stream.bin");
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+#if TCFG_AUDIO_CVP_V3_MODE
+            app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"CVP_V3_CFG.bin");
+#else
+            app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"DNSFB_Coeff.bin");
+#endif
         }
         break;
 
     case ONLINE_SUB_OP_READ_ADDR_RANGE:
         __this->r_read_addr_range.addr = packet_combined(cfg_packet.packet, 8);
         __this->r_read_addr_range.size = packet_combined(cfg_packet.packet, 12);
-        buf_temp = (u8 *)malloc(__this->r_read_addr_range.size);
-        if (buf_temp == NULL) {
-            log_error("buf_temp malloc err!");
-            goto _exit_;
-        }
-        norflash_read(NULL, (void *)buf_temp, __this->r_read_addr_range.size, __this->r_read_addr_range.addr);
         send_len = __this->r_read_addr_range.size;
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, buf_temp, __this->r_read_addr_range.size);
-        free(buf_temp);
+        if (send_len > sizeof(local_buf)) {
+            buf = malloc(send_len);
+            if (!buf) {
+                break;
+            }
+            use_malloc_buf = 1;
+        }
+        norflash_read(NULL, buf, __this->r_read_addr_range.size, __this->r_read_addr_range.addr);
         break;
 
     case ONLINE_SUB_OP_ERASE_ADDR_RANGE:
@@ -662,11 +750,13 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             break;
         default:
             send_len = sizeof(fa_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, fa_return, send_len);
+            buf = (u8 *)fa_return;
             log_error("erase error!");
             break;
         }
+
+        send_len = sizeof(ok_return);
+        buf = (u8 *)ok_return;
 
         for (u8 i = 0; i < (__this->r_erase_addr_range.size / __this->s_prepare_write_file.earse_unit); i ++) {
             flash_w_region_check_en(0);
@@ -674,14 +764,9 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             flash_w_region_check_en(1);
             if (ret) {
                 send_len = sizeof(fa_return);
-                buf = send_buf_malloc(send_len);
-                memcpy(buf, fa_return, send_len);
+                buf = (u8 *)fa_return;
                 log_error("erase error!");
                 break;
-            } else {
-                send_len = sizeof(ok_return);
-                buf = send_buf_malloc(send_len);
-                memcpy(buf, ok_return, send_len);
             }
         }
         break;
@@ -692,26 +777,26 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         buf_temp = (u8 *)malloc(__this->r_write_addr_range.size);
         if (buf_temp == NULL) {
             log_error("buf_temp malloc err!");
-            goto _exit_;
+            send_len = sizeof(fa_return);
+            buf = (u8 *)fa_return;
+            break;
         }
         memcpy(buf_temp, cfg_packet.packet + 16, __this->r_write_addr_range.size);
-        encode_data_by_user_key(boot_info.chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - boot_info.sfc.sfc_base_addr, 0x20);
+        encode_data_by_user_key(get_boot_info()->chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - get_boot_info()->sfc.sfc_base_addr, 0x20);
         flash_w_region_check_en(0);
         write_len = norflash_write(NULL, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr);
         flash_w_region_check_en(1);
+        if (buf_temp) {
+            free(buf_temp);
+        }
 
         if (write_len != __this->r_write_addr_range.size) {
             send_len = sizeof(fa_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, fa_return, send_len);
+            buf = (u8 *)fa_return;
             log_error("write error!");
         } else {
             send_len = sizeof(ok_return);
-            buf = send_buf_malloc(send_len);
-            memcpy(buf, ok_return, send_len);
-        }
-        if (buf_temp) {
-            free(buf_temp);
+            buf = (u8 *)ok_return;
         }
 
         int a = __this->r_write_addr_range.addr + __this->r_write_addr_range.size;
@@ -719,6 +804,14 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             if (a >= b) {
                 app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"stream.bin");
+            }
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+            if (a >= b) {
+#if TCFG_AUDIO_CVP_V3_MODE
+                app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"CVP_V3_CFG.bin");
+#else
+                app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"DNSFB_Coeff.bin");
+#endif
             }
         }
         break;
@@ -731,10 +824,8 @@ static void cfg_tool_callback(u8 *packet, u32 size)
 #endif
 
     case ONLINE_SUB_OP_ONLINE_INSPECTION:
-        R_QUERY_SYS_INFO upload_param = {0};
         upload_param.use_mem = memory_get_size(P_MEMORY_USED);//使用的mem;
         upload_param.total_mem = memory_get_size(P_MEMORY_TOTAL);//总的mem
-        int cpu_use[CPU_CORE_NUM] = {0};
         os_cpu_usage(NULL, cpu_use);
         int cpu_usage = 0;
         for (int i = 0; i < CPU_CORE_NUM; i++) {
@@ -744,28 +835,17 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         upload_param.cpu_use_ratio = cpu_usage;
         upload_param.task_num = get_task_info_list_num();
         send_len = sizeof(upload_param);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, &upload_param, send_len);
+        buf = (u8 *)&upload_param;
         break;
 
     default: // DEFAULT_ACTION
-        if (buf) {
-            free(buf);
-            buf = NULL;
-        }
         return;
-        break;
-_exit_:
-        send_len = sizeof(fa_return);
-        buf = send_buf_malloc(send_len);
-        memcpy(buf, fa_return, sizeof(fa_return));//文件打开失败返回FA
-        break;
     }
 
     all_assemble_package_send_to_pc(REPLY_STYLE, cfg_packet.packet[3], buf, send_len);
-    if (buf) {
+
+    if (buf && use_malloc_buf) {
         free(buf);
-        buf = NULL;
     }
 }
 

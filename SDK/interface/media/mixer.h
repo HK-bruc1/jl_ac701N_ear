@@ -58,6 +58,7 @@ struct audio_mixer {
     u8 timestamp_flags;
     u8 bit_wide;//位宽
     u8 nch;
+    u8 clear;//从叠加变成直通输出时，清空一下mixbuf
 };
 
 struct audio_pcm_edit {

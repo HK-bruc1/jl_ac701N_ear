@@ -20,14 +20,25 @@
 const int config_printf_time         = 1;
 
 ///异常中断，asser打印开启
-#if CONFIG_DEBUG_ENABLE
+#if CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE
 const int config_asser          = TCFG_EXCEPTION_LOG_ENABLE;  // non 0:使能异常打印; BIT(1):使能当前CPU打印另一个CPU的寄存器信息; BIT(2):使能栈分析回溯函数调用
 const int config_exception_reset_enable = TCFG_EXCEPTION_RESET_ENABLE;
 const int CONFIG_LOG_OUTPUT_ENABLE = 1;
+const int config_ulog_enable = 1;
+#elif TCFG_DEBUG_DLOG_ENABLE
+const int config_asser         = 1;
+const int config_exception_reset_enable = 1;
+const int CONFIG_LOG_OUTPUT_ENABLE = 0;
+const int config_ulog_enable = 0;
 #else
 const int config_asser         = 0;
 const int config_exception_reset_enable = 1;
 const int CONFIG_LOG_OUTPUT_ENABLE = 0;
+const int config_ulog_enable = 0;
+#endif
+
+#if CONFIG_DEBUG_LITE_ENABLE
+u8 config_debug_lite_en = 1;								// 控制库的轻量级打印
 #endif
 
 //================================================//
@@ -35,17 +46,17 @@ const int CONFIG_LOG_OUTPUT_ENABLE = 0;
 //================================================//
 //注意: 当config_asser变量为0时才有效.
 #if	(defined TCFG_CONFIG_DEBUG_RECORD_ENABLE && TCFG_CONFIG_DEBUG_RECORD_ENABLE)
-const int config_debug_exception_record = (!config_asser) && 1; 	//异常记录功能总开关
-const int config_debug_exception_record_dump_info = (!config_asser) && 1; 		//小机上电输出异常信息使能
-const int config_debug_exception_record_p11 = (!config_asser) && 1; 			//P11异常信息使能
-const int config_debug_exception_record_stack = (!config_asser) && 1; 			//堆栈异常信息使能
-const int config_debug_exception_record_ret_instrcion = (!config_asser) && 1; 	//指令数据异常信息使能
+const int config_debug_exception_record               = 1; 	 //异常记录功能总开关
+const int config_debug_exception_record_dump_info     = 1; 	 //小机上电输出异常信息使能
+const int config_debug_exception_record_p11           = 1; 	 //P11异常信息使能
+const int config_debug_exception_record_stack         = 1; 	 //堆栈异常信息使能
+const int config_debug_exception_record_ret_instrcion = 1; 	 //指令数据异常信息使能
 #else /* #if	(define CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE) */
-const int config_debug_exception_record = 0; 				//异常记录功能总开关
-const int config_debug_exception_record_dump_info = 0; 		//小机上电输出异常信息使能
-const int config_debug_exception_record_p11 = 0; 			//P11异常信息使能
-const int config_debug_exception_record_stack = 0; 			//堆栈异常信息使能
-const int config_debug_exception_record_ret_instrcion = 0; 	//指令数据异常信息使能
+const int config_debug_exception_record               = 0;   //异常记录功能总开关
+const int config_debug_exception_record_dump_info     = 0;   //小机上电输出异常信息使能
+const int config_debug_exception_record_p11           = 0;   //P11异常信息使能
+const int config_debug_exception_record_stack         = 0;   //堆栈异常信息使能
+const int config_debug_exception_record_ret_instrcion = 0;   //指令数据异常信息使能
 #endif /* #if (define CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE) */
 
 //================================================//
@@ -88,13 +99,17 @@ const u32 CONFIG_HEAP_MEMORY_TRACE = 0;
 //================================================//
 //                  FS功能控制 					  //
 //================================================//
+#if TCFG_MIX_RECORD_ENABLE
 const int FATFS_WRITE = 1; // 控制fatfs写功能开关。
+#else
+const int FATFS_WRITE = 0; // 控制fatfs写功能开关。
+#endif
 const int FILT_0SIZE_ENABLE = 1; //是否过滤0大小文件
 const int FATFS_LONG_NAME_ENABLE = 1; //是否支持长文件名
 const int FATFS_RENAME_ENABLE = 1; //是否支持重命名
 const int FATFS_FGET_PATH_ENABLE = 1; //是否支持获取路径
 const int FATFS_SAVE_FAT_TABLE_ENABLE = 1; //是否支持seek加速
-const int FATFS_SUPPORT_OVERSECTOR_RW = 0; //是否支持超过一个sector向设备拿数
+const int FATFS_SUPPORT_OVERSECTOR_RW = 1; //是否支持超过一个sector向设备拿数
 const int FATFS_TIMESORT_TURN_ENABLE = 1; //按时排序翻转，由默认从小到大变成从大到小
 const int FATFS_TIMESORT_NUM = 128; //按时间排序,记录文件数量, 每个占用14 byte
 
@@ -105,6 +120,8 @@ const int FATFS_SUPPORT_WRITE_CUTOFF = 1; //支持fseek截断文件。 打开后
 const int FATFS_RW_MAX_CACHE = 64 * 1024; //设置读写申请的最大cache大小 .note: 小于512会被默认不生效
 
 const int FATFS_GET_SPACE_USE_RAM = 0;//32 * 1024;  //获取剩余容量使用大Buf缓存,加快速度, 必须512倍数
+
+const int FATFS_FORMAT_USE_RAM = 0; //32 * 1024;  //格式化功能使用大Buf缓存,加快速度, 必须512倍数
 
 const int FATFS_DEBUG_FAT_TABLE_DIR_ENTRY = 0; //设置debugfat表和目录项写数据
 
@@ -127,6 +144,44 @@ const int MALLOC_MEMORY_DEFRAG_ENABLE = 1;
 
 // 空闲RAM进入SD模式使能    			  //
 const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 0;
+
+// 是否使能 dlog 功能
+#ifdef TCFG_DEBUG_DLOG_ENABLE
+const int config_dlog_enable = TCFG_DEBUG_DLOG_ENABLE;
+const int config_dlog_reset_erase_enable = TCFG_DEBUG_DLOG_RESET_ERASE;
+const int config_dlog_auto_flush_timeout = TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT;
+const int config_dlog_cache_buf_num = 3;   // 配置dlog缓存的个数(4K一个), 仅 config_dlog_flash_enable 使能时生效
+const int config_dlog_flash_enable = 1;    // 使能dlog输出到flash
+const int config_dlog_uart_enable = 1;     // 使能dlog输出到uart
+const int config_dlog_leaks_dump_timeout = 3 * 60 * 1000;
+const int config_dlog_print_enable = 1;
+const int config_dlog_put_buf_enable = 1;
+const int config_dlog_putchar_enable = 1;
+#else
+const int config_dlog_enable = 0;
+const int config_dlog_reset_erase_enable = 0;
+const int config_dlog_auto_flush_timeout = 0;
+const int config_dlog_cache_buf_num = 0;
+const int config_dlog_flash_enable = 0;
+const int config_dlog_uart_enable = 0;
+const int config_dlog_leaks_dump_timeout = -1;
+const int config_dlog_print_enable = 0;
+const int config_dlog_put_buf_enable = 0;
+const int config_dlog_putchar_enable = 0;
+#endif
+
+//查找关中断时间过久函数功能
+//用于开启查找中断时间过久的函数功能,打印函数的rets和trance:"irq disable overlimit:"
+#if 0
+const int config_irq_time_debug_enable = TCFG_IRQ_TIME_DEBUG_ENABLE;
+const int config_irq_time_debug_time = 10000;  //查找中断时间超过10000us的函数
+#else
+const int config_irq_time_debug_enable = 0;
+const int config_irq_time_debug_time = 0;
+#endif
+
+//0: 自由分配, 1: 固定核
+const int config_os_core_affinity_en = 0;
 
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)
@@ -192,3 +247,10 @@ const char log_tag_const_i_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_d_DEBUG_RECORD = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_e_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_i_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_DLOG  = CONFIG_DEBUG_LIB(1);
+const char log_tag_const_w_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_DLOG  = CONFIG_DEBUG_LIB(1);
+

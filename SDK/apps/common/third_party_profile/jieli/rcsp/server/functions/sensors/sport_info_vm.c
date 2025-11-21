@@ -17,7 +17,7 @@
 #include "sport_data_info_opt/sport_info_sleep_detection.h"
 
 
-#if ((TCFG_HR_SENSOR_ENABLE ||TCFG_SPO2_SENSOR_ENABLE ||  TCFG_GSENSOR_ENABLE)||(RCSP_MODE && JL_RCSP_SENSORS_DATA_OPT))
+#if 0//((TCFG_HR_SENSOR_ENABLE ||TCFG_SPO2_SENSOR_ENABLE ||  TCFG_GSENSOR_ENABLE)||(RCSP_MODE && JL_RCSP_SENSORS_DATA_OPT))
 
 static u32 g_sport_info_switch_record = 0;
 static u8 g_sport_info_mode_record[SPORT_INFO_MODE_TYPE_MAX + 1] = {0};

@@ -95,6 +95,7 @@ void set_music_device_volume(int volume)
         log_i("It's not smart to sync a2dp vol now\n");
         //app_var.music_volume = vol_sys_tab[(volume + 1) / 8];
         app_var.music_volume = ((volume + 1) * 16) / 127;
+        app_var.opid_play_vol_sync = vol_sync_tab[(volume + 1) / 8];
         return;
     }
 

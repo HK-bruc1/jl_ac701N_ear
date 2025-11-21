@@ -14,6 +14,7 @@
 #include "app_msg.h"
 #include "tws/jl_tws.h"
 #include "local_tws_player.h"
+#include "sync/audio_syncts.h"
 #include "app_config.h"
 
 #if TCFG_LOCAL_TWS_ENABLE
@@ -195,6 +196,7 @@ static int local_tws_file_ioctl(void *file, int cmd, int arg)
         break;
     case NODE_IOC_SET_FMT:
         memcpy(&hdl->param, (struct local_tws_player_param *)arg, sizeof(struct local_tws_player_param));
+        stream_node_ioctl(hdl->node, NODE_UUID_BT_AUDIO_SYNC, NODE_IOC_SET_SYNC_NETWORK, USE_LOCAL_REFERENCE_TIME ? AUDIO_NETWORK_LOCAL : AUDIO_NETWORK_BT2_1);
         break;
     case NODE_IOC_GET_FMT:
         err = local_tws_file_get_fmt(hdl, (struct stream_fmt *)arg);
@@ -226,5 +228,6 @@ REGISTER_SOURCE_NODE_PLUG(local_tws_file_plug) = {
     .ioctl      = local_tws_file_ioctl,
     .release    = local_tws_file_release,
 };
+
 
 #endif

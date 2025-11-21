@@ -11,13 +11,17 @@ typedef struct {
     float AggressFactor;
     float MinSuppress;
     float NoiseLevel;
+    float eng_gain;
+    u8 lite;
+    float output16;
+    float *noise_suppress_energy;
 } noise_suppress_param;
 
 int noise_suppress_frame_point_query(noise_suppress_param *param);
 int noise_suppress_mem_query(noise_suppress_param *param);
-int noise_suppress_open(noise_suppress_param *param);
-int noise_suppress_close(void);
-int noise_suppress_run(short *in, short *out, int npoint);
+void *noise_suppress_open(noise_suppress_param *param);
+int noise_suppress_close(void *ns_hdl);
+int noise_suppress_run(void *ns_hdl, short *in, void *out, int npoint);
 
 enum {
     NS_CMD_NOISE_FLOOR = 1,
@@ -32,7 +36,7 @@ enum {
 * (2)LOWCUTTHR : 设定经过降噪后的信号清0阈值，低于此阈值的信号会被清0。
 *                主要为了应对硬件FFT精度不够，反变换太小的值时会出现噪声。
 */
-int noise_suppress_config(u32 cmd, int arg, void *priv);
+int noise_suppress_config(void *ns_hdl, u32 cmd, int arg, void *priv);
 
 
 /******************************* DNS ***************************/

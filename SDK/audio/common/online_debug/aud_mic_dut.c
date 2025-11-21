@@ -346,6 +346,7 @@ int mic_dut_online_get_scan_state(void)
 }
 
 /*注册mic dut解析回调*/
+__INITCALL_BANK_CODE
 int aud_mic_dut_open(void)
 {
     app_online_db_register_handle(DB_PKT_TYPE_MIC_DUT, mic_dut_online_parse);

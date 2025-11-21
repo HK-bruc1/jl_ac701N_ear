@@ -1,9 +1,3 @@
-#ifdef SUPPORT_MS_EXTENSIONS
-#pragma bss_seg(".lib_power_config.data.bss")
-#pragma data_seg(".lib_power_config.data")
-#pragma const_seg(".lib_power_config.text.const")
-#pragma code_seg(".lib_power_config.text")
-#endif
 #include "asm/power_interface.h"
 
 
@@ -74,3 +68,6 @@ const bool control_poff = 1;
 #else
 const bool control_poff = 0;
 #endif
+
+const bool control_rtc_enable = 1;
+

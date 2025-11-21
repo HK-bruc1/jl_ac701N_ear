@@ -9,7 +9,7 @@
 #include "sync/audio_syncts.h"
 #include "circular_buf.h"
 #include "audio_splicing.h"
-#include "audio_dai/audio_iis.h"
+#include "media/audio_iis.h"
 #include "app_config.h"
 #include "gpio.h"
 #include "audio_cvp.h"
@@ -19,13 +19,14 @@
 #include "effects/effects_adj.h"
 #include "media/audio_dev_sync.h"
 
-#if TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE || TCFG_TDM_TX_NODE_ENABLE
 
 #define IIS_LOG_ENABLE          0
 #if IIS_LOG_ENABLE
 #define LOG_TAG     "[IIS]"
 #define LOG_ERROR_ENABLE
 #define LOG_INFO_ENABLE
+#define LOG_DEBUG_ENABLE
 #define LOG_DUMP_ENABLE
 #include "debug.h"
 #else
@@ -34,7 +35,7 @@
 #define log_debug(fmt, ...)
 #endif
 
-#define MODULE_IDX_SEL ((hdl_node(hdl)->uuid == NODE_UUID_IIS0_TX) ? 0 : 1)
+#define MODULE_IDX_SEL ((hdl_node(hdl)->uuid == NODE_UUID_IIS1_TX) ? 1 : 0)
 extern const int config_media_tws_en;
 extern const float const_out_dev_pns_time_ms;
 
@@ -52,6 +53,8 @@ struct iis_node_hdl {
     u8 module_idx;
     u8 syncts_enabled;
     u8 nch;
+    u8 force_write_slience_data_en;
+    u8 hw_ch_num;
     u8 force_write_slience_data;
     u8 syncts_mount_en;        /*响应前级同步节点的挂载动作，默认1,,特殊流程才会配置0*/
     int sample_rate;
@@ -112,7 +115,7 @@ static int iis_adpater_detect_timestamp(struct iis_node_hdl *hdl, struct stream_
         return 0;
     }
 
-    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE)) {
+    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE) || hdl->force_write_slience_data_en) {
         if (!hdl->force_write_slience_data) { //无播放同步时，强制填一段静音包
             hdl->force_write_slience_data = 1;
             int slience_time_us = (hdl->attr.protect_time ? hdl->attr.protect_time : 8) * 1000;
@@ -406,7 +409,7 @@ static void iis_handle_frame(struct stream_iport *iport, struct stream_note *not
     if (!hdl->iis_start) {
         return;
     }
-    audio_iis_channel_start((void *)&hdl->iis_ch);
+
 #if MASTER_IIS_DEBUG
     if (hdl->attr.ch_idx == 0) {
         iis_ch_test = hdl->iis_ch.iis;
@@ -426,6 +429,9 @@ static void iis_handle_frame(struct stream_iport *iport, struct stream_note *not
 // flag   0:time  1:points
 static int iis_ioc_get_delay(struct iis_node_hdl *hdl, struct audio_iis_channel *ch)
 {
+    if (!hdl->iis_start) {
+        return 0;
+    }
     int len = audio_iis_data_len(ch);
     if (len == 0) {
         return 0;
@@ -456,10 +462,42 @@ static int iis_ioc_negotiate(struct stream_iport *iport, int nego_state)
         }
     }
 
-    if (in_fmt->channel_mode != AUDIO_CH_LR) {
-        in_fmt->channel_mode = AUDIO_CH_LR;
-        ret = NEGO_STA_CONTINUE;
+
+
+    if (hdl->hw_ch_num == 2) {
+        if (in_fmt->channel_mode != AUDIO_CH_LR) {
+            in_fmt->channel_mode = AUDIO_CH_LR;
+            ret = NEGO_STA_CONTINUE;
+        }
     }
+#if TCFG_TDM_TX_NODE_ENABLE
+    if (hdl->hw_ch_num == 1) {
+        if (in_fmt->channel_mode != AUDIO_CH_MIX) {
+            in_fmt->channel_mode = AUDIO_CH_MIX;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+    if (hdl->hw_ch_num == 4) {
+        if (in_fmt->channel_mode != AUDIO_CH_QUAD) {
+            in_fmt->channel_mode = AUDIO_CH_QUAD;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+
+    if (hdl->hw_ch_num == 6) {
+        if (in_fmt->channel_mode != AUDIO_CH_SIX) {
+            in_fmt->channel_mode = AUDIO_CH_SIX;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+
+    if (hdl->hw_ch_num == 8) {
+        if (in_fmt->channel_mode != AUDIO_CH_EIGHT) {
+            in_fmt->channel_mode = AUDIO_CH_EIGHT;
+            ret = NEGO_STA_CONTINUE;
+        }
+    }
+#endif
 
     hdl->module_idx = MODULE_IDX_SEL;
     u32 sample_rate = 0;
@@ -547,22 +585,33 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
                 hdl->attr.write_mode = WRITE_MODE_BLOCK;
                 log_error("iis node param read err, set default\n");
             }
+            int delay_time = jlstream_event_notify(STREAM_EVENT_GET_OUTPUT_NODE_DELAY, hdl->scene);
+            if (delay_time) {
+                hdl->attr.delay_time = delay_time;
+            }
             if (hdl->attr.dev_properties != SYNC_TO_MASTER_DEV) { //从设备不需要挂载前级的同步节点
                 hdl->syncts_mount_en = 1;
             } else {
                 hdl->syncts_mount_en = 0;
+                ASSERT(config_dev_sync_enable);
             }
         }
 
         if (!iis_hdl[hdl->module_idx]) {
-            int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch);
-
             struct alink_param params = {0};
             params.module_idx = hdl->module_idx;
-            params.dma_size   = dma_len;
+            params.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch, AUDIO_DAC_MAX_SAMPLE_RATE);
             params.sr         = hdl->sample_rate;
             params.bit_width  = hdl->bit_width;
             params.fixed_pns  = const_out_dev_pns_time_ms;
+
+#if TCFG_TDM_TX_NODE_ENABLE
+            if (hdl_node(hdl)->uuid == NODE_UUID_TDM_TX) {
+                params.alink_work_mode = TDM_WORK_MODE;
+                params.ch_num = TDM_CH_NUM;
+            }
+#endif
+            params.clk_close = TCFG_AUDIO_IIS_CLOCK_CLOSE;
             iis_hdl[hdl->module_idx] = audio_iis_init(params);
         }
         if (!iis_hdl[hdl->module_idx]) {
@@ -573,7 +622,12 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
 
         audio_iis_new_channel(iis_hdl[hdl->module_idx], (void *)&hdl->iis_ch);
         audio_iis_channel_set_attr(&hdl->iis_ch, &hdl->attr);
+
+        audio_iis_check_hw_cfg_status(hdl->module_idx, hdl->attr.ch_idx, ALINK_DIR_TX);
+
     }
+
+    audio_iis_channel_start((void *)&hdl->iis_ch);
 }
 
 static void iis_ioc_stop(struct iis_node_hdl *hdl)
@@ -670,7 +724,7 @@ static int iis_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
         iis_adapter_syncts_ioctl(hdl, (struct audio_syncts_ioc_params *)arg);
         break;
     case NODE_IOC_GET_ODEV_CACHE:
-        return audio_iis_data_len(&hdl->iis_ch);
+        return hdl->iis_start ? audio_iis_data_len(&hdl->iis_ch) : 0;
     case NODE_IOC_SET_PARAM:
         hdl->reference_network = arg;
         break;
@@ -680,6 +734,9 @@ static int iis_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
     case NODE_IOC_SET_FMT:
         struct stream_fmt *fmt = (struct stream_fmt *)arg;
         hdl->sample_rate = fmt->sample_rate;
+        break;
+    case NODE_IOC_SET_PRIV_FMT: //手动控制是否预填静音包
+        hdl->force_write_slience_data_en = arg;
         break;
     default:
         break;
@@ -694,6 +751,14 @@ static int iis_adapter_bind(struct stream_node *node, u16 uuid)
     struct iis_node_hdl *hdl = (struct iis_node_hdl *)node->private_data ;
 
     hdl->reference_network = 0xff;
+#if TCFG_TDM_TX_NODE_ENABLE
+    if (node->uuid == NODE_UUID_TDM_TX) {
+        hdl->hw_ch_num = TDM_CH_NUM;
+    } else
+#endif
+    {
+        hdl->hw_ch_num = IIS_CH_NUM;
+    }
     return 0;
 }
 
@@ -720,6 +785,18 @@ REGISTER_STREAM_NODE_ADAPTER(iis1_node_adapter) = {
     .release    = iis_adapter_release,
     .hdl_size   = sizeof(struct iis_node_hdl),
 };
-
 #endif
+
+#if TCFG_TDM_TX_NODE_ENABLE
+REGISTER_STREAM_NODE_ADAPTER(tdm_node_adapter) = {
+    .name       = "tdm",
+    .uuid       = NODE_UUID_TDM_TX,
+    .bind       = iis_adapter_bind,
+    .ioctl      = iis_adapter_ioctl,
+    .release    = iis_adapter_release,
+    .hdl_size   = sizeof(struct iis_node_hdl),
+};
+#endif
+
+
 

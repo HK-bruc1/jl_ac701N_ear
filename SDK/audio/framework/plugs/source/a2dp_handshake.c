@@ -19,6 +19,7 @@ struct a2dp_handshake_data {
     u8 ack;
     u8 state;
     u16 seqn;
+    u32 clkn;
     u8 addr[6];
 };
 struct a2dp_tws_handshake {
@@ -26,9 +27,12 @@ struct a2dp_tws_handshake {
     u8 handshake_step;
     u8 rx_state;
     u8 need_ack;
+    u8 busy;
     u32 rx_time;
     u16 rx_seqn;
     u16 run_seqn;
+    u32 rx_clkn;
+    u32 run_clkn;
     u8 rx_addr[6];
     u8 run_addr[6];
 };
@@ -67,6 +71,7 @@ static struct a2dp_tws_handshake a2dp_tws = {0};
 #define A2DP_TWS_FILE_RUN           2
 
 extern u32 bt_audio_conn_clock_time(void *addr);
+static void a2dp_tws_media_handshake_ack(u8 file_running);
 
 static void a2dp_tws_handskake_handler(void *buf, u16 len, bool rx)
 {
@@ -79,17 +84,24 @@ static void a2dp_tws_handskake_handler(void *buf, u16 len, bool rx)
     if (rx) {
         memcpy(&handshake_data, buf, len);
         /*putchar(handshake_data.ack ? '*' : '#');*/
-        if (handshake_data.ack) {
-            if (a2dp_tws.handshake_step != A2DP_HANDSHAKE_STEP_INIT && a2dp_tws.handshake_step != A2DP_HANDSHAKE_STEP_ACK) {
-                a2dp_tws.handshake_step = A2DP_HANDSHAKE_STEP_ACK;
-                a2dp_tws.rx_time = jiffies;
-                a2dp_tws.rx_seqn = handshake_data.seqn;
-                a2dp_tws.rx_state = handshake_data.state;
-                memcpy(a2dp_tws.rx_addr, handshake_data.addr, sizeof(handshake_data.addr));
-            }
-        } else {
+        if (handshake_data.ack == 0) {
             a2dp_tws.need_ack = 1;
         }
+
+        if (a2dp_tws.handshake_step != A2DP_HANDSHAKE_STEP_INIT && a2dp_tws.handshake_step != A2DP_HANDSHAKE_STEP_ACK) {
+            a2dp_tws.handshake_step = A2DP_HANDSHAKE_STEP_ACK;
+            a2dp_tws.rx_time = jiffies;
+            a2dp_tws.rx_seqn = handshake_data.seqn;
+            a2dp_tws.rx_clkn = handshake_data.clkn;
+            a2dp_tws.rx_state = handshake_data.state;
+            memcpy(a2dp_tws.rx_addr, handshake_data.addr, sizeof(handshake_data.addr));
+            if (a2dp_tws.rx_state == A2DP_TWS_FILE_START) { /*对方未START情况下，ack一次提高tws对齐握手通讯成功率*/
+                a2dp_tws.need_ack = 1;
+                a2dp_tws_media_handshake_ack(0);
+            }
+        }
+    } else {
+        a2dp_tws.busy = 0;
     }
 }
 
@@ -98,7 +110,7 @@ REGISTER_TWS_FUNC_STUB(a2dp_tws_handshake) = {
     .func    = a2dp_tws_handskake_handler,
 };
 
-#define bt_clkn_after(a, b)     (((a - b) & 0x7ffffff) >= 0)
+#define bt_clkn_after(a, b)     (((a - b) & 0x7ffffff) >= 0 && ((a - b) & 0x7ffffff) < 0x3ffffff)
 
 static void a2dp_file_abandon_data_before_time(void *file, u32 time)
 {
@@ -133,13 +145,13 @@ static void a2dp_file_abandon_data_before_seqn(void *file, u16 ref_seqn)
             a2dp_media_put_packet(file, frame.packet);
             break;
         }
-        printf("drop seqn : %d\n", seqn);
+        printf("drop seqn : %d, ref_seqn : %d\n", seqn, ref_seqn);
         a2dp_media_free_packet(file, frame.packet);
     }
 
 }
 
-static int a2dp_tws_media_pop_seqn(struct a2dp_file_hdl *hdl, u16 *seqn)
+static int a2dp_tws_media_pop_seqn(struct a2dp_file_hdl *hdl, u16 *seqn, u32 *clkn)
 {
     struct a2dp_media_frame frame;
     int error_num = 0;
@@ -155,6 +167,7 @@ static int a2dp_tws_media_pop_seqn(struct a2dp_file_hdl *hdl, u16 *seqn)
         return -EINVAL;
     }
     *seqn = RB16(frame.packet + 2);
+    *clkn = frame.clkn;
 
     a2dp_media_put_packet(hdl->file, frame.packet);
     return 0;
@@ -162,7 +175,7 @@ static int a2dp_tws_media_pop_seqn(struct a2dp_file_hdl *hdl, u16 *seqn)
 
 static void a2dp_tws_media_handshake_ack(u8 file_running)
 {
-    if (!a2dp_tws.need_ack) {
+    if (!a2dp_tws.need_ack || a2dp_tws.busy) {
         return;
     }
 
@@ -170,15 +183,26 @@ static void a2dp_tws_media_handshake_ack(u8 file_running)
     /*收到握手消息则ack当前信息*/
     handshake_data.ack = 1;
     handshake_data.state = file_running ? a2dp_tws.state : A2DP_TWS_FILE_START;
+    local_irq_disable();
     handshake_data.seqn = a2dp_tws.run_seqn;
+    handshake_data.clkn = a2dp_tws.run_clkn;
+    local_irq_enable();
     memcpy(handshake_data.addr, a2dp_tws.run_addr, sizeof(a2dp_tws.run_addr));
+    a2dp_tws.busy = 1;
     int err = tws_api_send_data_to_sibling(&handshake_data, sizeof(handshake_data), A2DP_TWS_HANDSHAKE);
-    if (!err) {
-        a2dp_tws.need_ack = 0;
+    if (err) {
+        a2dp_tws.busy = 0;
+        return;
     }
+
+    local_irq_disable();
+    a2dp_tws.need_ack = 0;
+    local_irq_enable();
+
+    /*printf("ack : %d, %d, %d\n", a2dp_tws.run_seqn, a2dp_tws.run_clkn, a2dp_tws.need_ack);*/
 }
 
-static void a2dp_tws_media_try_handshake_ack(u8 file_running, u16 seqn)
+static void a2dp_tws_media_try_handshake_ack(u8 file_running, u16 seqn, u32 clkn)
 {
     if (!CONFIG_BTCTLER_TWS_ENABLE) {
         return;
@@ -189,7 +213,10 @@ static void a2dp_tws_media_try_handshake_ack(u8 file_running, u16 seqn)
         return;
     }
 
+    local_irq_disable();
     a2dp_tws.run_seqn = seqn;
+    a2dp_tws.run_clkn = clkn;
+    local_irq_enable();
     a2dp_tws_media_handshake_ack(file_running);
 }
 
@@ -197,8 +224,8 @@ static int a2dp_tws_media_handshake_init(struct a2dp_file_hdl *hdl)
 {
     if (hdl->handshake_state == A2DP_HANDSHAKE_STATE_INIT) {
         u16 seqn = 0;
-        a2dp_file_abandon_data_before_time(hdl->file, bt_audio_conn_clock_time(hdl->bt_addr) - 200);
-        int err = a2dp_tws_media_pop_seqn(hdl, &seqn);
+        u32 clkn = 0;
+        int err = a2dp_tws_media_pop_seqn(hdl, &seqn, &clkn);
         if (err) {
             return -EINVAL;
         }
@@ -207,8 +234,11 @@ static int a2dp_tws_media_handshake_init(struct a2dp_file_hdl *hdl)
         memset(&a2dp_tws, 0x0, sizeof(a2dp_tws));
         a2dp_tws.state = A2DP_TWS_FILE_START;
         a2dp_tws.run_seqn = seqn;
+        a2dp_tws.run_clkn = clkn;
         memcpy(a2dp_tws.run_addr, hdl->bt_addr, sizeof(a2dp_tws.run_addr));
         local_irq_enable();
+        /*g_printf("current seqn : %d\n", seqn);*/
+        hdl->tws_case = 0;
         hdl->handshake_state = A2DP_HANDSHAKE_STATE_RUN;
         hdl->handshake_timeout = jiffies + msecs_to_jiffies(300);
     }
@@ -278,7 +308,13 @@ static int a2dp_tws_media_handshake(struct a2dp_file_hdl *hdl)
     case A2DP_HANDSHAKE_STEP_REQUEST:
         local_irq_disable();
         hdl->request_timeout = jiffies + msecs_to_jiffies(60);
-        err = tws_api_send_data_to_sibling(&handshake_data, sizeof(handshake_data.ack), A2DP_TWS_HANDSHAKE);
+        /*握手请求的消息加入音频包信息，提升对齐效率*/
+        handshake_data.state = A2DP_TWS_FILE_START;
+        handshake_data.seqn = a2dp_tws.run_seqn;
+        handshake_data.clkn = a2dp_tws.run_clkn;
+        memcpy(handshake_data.addr, a2dp_tws.run_addr, sizeof(a2dp_tws.run_addr));
+        err = tws_api_send_data_to_sibling(&handshake_data, sizeof(handshake_data), A2DP_TWS_HANDSHAKE);
+        a2dp_tws.busy = err ? 0 : 1;
         a2dp_tws.handshake_step = err ? A2DP_HANDSHAKE_STEP_REQUEST : A2DP_HANDSHAKE_STEP_WAIT_ACK;
         local_irq_enable();
         break;
@@ -308,8 +344,8 @@ static int a2dp_tws_media_handshake(struct a2dp_file_hdl *hdl)
     if (hdl->handshake_state == A2DP_HANDSHAKE_STATE_TIMEOUT) {
         /*握手超时，这时候需要对超时数据进行处理*/
         printf("a2dp handshake timeout : %d\n", bt_audio_conn_clock_time(hdl->bt_addr));
-        a2dp_file_abandon_data_before_time(hdl->file, bt_audio_conn_clock_time(hdl->bt_addr) - 200);
-        hdl->tws_case = 1;
+        a2dp_file_abandon_data_before_time(hdl->file, bt_audio_conn_clock_time(hdl->bt_addr) - msecs_to_bt_time(200));
+        hdl->tws_case = tws_api_get_role() == TWS_ROLE_SLAVE ? 1 : 0;
         goto a2dp_file_run;
     }
 
@@ -317,23 +353,34 @@ static int a2dp_tws_media_handshake(struct a2dp_file_hdl *hdl)
         printf("a2dp handshake bt addr error : \n");
         put_buf(a2dp_tws.rx_addr, 6);
         put_buf(hdl->bt_addr, 6);
-        hdl->tws_case = 1;
+        hdl->tws_case = 3;
         goto a2dp_file_run;
     }
 
     if (__builtin_abs((int)(a2dp_tws.rx_seqn - a2dp_tws.run_seqn)) > 50) {
         printf("a2dp handshake seqn error : %d, %d, need check btstack.\n", a2dp_tws.rx_seqn, a2dp_tws.run_seqn);
-        hdl->tws_case = 1;
-        goto a2dp_file_run;
+        a2dp_media_clear_packet_before_seqn(hdl->file, 0);
+        hdl->handshake_state = A2DP_HANDSHAKE_STEP_INIT;
+        hdl->handshake_timeout = jiffies + msecs_to_jiffies(300);
+        /*该错误通常发生在协议栈或一拖二收数瞬时异常的情况下，此时需要将数据全部清空后重新运行*/
+        return -EINVAL;
     }
 
     /*将两边数据处理为一致的seqn*/
     a2dp_file_abandon_data_before_seqn(hdl->file, a2dp_tws.rx_seqn);
+    if ((tws_api_get_role() == TWS_ROLE_SLAVE && a2dp_tws.rx_seqn == a2dp_tws.run_seqn) || \
+        (seqn_after(a2dp_tws.rx_seqn, a2dp_tws.run_seqn))) {
+        /*g_printf("reset start time : %d\n", a2dp_tws.rx_clkn);*/
+        /*存在两种情况需要处理: 1、主从机数据一致；2、一边的数据多于另外一边*/
+        hdl->frame_clkn = a2dp_tws.rx_clkn;
+        hdl->reset_frame_clkn = 1;
+    }
 
 a2dp_file_run:
     local_irq_disable();
     if (hdl->handshake_state == A2DP_HANDSHAKE_STATE_SUCCESS && a2dp_tws.rx_state == A2DP_TWS_FILE_RUN) {
         printf("------>>> A2DP player join tws <<<--------\n");
+        hdl->reset_frame_clkn = 0;
         hdl->tws_case = 2;
     }
     a2dp_tws.state = A2DP_TWS_FILE_RUN;

@@ -18,6 +18,13 @@
 #include "btstack_rcsp_user.h"
 #include "ble_rcsp_server.h"
 #endif
+#if TCFG_LE_AUDIO_APP_CONFIG
+#include "le_audio_player.h"
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "app_le_auracast.h"
+#endif
+
 
 #if TCFG_APP_BT_EN
 
@@ -60,6 +67,20 @@ bool bt_is_sniff_close(void)
 {
     return (g_bt_hdl.sniff_timer == 0);
 }
+u8 check_local_not_accept_sniff_by_remote()
+{
+#if TCFG_LE_AUDIO_APP_CONFIG
+    if (le_audio_player_is_playing()) {
+        return TRUE;
+    }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    if (le_auracast_is_running()) {
+        return TRUE;
+    }
+#endif
+#endif
+    return FALSE;
+}
 
 void bt_check_exit_sniff()
 {
@@ -88,8 +109,8 @@ void bt_check_enter_sniff()
 #if (RCSP_ADV_EN)
     u8 rcsp_max_con_dev = rcsp_max_support_con_dev_num();
     u8 rcsp_conn_num = bt_rcsp_device_conn_num();
-    if (get_ble_adv_modify() || ((rcsp_conn_num < rcsp_max_con_dev) && get_ble_adv_notify())) {
-        // rcsp需要通知信息到手机 || rcsp未连接且需要通过广播信息到手机
+    if (get_ble_adv_modify() || get_ble_adv_notify()) {
+        // rcsp广播内容更改需要通知信息到手机 || 手机APP连接后需要主动通知信息
         return;
     }
 #endif
@@ -100,6 +121,9 @@ void bt_check_enter_sniff()
     }
 
     if (bt_get_esco_coder_busy_flag()) {
+        return;
+    }
+    if (check_local_not_accept_sniff_by_remote()) {
         return;
     }
 

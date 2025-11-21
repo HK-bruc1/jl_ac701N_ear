@@ -24,6 +24,10 @@ RCSP_BTMATE_EN
 // 没有开启rcsp协议
 #if (!defined(RCSP_MODE) || (RCSP_MODE == 0))
 
+#ifdef OTA_TWS_SAME_TIME_ENABLE
+#undef OTA_TWS_SAME_TIME_ENABLE
+#endif
+
 #define OTA_TWS_SAME_TIME_ENABLE     							0
 #define RCSP_UPDATE_EN               							0
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
@@ -41,8 +45,6 @@ RCSP_BTMATE_EN
 // 音箱SDK RCSP功能配置
 #if (RCSP_MODE == RCSP_MODE_SOUNDBOX)
 
-#define RCSP_MSG_DISTRIBUTION_VER								RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL		//可视化配置工具的消息分发管理
-
 #define RCSP_BLE_MASTER 										0		//当前是否ble主机
 
 #if !RCSP_BLE_MASTER
@@ -55,24 +57,38 @@ RCSP_BTMATE_EN
 #define RCSP_UPDATE_EN		         							1		//是否支持rcsp升级
 #define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
 #define UPDATE_MD5_ENABLE            							1		//升级是否支持MD5校验
-#define RCSP_FILE_OPT				 							0
+#define RCSP_FILE_OPT				 						    1
 #define TCFG_BS_DEV_PATH_EN			 							1
 #define RCSP_APP_RTC_EN											1		// 闹钟功能
+
+#if TCFG_APP_RTC_EN
+// 0 - 旧闹钟，只支持提示音闹铃
+// 1 - 新闹钟，可选择提示音或者设备音乐作为闹铃
+#define CUR_RTC_ALARM_MODE										1
+#endif
 
 // 默认的功能模块使能
 #define RCSP_ADV_NAME_SET_ENABLE        						1		// 蓝牙名设置
 #define RCSP_ADV_KEY_SET_ENABLE         						0		// 按键设置
-#define RCSP_ADV_LED_SET_ENABLE         						1		// 灯光设置
+#define RCSP_ADV_LED_SET_ENABLE         						0		// 灯光设置
 #define RCSP_ADV_MIC_SET_ENABLE         						0		// mic设置
 #define RCSP_ADV_WORK_SET_ENABLE        						0		// 模式设置（游戏模式）
-#define RCSP_ADV_EQ_SET_ENABLE          						0		// eq设置
+#define RCSP_ADV_EQ_SET_ENABLE          						1		// eq设置
 #define RCSP_ADV_MUSIC_INFO_ENABLE      						1		// 音乐信息设置
 #define RCSP_ADV_HIGH_LOW_SET									1		// 高低音设置
 #define RCSP_ADV_FIND_DEVICE_ENABLE     						1		// 查找设备设置
 #define RCSP_ADV_PRODUCT_MSG_ENABLE     						1		// 获取产品信息
-#define RCSP_ADV_COLOR_LED_SET_ENABLE   						1		// 彩灯设置
+#define RCSP_ADV_COLOR_LED_SET_ENABLE   						0		// 彩灯设置
 #define RCSP_ADV_KARAOKE_SET_ENABLE								0		// 卡拉OK设置
 #define RCSP_ADV_KARAOKE_EQ_SET_ENABLE							0		// 卡拉OK EQ设置
+
+// 混响相关功能
+#define RCSP_REVERBERATION_SETTING							    0
+#define RCSP_DRC_VAL_SETTING								    0
+#define RCSP_KARAOKE_SOUND_EFFECT								0
+#define RCSP_KARAOKE_ATMOSPHERE									0
+#define RCSP_KARAOKE_SOUND_PARAM								0
+
 
 #else  // !RCSP_BLE_MASTER
 
@@ -141,14 +157,27 @@ RCSP_BTMATE_EN
 
 // 耳机SDK可配置工具版本 RCSP功能配置
 #elif (RCSP_MODE == RCSP_MODE_EARPHONE)
-
-#define RCSP_MSG_DISTRIBUTION_VER								RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL		//可视化配置工具的消息分发管理
-
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 #define RCSP_ADV_EN												1
 #define RCSP_DEVICE_STATUS_ENABLE								1		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
+#define RCSP_TONE_FILE_TRANSFER_ENABLE                          0       //提示音传输至预留区域功能
 
 #define RCSP_UPDATE_EN		         							1		//是否支持rcsp升级
+
+#if RCSP_TONE_FILE_TRANSFER_ENABLE
+#define TONE_FILE_RESERVED_AREA_NAME                            "TONE" // 存放提示音的预留区域名称
+#define TONE_FILE_NUM                                           1 // 存放到预留区域文件个数
+#define TONE_EATCH_FILE_MAX_SIZE                                (60 * 1024) // 每个存放到预留区域文件的最大大小
+
+#ifdef TONE_FILE_RESERVED_AREA_NAME
+#define TONE_FILE_RESERVED_AREA_CONFIG_NAME                     TONE // 存放提示音的预留区域名称，需要与TONE_FILE_RESERVED_AREA_NAME宏保持一致
+#define TONE_FILE_RESERVED_AREA_CONFIG_SIZE                     64K // 需要写立即数，大小要比TONE_FILE_NUM * TONE_EATCH_FILE_MAX_SIZE值要大
+#define TONE_FILE_RESERVED_AREA_CONFIG_OPT                      1
+#endif
+
+#define TONE_FILE_DEFAULT_NAME                                  "tone"
+#endif
 
 #if (defined OTA_TWS_SAME_TIME_NEW)
 #undef OTA_TWS_SAME_TIME_NEW
@@ -157,14 +186,15 @@ RCSP_BTMATE_EN
 #if CONFIG_DOUBLE_BANK_ENABLE              						//双备份才能打开同步升级流程
 #define OTA_TWS_SAME_TIME_ENABLE     		 TCFG_USER_TWS_ENABLE		//是否支持TWS同步升级
 #define OTA_TWS_SAME_TIME_NEW        		 TCFG_USER_TWS_ENABLE		//使用新的tws ota流程
+#define OTA_TWS_SAME_TIME_NEW_LESS           CONFIG_DOUBLE_BANK_LESS	//使用tws ota 升级app1区域更小结构（压缩/差分）
+
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
 #else
 #define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
 #define OTA_TWS_SAME_TIME_NEW        							0		//使用新的tws ota流程
+#define OTA_TWS_SAME_TIME_NEW_LESS                              0	//使用tws ota 升级app1区域更小结构（压缩/差分）
 #define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
 #endif      //CONFIG_DOUBLE_BANK_ENABLE
-
-
 
 // 默认的功能模块使能
 #define RCSP_ADV_NAME_SET_ENABLE        						1		// 蓝牙名设置
@@ -182,6 +212,7 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_KARAOKE_SET_ENABLE								0		// 卡拉OK设置
 #define RCSP_ADV_KARAOKE_EQ_SET_ENABLE							0		// 卡拉OK EQ设置
 #define RCSP_ADV_AI_NO_PICK										0		// 智能免摘
+#define RCSP_ADV_TRANSLATOR                                     0       // 翻译功能
 #define RCSP_ADV_ASSISTED_HEARING								0		// 辅听，注意开启辅听后，需要关闭ANC相关功能
 
 #if !RCSP_ADV_ASSISTED_HEARING
@@ -193,10 +224,49 @@ RCSP_BTMATE_EN
 #define RCSP_ADV_WIND_NOISE_DETECTION							0		// 风噪检测
 #define RCSP_ADV_VOICE_ENHANCEMENT_MODE							0		// 人声增强模式
 #endif
+#endif
 
+#else
+
+#define RCSP_ADV_EN												1
+#define RCSP_DEVICE_STATUS_ENABLE								0		//设备状态信息功能
+#define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
+#define RCSP_TONE_FILE_TRANSFER_ENABLE                          0       //提示音传输至预留区域功能
+#define RCSP_UPDATE_EN		         							0		//是否支持rcsp升级
+
+#define OTA_TWS_SAME_TIME_ENABLE     							0		//是否支持TWS同步升级
+#define OTA_TWS_SAME_TIME_NEW        							0		//使用新的tws ota流程
+#define UPDATE_MD5_ENABLE            							0		//升级是否支持MD5校验
+
+#define RCSP_ADV_NAME_SET_ENABLE        						0		// 蓝牙名设置
+#define RCSP_ADV_KEY_SET_ENABLE         						0		// 按键设置
+#define RCSP_ADV_LED_SET_ENABLE         						0		// 灯光设置
+#define RCSP_ADV_MIC_SET_ENABLE         						0		// mic设置
+#define RCSP_ADV_WORK_SET_ENABLE        						0		// 模式设置（游戏模式）
+#define RCSP_ADV_HALTER_ENABLE									0		// 挂脖功能
+#define RCSP_ADV_EQ_SET_ENABLE          			            0		// eq设置
+#define RCSP_ADV_MUSIC_INFO_ENABLE      						0		// 音乐信息设置
+#define RCSP_ADV_HIGH_LOW_SET									0		// 高低音设置
+#define RCSP_ADV_FIND_DEVICE_ENABLE     						0		// 查找设备设置
+#define RCSP_ADV_PRODUCT_MSG_ENABLE     						0		// 获取产品信息
+#define RCSP_ADV_COLOR_LED_SET_ENABLE   						0		// 彩灯设置
+#define RCSP_ADV_KARAOKE_SET_ENABLE								0		// 卡拉OK设置
+#define RCSP_ADV_KARAOKE_EQ_SET_ENABLE							0		// 卡拉OK EQ设置
+#define RCSP_ADV_AI_NO_PICK										0		// 智能免摘
+#define RCSP_ADV_ASSISTED_HEARING								0		// 辅听，注意开启辅听后，需要关闭ANC相关功能
+
+#if !RCSP_ADV_ASSISTED_HEARING
+#define RCSP_ADV_ANC_VOICE     					                0		// 主动降噪
+#if RCSP_ADV_ANC_VOICE
+#define RCSP_ADV_ADAPTIVE_NOISE_REDUCTION 						0		// 自适应降噪
+#define RCSP_ADV_SCENE_NOISE_REDUCTION							0		// 场景降噪
+#define RCSP_ADV_WIND_NOISE_DETECTION							0		// 风噪检测
+#define RCSP_ADV_VOICE_ENHANCEMENT_MODE							0		// 人声增强模式
+#endif
 #endif
 
 
+#endif
 
 // 通用 RCSP功能配置
 #else // (RCSP_MODE == RCSP_MODE_COMMON)
@@ -235,24 +305,18 @@ RCSP_BTMATE_EN
 #define		RCSP_SDK_TYPE		RCSP_SDK_TYPE_AC693X
 #endif
 
-#if RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL
 #undef 		RCSP_SDK_TYPE
 #if RCSP_MODE == RCSP_MODE_EARPHONE
 #define		RCSP_SDK_TYPE		RCSP_SDK_TYPE_MANIFEST_EARPHONE
 #else
 #define		RCSP_SDK_TYPE		RCSP_SDK_TYPE_MANIFEST_SOUNDBOX
 #endif
-#endif
 
-#if RCSP_MSG_DISTRIBUTION_VER == RCSP_MSG_DISTRIBUTION_VER_VISUAL_CFG_TOOL
 // 这个版本没有灯光配置
 #undef RCSP_ADV_LED_SET_ENABLE
 #define RCSP_ADV_LED_SET_ENABLE         						0
 #undef RCSP_ADV_COLOR_LED_SET_ENABLE
 #define RCSP_ADV_COLOR_LED_SET_ENABLE   						0
-
-#endif
-
 
 #if TCFG_RCSP_DUAL_CONN_ENABLE
 // RCSP一拖二需要关闭功能
@@ -326,6 +390,10 @@ RCSP_BTMATE_EN
 
 #ifndef RCSP_ADV_AI_NO_PICK
 #define RCSP_ADV_AI_NO_PICK										0
+#endif
+
+#ifndef RCSP_ADV_TRANSLATOR
+#define RCSP_ADV_TRANSLATOR                                     0
 #endif
 
 #ifndef RCSP_ADV_SCENE_NOISE_REDUCTION
@@ -420,10 +488,6 @@ RCSP_BTMATE_EN
 #define TCFG_BT_VOL_SYNC_ENABLE									0
 #endif
 
-#ifndef RCSP_MSG_DISTRIBUTION_VER
-#define RCSP_MSG_DISTRIBUTION_VER								RCSP_MSG_DISTRIBUTION_VER_DEFAULT
-#endif
-
 #ifndef RCSP_REVERBERATION_SETTING
 #define RCSP_REVERBERATION_SETTING								0
 #endif
@@ -445,4 +509,5 @@ RCSP_BTMATE_EN
 #endif
 
 #endif // __RCSP_CFG_H__
+
 

@@ -19,7 +19,7 @@
 
 #if TCFG_SENOR_USER_IIC_TYPE
 #define iic_init(iic)                       hw_iic_init(iic)
-#define iic_uninit(iic)                     hw_iic_uninit(iic)
+#define iic_deinit(iic)                     hw_iic_deinit(iic)
 #define iic_start(iic)                      hw_iic_start(iic)
 #define iic_stop(iic)                       hw_iic_stop(iic)
 #define iic_tx_byte(iic, byte)              hw_iic_tx_byte(iic, byte)
@@ -30,7 +30,7 @@
 #define iic_resume(iic)                     hw_iic_resume(iic)
 #else
 #define iic_init(iic)                       soft_iic_init(iic)
-#define iic_uninit(iic)                     soft_iic_uninit(iic)
+#define iic_deinit(iic)                     soft_iic_deinit(iic)
 #define iic_start(iic)                      soft_iic_start(iic)
 #define iic_stop(iic)                       soft_iic_stop(iic)
 #define iic_tx_byte(iic, byte)              soft_iic_tx_byte(iic, byte)

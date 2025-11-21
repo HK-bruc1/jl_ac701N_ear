@@ -16,9 +16,9 @@
     *(.jlsp_far_front_data)
 
 	*(.lhdc.data)
-	*(.lhdcv4decode.data)
+	*(.lhdcv4_dec.data)
 	*(.lhdc_v5.data)
-	*(.lhdcv5decode.data)
+	*(.lhdcv5_dec.data)
     *(.ldac.data)
     *(.ldac_enc.data)
     *(.ldac_dec.data)
@@ -26,6 +26,7 @@
     *(.msbc_data)
     *(.cvsd_data)
     *(.sbc_data)
+    *(.sbc_dec.data)
     *(.bt_aac_dec.data)
 	*(.bt_aac_dec_data)
     *(.btaac_rom_dec.data)
@@ -41,6 +42,12 @@
 	*(.lc3_codec_ari_c_data)
 	*(.lc3_codec_c_data)
 #endif
+
+	*(.jla_v2_dec_data)
+	*(.jla_v2_enc_data)
+	*(.jla_v2_codec_c_data)
+	*(.jla_v2_codec_ari_c_data)
+
 
 	*(.mp3_dec.data)
 	*(.mp3.data)
@@ -94,6 +101,7 @@
 	*(.ape.data)
 	*(.ape_dec_data)
 	*(.ape_data)
+	*(.llns_dns.data)
 
 	*(.audio_track_data)
 	*(.audio_eq_data)
@@ -115,3 +123,6 @@
 	*(.anc_btspp_data)
 	*(.anc_debug_data)
 
+#if (AUDIO_CVP_COMMON_AT_RAM == 0)
+	*(.aec_mem)
+#endif

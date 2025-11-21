@@ -13,6 +13,7 @@ TCFG_AUDIO_ANC_ENABLE)
 #include "audio_anc.h"
 struct icsd_dot_parm *DOT_PARM;
 int (*dot_printf)(const char *format, ...) = _dot_printf;
+/* #define dot_printf       _dot_printf; */
 
 //lib_icsd_dot.a使用，临时接口
 void icsd_dot_parm_init()

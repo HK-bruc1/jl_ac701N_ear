@@ -6,9 +6,9 @@
 #endif
 #include "app_config.h"
 #include "cpu/includes.h"
-#include "asm/dac.h"
 #include "asm/charge.h"
 #include "gpio_config.h"
+#include "rtc/rtc_dev.h"
 
 const struct low_power_param power_param = {
     //sniff时芯片是否进入低功耗
@@ -26,6 +26,9 @@ const struct low_power_param power_param = {
     .mem_init_con = 0,
 #endif
 
+#if TCFG_APP_RTC_EN
+    .rtc_clk = RTC_CLK_RES_SEL,
+#endif
 };
 
 void key_wakeup_init();

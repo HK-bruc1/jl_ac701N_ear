@@ -1,8 +1,8 @@
 #ifndef __AUDIO_GAIN_PORCESS__H
 #define __AUDIO_GAIN_PORCESS__H
 
-#include "media/audio_stream.h"
-
+#include "generic/typedef.h"
+#include "effects/gain_mix_api.h"
 #ifndef RUN_NORMAL
 #define RUN_NORMAL  0
 #endif
@@ -28,6 +28,16 @@ typedef struct _steromix_gain_process_TOOL_SET {
     struct aud_steromix_gain_parm_update parm;
 } stereo_mix_gain_param_tool_set;
 
+struct aud_split_gain_parm_update {
+    int revere_phase_l;
+    float gain_l;
+    int revere_phase_r;
+    float gain_r;
+};
+struct split_gain_param_tool_set {
+    int is_bypass;
+    struct aud_split_gain_parm_update parm;
+};
 
 
 struct aud_gain_parm {
@@ -36,7 +46,7 @@ struct aud_gain_parm {
     u8 indata_inc;//channel ==1 ?1:2;
     u8 outdata_inc;//channel ==1 ?1:2;
     u8 bit_wide;//0:16bit  1：32bit
-    u8 divide;//左右声道是否需要独立的gain
+    u8 divide;//0:gain  1:split_gain  2:stereo_mix
 };
 struct aud_gain_parm_update {
     float gain[4];//增加多少dB

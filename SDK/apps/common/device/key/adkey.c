@@ -9,6 +9,7 @@
 #include "gpio.h"
 #include "app_config.h"
 #include "asm/power_interface.h"
+#include "system/init.h"
 
 
 #if TCFG_ADKEY_ENABLE
@@ -16,15 +17,7 @@
 static const struct adkey_platform_data *__this = NULL;
 
 //按键驱动扫描参数列表
-struct key_driver_para adkey_scan_param = {
-    .last_key 		  = NO_KEY,  		//上一次get_value按键值, 初始化为NO_KEY;
-    .key_type		  = KEY_DRIVER_TYPE_AD,
-    .filter_time  	  = 2,				//按键消抖延时;
-    .long_time 		  = 75,  			//按键判定长按数量
-    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
-    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
-    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
-};
+struct key_driver_para adkey_scan_param;
 
 u8 ad_get_key_value(void)
 {
@@ -51,6 +44,7 @@ const struct adkey_platform_data *get_adkey_platform_data()
     return NULL;
 }
 
+__INITCALL_BANK_CODE
 int adkey_init(void)
 {
     __this = get_adkey_platform_data();
@@ -58,6 +52,7 @@ int adkey_init(void)
     if (!__this) {
         return -EINVAL;
     }
+
 
     if (!__this->enable) {
         return KEY_NOT_SUPPORT;
@@ -74,7 +69,9 @@ int adkey_init(void)
 #endif
 
     if (__this->long_press_enable) {
-        gpio_longpress_pin0_reset_config(__this->adkey_pin, 0, __this->long_press_time,  1,  !__this->extern_up_en);
+        gpio_longpress_pin0_reset_config(__this->adkey_pin, 0, __this->long_press_time,  1,  PORT_KEEP_STATE, 0);
+    } else {
+        gpio_longpress_pin0_reset_config(__this->adkey_pin, 0, 0,  1,  PORT_KEEP_STATE, 0);
     }
 
     return 0;
@@ -160,6 +157,12 @@ u8 adc_io_reuse_exit(u32 ch)
 
 REGISTER_KEY_OPS(adkey) = {
     .idle_query_en    = 1,
+    .key_type		  = KEY_DRIVER_TYPE_AD,
+    .filter_time  	  = 2,				//按键消抖延时;
+    .long_time 		  = 75,  			//按键判定长按数量
+    .hold_time 		  = (75 + 15),  	//按键判定HOLD数量
+    .click_delay_time = 20,				//按键被抬起后等待连击延时数量
+    .scan_time 	  	  = 10,				//按键扫描频率, 单位: ms
     .param            = &adkey_scan_param,
     .get_value        = ad_get_key_value,
     .key_init         = adkey_init,

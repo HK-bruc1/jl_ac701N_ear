@@ -11,6 +11,8 @@
 #include "decoder_node.h"
 #include "jldemuxer.h"
 #include "app_config.h"
+#include "app_tone.h"
+#include "audio_dac.h"
 
 
 extern const struct decoder_plug_ops decoder_plug_begin[];
@@ -20,6 +22,7 @@ const struct stream_file_ops tone_file_ops;
 static u8 g_player_id = 0;
 static OS_MUTEX g_tone_mutex;
 static struct list_head g_head = LIST_HEAD_INIT(g_head);
+static u8 g_stream_index = 0;
 
 static int tone_player_start(struct tone_player *);
 static int tone_file_close(void *file);
@@ -135,6 +138,7 @@ static void tone_player_callback(void *_player_id, int event)
 
         if (!file) {
             jlstream_release(player->stream);
+            DAC_NOISEGATE_ON();
 
             list_del(&player->entry);
 __try_play_next_tone:
@@ -173,7 +177,7 @@ static int tone_file_read(void *p_file, u8 *buf, int len)
         if ((len -= rlen) == 0) {
             break;
         }
-        if (player->scene == STREAM_SCENE_RING) {
+        if (player->scene == STREAM_SCENE_RING && player->coding_type != AUDIO_CODING_MTY) {
             if (player->coding_type == AUDIO_CODING_WTGV2) {
                 //WTS拼接提示音时，去掉头1byte
                 resfile_seek(player->file, 1, RESFILE_SEEK_SET);
@@ -215,7 +219,9 @@ static int tone_file_read(void *p_file, u8 *buf, int len)
         if (err == 0) {
             if (player->coding_type == fmt.coding_type &&
                 player->sample_rate == fmt.sample_rate &&
-                player->channel_mode == fmt.channel_mode) {
+                player->channel_mode == fmt.channel_mode &&
+                (player->scene != STREAM_SCENE_TONE || player->coding_type != AUDIO_CODING_MTY) && //mty格式提示音不能在原先的基础上接着读,同一个文件的铃声可以
+                player->coding_type != AUDIO_CODING_F2A) {
                 resfile_close(player->file);
                 player->file = file;
                 if (player->coding_type == AUDIO_CODING_WTGV2) {
@@ -363,6 +369,7 @@ static int tone_player_start(struct tone_player *player)
     }
     jlstream_set_dec_file(player->stream, player, &tone_file_ops);
 
+    DAC_NOISEGATE_OFF();
     err = jlstream_start(player->stream);
     if (err) {
         goto __exit1;
@@ -372,6 +379,7 @@ static int tone_player_start(struct tone_player *player)
 
 __exit1:
     jlstream_release(player->stream);
+    DAC_NOISEGATE_ON();
 __exit0:
     list_del(&player->entry);
     tone_player_free(player);
@@ -598,6 +606,7 @@ void tone_player_stop()
         if (player->stream) {
             jlstream_stop(player->stream, 50);
             jlstream_release(player->stream);
+            DAC_NOISEGATE_ON();
         }
         tone_player_free(player);
     }
@@ -611,11 +620,148 @@ u16 tone_player_get_fname_uuid(const char *fname)
 }
 
 
+__INITCALL_BANK_CODE
 static int __tone_player_init()
 {
     os_mutex_create(&g_tone_mutex);
     return 0;
 }
 __initcall(__tone_player_init);
+
+#if FILE_DEC_REPEAT_EN
+static	struct audio_repeat_mode_param rep = {0};
+
+static int common_dec_repeat_cb(void *priv)
+{
+    y_printf("common_dec_repeat_cb\n");
+    return 0;
+}
+
+int common_dec_repeat_set(struct jlstream *stream, struct fixphase_repair_obj *repair_buf) //设置对应数据流无缝循环播放
+{
+    rep.flag = 1; //使能
+    rep.headcut_frame = 2; //依据需求砍掉前面几帧，仅mp3格式有效
+    rep.tailcut_frame = 2; //依据需求砍掉后面几帧，仅mp3格式有效
+    rep.repeat_callback = common_dec_repeat_cb;
+    rep.repair_buf = repair_buf;
+    jlstream_node_ioctl(stream, NODE_UUID_DECODER, NODE_IOC_DECODER_REPEAT, (int)&rep);
+    return 0;
+}
+#endif
+
+static void fileplay_player_callback(void *_player_id, int event)
+{
+    void *file = NULL;
+    struct tone_player *player = (struct tone_player *)_player_id;
+
+    printf("fileplay_callback: %x, %p\n", event, _player_id);
+
+    switch (event) {
+    case STREAM_EVENT_START:
+        break;
+    case STREAM_EVENT_PREEMPTED:
+    case STREAM_EVENT_NEGOTIATE_FAILD:
+    /*
+     * 提示音被抢占或者参数协商失败,直接结束播放
+     */
+    case STREAM_EVENT_STOP:
+        if (!player) {
+            break;
+        }
+        jlstream_release(player->stream);
+        tone_file_close(player);
+        g_stream_index &= ~BIT(player->stream_index);
+        free(player);
+        break;
+    }
+}
+
+static int fileplay_player_start(struct tone_player *player, u8 index)
+{
+    int err = -EINVAL;
+    u16 uuid = jlstream_event_notify(STREAM_EVENT_GET_PIPELINE_UUID, (int)"tone");
+    char stream_source_name[12] = "FilePlay";
+    sprintf(stream_source_name, "%s%d", stream_source_name, index);
+    /* printf("FILE PLAY :%d,%s\n",__LINE__,stream_source_name); */
+    player->stream = jlstream_pipeline_parse_by_node_name(uuid, stream_source_name);
+    if (!player->stream) {
+        goto __exit0;
+    }
+    int player_id = player->player_id;
+    jlstream_set_callback(player->stream, (void *)player, fileplay_player_callback);
+    jlstream_set_scene(player->stream, player->scene);
+    jlstream_set_coexist(player->stream, player->coexist);
+    jlstream_node_ioctl(player->stream, NODE_UUID_DECODER,
+                        NODE_IOC_SET_FILE_LEN, (int)tone_file_flen(player));
+    if (player->callback) {
+        err = player->callback(player->priv, STREAM_EVENT_INIT);
+        if (err) {
+            goto __exit1;
+        }
+    }
+    jlstream_set_dec_file(player->stream, player, &tone_file_ops);
+    err = jlstream_start(player->stream);
+#if FILE_DEC_REPEAT_EN
+    common_dec_repeat_set(player->stream, &player->repair_buf);
+#endif
+    if (err) {
+        goto __exit1;
+    }
+    return 0;
+__exit1:
+    jlstream_release(player->stream);
+__exit0:
+    list_del(&player->entry);
+    tone_player_free(player);
+    return err;
+}
+
+struct tone_player *play_fileplay_file(const char *file_name, u8 index)
+{
+    struct tone_player *player;
+#ifdef  CONFIG_FPGA_ENABLE
+    /* return -ENOMEM; */
+#endif
+
+    if (g_stream_index & BIT(index)) {
+        return NULL;
+    }
+
+    player = tone_player_create(file_name);
+    if (!player) {
+        return NULL;
+    }
+    g_stream_index |= BIT(index);
+    player->stream_index = index;
+    int err = fileplay_player_start(player, index);
+    printf("play_fileplay_file %d\n", err);
+    if (!err) {
+        return player;
+    } else {
+        return NULL;
+    }
+}
+
+void fileplay_close(struct tone_player *player)
+{
+    if (player) {
+        jlstream_release(player->stream);
+        tone_file_close(player);
+        g_stream_index &= ~BIT(player->stream_index);
+    }
+}
+
+void multifile_play_demo(void)
+{
+    play_fileplay_file(get_tone_files()->bt_disconnect, 0);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 1);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 2);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 3);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 4);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 5);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 6);
+    play_fileplay_file(get_tone_files()->bt_disconnect, 7);
+}
+
 
 

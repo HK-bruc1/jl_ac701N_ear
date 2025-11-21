@@ -43,13 +43,24 @@ int rcsp_register_setting_misc_setting(void *misc_setting)
     // 需要排序
     RCSP_MISC_SETTING_OPT *misc_opt = g_misc_opt_link_head;
     RCSP_MISC_SETTING_OPT *item = (RCSP_MISC_SETTING_OPT *)misc_setting;
+    RCSP_MISC_SETTING_OPT *pre_item = misc_opt;
     RCSP_MISC_SETTING_OPT *existed_item = NULL;
     while (misc_opt && item) {
         if (misc_opt->misc_setting_type == item->misc_setting_type) {
             return 0;
         } else if (item->misc_setting_type > misc_opt->misc_setting_type) {
             existed_item = misc_opt;
+        } else {
+            if (misc_opt == g_misc_opt_link_head) {
+                item->next = pre_item;
+                g_misc_opt_link_head = item;
+            } else {
+                item->next = pre_item->next;
+                pre_item->next = item;
+            }
+            return 0;
         }
+        pre_item = misc_opt;
         misc_opt = misc_opt->next;
     }
 

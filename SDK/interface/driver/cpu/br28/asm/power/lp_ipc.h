@@ -1,36 +1,6 @@
 #ifndef __LP_IPC_H__
 #define __LP_IPC_H__
 
-//=================================消息格式========================================
-
-//消息buf大小
-#define MAX_POOL		    128
-
-//消息类型
-#define NO_MSG				0xff
-
-//获取消息返回值
-enum {
-    MSG_NO_ERROR = 0,
-    MSG_NO_MSG = 0,
-    MSG_EVENT_EXIST = -1,
-    MSG_NOT_EVENT = -2,
-    MSG_EVENT_PARAM_ERROR = -3,
-    MSG_BUF_NOT_ENOUGH = -4,
-    MSG_CBUF_ERROR = -5,
-};
-
-//消息头格式
-#define MSG_HEADER_BYTE_LEN     3
-#define MSG_HEADER_BIT_LEN     (MSG_HEADER_BYTE_LEN*8)
-#define MSG_HEADER_ALL_BIT     ((1L<<MSG_HEADER_BIT_LEN) - 1)
-
-#define MSG_INDEX_BIT			7
-#define MSG_ACK_BIT  			1
-
-#define MSG_TYPE_BIT_LEN        12
-#define MSG_PARAM_BIT_LEN       (MSG_HEADER_BYTE_LEN*8-MSG_TYPE_BIT_LEN-MSG_INDEX_BIT-MSG_ACK_BIT)
-
 //=================================M2P===========================================
 //M2P中断索引
 enum {
@@ -245,12 +215,6 @@ enum {
 #define P2M_USER_ADDR2                                 (0x03e)
 #define P2M_USER_ADDR3                                 (0x040)
 
-#include "m2p_msg.h"
-#include "p2m_msg.h"
-
-
-void msys_to_p11_sync_cmd(u8 cmd);
-
-void lp_ipc_init();
+#include "power/lp_msg.h"
 
 #endif

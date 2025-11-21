@@ -56,6 +56,13 @@ void pcm_single_to_qual_32bit(void *out, void *in, u16 len);
  * */
 void pcm_dual_to_qual(void *out, void *in, u16 len);
 
+/* note: 32bit位位宽的双声道转四声道
+ * *out:32bit位宽输出地址
+ * *in:32bit位宽输入地址
+ * len:总的输入长度(byte)
+ * */
+void pcm_dual_to_qual_32bit(void *out, void *in, u16 len);
+
 /* note: 16bit位位宽的双声道转四声道(新增的声道可选择是复制输入声道数据或者清零0处理)
  * *out:16bit位宽输出地址
  * *in:16bit位宽输入地址
@@ -101,6 +108,24 @@ void pcm_dual_to_single_32bit(void *out, void *in, u16 len);
  * channel_mode:输出左：AUDIO_CH_L、输出右：AUDIO_CH_R 输出混合后的数据：AUDIO_CH_MIX
  * */
 void pcm_dual_to_single_optional(void *out, void *in, u16 len, u8 channel_mode);
+
+/* note: 16bit位位宽的双声道转双声道
+ * *out:16bit位宽输出地址
+ * *in:16bit位宽输入地址
+ * len:总的输入长度(byte)
+ * channel_mode:输出双左：AUDIO_CH_L、         输出双右：AUDIO_CH_R
+ 	 输出左右混合后的双声道数据：AUDIO_CH_MIX  其他：输出原始声道数据
+ * */
+void pcm_dual_to_dual_optional(void *out, void *in, u16 len, u8 channel_mode);
+
+/* note: 32bit位位宽的双声道转双声道
+ * *out:32bit位宽输出地址
+ * *in:32bit位宽输入地址
+ * len:总的输入长度(byte)
+ * channel_mode:输出双左：AUDIO_CH_L、          输出双右：AUDIO_CH_R
+ 	 输出左右混合后的双声道数据：AUDIO_CH_MIX   其他：输出原始声道数据
+ * */
+void pcm_dual_to_dual_32bit_optional(void *out, void *in, u16 len, u8 channel_mode);
 
 /* note: 32bit位位宽的双声道转单声道
  * *out:32bit位宽输出地址
@@ -186,5 +211,15 @@ void pcm_fill_flfr_2_qual(void *out, void *in_flfr, u16 in_len);
  * */
 void pcm_fill_rlrr_2_qual(void *out, void *in_rlrr, u16 in_len);
 
+void pcm_single_to_double_diff(u32 points, void *inbuf, void *outbuf);
+
+void pcm_single_to_double_diff_32bit(u32 points, void *inbuf, void *outbuf);
+
+/*
+ *立体声左右声道数据互换
+ *len:总的输入长度，单位byte
+ *bit_width: 0:16bit 1:32bit
+ * */
+void channel_swap_run(void *ptr, int len, int bit_width);
 
 #endif/*_AUDIO_SPLICING_H_*/

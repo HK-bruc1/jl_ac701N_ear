@@ -1,5 +1,7 @@
 #include "app_config.h"
 
+breakpoint_init
+
 #if TCFG_AUTOMUTE_NODE_ENABLE
 automute_node_adapter
 #endif
@@ -25,22 +27,64 @@ bt_audio_sync_node_adapter
 adc_file_plug
 #endif
 
+#if TCFG_TONE_NODE_ENABLE
 tone_file_plug
+#endif
+#if TCFG_RING_TONE_NODE_ENABLE
 ring_file_plug
+#endif
+#if TCFG_KEY_TONE_NODE_ENABLE
 key_tone_file_plug
+#endif
+
+#ifndef TCFG_DEC_SBC_ENABLE
+#define TCFG_DEC_SBC_ENABLE 1
+#endif
+
+#ifndef TCFG_DEC_MSBC_ENABLE
+#define TCFG_DEC_MSBC_ENABLE 1
+#endif
+
+#ifndef TCFG_ENC_MSBC_ENABLE
+#define TCFG_ENC_MSBC_ENABLE 1
+#endif
+
+
+#if TCFG_TONE_SBC_ENABLE || TCFG_DEC_SBC_ENABLE || TCFG_TONE_MSBC_ENABLE || TCFG_DEC_MSBC_ENABLE || TCFG_ENC_MSBC_ENABLE
 sbc_hwaccel
-sbc_decoder_plug
+#endif
+
+#if TCFG_TONE_SBC_ENABLE || TCFG_DEC_SBC_ENABLE
+#if 0
+sbc_decoder_sw_plug
+#else
+sbc_decoder_hw_plug
+#endif
+#endif
+
+#if TCFG_TONE_MSBC_ENABLE || TCFG_DEC_MSBC_ENABLE
 msbc_decoder_plug
+#endif
+
 
 #if TCFG_PDM_NODE_ENABLE
 pdm_mic_file_plug
 #endif
 
+#if TCFG_ENC_MSBC_ENABLE
 #if TCFG_BT_DONGLE_ENABLE
 msbc_encoder_soft_plug
 #else
 msbc_encoder_hw_plug
 #endif
+#endif
+
+
+#if TCFG_ENC_SBC_ENABLE
+sbc_encoder_soft_plug
+#endif
+
+
 
 #if TCFG_BT_SUPPORT_AAC || TCFG_DEC_AAC_ENABLE || TCFG_TONE_AAC_ENABLE
 aac_dec_plug
@@ -58,6 +102,13 @@ lhdc_v5_dec_plug
 lc3_encoder_plug
 lc3_dec_plug
 capture_sync_adapter
+#endif
+
+#if TCFG_DEC_JLA_V2_ENABLE
+jla_v2_dec_plug
+#endif
+#if TCFG_ENC_JLA_V2_ENABLE
+jla_v2_enc_plug
 #endif
 
 #if TCFG_BT_SUPPORT_LDAC
@@ -110,6 +161,9 @@ stereo_widener_node_adapter
 linein_file_plug
 #endif
 
+#if TCFG_APP_MUSIC_EN
+music_file_plug
+#endif
 
 #if TCFG_ENERGY_DETECT_NODE_ENABLE
 energy_detect_node_adapter
@@ -159,8 +213,20 @@ noisegate_node_adapter
 ns_node_adapter
 #endif
 
+#if TCFG_NS_NODE_LITE_ENABLE
+ns_node_lite_adapter
+#endif
+
 #if TCFG_DNS_NODE_ENABLE
 dns_node_adapter
+#endif
+
+#if TCFG_AUDIO_CVP_V3_MODE
+cvp_v3_node_adapter
+#endif
+
+#if TCFG_AUDIO_CVP_SMS_VF_MODE
+cvp_sms_vf_node_adapter
 #endif
 
 #if TCFG_DEC_WTG_ENABLE || TCFG_TONE_WTG_ENABLE
@@ -185,6 +251,12 @@ opus_dec_plug
 #if TCFG_ENC_OPUS_ENABLE
 opus_encoder_plug
 #endif
+#if TCFG_STENC_OPUS_ENABLE
+opus_stenc_plug
+#endif
+#if TCFG_DEC_STENC_OPUS_ENABLE
+opus_stenc_dec_plug
+#endif
 
 #if TCFG_DEC_WTS_ENABLE || TCFG_TONE_WTS_ENABLE
 wts_dec_plug
@@ -196,6 +268,22 @@ mp3_dec_plug
 
 #if TCFG_DEC_WMA_ENABLE || TCFG_TONE_WMA_ENABLE
 wma_dec_plug
+#endif
+
+#if TCFG_DEC_FLAC_ENABLE
+flac_dec_plug
+#endif
+
+#if TCFG_DEC_M4A_ENABLE
+m4a_dec_plug
+#endif
+
+#if TCFG_DEC_APE_ENABLE
+ape_dec_plug
+#endif
+
+#if TCFG_ENC_MP3_ENABLE
+mp3_encoder_plug
 #endif
 
 #if CONFIG_FATFS_ENABLE
@@ -295,6 +383,14 @@ sink_dev3_adapter
 sink_dev4_adapter
 #endif
 
+#if TCFG_FILE_PACKAGE_NODE_ENABLE
+packager_adapter
+#endif
+
+#if TCFG_WRITE_FILE_NODE_ENABLE
+write_file_adapter
+#endif
+
 #if TCFG_AGC_NODE_ENABLE
 agc_node_adapter
 #endif
@@ -349,6 +445,10 @@ indicator_node_adapter
 
 #if TCFG_LLNS_NODE_ENABLE
 llns_node_adapter
+#endif
+
+#if TCFG_LLNS_DNS_NODE_ENABLE
+llns_dns_node_adapter
 #endif
 
 #if TCFG_VOICE_CHANGER_ADV_NODE_ENABLE
@@ -436,25 +536,13 @@ debug_system_record
 debug_task_record
 #endif
 
-#if TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
-mulit_ch_iis0_file_plug
-mulit_ch_iis1_file_plug
-#endif
-
-#if TCFG_MULTI_CH_IIS_NODE_ENABLE
-multi_ch_iis0_node_adapter
-multi_ch_iis1_node_adapter
-#endif
-
-#if TCFG_IIS_NODE_ENABLE
-iis_node_adapter
-iis1_node_adapter
-iis_file_plug
-iis1_file_plug
-#endif
 
 #if TCFG_SIGNAL_GENERATOR_NODE_ENABLE
 signal_generator_file_plug
+#endif
+
+#if TCFG_ZERO_ACTIVE_NODE_ENABLE
+zero_file_plug
 #endif
 
 #if TCFG_REPLACE_NODE_ENABLE
@@ -468,3 +556,75 @@ vocal_remover_node_adapter
 #if TCFG_NOISEGATE_PRO_NODE_ENABLE
 noisegate_pro_node_adapter
 #endif
+
+#if TCFG_SPLIT_GAIN_NODE_ENABLE
+split_gain_node_adapter
+#endif
+
+#if TCFG_DEC_SPEEX_ENABLE
+speex_dec_plug
+#endif
+
+#if TCFG_ENC_SPEEX_ENABLE
+speex_encoder_plug
+#endif
+
+#if TCFG_VIRTUAL_BASS_CLASSIC_NODE_ENABLE
+virtual_bass_classic_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_PRO_NODE_ENABLE
+upmix_node_adapter
+#endif
+
+#if TCFG_PHASER_NODE_ENABLE
+phaser_node_adapter
+#endif
+
+#if TCFG_FLANGER_NODE_ENABLE
+flanger_node_adapter
+#endif
+
+#if TCFG_CHORUS_ADVANCE_NODE_ENABLE
+chorus_advance_node_adapter
+#endif
+
+#if TCFG_PINGPONG_ECHO_NODE_ENABLE
+pingpong_echo_node_adapter
+#endif
+
+#if TCFG_STEREO_SPATIAL_WIDER_NODE_ENABLE
+stereo_spatial_wider_node_adapter
+#endif
+
+#if TCFG_DISTORTION_CLIPPING_NODE_ENABLE
+distortion_clipping_node_adapter
+#endif
+
+#if TCFG_FREQUENCY_COMPRESSOR_NODE_ENABLE
+frequency_compressor_node_adapter
+#endif
+#if TCFG_SPATIAL_ADV_NODE_ENABLE
+spatial_adv_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE
+virtual_bass_pro_node_adapter
+#endif
+
+#if TCFG_ENC_AAC_ENABLE
+aac_enc_plug
+#endif
+
+#if TCFG_LHDC_X_NODE_ENABLE
+lhdc_x_node_adapter
+#endif
+
+#if TCFG_MUTE_NODE_ENABLE
+mute_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE
+virtual_surround_hp_node_adapter
+#endif
+

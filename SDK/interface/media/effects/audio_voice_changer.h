@@ -3,7 +3,6 @@
 #define _AUDIO_VOICE_CHANGER_API_H_
 
 #include "effects/voiceChanger_api.h"
-#include "media/audio_stream.h"
 
 enum {
     V_CHANGER_ORINGIN_TYPE,
@@ -41,6 +40,18 @@ typedef struct _voice_changer_hdl {
  */
 extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api();
 extern VOICECHANGER_FUNC_API *get_voiceChanger_adv_func_api();
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_pitchshift(); //不管effectv传什么，都认为是EFFECT_VOICECHANGE_PITCHSHIFT
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_cartoon();  //
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_spectrum();//不管effectv传什么，都认为是EFFECT_VOICECHANGE_SPECTRUM
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_robort();
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_melody();
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_whisper();
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_f0_domain();
+
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_f0_td();   //对应get_voiceChanger_func_api的EFFECT_VOICECHANGE_F0_TD模式
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_f0_h_td(); //对应get_voiceChanger_adv_func_api的EFFECT_VOICECHANGE_F0_TD模式
+
+extern VOICECHANGER_FUNC_API *get_voiceChanger_func_api_feedback();
 /*
  * 变声模块打开
  */

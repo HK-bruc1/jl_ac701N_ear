@@ -469,10 +469,12 @@ void eq_file_cfg_update(char *name, struct cfg_info info)
 #endif
     if (!len) {
         printf("user eq cfg parm read err %d, %d\n", len, info.size);
+        free(tab);
         return;
     }
     if (tab->seg_num > AUDIO_EQ_MAX_SECTION) {
         printf("error:info.max_nsection(%d) > max(%d)\n", tab->seg_num, AUDIO_EQ_MAX_SECTION);
+        free(tab);
         return;
     }
 

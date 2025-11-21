@@ -10,6 +10,13 @@ struct testbox_event {
     u8 *packet;
 };
 
+struct tws_pairtool_info_t {
+    u8 dev_num;
+    u8 ch;
+    u8 common_addr[6];
+    u8 tws_addr[6];
+};
+
 extern void testbox_set_bt_init_ok(u8 flag);
 extern u8 testbox_get_status(void);
 extern void testbox_clear_status(void);

@@ -28,13 +28,16 @@ struct cvp_node_hdl {
     s16 *buf;
     s16 *buf_ref;
     s16 *buf_ref_1;
+    s16 *buf_ref_2;
     u32 ref_sr;
     u16 source_uuid; //源节点uuid
+    void (*lock)(void);
+    void (*unlock)(void);
 };
 
 static struct cvp_node_hdl *g_cvp_hdl;
 
-int cvp_node_output_handle(s16 *data, u16 len)
+int cvp_dev_node_output_handle(s16 *data, u16 len)
 {
     struct stream_frame *frame;
     frame = jlstream_get_frame(hdl_node(g_cvp_hdl)->oport, len);
@@ -47,6 +50,7 @@ int cvp_node_output_handle(s16 *data, u16 len)
     return len;
 }
 
+__CVP_BANK_CODE
 int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)priv;
@@ -86,7 +90,7 @@ int cvp_node_param_cfg_read(void *priv, u8 ignore_subid)
 static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)iport->node->private_data;
-    s16 *dat, *tbuf, *tbuf_ref, *tbuf_ref_1;
+    s16 *dat, *tbuf, *tbuf_ref, *tbuf_ref_1, *tbuf_ref_2;
     int wlen;
     struct stream_frame *in_frame;
 
@@ -109,6 +113,7 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             memcpy((u8 *)dat, in_frame->data, in_frame->len);
             audio_aec_inbuf(dat, in_frame->len);
         } else if (hdl->cfg.mic_num == 2) {	//双麦第三方算法
+            hdl->lock();
             wlen = in_frame->len >> 2;	//单个ADC的点数
             tbuf = hdl->buf + (wlen * hdl->buf_cnt);
             tbuf_ref = hdl->buf_ref + (wlen * hdl->buf_cnt);
@@ -124,7 +129,9 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             audio_aec_inbuf_ref(tbuf, wlen << 1);
             audio_aec_inbuf(tbuf_ref, wlen << 1);
 #endif/*TCFG_AUDIO_DMS_MIC_MANAGE*/
+            hdl->unlock();
         } else if (hdl->cfg.mic_num == 3) {	//三麦第三方算法
+            hdl->lock();
             wlen = in_frame->len / 6;	//单个ADC的点数
             tbuf = hdl->buf + (wlen * hdl->buf_cnt);
             tbuf_ref = hdl->buf_ref + (wlen * hdl->buf_cnt);
@@ -138,6 +145,26 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
             audio_aec_inbuf_ref(tbuf_ref, wlen << 1);
             audio_aec_inbuf_ref_1(tbuf_ref_1, wlen << 1);
             audio_aec_inbuf(tbuf, wlen << 1);
+            hdl->unlock();
+        } else if (hdl->cfg.mic_num == 4) {	//四麦第三方算法
+            hdl->lock();
+            wlen = in_frame->len / 8;	//单个ADC的点数
+            tbuf = hdl->buf + (wlen * hdl->buf_cnt);
+            tbuf_ref = hdl->buf_ref + (wlen * hdl->buf_cnt);
+            tbuf_ref_1 = hdl->buf_ref_1 + (wlen * hdl->buf_cnt);
+            tbuf_ref_2 = hdl->buf_ref_2 + (wlen * hdl->buf_cnt);
+            dat = (s16 *)in_frame->data;
+            for (int i = 0; i < wlen; i++) {
+                tbuf[i]         = dat[4 * i];           // talk
+                tbuf_ref[i]     = dat[4 * i + 1];       // vpu
+                tbuf_ref_1[i]   = dat[4 * i + 2];       // fb
+                tbuf_ref_2[i]   = dat[4 * i + 3];       // ff
+            }
+            audio_aec_inbuf_ref(tbuf_ref_2, wlen << 1);
+            audio_aec_inbuf_ref_1(tbuf_ref_1, wlen << 1);
+            audio_aec_inbuf_ref_2(tbuf_ref, wlen << 1);
+            audio_aec_inbuf(tbuf, wlen << 1);
+            hdl->unlock();
         }
         if (++hdl->buf_cnt > ((CVP_INPUT_SIZE / 256) - 1)) {	//计算下一个ADCbuffer位置
             hdl->buf_cnt = 0;
@@ -146,13 +173,36 @@ static void cvp_handle_frame(struct stream_iport *iport, struct stream_note *not
     }
 }
 
+static int cvp_develop_lock_init(struct cvp_node_hdl *hdl)
+{
+    int ret = false;
+    u16 node_uuid = hdl_node(hdl)->uuid;
+    if (hdl) {
+        switch (node_uuid) {
+        case NODE_UUID_CVP_DEVELOP:
+            hdl->lock   = audio_cvp_develop_lock;
+            hdl->unlock = audio_cvp_develop_unlock;
+            break;
+        default:
+            printf("cvp_develop_lock_init: unknown node UUID %d\n", node_uuid);
+            hdl->lock   = NULL;
+            hdl->unlock = NULL;
+            break;
+        }
+        ret = true;
+    }
+    return ret;
+}
+
 static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
 {
     struct cvp_node_hdl *hdl = (struct cvp_node_hdl *)node->private_data;
-
+    /*初始化spinlock锁*/
+    cvp_develop_lock_init(hdl);
 
     node->type = NODE_TYPE_ASYNC;
     cvp_node_param_cfg_read(hdl, 0);
+    cvp_node_context_setup(uuid);
     //根据算法单麦/双麦分配对应的空间
     hdl->buf = (s16 *)malloc(CVP_INPUT_SIZE << 1);
     if (hdl->cfg.mic_num == 2) {
@@ -160,6 +210,10 @@ static int cvp_adapter_bind(struct stream_node *node, u16 uuid)
     } else if (hdl->cfg.mic_num == 3) {
         hdl->buf_ref = (s16 *)malloc(CVP_INPUT_SIZE << 1);
         hdl->buf_ref_1 = (s16 *)malloc(CVP_INPUT_SIZE << 1);
+    } else if (hdl->cfg.mic_num == 4) {
+        hdl->buf_ref = (s16 *)malloc(CVP_INPUT_SIZE << 1);
+        hdl->buf_ref_1 = (s16 *)malloc(CVP_INPUT_SIZE << 1);
+        hdl->buf_ref_2 = (s16 *)malloc(CVP_INPUT_SIZE << 1);
     }
     g_cvp_hdl = hdl;
 
@@ -174,6 +228,7 @@ static void cvp_ioc_open_iport(struct stream_iport *iport)
 
 
 /*节点start函数*/
+__CVP_BANK_CODE
 static void cvp_ioc_start(struct cvp_node_hdl *hdl)
 {
     struct stream_fmt *fmt = &hdl_node(hdl)->oport->fmt;
@@ -258,8 +313,11 @@ static void cvp_adapter_release(struct stream_node *node)
         hdl->buf_ref = NULL;
         free(hdl->buf_ref_1);
         hdl->buf_ref_1 = NULL;
+        free(hdl->buf_ref_2);
+        hdl->buf_ref_2 = NULL;
     }
     g_cvp_hdl = NULL;
+    cvp_node_context_setup(0);
 }
 
 /*节点adapter 注意需要在sdk_used_list声明，否则会被优化*/
@@ -270,6 +328,8 @@ REGISTER_STREAM_NODE_ADAPTER(cvp_node_adapter) = {
     .ioctl      = cvp_adapter_ioctl,
     .release    = cvp_adapter_release,
     .hdl_size   = sizeof(struct cvp_node_hdl),
+    .ability_channel_out = 0x80 | 1,
+    .ability_channel_convert = 1,
 };
 
 #endif/*TCFG_CVP_DEVELOP_ENABLE*/

@@ -10,7 +10,7 @@
 #include "gSensor/gSensor_manage.h"
 #include "imuSensor_manage.h"
 #include "iic_api.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "eartouch_manage.h"
 #include "iokey_config.h"
 #include "adkey_config.h"
@@ -31,7 +31,9 @@
 #if TCFG_ICM42670P_ENABLE
 #include "imu_sensor/icm_42670p/icm_42670p.h"
 #endif
-
+#if TCFG_HRSENSOR_ENABLE
+#include "hr_sensor/hrSensor_manage.h"
+#endif
 
 #include "sdk_config.c"
 
@@ -102,8 +104,25 @@ IMU_SENSOR_PLATFORM_DATA_BEGIN(imu_sensor_data)
 #endif
 IMU_SENSOR_PLATFORM_DATA_END();
 #endif
+/************************** gsensor ****************************/
+#if TCFG_GSENSOR_ENABLE
+GSENSOR_PLATFORM_DATA_BEGIN(gSensor_data)
+.iic = 0,
+ .gSensor_name = "stk832x",
+  GSENSOR_PLATFORM_DATA_END();
+#endif
 
-void board_imu_sensor_init()
+/************************** hrsensor ****************************/
+#if TCFG_HRSENSOR_ENABLE
+HRSENSOR_PLATFORM_DATA_BEGIN(hr_sensor_data)
+#if TCFG_HX3918_ENABLE
+.iic = 0,
+ .hrSensor_name = "hx3918",
+#endif
+  HRSENSOR_PLATFORM_DATA_END()
+#endif
+
+  void board_imu_sensor_init()
 {
 #if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     extern void imu_sensor_power_ctl(u32 gpio, u8 value);
@@ -224,9 +243,6 @@ LPCTMU_PLATFORM_DATA_END();
 LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
     .slide_mode_en              = TCFG_LP_KEY_SLIDE_ENABLE,
     .slide_mode_key_value       = TCFG_LP_KEY_SLIDE_VALUE,
-    .eartch_en                  = TCFG_LP_EARTCH_KEY_ENABLE,
-    .eartch_ch                  = TCFG_LP_EARTCH_DETECT_CH,
-    .eartch_ref_ch              = TCFG_LP_EARTCH_REF_CH,
     .charge_mode_keep_touch     = TCFG_LP_KEY_ENABLE_IN_CHARGE,
 #if TCFG_LP_KEY_LONG_PRESS_RESET
     .long_press_reset_time      = TCFG_LP_KEY_LONG_PRESS_RESET_TIME,
@@ -239,12 +255,12 @@ LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
 LP_TOUCH_KEY_PLATFORM_DATA_END();
 #endif
 
-
+__INITCALL_BANK_CODE
 void board_init()
 {
     board_power_init();
 
-    adc_init();
+    gpadc_init();
 
 #if TCFG_BATTERY_CURVE_ENABLE
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
@@ -257,9 +273,22 @@ void board_init()
 #if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE) || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     board_imu_sensor_init();
 #endif
+#if TCFG_GSENSOR_ENABLE
+    gravity_sensor_init((void*)&gSensor_data);
+#endif      //end if CONFIG_GSENSOR_ENABLE
+
+#if TCFG_HRSENSOR_ENABLE
+    hr_sensor_init((void *)&hr_sensor_data);
+#endif
+
+#if TCFG_GSENSOR_ENABLE || TCFG_HRSENSOR_ENABLE
+void app_sensor_init(void);
+    app_sensor_init();
+#endif
 }
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
+__INITCALL_BANK_CODE
 static int touch_key_init(void)
 {
     lp_touch_key_init(&lp_touch_key_pdata);
