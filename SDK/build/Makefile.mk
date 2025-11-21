@@ -161,6 +161,7 @@ LFLAGS := \
 	cpu/br28/liba/btstack.a \
 	cpu/br28/liba/bt_hash_enc.a \
 	cpu/br28/liba/rcsp_stack.a \
+	cpu/br28/liba/lib_jl_earbox.a \
 	cpu/br28/liba/ximalaya_lib.a \
 	cpu/br28/liba/google_fps.a \
 	cpu/br28/liba/fmna_stack.a \

@@ -3,7 +3,7 @@
 #include "app_config.h"
 #include "reference_time.h"
 #include "ai_rx_player.h"
-#include "rcsp_translator.h"
+#include "ai_player.h"
 
 
 #if  TCFG_AI_RX_NODE_ENABLE
@@ -23,36 +23,37 @@ extern u32 bt_audio_conn_clock_time(void *addr);
 static enum stream_node_state ai_rx_get_frame(void *file, struct stream_frame **pframe)
 {
     struct ai_rx_file_handle *hdl = (struct ai_rx_file_handle *)file;
+    //cppcheck-suppress unusedVariable
     struct stream_frame *frame;
-    struct translator_recv_audio_frame *trans_frame = NULL;
+#if TCFG_AI_PLAYER_ENABLE
+    struct ai_player_audio_frame *ai_frame = NULL;
 
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
-    trans_frame = JL_rcsp_translator_recv_ch_get_frame((u8)hdl->source);
-#endif
-    //cppcheck-suppress knownConditionTrueFalse
-    if (trans_frame == NULL) {
+    ai_frame = ai_player_get_frame(hdl->source);
+    if (ai_frame == NULL) {
         *pframe = NULL;
         return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
     }
 
-    frame = jlstream_get_frame(hdl->node->oport, trans_frame->size);
+    frame = jlstream_get_frame(hdl->node->oport, ai_frame->size);
     if (frame == NULL) {
         *pframe = NULL;
         return NODE_STA_RUN;
     }
 
-    memcpy(frame->data, trans_frame->buf, trans_frame->size);
-    frame->len = trans_frame->size;
+    memcpy(frame->data, ai_frame->buf, ai_frame->size);
+    frame->len = ai_frame->size;
     if (hdl->reference) {
-        frame->timestamp = (trans_frame->timestamp + hdl->play_latency) * TIMESTAMP_US_DENOMINATOR;
+        frame->timestamp = (ai_frame->timestamp + hdl->play_latency) * TIMESTAMP_US_DENOMINATOR;
         frame->flags |= FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP;
     }
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
-    JL_rcsp_translator_recv_ch_free_frame((u8)hdl->source, trans_frame);
-#endif
+    ai_player_free_frame(hdl->source, ai_frame);
     *pframe = frame;
 
     return NODE_STA_RUN;
+
+#else
+    return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
+#endif
 
 }
 
@@ -105,8 +106,8 @@ static int ai_rx_file_start(struct ai_rx_file_handle *hdl)
     }
 
     hdl->start = 1;
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
-    JL_rcsp_translator_set_decode_resume_handler(hdl->source, hdl, ai_rx_tick_handler);
+#if TCFG_AI_PLAYER_ENABLE
+    ai_player_set_decode_resume_handler(hdl->source, hdl, ai_rx_tick_handler);
 #endif
 
     if (!jlstream_is_contains_node_from(hdl->node, NODE_UUID_BT_AUDIO_SYNC)) {
@@ -115,7 +116,9 @@ static int ai_rx_file_start(struct ai_rx_file_handle *hdl)
 
     hdl->play_latency = 300 * 1000;//设置延时us
 
-    hdl->reference = audio_reference_clock_select(hdl->bt_addr, 0);
+    if (hdl->bt_addr) {
+        hdl->reference = audio_reference_clock_select(hdl->bt_addr, 0);
+    }
 
     return 0;
 }
@@ -126,8 +129,8 @@ static int ai_rx_file_stop(struct ai_rx_file_handle *hdl)
         return 0;
     }
     hdl->start = 0;
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
-    JL_rcsp_translator_set_decode_resume_handler(hdl->source, hdl, NULL);
+#if TCFG_AI_PLAYER_ENABLE
+    ai_player_set_decode_resume_handler(hdl->source, hdl, NULL);
 #endif
     if (hdl->reference) {
         audio_reference_clock_exit(hdl->reference);

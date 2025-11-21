@@ -29,8 +29,8 @@
 #include "audio_anc.h"
 #endif
 
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
-#include "rcsp_translator.h"
+#if TCFG_AI_TRANSLATOR_ENABLE
+#include "ai_translator.h"
 #endif
 
 #if !TCFG_JLSTREAM_EFFICIENT_MODE
@@ -329,13 +329,13 @@ static int tws_switch_get_status()
     return 1;
 }
 
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+#if TCFG_AI_TRANSLATOR_ENABLE
 static int esco_trans_switch_get_status()
 {
     int trans = 0; //获取翻译状态
-    struct translator_mode_info minfo;
-    JL_rcsp_translator_get_mode_info(&minfo);
-    if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
+    struct ai_trans_mode minfo;
+    ai_translator_get_mode_info(&minfo);
+    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
         trans = 1;
     }
     return trans;
@@ -349,9 +349,9 @@ static int esco_switch_get_status()
 static int media_trans_switch_get_status()
 {
     int trans = 0;//获取翻译状态
-    struct translator_mode_info minfo;
-    JL_rcsp_translator_get_mode_info(&minfo);
-    if (minfo.mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
+    struct ai_trans_mode minfo;
+    ai_translator_get_mode_info(&minfo);
+    if (minfo.mode == AI_TRANSLATOR_MODE_A2DP_TRANSLATION) {
         trans = 1;
     }
     return trans;
@@ -375,7 +375,7 @@ static int get_switch_node_callback(const char *arg)
     }
 #endif
 
-#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+#if TCFG_AI_TRANSLATOR_ENABLE
     if (!strcmp(arg, "ESCO_Switch")) {
         return (int)esco_switch_get_status;
     }

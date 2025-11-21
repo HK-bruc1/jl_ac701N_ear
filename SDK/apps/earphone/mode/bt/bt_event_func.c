@@ -17,6 +17,9 @@
 #include "bt_tws.h"
 #endif
 #include "bt_event_func.h"
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+#include "sbox_user_app.h"
+#endif
 extern struct bt_mode_var g_bt_hdl;
 
 /*************************************************************************************************/
@@ -183,6 +186,9 @@ void user_get_bt_music_info(u8 type, u32 time, u8 *info, u16 len)
         sec = time / 1000 - (min * 60);
         printf(" time %02d : %02d\n ", min, sec);
     }
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+    sbox_phone_music_info_deal(type, time, info, len);
+#endif
 }
 
 static void bt_music_player_time_deal(void *priv)

@@ -781,6 +781,33 @@ c_SRC_FILES += \
 
 // *INDENT-OFF*
 
+#if TCFG_AI_PLAYER_ENABLE || TCFG_AI_RECORDER_ENABLE || TCFG_AI_TRANSLATOR_ENABLE
+c_SRC_FILES += \
+    apps/common/ai_audio/ai_audio_common.c \
+
+#endif
+
+#if TCFG_AI_PLAYER_ENABLE
+c_SRC_FILES += \
+    apps/common/ai_audio/ai_player.c \
+
+#endif
+
+#if TCFG_AI_RECORDER_ENABLE
+c_SRC_FILES += \
+    apps/common/ai_audio/ai_recorder.c \
+
+#endif
+
+#if TCFG_AI_TRANSLATOR_ENABLE
+c_SRC_FILES += \
+    apps/common/ai_audio/ai_translator.c \
+
+#endif
+
+
+// *INDENT-OFF*
+
 #if THIRD_PARTY_PROTOCOLS_SEL || TCFG_LE_AUDIO_APP_CONFIG
 c_SRC_FILES += \
 	apps/common/third_party_profile/multi_protocol_common.c \
@@ -1302,6 +1329,20 @@ c_SRC_FILES += \
 #endif
 
 
+#if THIRD_PARTY_PROTOCOLS_SEL & JL_SBOX_EN
+c_SRC_FILES += \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_core_config.c \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_protocol.c \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_user_app.c \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_uart_app.c \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_eq_switch.c \
+    apps/common/third_party_profile/jieli/jl_earbox/user_video_ctr.c \
+    apps/common/third_party_profile/jieli/jl_earbox/edr_hid_user.c \
+    apps/common/third_party_profile/jieli/jl_earbox/sbox_connect_emitter.c \
+
+//apps/common/third_party_profile/jieli/jl_earbox/sbox_key_setting.c \
+
+#endif
 
 // *INDENT-OFF*
 
@@ -1744,7 +1785,7 @@ c_SRC_FILES += \
 	  cpu/br28/lua_port_api.c
 #endif
 
-#if TCFG_CHARGE_ENABLE
+#if 1//TCFG_CHARGE_ENABLE
 c_SRC_FILES += \
 	  cpu/br28/charge/charge.c \
       cpu/br28/charge/charge_config.c
