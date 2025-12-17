@@ -211,6 +211,7 @@ LFLAGS := \
 	cpu/br28/liba/agreement.a \
 	cpu/br28/liba/libjlsp.a \
 	cpu/br28/liba/lib_nn_v3.a \
+	cpu/br28/liba/lib_nn_v3_params.a \
 	cpu/br28/liba/libjlsp_kws.a \
 	cpu/br28/liba/libkwscommon.a \
 	cpu/br28/liba/JL_Phone_Call.a \

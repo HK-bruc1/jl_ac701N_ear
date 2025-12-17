@@ -129,6 +129,14 @@ void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();
 u32 get_btosc_info_for_update(void *info);
 
+
+#define CLK_INDEPENDENT_CTL_DCVDD
+void clk_set_vdc_lowest_voltage(u32 vdc_level);
+void clk_vdc_mode_init(u32 mode, u32 vdc_level);
+#define dcvdd_vol_sel       VDC13_VOL_SEL
+#define get_dcvdd_vol_sel   GET_VD13_VOL_SEL
+
+
 #define BT_CLOCK_IN(x)          SFR(JL_CLOCK->CLK_CON1,  14,  2,  x)
 //for MACRO - BT_CLOCK_IN
 enum {

@@ -377,7 +377,7 @@ int bt_phone_hangup(u8 *bt_addr)
                 memcpy(g_bt_hdl.phone_ring_addr, addr, 6);
                 g_bt_hdl.phone_ring_sync_tws = 1;
                 if ((inband_ring_flag == 0) || (inband_ring_flag && bt_check_esco_state_via_addr(g_bt_hdl.phone_ring_addr) == BT_ESCO_STATUS_CLOSE)) {
-                    if (!esco_player_start(bt_addr)) {
+                    if (!esco_player_is_playing(bt_addr)) {
                         tws_phone_call_send_cmd(CMD_PHONE_INCOME, g_bt_hdl.phone_ring_addr, 2, 1);
                     } else {
                         log_info("esco_player_not this _btaddr");

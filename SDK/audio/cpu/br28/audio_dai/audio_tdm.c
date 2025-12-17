@@ -238,13 +238,13 @@ void handle_tdm_tx_demo(void *priv, void *buf, u32 len)
 #endif
 
 static TDM_PARM	TDM_RX_CFG = {
-    .mclk_io = IO_PORTG_03,
-    .bclk_io = IO_PORTG_04,
-    .wclk_io = IO_PORTG_05,
-    .data_io = IO_PORTG_06,
-    .role = TDM_ROLE_MASTER,
-    /* .role = TDM_ROLE_SLAVE, */
-    .delay_mode = TDM_NO_DELAY_MODE,
+    .mclk_io = TCFG_TDM_RX_PORT_MCLK,
+    .bclk_io = TCFG_TDM_RX_PORT_BCLK,
+    .wclk_io = TCFG_TDM_RX_PORT_WCLK,
+    .data_io = TCFG_TDM_RX_PORT_DATA,
+    .role = TCFG_TDM_RX_ROLE,
+    /*.role = TDM_ROLE_SLAVE,*/
+    .delay_mode = TDM_WORK_MODE,
     .update_sample_mode = TDM_BCLK_FALL_UPDATE_RAISE_SAMPLE,
     .data_width = TDM_SLOT_MODE_16BIT,
     .sample_rate = TDM_SAMPLE_RATE,
@@ -258,12 +258,12 @@ static TDM_PARM	TDM_RX_CFG = {
 };
 
 static TDM_PARM	TDM_TX_CFG = {
-    .mclk_io = IO_PORTB_07,
-    .bclk_io = IO_PORTB_04,
-    .wclk_io = IO_PORTB_05,
-    .data_io = IO_PORTB_06,
-    .role = TDM_ROLE_SLAVE,
-    .delay_mode = TDM_NO_DELAY_MODE,
+    .mclk_io = TCFG_TDM_RX_PORT_MCLK,
+    .bclk_io = TCFG_TDM_RX_PORT_BCLK,
+    .wclk_io = TCFG_TDM_RX_PORT_WCLK,
+    .data_io = TCFG_TDM_RX_PORT_DATA,
+    .role = TCFG_TDM_TX_ROLE,
+    .delay_mode = TDM_WORK_MODE,
     .update_sample_mode = TDM_BCLK_FALL_UPDATE_RAISE_SAMPLE,
     .data_width =  TDM_SLOT_MODE_16BIT,
     .sample_rate = TDM_SAMPLE_RATE,
@@ -483,6 +483,7 @@ int tdm_init(TDM_PARM *parm)
     }
 
     __this = parm;
+
     //=============================================//
     //                 TDM模式配置                 //
     //=============================================//

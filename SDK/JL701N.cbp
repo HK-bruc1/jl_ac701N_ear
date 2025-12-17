@@ -339,6 +339,7 @@
 <Add option="cpu/br28/liba/agreement.a" />
 <Add option="cpu/br28/liba/libjlsp.a" />
 <Add option="cpu/br28/liba/lib_nn_v3.a" />
+<Add option="cpu/br28/liba/lib_nn_v3_params.a" />
 <Add option="cpu/br28/liba/libjlsp_kws.a" />
 <Add option="cpu/br28/liba/libkwscommon.a" />
 <Add option="cpu/br28/liba/JL_Phone_Call.a" />

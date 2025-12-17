@@ -43,6 +43,7 @@
 #define TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE 0 // HYBRID双MIC+DNS
 #define TCFG_AUDIO_CVP_SMS_ANS_MODE 0 // 单MIC通话
 #define TCFG_AUDIO_CVP_SMS_DNS_MODE 1 // 单MIC+DNS
+#define TCFG_AUDIO_CVP_V3_MODE 0 // CVP_V3
 #define TCFG_AUTO_WAH_NODE_ENABLE 0 // Auto Wah
 #define TCFG_AUTODUCK_NODE_ENABLE 0 // AutoDuck Trigger、AutoDuck
 #define TCFG_AUTOMUTE_NODE_ENABLE 0 // automute
@@ -145,6 +146,9 @@
 #define EQ_SECTION_MAX 0xc // EQ_SECTION_MAX
 #define TCFG_STREAM_BIN_ENC_ENABLE 0 // stream.bin加密使能
 #define TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE 0 // Virtual Surround Headphone 2t4
+#define TCFG_TDM_RX_ENABLE 0 // TDM_RX
+#define TCFG_TDM_TX_ENABLE 0 // TDM_TX
+#define TCFG_CVP_ALGO_TYPE 1 // pipeline-CVP-CVP_V3-通话算法
 // ------------流程图宏定义------------
 
 // ------------流程图节点位宽定义------------

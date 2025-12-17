@@ -497,10 +497,14 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
         }
         spin_unlock(&connected_lock);
         connected_mutex_post(&connected_mutex, __LINE__);
-        if ((transmit_buf == NULL) && _bn_p_to_c) {
-            transmit_buf = zalloc(get_cig_transmit_data_len() * _bn_p_to_c);    //by haibin--0624
+        if (!_bn_p_to_c) {
+            r_printf("connected_perip_connect_recoder fail, Maybe cis is closed!\n");
+            return;
         }
-        ASSERT(transmit_buf, "transmit_buf is NULL, BN_P_To_C:%d\n", _bn_p_to_c);
+        if (transmit_buf == NULL) {
+            transmit_buf = zalloc(get_cig_transmit_data_len() * _bn_p_to_c);    //by haibin--0624
+            ASSERT(transmit_buf, "transmit_buf is NULL, BN_P_To_C:%d\n", _bn_p_to_c);
+        }
         if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
             recorder = le_audio_switch_ops->tx_le_audio_open(&params);
         }

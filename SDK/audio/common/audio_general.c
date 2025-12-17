@@ -31,6 +31,7 @@ const int config_bt_audio_enable = 1;
 #else
 const int config_bt_audio_enable = 0;
 #endif
+const int CONFIG_A2DP_AFATER_TONE_COEXIST_ENABLE = 0;
 
 const int config_audio_dac_ng_debug = 0;
 const int config_audio_dac_enable = TCFG_DAC_NODE_ENABLE;
@@ -210,6 +211,20 @@ const int config_lea_media_stream_dump_enable = 0;	//LE Audio Media Stream Dump
  */
 const int config_audio_cvp_ref_source = 1;/*0:DAC Internal 1:External*/
 
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE == 32000)
+#define LLNS_TABLE_SELECT   BIT(0)
+#else
+#define LLNS_TABLE_SELECT   BIT(1)
+#endif
+
+#define CVP_TABLE_SELECT    BIT(9)
+
+#ifdef TCFG_AUDIO_CVP_V3_MODE
+const u32 NN_TABLE_SELECT = (CVP_TABLE_SELECT | LLNS_TABLE_SELECT);
+#else
+const u32 NN_TABLE_SELECT = (LLNS_TABLE_SELECT);
+#endif
+
 /*
  *******************************************************************
  *						Audio Codec Config
@@ -241,6 +256,12 @@ const int config_mty_repeat_enable = 1; //mty 支持循环播放
 //解码和能量检测共用配置
 const int AAC_DEC_STKBUF_RELEASE_ENABLE = 1;
 
+/////////////////////opus codec/////////////////
+#if defined(TCFG_ENCODER_CHANNEL_NUM) && (TCFG_ENCODER_CHANNEL_NUM & BIT(1)) //双声道opus编码
+const u8 OPUS_ENC_CELT_EN = 1; //是否使能opus celt 编码，仅支持10ms,20ms帧长，支持8k,16k,24k,48k采样率,支持单双声道编码
+#else
+const u8 OPUS_ENC_CELT_EN = 0; //是否使能opus celt 编码，仅支持10ms,20ms帧长，支持8k,16k,24k,48k采样率,支持单双声道编码
+#endif
 /*
  *******************************************************************
  *						Audio SYNCTS Config
@@ -558,6 +579,12 @@ const int spatial_brir_azimuth = -1;    /* -1加载所有brir，角度调试模�
 const u8 const_mic_capless_open_delay_debug = 0;
 const u8 const_mic_capless_trim_delay_debug = 0;
 
+//***********************
+//*   	LLNS DNS   *
+//***********************
+const u8 LLNS_DNS_AGC_EN = 0; //预留配置，当前版本不支持AGC
+const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
+const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，不可更改
 
 const char log_tag_const_v_ALINK  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_c_ALINK  = CONFIG_DEBUG_LIB(0);

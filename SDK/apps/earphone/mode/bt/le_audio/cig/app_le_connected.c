@@ -463,10 +463,12 @@ static int app_connected_conn_status_event_handler(int *msg)
             log_debug("connected_perip_connect_deal fail");
         }
 
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK)
         if (esco_player_runing()) {
             log_info("esco runing, stop cis");
             le_audio_unicast_play_remove_by_phone_call();
         }
+#endif
         //释放互斥量
         app_connected_mutex_post(&mutex, __LINE__);
         break;
@@ -571,7 +573,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         put_buf((u8 *)&acl_info->pri_ch, sizeof(acl_info->pri_ch));
 #if TCFG_JL_UNICAST_BOUND_PAIR_EN
         u8 le_com_addr_new[6];
-        ret = syscfg_read(CFG_TWS_CONNECT_AA, le_com_addr_new, 6);
+        ret = syscfg_read(CFG_USER_COMMON_ADDR, le_com_addr_new, 6);
         log_info("read binding common addr\n");
         put_buf(le_com_addr_new, 6);
 
@@ -925,10 +927,12 @@ static void app_connected_suspend()
 
 int tws_check_user_conn_open_quick_type()
 {
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN))
     /* log_debug("tws_check_user_conn_open_quick_type=%d\n",check_le_audio_tws_conn_role() ); */
     if (is_cig_phone_conn()) {
         return g_le_audio_hdl.le_audio_tws_role;
     }
+#endif
     return 0xff;
 }
 
@@ -1459,6 +1463,7 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
 #elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
 #endif
+            break;
         case CIG_EVENT_OPID_VOLUME_DOWN:
             log_info("sync vol to master down\n");
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
@@ -1985,9 +1990,16 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
     case LE_AUDIO_CONN_STATUES:
         puts("LE_AUDIO_CONN_STATUES\n");
         g_le_audio_hdl.cig_phone_other_conn_status = data[1];
+        log_info("cig_phone_other_conn_status:%d\n", g_le_audio_hdl.cig_phone_other_conn_status);
 #if TCFG_AUTO_SHUT_DOWN_TIME
         if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) {
             sys_auto_shut_down_disable();
+        }
+#endif
+#if TCFG_USER_TWS_ENABLE && (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN))
+        if ((is_cig_phone_conn() == 0) && (is_cig_other_phone_conn() == 0)) {
+            log_info("sync conn status, tws_dual_conn_state_handler\n");
+            tws_dual_conn_state_handler();
         }
 #endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))

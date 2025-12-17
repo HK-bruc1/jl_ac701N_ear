@@ -1220,7 +1220,7 @@ int tws_host_get_local_role()
     if (!page_list_empty()) {
         state |= TWS_STA_HAVE_PAGE_INFO;
     }
-#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
+#if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN))
     if (is_cig_phone_conn()) {
         state |= TWS_STA_LE_AUDIO_CONNECTED;
     }

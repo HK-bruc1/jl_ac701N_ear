@@ -25,7 +25,7 @@
  */
 #define TDM_SAMPLE_RATE TDM_SR_16000
 #define TDM_IRQ_POINTS (256)
-#define TDM_SLOT_NUM 4
+/* #define TDM_SLOT_NUM 4   */
 //位宽配置
 //要和数据流一致
 #define TDM_32_BIT_EN (audio_general_out_dev_bit_width())

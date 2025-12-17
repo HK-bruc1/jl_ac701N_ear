@@ -63,7 +63,7 @@ sbc_decoder_hw_plug
 #endif
 
 #if TCFG_TONE_MSBC_ENABLE || TCFG_DEC_MSBC_ENABLE
-msbc_decoder_plug
+msbc_decoder_hw_plug
 #endif
 
 
@@ -72,11 +72,7 @@ pdm_mic_file_plug
 #endif
 
 #if TCFG_ENC_MSBC_ENABLE
-#if TCFG_BT_DONGLE_ENABLE
-msbc_encoder_soft_plug
-#else
-msbc_encoder_hw_plug
-#endif
+msbc_encoder_plug
 #endif
 
 
@@ -251,12 +247,7 @@ opus_dec_plug
 #if TCFG_ENC_OPUS_ENABLE
 opus_encoder_plug
 #endif
-#if TCFG_STENC_OPUS_ENABLE
-opus_stenc_plug
-#endif
-#if TCFG_DEC_STENC_OPUS_ENABLE
-opus_stenc_dec_plug
-#endif
+
 
 #if TCFG_DEC_WTS_ENABLE || TCFG_TONE_WTS_ENABLE
 wts_dec_plug

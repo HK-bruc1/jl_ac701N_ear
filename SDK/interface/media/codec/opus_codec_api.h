@@ -29,8 +29,15 @@ typedef struct __OPUS_ENC_OPS {
     u32(*run)(u8 *ptr);
 } OPUS_ENC_OPS;
 
-extern OPUS_ENC_OPS *get_opus_enc_ops(void);
+typedef struct __OPUS_STENC_OPS {
+    u32(*need_buf)(OPUS_ENC_PARA *para);       //samplerate=16k   ignore
+    u32(*open)(u8 *ptr, OPUS_EN_FILE_IO *audioIO, OPUS_ENC_PARA *para);
+    u32(*run)(u8 *ptr);
+    u32(*run_wb)(u8 *ptr, short *pcmL, short *pcmR, u8 *obuf, int *encLen);  //run_with_buffer  仅限封装模式0 or 1.
+} OPUS_STENC_OPS;
 
+extern OPUS_ENC_OPS *get_opus_enc_ops(void);
+extern OPUS_ENC_OPS *get_opus_stenc_ops(void);
 
 
 /******************** DEC **********************/

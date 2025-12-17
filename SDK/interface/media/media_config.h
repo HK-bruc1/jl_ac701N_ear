@@ -20,6 +20,7 @@ extern const int CONFIG_MEDIA_MEM_DEBUG;
 extern const int config_media_tws_en;
 extern const int config_audio_cvp_ref_ch_recognize_enable;
 extern const int CONFIG_JLSTREAM_SCENE_DEBUG;
+extern const int CONFIG_A2DP_AFATER_TONE_COEXIST_ENABLE;
 
 /*
  *******************************************************************

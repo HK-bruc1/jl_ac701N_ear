@@ -30,6 +30,7 @@
 
 extern const int OPUS_SRINDEX; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
 
+extern const u8 OPUS_ENC_CELT_EN ;
 static int audio_demo_enc_resume(void *priv);
 static int audio_demo_dec_resume(void *priv);
 static int audio_demo_pcm_data_write(void *priv, void *data, u16 len);
@@ -37,6 +38,16 @@ static int audio_demo_pcm_data_read(void *priv, void *buf, u16 len);
 static int audio_demo_enc_data_write(void *priv, void *data, u16 len);
 static int audio_demo_enc_data_read(void *priv, void *buf, u16 len);
 
+extern const int CONFIG_DEC_SUPPORT_CHANNELS;
+extern const int CONFIG_DEC_SUPPORT_SAMPLERATE;
+extern const int OPUS_SRINDEX ; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
+
+extern const int CONFIG_OGG_OPUS_DEC_SUPPORT;
+extern const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE;
+extern const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN;
+
+extern decoder_ops_t *get_ogg_opus_ops(); //ogg_opus 文件类解码,及特定封装流解码
+extern decoder_ops_t *get_opusdec_ops();
 
 //-----------------------------------------------------------------------------
 //   dac demo
@@ -95,6 +106,8 @@ struct audio_opus_encoder {
     OPUS_ENC_PARA param;
     u8 *run_buf;
     u16 sample_rate;
+    s16 indata_len;
+    s16 *indata;
 };
 
 
@@ -103,7 +116,37 @@ static u16 audio_opus_enc_input_data(void *priv, s16 *buf, u8 channel, u16 len)/
 {
     struct audio_opus_encoder *opus_enc = (struct audio_opus_encoder *)priv;
 
-    int rlen =  audio_demo_pcm_data_read(opus_enc->priv, buf, len << 1);
+    int rlen = 0;
+    if (opus_enc->param.nch == 1) {
+        rlen =  audio_demo_pcm_data_read(opus_enc->priv, buf, len << 1);
+    } else if (OPUS_ENC_CELT_EN) { //双声道且支持celt 编码使能
+        if (opus_enc->indata_len < (len << 2)) {
+            if (opus_enc->indata) {
+                free(opus_enc->indata);
+                opus_enc->indata = NULL;
+            }
+            opus_enc->indata_len = len << 2;
+            if (!opus_enc->indata) {
+                opus_enc->indata = malloc(opus_enc->indata_len);
+            }
+        }
+        int i = 0;
+        if (channel == 0) {
+            rlen = audio_demo_pcm_data_read(opus_enc->priv, (u8 *)opus_enc->indata, len << 2);
+            if (rlen < (len << 2)) {
+                return 0;
+            }
+            for (i = 0; i < len; i++) {
+                buf[i] = opus_enc->indata[i << 1];
+            }
+        } else {
+            for (i = 0; i < len; i++) {
+                buf[i] = opus_enc->indata[(i << 1) + 1];
+            }
+        }
+        return len;
+    }
+
 
     /* printf("enc input : %d---%d",len,rlen); */
 
@@ -151,13 +194,23 @@ static int audio_opus_encoder_start(void *priv)
     if (!opus_enc || opus_enc->start) {
         return 0;
     }
-    opus_enc->ops = get_opus_enc_ops();
+    if (OPUS_ENC_CELT_EN) {
+        opus_enc->ops = get_opus_stenc_ops();
+    } else {
+        opus_enc->ops = get_opus_enc_ops();
+    }
     opus_enc->param.complexity = (opus_enc->param.complexity > 4) ? 4 : opus_enc->param.complexity;
-    opus_enc->param.frame_ms = (opus_enc->param.frame_ms == 20 \
-                                || opus_enc->param.frame_ms == 40 \
-                                || opus_enc->param.frame_ms == 60 \
-                                || opus_enc->param.frame_ms == 80 \
-                                || opus_enc->param.frame_ms == 100) ? opus_enc->param.frame_ms : 20 ; //帧长只能是20,40,60,80,100
+
+    if (OPUS_ENC_CELT_EN) {
+        opus_enc->param.frame_ms = (opus_enc->param.frame_ms == 10 \
+                                    || opus_enc->param.frame_ms == 20) ? opus_enc->param.frame_ms : 20 ; //帧长只能是10,20ms
+    } else {
+        opus_enc->param.frame_ms = (opus_enc->param.frame_ms == 20 \
+                                    || opus_enc->param.frame_ms == 40 \
+                                    || opus_enc->param.frame_ms == 60 \
+                                    || opus_enc->param.frame_ms == 80 \
+                                    || opus_enc->param.frame_ms == 100) ? opus_enc->param.frame_ms : 20 ; //帧长只能是20,40,60,80,100
+    }
     opus_enc->param.format_mode = (opus_enc->param.format_mode >  3) ? 1 : opus_enc->param.format_mode ;
     printf("opus_open_param:%d,%d,%d,%d,%d,%d\n", opus_enc->param.sr, opus_enc->param.br, opus_enc->param.format_mode, opus_enc->param.complexity, opus_enc->param.frame_ms, opus_enc->param.nch);
     u32 need_buf_size = opus_enc->ops->need_buf(&opus_enc->param);
@@ -250,8 +303,22 @@ struct audio_opus_decoder {
     u16 sample_rate;
     u8 quality;
     u16 remain_len;
+    u16 sr;
     u8 *remain_addr;
 
+    void *stk_buf;
+    union {
+        struct { // data_type == AUDIO_INPUT_FILE
+            struct if_decoder_io dec_io;
+            struct decoder_inf *info;
+            decoder_ops_t *opus_ops;
+        } file;
+        struct { // data_type == AUDIO_INPUT_FRAME
+            opuslib_dec_ops *opus_ops;
+            s16 *obuf;
+            u16 total_len;
+        } frame;
+    } ops;
 
 };
 
@@ -297,6 +364,57 @@ void *audio_opus_decoder_open(void *priv)
     return NULL;
 
 }
+static int __opus_input(void *priv, u32 addr, void *buf, int len, u8 type)
+{
+    struct audio_opus_decoder *opus_dec = (struct audio_opus_decoder *)priv;
+
+    int rlen = audio_demo_dec_read_data(opus_dec, buf, len);
+    if (!rlen) {
+        return 0;
+    }
+    return rlen;
+}
+
+/*
+ * 检查数据是否完毕
+ */
+static int __opus_check_buf(void *priv, u32 addr, void *buf)
+{
+
+    int rlen = __opus_input(priv, addr, buf, 512, 0);
+    if (rlen != 512) {
+        printf("__opus_check_buf read rlen= %d, len= %d\n", rlen, 512);
+    }
+    return rlen;
+}
+
+
+/*
+ * 解码后的数据输出
+ */
+static int __opus_output(void *priv, void *data, int len)
+{
+
+    int olen = audio_demo_dec_output_data(priv, data, len);
+    return olen;
+}
+
+
+/*
+ * 获取文件长度
+ */
+static u32 __opus_get_lslen(void *priv)
+{
+    return 0x7fffffff;
+}
+
+
+static u32 __opus_store_rev_data(void *priv, u32 addr, int len)
+{
+    printf("__opus_store_rev_data..:len=%d\n", len);
+    return len;
+}
+
 
 
 /*初始化一些解码器配置，准备开始编码*/
@@ -305,41 +423,135 @@ static int audio_opus_decoder_start(void *priv)
     struct audio_opus_decoder *opus_dec = (struct audio_opus_decoder *)priv;
 
 
+    AUDIO_DECODE_PARA dec_para;
     if (!opus_dec || opus_dec->start) {
         return 0;
     }
 
-    opus_dec->opus_ops = getopuslibdec_ops();
+    if (CONFIG_OGG_OPUS_DEC_SUPPORT) {
+        if (1) {
+            opus_dec->ops.file.opus_ops = get_ogg_opus_ops();
+        } else {//这个是解码非ogg文件的
+            opus_dec->ops.file.opus_ops = get_opusdec_ops();
+        }
+        ASSERT(opus_dec->ops.file.opus_ops != NULL);
+        opus_dec->dcf_obj.bitwidth = 16;//   24bit 或者 16bit
+        opus_dec->dcf_obj.channels = CONFIG_DEC_SUPPORT_CHANNELS;  //  支持的最大声道数
+        opus_dec->dcf_obj.sr = CONFIG_DEC_SUPPORT_SAMPLERATE;    //  支持的最大采样率
 
-    int dcbuf_size = opus_dec->opus_ops->need_buf(opus_dec->dcf_obj.bitwidth);
-    opus_dec->dc_buf = zalloc(dcbuf_size);
-    ASSERT(opus_dec->dc_buf != NULL);
+        /*配置输入输出接口*/
+        opus_dec->ops.file.dec_io.priv = opus_dec;
+        opus_dec->ops.file.dec_io.input = __opus_input;
+        opus_dec->ops.file.dec_io.output = __opus_output;
+        opus_dec->ops.file.dec_io.check_buf = __opus_check_buf;
+        opus_dec->ops.file.dec_io.get_lslen = __opus_get_lslen;
+        opus_dec->ops.file.dec_io.store_rev_data = __opus_store_rev_data;
 
-    if (opus_dec->sample_rate == 8000) {
-        opus_dec->output_len = 160 * 2 ;
+
+        /*
+         * 创建解码工作区BUF
+         */
+        int dcbuf_size = opus_dec->ops.file.opus_ops->need_dcbuf_size(&opus_dec->dcf_obj);
+        opus_dec->dc_buf = malloc(dcbuf_size);
+
+        printf("dcbuf_size = %d, buf:0x%p \n", dcbuf_size, opus_dec->dc_buf);
+        ASSERT(opus_dec->dc_buf != NULL);
+
+        //堆栈设置
+        int stk_size = opus_dec->ops.file.opus_ops->need_skbuf_size(&opus_dec->dcf_obj);
+        if (stk_size) {
+            opus_dec->stk_buf = zalloc(stk_size);
+            printf("opus stk_buf_size = %d, buf:0x%p \n", stk_size, opus_dec->stk_buf);
+            ASSERT(opus_dec->stk_buf != NULL);
+        }
+        /*
+         * 打开解码器
+         */
+        if (opus_dec->ops.file.opus_ops->open) {
+            opus_dec->ops.file.opus_ops->open(opus_dec->dc_buf, opus_dec->stk_buf, &opus_dec->ops.file.dec_io, NULL, &opus_dec->dcf_obj);
+        }
+
+        dec_para.mode = 1;
+        opus_dec->ops.file.opus_ops->dec_config(opus_dec->dc_buf, SET_DECODE_MODE, &dec_para);
+
+        if (CONFIG_OGG_OPUS_DEC_SUPPORT) {
+            if (CONFIG_OGG_OPUS_DEC_SET_RAW_MODE) {
+                opus_dec->ops.file.opus_ops->dec_config(opus_dec->dc_buf, SET_OPUS_RAWDTF, NULL);
+            } else if (CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN) {
+                AUDIO_OPUS_PKTLEN opus_pktlen = {0};
+                opus_pktlen.opus_pkt_len =  CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN;
+                int err = opus_dec->ops.file.opus_ops->dec_config(opus_dec->dc_buf, SET_OPUS_CBR_PKTLEN, &opus_pktlen);
+                if (err) {
+                    printf("opus dec set cbr_packet_len error \n");
+                }
+            }
+        } else {
+            BR_CONTEXT br_obj;
+            br_obj.br_index = OPUS_SRINDEX;
+            opus_dec->ops.file.opus_ops->dec_config(opus_dec->dc_buf, SET_DEC_SR, &br_obj);
+        }
+
+        /*
+         * 格式检查
+         */
+        if (opus_dec->ops.file.opus_ops->format_check) {
+            int err = opus_dec->ops.file.opus_ops->format_check(opus_dec->dc_buf, opus_dec->stk_buf);
+            if (err) {
+                printf("opus format_check err:0x%x\n", err);
+                /* if (config_opus_dec_use_malloc) { */
+                free(opus_dec->dc_buf);
+                opus_dec->dc_buf = NULL;
+                return err;
+            }
+            /* ASSERT(err == 0, "opus format_check err:%d!\n", err); */
+        }
+
+        /*
+         * 获取解码信息
+         */
+
+        if (0) { //文件解码
+            if (opus_dec->ops.file.opus_ops->get_dec_inf) {
+                opus_dec->ops.file.info = opus_dec->ops.file.opus_ops->get_dec_inf(opus_dec->dc_buf);
+                printf("opus info.sr = %d\n", opus_dec->ops.file.info->sr);
+                printf("opus info.br = %d\n", opus_dec->ops.file.info->br);
+                printf("opus info.nch = %d\n", opus_dec->ops.file.info->nch);
+                printf("opus info.total_time = %d\n", opus_dec->ops.file.info->total_time);
+                opus_dec->sr = opus_dec->ops.file.info->br;
+            }
+        } else {
+            opus_dec->sr = 48000;
+        }
     } else {
-        opus_dec->output_len = 320 * 2;
+        opus_dec->opus_ops = getopuslibdec_ops();
+        int dcbuf_size = opus_dec->opus_ops->need_buf(opus_dec->dcf_obj.bitwidth);
+        opus_dec->dc_buf = zalloc(dcbuf_size);
+        ASSERT(opus_dec->dc_buf != NULL);
+
+        if (opus_dec->sample_rate == 8000) {
+            opus_dec->output_len = 160 * 2 ;
+        } else {
+            opus_dec->output_len = 320 * 2;
+        }
+        if (OPUS_SRINDEX == 1) { //OPUS_SRINDEX 对应编码的quality
+            opus_dec->frame_len = 80; //编码帧的长度。
+        } else if (OPUS_SRINDEX == 2) {
+            opus_dec->frame_len = 160;
+        } else {
+            opus_dec->frame_len = 40;
+        }
+
+        opus_dec->in_buf = zalloc(opus_dec->frame_len);
+        opus_dec->out_buf = zalloc(opus_dec->output_len);
+
+        /*
+         * 打开解码器
+         */
+        if (opus_dec->opus_ops->open) {
+            opus_dec->opus_ops->open((u32 *)opus_dec->dc_buf, OPUS_SRINDEX, opus_dec->dcf_obj.bitwidth);
+        }
+
     }
-    if (OPUS_SRINDEX == 1) { //OPUS_SRINDEX 对应编码的quality
-        opus_dec->frame_len = 80; //编码帧的长度。
-    } else if (OPUS_SRINDEX == 2) {
-        opus_dec->frame_len = 160;
-    } else {
-        opus_dec->frame_len = 40;
-    }
-
-    opus_dec->in_buf = zalloc(opus_dec->frame_len);
-    opus_dec->out_buf = zalloc(opus_dec->output_len);
-
-
-
-    /*
-     * 打开解码器
-     */
-    if (opus_dec->opus_ops->open) {
-        opus_dec->opus_ops->open((u32 *)opus_dec->dc_buf, OPUS_SRINDEX, opus_dec->dcf_obj.bitwidth);
-    }
-
 
     opus_dec->start = 1;
     return 0;
@@ -366,30 +578,41 @@ static int audio_opus_decoder_run(void *priv)
         return 0;
     }
 
-    if (opus_dec->remain_len) {
-        wlen = audio_demo_dec_output_data(opus_dec->priv, opus_dec->remain_addr, opus_dec->remain_len);
-        opus_dec->remain_len = opus_dec->output_len - wlen;
-        opus_dec->remain_addr = (u8 *)opus_dec->out_buf - wlen;
+    if (CONFIG_OGG_OPUS_DEC_SUPPORT) {
+        if (opus_dec->ops.file.opus_ops->run) {
+            ret = opus_dec->ops.file.opus_ops->run(opus_dec->dc_buf, 0, opus_dec->stk_buf);
+            //数据流类型解码错误返回继续解码
+            if (ret && ret != 0x40) {	 //非读不到数据的错误，打印出来解码错误类型
+                printf("opus_dec error: %d\n", ret);
+            }
+            ret = 0;
+        }
+    } else {
         if (opus_dec->remain_len) {
+            wlen = audio_demo_dec_output_data(opus_dec->priv, opus_dec->remain_addr, opus_dec->remain_len);
+            opus_dec->remain_len = opus_dec->output_len - wlen;
+            opus_dec->remain_addr = (u8 *)opus_dec->out_buf - wlen;
+            if (opus_dec->remain_len) {
+                return 0;
+            }
+        }
+
+        int rlen = audio_demo_dec_read_data(opus_dec, opus_dec->in_buf, opus_dec->frame_len);
+        if (!rlen) {
             return 0;
         }
+
+        ret = opus_dec->opus_ops->run(opus_dec->dc_buf, (char *)opus_dec->in_buf, (short *)opus_dec->out_buf);
+        if (ret != opus_dec->output_len / 2) { //错误处理
+            printf("opus_decoder err !!, %d", ret);
+        }
+
+
+        wlen = audio_demo_dec_output_data(opus_dec->priv, opus_dec->out_buf, opus_dec->output_len);
+        opus_dec->remain_len = opus_dec->output_len - wlen;
+        opus_dec->remain_addr = (u8 *)opus_dec->out_buf - wlen;
+
     }
-
-    int rlen = audio_demo_dec_read_data(opus_dec, opus_dec->in_buf, opus_dec->frame_len);
-    if (!rlen) {
-        return 0;
-    }
-
-    ret = opus_dec->opus_ops->run(opus_dec->dc_buf, (char *)opus_dec->in_buf, (short *)opus_dec->out_buf);
-    if (ret != opus_dec->output_len / 2) { //错误处理
-        printf("opus_decoder err !!, %d", ret);
-    }
-
-
-    wlen = audio_demo_dec_output_data(opus_dec->priv, opus_dec->out_buf, opus_dec->output_len);
-    opus_dec->remain_len = opus_dec->output_len - wlen;
-    opus_dec->remain_addr = (u8 *)opus_dec->out_buf - wlen;
-
 
     return ret;
 }
@@ -411,6 +634,11 @@ static int audio_opus_decoder_close(void *priv)
             free(opus_dec->dc_buf);
             opus_dec->dc_buf = NULL;
         }
+
+        if (opus_dec->stk_buf) {
+            free(opus_dec->stk_buf);
+        }
+
         free(opus_dec);
         opus_dec = NULL;
     }
@@ -637,11 +865,15 @@ static int audio_demo_pcm_data_read(void *priv, void *buf, u16 len)
     if (!hdl || (!hdl->start)) {
         return 0;
     }
-
+#if 1
     /* y_printf("adc pcm read: len=%d, %d\n",len, cbuf_get_data_size(&hdl->pcm_cbuf)); */
     int rlen = cbuf_read(&hdl->pcm_cbuf, buf, len);
-
     return rlen;
+#else
+    get_sine_data((s16 *)buf, len / 2, 1);
+    return len;
+#endif
+
 }
 
 //保存编码数据
@@ -701,6 +933,12 @@ static void audio_codec_test_task(void *priv)
     }
 }
 
+static void enc_resume_timer(void *arg)
+{
+    audio_demo_enc_resume(arg);
+}
+
+
 ////////////*  test   *//////////////
 
 int audio_opus_enc_dec_test_open(void)
@@ -716,9 +954,10 @@ int audio_opus_enc_dec_test_open(void)
 
     struct audio_fmt fmt = {0};
     fmt.coding_type =  AUDIO_CODING_OPUS;
-    fmt.sample_rate = 16000; //仅支持8K 16K采样率
+    fmt.sample_rate = 16000; //没有使能OPUS_ENC_CELT_EN仅支持8K 16K采样率,使能以后支持8k,16k,24k,48k
     fmt.complexity = 0 ;//范围0到3,3质量最好
-    fmt.frame_len =  20; //20,40,60,80,100,如果选60以上,需要把编码输入buffer 和 编码输出buffer都改大一点，避免输出不了,注意此处单位为ms，例如20表示帧长为20ms
+    fmt.frame_len =  20; //没有使能OPUS_ENC_CELT_EN :20,40,60,80,100,如果选60以上,需要把编码输入buffer 和 编码输出buffer都改大一点，避免输出不了,注意此处单位为ms，例如20表示帧长为20ms
+    //使能OPUS_ENC_CELT_EN : 10,20
     u8 enc_priv = 0; //opus 编码format: //0:百度_无头.                   1:酷狗_eng+range. 2:ogg封装,pc软件可播放.  3:size+rangeFinal. 源码可兼容版本.
     fmt.priv = &enc_priv;
     fmt.channel = 1;
@@ -744,11 +983,15 @@ int audio_opus_enc_dec_test_open(void)
     audio_opus_decoder_set_fmt(hdl->dec, fmt.sample_rate, fmt.quality);
     audio_opus_decoder_start(hdl->dec);
 
+#if 1
     //开mic,产生pcm 数据
     hdl->mic = audio_demo_mic_open(hdl, fmt.sample_rate, 10, fmt.channel);
     if (!hdl->mic) {
         printf("audio_demo_mic_open failed\n");
     }
+#else
+    sys_timer_add(hdl->enc, enc_resume_timer, fmt.frame_len);
+#endif
 
     //开dac, 播放数据
     audio_demo_dac_open(fmt.sample_rate);
@@ -757,7 +1000,7 @@ int audio_opus_enc_dec_test_open(void)
     clk_set_api("sys", 128 * 1000000L); //设置时钟。
 
     hdl->start = 1;
-    int ret = os_task_create(audio_codec_test_task, hdl, 5, 512, 32, AUDIO_DEMO_CODEC_TASK);
+    int ret = os_task_create(audio_codec_test_task, hdl, 5, 1024, 32, AUDIO_DEMO_CODEC_TASK);
 
     printf("== audio_demo_enc_dec_test_open\n");
 

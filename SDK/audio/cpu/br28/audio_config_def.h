@@ -51,6 +51,7 @@
 //**************************************
 /*音效处理链接配置*/
 #define AFx_VBASS_AT_RAM				    1	//虚拟低音
+#define AFx_VBASS_PRO_AT_RAM			    0	//虚拟低音pro
 #define AFx_REVERB_AT_RAM				    1	//混响
 #define AFx_ECHO_AT_RAM				        1	//回声
 #define AFx_VOICECHANGER_AT_RAM			    1	//变声

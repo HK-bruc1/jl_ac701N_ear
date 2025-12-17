@@ -255,6 +255,15 @@
     *(.vbss.text.cache.L2.code)	
 #endif
 
+#if AFx_VBASS_PRO_AT_RAM
+    *(.virtual_bass_pro.text.cache.L2.code)
+#if !AFX_SW_EQ_AT_RAM 
+    *(.iir_filter.text.cache.L2.code)
+#endif
+    *(.drc_advance.text.cache.L2.code)
+    *(.vbss_classic.text.cache.L2.code)
+#endif
+
 #if AFx_REVERB_AT_RAM
     *(.reverb_cal.text.cache.L2.run)
     *(.plateReverb_adv.text.cache.L2.run)
