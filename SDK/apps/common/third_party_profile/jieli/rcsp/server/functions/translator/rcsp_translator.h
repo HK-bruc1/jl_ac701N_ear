@@ -19,6 +19,7 @@
 #define RCSP_TRANSLATOR_MODE_CALL_TRANSLATION                   0x03
 #define RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION                   0x04
 #define RCSP_TRANSLATOR_MODE_FACE_TO_FACE_TRANSLATION           0x05
+#define RCSP_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC        0x06
 
 //encode type
 #define RCSP_TRANSLATOR_ENCODE_TYPE_PCM                         0x00
@@ -34,6 +35,7 @@
 #define RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM              0x03
 #define RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM            0x04
 #define RCSP_TRANSLATOR_AUDIO_SOURCE_MSBC                       0x05
+#define RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_MIX                   0x06
 #pragma pack(1)
 //mode info
 struct translator_mode_info {

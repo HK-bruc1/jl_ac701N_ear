@@ -96,18 +96,36 @@ static int ai_recorder_set_esco_stream_param(struct ai_recorder_ch *rec_ch)
         ret = -EFAULT;
         goto __err_exit;
     }
-    esco_recoder_close();
-    esco_player_close();
-    ret = esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
-    if (ret < 0) {
-        goto __err_exit;
+    if (rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM ||
+        rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM) {
+        esco_recoder_close();
+        esco_player_close();
+        ret = esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
+        if (ret < 0) {
+            goto __err_exit;
+        }
+        esco_player_set_ai_tx_node_func(recorder_hdl.ops.recorder_send_for_esco_downstream);
+        ret = esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
+        if (ret < 0) {
+            goto __err_exit;
+        }
+        esco_recoder_set_ai_tx_node_func(recorder_hdl.ops.recorder_send_for_esco_upstream);
+
+    } else if (rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_MIX) {
+        esco_recoder_close();
+        esco_player_close();
+        ret = esco_player_open_extended(remote_bt_addr, ESCO_PLAYER_EXT_TYPE_AI, &s_enc_fmt);
+        if (ret < 0) {
+            goto __err_exit;
+        }
+        ret = esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
+        if (ret < 0) {
+            goto __err_exit;
+        }
+        //合并声道编码，只设esco player或者esco recorder其中一个的AI_TX回调
+        //函数即可，不用两个都设
+        esco_player_set_ai_tx_node_func(recorder_hdl.ops.recorder_send_for_esco_mix);
     }
-    esco_player_set_ai_tx_node_func(recorder_hdl.ops.recorder_send_for_esco_downstream);
-    ret = esco_recoder_open_extended(remote_bt_addr, ESCO_RECODER_EXT_TYPE_AI, &s_enc_fmt);
-    if (ret < 0) {
-        goto __err_exit;
-    }
-    esco_recoder_set_ai_tx_node_func(recorder_hdl.ops.recorder_send_for_esco_upstream);
 
     return 1;
 
@@ -143,11 +161,18 @@ static int ai_recorder_try_to_set_func(struct ai_recorder_ch *rec_ch)
         break;
     case AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM:
     case AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM:
+    case AI_AUDIO_MEDIA_TYPE_ESCO_MIX:
         if (recorder_hdl.esco_param_is_set) {
             done = 1;
-        } else if (ai_recorder_set_esco_stream_param(rec_ch) > 0) {
-            recorder_hdl.esco_param_is_set = 1;
-            done = 1;
+        } else {
+            ret = ai_recorder_set_esco_stream_param(rec_ch);
+            if (ret > 0) {
+                recorder_hdl.esco_param_is_set = 1;
+                done = 1;
+            } else if (ret < 0) {
+                recorder_hdl.esco_param_is_set = 1;
+                done = -1;
+            }
         }
         break;
     default:
@@ -252,7 +277,7 @@ int ai_recorder_start(u8 ch, struct ai_audio_format *fmt, u8 media_type, u8 tws_
     }
     log_info("ai recorder start in: ch %d, media_type %d\n", ch, media_type);
     if (fmt->coding_type == AUDIO_CODING_OPUS) {
-        fsize = 40;
+        fsize = (fmt->bit_rate / 8) * fmt->frame_dms / 10000;
 #if 0
     } else if (fmt->coding_type == AUDIO_CODING_PCM) {
         fsize = 320 * 2;  //320采样点 16bit 1ch
@@ -264,15 +289,31 @@ int ai_recorder_start(u8 ch, struct ai_audio_format *fmt, u8 media_type, u8 tws_
         fsize = 200;
 #endif
     } else if (fmt->coding_type == AUDIO_CODING_JLA_V2) {
-        fsize = 40 + 2;
+        fsize = (fmt->bit_rate / 8) * fmt->frame_dms / 10000;
+        fsize += (JLA_V2_CODEC_WITH_FRAME_HEADER ? 2 : 0);
     } else {
         ret = -1;
         goto __err_exit;
     }
     memcpy(&rec_ch->format, fmt, sizeof(struct ai_audio_format));
+    rec_ch->format.frame_size = fsize;
     rec_ch->media_type = media_type;
     rec_ch->tws_rec = tws_rec;
-    size = fsize * 5;
+    //size = fsize * 5;
+    switch (media_type) {
+    case AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM:
+    case AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM:
+        size = (100 + fsize / 2) / fsize * fsize;
+        break;
+    case AI_AUDIO_MEDIA_TYPE_ESCO_MIX:
+        size = fsize;
+        break;
+    default:
+        //尽量保持在200左右，round取整
+        size = (200 + fsize / 2) / fsize * fsize;
+        break;
+    }
+    log_info("ai_recorder: frame size %d, send size %d\n", fsize, size);
     rec_ch->cbuf_buf = malloc(size);
     if (rec_ch->cbuf_buf == NULL) {
         ret = -1;
@@ -366,7 +407,8 @@ u8 ai_recorder_get_status(u8 ch)
     rec_ch = &recorder_hdl.recorder_ch[ch];
     state = rec_ch->state;
     if (rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM ||
-        rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM) {
+        rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM ||
+        rec_ch->media_type == AI_AUDIO_MEDIA_TYPE_ESCO_MIX) {
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             if (recorder_hdl.esco_param_is_set == 0) {
                 state = 0;

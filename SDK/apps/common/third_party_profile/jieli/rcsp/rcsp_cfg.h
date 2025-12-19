@@ -51,6 +51,7 @@ RCSP_BTMATE_EN
 
 // BLE从机配置
 #define RCSP_ADV_EN												1
+#define RCSP_ADV_VERSION                                        6       //RCSP广播包版本
 #define RCSP_DEVICE_STATUS_ENABLE								1		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									1		//bt控制功能
 
@@ -104,6 +105,7 @@ RCSP_BTMATE_EN
 #elif (RCSP_MODE == RCSP_MODE_WATCH)
 
 #define RCSP_ADV_EN												0
+#define RCSP_ADV_VERSION                                        6       //RCSP广播包版本
 #define RCSP_DEVICE_STATUS_ENABLE								1		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									1		//bt控制功能
 
@@ -159,6 +161,7 @@ RCSP_BTMATE_EN
 #elif (RCSP_MODE == RCSP_MODE_EARPHONE)
 #if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 #define RCSP_ADV_EN												1
+#define RCSP_ADV_VERSION                                        6       //RCSP广播包版本
 #define RCSP_DEVICE_STATUS_ENABLE								1		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
 #define RCSP_TONE_FILE_TRANSFER_ENABLE                          0       //提示音传输至预留区域功能
@@ -229,6 +232,7 @@ RCSP_BTMATE_EN
 #else
 
 #define RCSP_ADV_EN												1
+#define RCSP_ADV_VERSION                                        6       //RCSP广播包版本
 #define RCSP_DEVICE_STATUS_ENABLE								0		//设备状态信息功能
 #define RCSP_BT_CONTROL_ENABLE									0		//bt控制功能
 #define RCSP_TONE_FILE_TRANSFER_ENABLE                          0       //提示音传输至预留区域功能
@@ -342,6 +346,10 @@ RCSP_BTMATE_EN
 
 #ifndef RCSP_ADV_EN
 #define RCSP_ADV_EN         									0
+#endif
+
+#ifndef RCSP_ADV_VERSION
+#define RCSP_ADV_VERSION                                        2       //RCSP广播包版本
 #endif
 
 #ifndef UPDATE_MD5_ENABLE

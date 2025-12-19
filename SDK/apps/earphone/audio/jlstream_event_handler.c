@@ -20,6 +20,7 @@
 #include "clock.h"
 #include "dual_a2dp_play.h"
 #include "mix_record_api.h"
+#include "app_main.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -332,10 +333,12 @@ static int tws_switch_get_status()
 #if TCFG_AI_TRANSLATOR_ENABLE
 static int esco_trans_switch_get_status()
 {
-    int trans = 0; //获取翻译状态
+    int trans = 0; //获取翻译/录音状态
     struct ai_trans_mode minfo;
     ai_translator_get_mode_info(&minfo);
-    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+        minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC ||
+        minfo.mode == AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
         trans = 1;
     }
     return trans;
@@ -343,7 +346,14 @@ static int esco_trans_switch_get_status()
 
 static int esco_switch_get_status()
 {
-    return !esco_trans_switch_get_status();
+    int trans = 0; //获取翻译/录音状态
+    struct ai_trans_mode minfo;
+    ai_translator_get_mode_info(&minfo);
+    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+        minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
+        trans = 1;
+    }
+    return !trans;
 }
 
 static int media_trans_switch_get_status()
@@ -453,6 +463,11 @@ static int get_output_node_delay(int arg)
     return 0;
 }
 
+static int a2dp_get_disconnect_state(u8 *bt_addr)
+{
+    return get_charge_online_flag();
+}
+
 int jlstream_event_notify(enum stream_event event, int arg)
 {
     int ret = 0;
@@ -524,6 +539,9 @@ int jlstream_event_notify(enum stream_event event, int arg)
         ret = get_output_node_delay(arg);
         break;
 #endif
+    case STREAM_EVENT_GET_A2DP_STATE:
+        ret = a2dp_get_disconnect_state((u8 *)arg);
+        break;
     default:
         break;
     }

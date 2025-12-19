@@ -11,6 +11,8 @@ enum ai_audio_media_type {
     AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM,
     //用于esco player，适配<蓝牙通话>页面
     AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM,
+    //用于esco player + recorder混合，适配<蓝牙通话>页面
+    AI_AUDIO_MEDIA_TYPE_ESCO_MIX,
     //用于a2dp，适配<蓝牙音乐>页面
     AI_AUDIO_MEDIA_TYPE_A2DP,
 };

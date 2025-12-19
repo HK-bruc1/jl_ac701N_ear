@@ -15,6 +15,8 @@ struct ai_recorder_ops {
     int (*recorder_send_for_esco_upstream)(u8 *buf, u32 len);
     //注册给<蓝牙通话>页面esco player的AI_TX节点的发送接口
     int (*recorder_send_for_esco_downstream)(u8 *buf, u32 len);
+    //注册给<蓝牙通话>页面esco player + recorder混合的AI_TX节点的发送接口
+    int (*recorder_send_for_esco_mix)(u8 *buf, u32 len);
     //注册给<蓝牙音乐>页面的AI_TX节点的发送接口
     int (*recorder_send_for_a2dp)(u8 *buf, u32 len);
 };

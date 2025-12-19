@@ -75,6 +75,31 @@ void ai_translator_get_mode_info(struct ai_trans_mode *minfo)
             minfo->mode = AI_TRANSLATOR_MODE_IDLE;
         }
 #endif
+    } else if (minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
+#if AI_AUDIO_CALL_TRANSLATION_LEFT_RIGHT_SPLIT
+        //通话翻译模式，参数未设置完成时，先不通知应用流程已进入通话翻译
+        if (tlr_hdl.call_translate_step) {
+            minfo->mode = AI_TRANSLATOR_MODE_IDLE;
+        }
+        //tws从机不通知应用流程已进入通话翻译
+        if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+            minfo->mode = AI_TRANSLATOR_MODE_IDLE;
+        }
+#endif
+#if TCFG_AI_PLAYER_ENABLE && TCFG_AI_RECORDER_ENABLE
+        if (ai_player_get_status(0) && ai_player_get_status(1) &&
+            ai_recorder_get_status(0)) {
+        } else {
+            minfo->mode = AI_TRANSLATOR_MODE_IDLE;
+        }
+        //printf("st: %d %d %d", ai_player_get_status(0), ai_player_get_status(1), ai_recorder_get_status(0));
+#endif
+    } else if (minfo->mode == AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
+#if TCFG_AI_RECORDER_ENABLE
+        if (0 == ai_recorder_get_status(0)) {
+            minfo->mode = AI_TRANSLATOR_MODE_IDLE;
+        }
+#endif
     }
 }
 
@@ -95,7 +120,7 @@ static void ai_translator_stop_a2dp_player()
     }
 }
 
-static int __ai_translator_start_call_translation(struct ai_audio_format *format, u8 *play_ch, u8 *rec_ch)
+static int __ai_translator_start_call_translation(u8 mode, struct ai_audio_format *format, u8 *play_ch, u8 *rec_ch)
 {
     int ret = 0;
 #if AI_AUDIO_CALL_TRANSLATION_LEFT_RIGHT_SPLIT
@@ -104,38 +129,73 @@ static int __ai_translator_start_call_translation(struct ai_audio_format *format
     u8 tws_play = 1;
 #endif
 
+    if (mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
 #if TCFG_AI_RECORDER_ENABLE
-    ret = ai_recorder_start(0, format, AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM, 0);
-    if (ret) {
-        ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
-        goto __err_exit;
-    }
-    rec_ch[0] = 0;
+        ret = ai_recorder_start(0, format, AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM, 0);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        rec_ch[0] = 0;
 #endif
 #if TCFG_AI_PLAYER_ENABLE
-    ret = ai_player_start(0, format, AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM, tws_play);
-    if (ret) {
-        ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
-        goto __err_exit;
-    }
-    play_ch[0] = 0;
+        ret = ai_player_start(0, format, AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM, tws_play);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        play_ch[0] = 0;
 #endif
 #if TCFG_AI_RECORDER_ENABLE
-    ret = ai_recorder_start(1, format, AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM, 0);
-    if (ret) {
-        ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
-        goto __err_exit;
-    }
-    rec_ch[1] = 1;
+        ret = ai_recorder_start(1, format, AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM, 0);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        rec_ch[1] = 1;
 #endif
 #if TCFG_AI_PLAYER_ENABLE
-    ret = ai_player_start(1, format, AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM, tws_play);
-    if (ret) {
-        ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
-        goto __err_exit;
-    }
-    play_ch[1] = 1;
+        ret = ai_player_start(1, format, AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM, tws_play);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        play_ch[1] = 1;
 #endif
+
+    } else if (mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
+        struct ai_audio_format rec_fmt = {0};
+        memcpy(&rec_fmt, format, sizeof(struct ai_audio_format));
+        rec_fmt.channel = 2;  //opus立体声编码
+        rec_fmt.bit_rate *= 2;  //立体声码率翻倍
+#if TCFG_AI_RECORDER_ENABLE
+        ret = ai_recorder_start(0, &rec_fmt, AI_AUDIO_MEDIA_TYPE_ESCO_MIX, 0);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        rec_ch[0] = 0;
+#endif
+        struct ai_audio_format play_fmt = {0};
+        memcpy(&play_fmt, format, sizeof(struct ai_audio_format));
+        play_fmt.channel = 1;  //opus单声道解码
+#if TCFG_AI_PLAYER_ENABLE
+        ret = ai_player_start(0, &play_fmt, AI_AUDIO_MEDIA_TYPE_ESCO_UPSTREAM, tws_play);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        play_ch[0] = 0;
+#endif
+#if TCFG_AI_PLAYER_ENABLE
+        ret = ai_player_start(1, &play_fmt, AI_AUDIO_MEDIA_TYPE_ESCO_DOWNSTREAM, tws_play);
+        if (ret) {
+            ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+            goto __err_exit;
+        }
+        play_ch[1] = 1;
+#endif
+    }
     //cppcheck-suppress unusedLabel
 __err_exit:
     return ret;
@@ -149,7 +209,8 @@ static int ai_translator_start_call_translation()
     u8 play_ch[2] = {0xff, 0xff};
     struct ai_audio_format format = {0};
 
-    if (minfo_param->mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+    if (minfo_param->mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION &&
+        minfo_param->mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
         log_error("%s() %d, cur mode: %d\n", __func__, __LINE__, minfo_param->mode);
         return -1;
     }
@@ -160,7 +221,7 @@ static int ai_translator_start_call_translation()
     format.channel = minfo_param->ch;
     format.frame_dms = 200;
 
-    ret = __ai_translator_start_call_translation(&format, play_ch, rec_ch);
+    ret = __ai_translator_start_call_translation(minfo_param->mode, &format, play_ch, rec_ch);
     if (ret) {
         log_error("%s() %d, ret: %d\n", __func__, __LINE__, ret);
         goto __err_exit;
@@ -262,7 +323,8 @@ int ai_translator_set_mode(struct ai_trans_mode *m_param)
             tlr_hdl.state = 1;
         }
 
-    } else if (m_param->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+    } else if (m_param->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+               m_param->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
         if (a2dp_player_runing()) {
             log_info("a2dp is running\n");
             ai_translator_stop_a2dp_player();
@@ -289,11 +351,32 @@ int ai_translator_set_mode(struct ai_trans_mode *m_param)
 #endif
             //cppcheck-suppress knownConditionTrueFalse
             if (start) {
-                ret = __ai_translator_start_call_translation(&format, play_ch, rec_ch);
+                ret = __ai_translator_start_call_translation(m_param->mode, &format, play_ch, rec_ch);
                 if (ret) {
                     goto __err_exit;
                 }
             }
+            tlr_hdl.state = 1;
+        }
+
+    } else if (m_param->mode == AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
+        if (a2dp_player_runing()) {
+            log_info("a2dp is running\n");
+            ai_translator_stop_a2dp_player();
+        }
+        if (tlr_hdl.state == 0) {
+            struct ai_audio_format rec_fmt = {0};
+            memcpy(&rec_fmt, &format, sizeof(struct ai_audio_format));
+            rec_fmt.channel = 2;  //opus立体声编码
+            rec_fmt.bit_rate *= 2;  //立体声码率翻倍
+#if TCFG_AI_RECORDER_ENABLE
+            ret = ai_recorder_start(0, &rec_fmt, AI_AUDIO_MEDIA_TYPE_ESCO_MIX, 0);
+            if (ret) {
+                ret = -AI_TRANS_SET_MODE_STATUS_FAIL;
+                goto __err_exit;
+            }
+            rec_ch[0] = 0;
+#endif
             tlr_hdl.state = 1;
         }
 
@@ -361,7 +444,8 @@ int ai_translator_set_mode(struct ai_trans_mode *m_param)
         } else if (minfo->mode == AI_TRANSLATOR_MODE_RECORD_TRANSLATION) {
             play_ch[0] = 0;
             goto __err_exit;
-        } else if (minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+        } else if (minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+                   minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
             rec_ch[0] = 0;
             play_ch[0] = 0;
             rec_ch[1] = 1;
@@ -369,6 +453,9 @@ int ai_translator_set_mode(struct ai_trans_mode *m_param)
 #if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
             tws_api_auto_role_switch_enable();
 #endif
+            goto __err_exit;
+        } else if (minfo->mode == AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
+            rec_ch[0] = 0;
             goto __err_exit;
         } else if (minfo->mode == AI_TRANSLATOR_MODE_A2DP_TRANSLATION) {
             rec_ch[0] = 0;
@@ -392,7 +479,8 @@ int ai_translator_set_mode(struct ai_trans_mode *m_param)
             ai_translator_tws_send_cmd(TWS_TRANS_CMD_SYNC_TLR_INFO, 1, &tlr_hdl, sizeof(struct ai_translator_handle));
 
 #if AI_AUDIO_CALL_TRANSLATION_LEFT_RIGHT_SPLIT
-            if (minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+            if (minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+                minfo->mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
                 if (tws_api_get_local_channel() == 'L') {
                     tws_api_role_switch();
                 } else if (tws_api_get_local_channel() == 'R') {
@@ -438,11 +526,13 @@ __err_exit:
     return ret;
 }
 
-static void ai_translator_bt_event_close_call_translator(void *arg)
+static void ai_translator_bt_event_close_call_translation(void *arg)
 {
     struct ai_trans_mode minfo;
     memcpy(&minfo, &tlr_hdl.mode_info, sizeof(minfo));
-    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+    if (minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION ||
+        minfo.mode == AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC ||
+        minfo.mode == AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
         minfo.mode = AI_TRANSLATOR_MODE_IDLE;
         if (tlr_hdl.ops.translator_inform_mode_info) {
             tlr_hdl.ops.translator_inform_mode_info(&minfo);
@@ -467,7 +557,9 @@ static int ai_translator_bt_event_handler(int *event)
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             //来电暂停录音，有可能在模式中，也有可能不在模式中，是按键拉起的录音
             //除了通话翻译，其他情况先暂停录音
-            if (tlr_hdl.mode_info.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+            if (tlr_hdl.mode_info.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION &&
+                tlr_hdl.mode_info.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC &&
+                tlr_hdl.mode_info.mode != AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
 #if TCFG_AI_RECORDER_ENABLE
                 if (ai_recorder_get_status(0)) {
                     ai_recorder_stop(0);
@@ -498,7 +590,9 @@ static int ai_translator_bt_event_handler(int *event)
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             memcpy(&minfo, &tlr_hdl.mode_info, sizeof(minfo));
             //结束通话恢复录音
-            if (minfo.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION) {
+            if (minfo.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION &&
+                minfo.mode != AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC &&
+                minfo.mode != AI_TRANSLATOR_MODE_CALL_RECORD_STEREO_ENC) {
 #if TCFG_AI_RECORDER_ENABLE
                 if (tlr_hdl.stop_rec_for_call) {
                     tlr_hdl.stop_rec_for_call = 0;
@@ -513,7 +607,7 @@ static int ai_translator_bt_event_handler(int *event)
             } else {
 #if 1/* AI_AUDIO_TRANSLATION_CALL_CONTROL_BY_DEVICE */
                 //挂断电话关闭通话翻译模式
-                sys_timeout_add(NULL, ai_translator_bt_event_close_call_translator, 600);
+                sys_timeout_add(NULL, ai_translator_bt_event_close_call_translation, 600);
 #endif
             }
         }

@@ -423,7 +423,7 @@ int ai_player_put_frame(u8 ch, u8 *buf, u32 len, u32 timestamp, u32 priv)
     }
 
 #if AI_AUDIO_RECV_SPEED_DEBUG
-    g_printf("put[%d]: %d %d t %u\n", ch, frame->size, play_ch->recv_size, bt_audio_reference_clock_time(1) * 625);
+    g_printf("put[%d]: %d %d t %u %u\n", ch, frame->size, play_ch->recv_size, bt_audio_reference_clock_time(1) * 625, timestamp);
 #endif
     os_mutex_post(&play_ch->mutex);
     return ret;
@@ -550,7 +550,7 @@ int ai_player_free_frame(u8 ch, struct ai_player_audio_frame *frame)
     }
     play_ch->recv_size -= frame->size;
 #if AI_AUDIO_RECV_SPEED_DEBUG
-    g_printf("get[%d]: %d %d, t %u\n", ch, frame->size, play_ch->recv_size, bt_audio_reference_clock_time(1) * 625);
+    g_printf("get[%d]: %d %d, t %u %u\n", ch, frame->size, play_ch->recv_size, bt_audio_reference_clock_time(1) * 625, frame->timestamp);
 #endif
     if (play_ch->full) {
         if (play_ch->recv_size <= play_ch->max_size * 6 / 10) {

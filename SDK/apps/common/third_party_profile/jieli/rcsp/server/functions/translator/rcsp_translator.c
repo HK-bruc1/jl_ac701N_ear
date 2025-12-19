@@ -62,6 +62,7 @@ static u8 source_to_ch_remap(u8 source)
     case RCSP_TRANSLATOR_AUDIO_SOURCE_PHONE_MIC:
     case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM:
     case RCSP_TRANSLATOR_AUDIO_SOURCE_MSBC:
+    case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_MIX:
         ch = 0;
         break;
     case RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM:
@@ -80,6 +81,7 @@ static const int mode_remap_table[][2] = {
     RCSP_TRANSLATOR_MODE_CALL_TRANSLATION,          AI_TRANSLATOR_MODE_CALL_TRANSLATION,
     RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION,          AI_TRANSLATOR_MODE_A2DP_TRANSLATION,
     RCSP_TRANSLATOR_MODE_FACE_TO_FACE_TRANSLATION,  AI_TRANSLATOR_MODE_FACE_TO_FACE_TRANSLATION,
+    RCSP_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC, AI_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC,
 };
 
 static int __mode_a2r_remap(int ai_mode)
@@ -198,6 +200,16 @@ static int translator_send_ch_for_esco_downstream(u8 *buf, u32 len)
 #if TCFG_AI_RECORDER_ENABLE
     u8 ch = source_to_ch_remap(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
     ret = ai_recorder_data_send(ch, buf, len, 0, RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_DOWNSTREAM);
+#endif
+    return ret;
+}
+
+static int translator_send_ch_for_esco_mix(u8 *buf, u32 len)
+{
+    int ret = 0;
+#if TCFG_AI_RECORDER_ENABLE
+    u8 ch = source_to_ch_remap(RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_MIX);
+    ret = ai_recorder_data_send(ch, buf, len, 0, RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_MIX);
 #endif
     return ret;
 }
@@ -422,10 +434,13 @@ static int _translator_op_send_audio_data(u8 *buf, u32 len, u32 offset, u32 priv
         ret = JL_DATA_send(JL_OPCODE_DATA, 0x04, buf, len, JL_NOT_NEED_RESPOND, 0, NULL);
         break;
     case RCSP_TRANSLATOR_MODE_CALL_TRANSLATION:
+    case RCSP_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC:
     case RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION:
     case RCSP_TRANSLATOR_MODE_FACE_TO_FACE_TRANSLATION:
         if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
             op03_fmt.source = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_UPSTREAM;
+        } else if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION_STEREO_ENC) {
+            op03_fmt.source = RCSP_TRANSLATOR_AUDIO_SOURCE_ESCO_MIX;
         } else if (minfo.mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
             op03_fmt.source = RCSP_TRANSLATOR_AUDIO_SOURCE_MSBC;
         } else if (minfo.mode == RCSP_TRANSLATOR_MODE_FACE_TO_FACE_TRANSLATION) {
@@ -605,11 +620,19 @@ static const struct ai_translator_ops_hub trans_ops_hub = {
         .player_inform_cache_free_size = _translator_op_inform_cache_free_size,
     },
     .recorder_ops = {
+        // 1. 协议层发送接口
         .recorder_send_by_protocol_layer_host = _translator_op_send_audio_data,
         .recorder_send_by_protocol_layer_slave = NULL,
+        // 2. 各个音频流页面AI_TX节点调用的回调函数
+        // 2.1  <智能语音>页面AI_TX
         .recorder_send_for_dev_mic = translator_send_ch_for_dev_mic,
+        // 2.2.1 <蓝牙通话>页面AI_TX通话上行独立编码单声道opus模式
         .recorder_send_for_esco_upstream = translator_send_ch_for_esco_upstream,
+        // 2.2.2 <蓝牙通话>页面AI_TX通话下行独立编码单声道opus模式
         .recorder_send_for_esco_downstream = translator_send_ch_for_esco_downstream,
+        // 2.3 <蓝牙通话>页面AI_TX通话上下行合并编码立体声opus模式
+        .recorder_send_for_esco_mix = translator_send_ch_for_esco_mix,
+        // 2.4 <蓝牙音乐>页面AI_TX
         .recorder_send_for_a2dp = translator_send_ch_for_a2dp,
     },
     .trans_ops = {

@@ -141,12 +141,30 @@ int esco_recoder_open_extended(void *bt_addr, int ext_type, void *ext_param)
             ai_tx_s_enc_fmt.bit_rate = s_enc_fmt->bit_rate;
             ai_tx_s_enc_fmt.sample_rate = s_enc_fmt->sample_rate;
             ai_tx_s_enc_fmt.frame_dms = s_enc_fmt->frame_dms;
-            jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+            ai_tx_s_enc_fmt.channel = s_enc_fmt->channel;
+            //jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+            // opus单声道编码，通话上下行名字区分两个编码器
+            err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL2", NODE_IOC_SET_ENC_FMT, &ai_tx_s_enc_fmt, sizeof(ai_tx_s_enc_fmt));
+            if (err) {
+                // opus立体声编码，通话上下行共用编码器，一个名字
+                err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL", NODE_IOC_SET_ENC_FMT, &ai_tx_s_enc_fmt, sizeof(ai_tx_s_enc_fmt));
+            }
+            if (err) {
+                goto __exit1;
+            }
             struct encoder_fmt ai_tx_enc_fmt = {0};
             ai_tx_enc_fmt.complexity = 0;
             ai_tx_enc_fmt.format = 0;
-            ai_tx_enc_fmt.frame_dms = 200;
-            jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_PRIV_FMT, (int)&ai_tx_enc_fmt);
+            ai_tx_enc_fmt.frame_dms = s_enc_fmt->frame_dms;
+            ai_tx_enc_fmt.ch_num = s_enc_fmt->channel;
+            //jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_PRIV_FMT, (int)&ai_tx_enc_fmt);
+            err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL2", NODE_IOC_SET_PRIV_FMT, &ai_tx_enc_fmt, sizeof(ai_tx_enc_fmt));
+            if (err) {
+                err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL", NODE_IOC_SET_PRIV_FMT, &ai_tx_enc_fmt, sizeof(ai_tx_enc_fmt));
+            }
+            if (err) {
+                goto __exit1;
+            }
 #endif
         } else if (s_enc_fmt && s_enc_fmt->coding_type == AUDIO_CODING_JLA_V2) {
 #if TCFG_ENC_JLA_V2_ENABLE
@@ -155,7 +173,14 @@ int esco_recoder_open_extended(void *bt_addr, int ext_type, void *ext_param)
             ai_tx_s_enc_fmt.frame_dms = s_enc_fmt->frame_dms;
             ai_tx_s_enc_fmt.bit_rate = s_enc_fmt->bit_rate;
             ai_tx_s_enc_fmt.channel = s_enc_fmt->channel;
-            jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+            //jlstream_node_ioctl(recoder->stream, NODE_UUID_ENCODER, NODE_IOC_SET_ENC_FMT, (int)&ai_tx_s_enc_fmt);
+            err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL2", NODE_IOC_SET_ENC_FMT, &ai_tx_s_enc_fmt, sizeof(ai_tx_s_enc_fmt));
+            if (err) {
+                err = jlstream_set_node_specify_param(NODE_UUID_ENCODER, "ENCODE_AI_CALL", NODE_IOC_SET_ENC_FMT, &ai_tx_s_enc_fmt, sizeof(ai_tx_s_enc_fmt));
+            }
+            if (err) {
+                goto __exit1;
+            }
 #endif
         }
     }

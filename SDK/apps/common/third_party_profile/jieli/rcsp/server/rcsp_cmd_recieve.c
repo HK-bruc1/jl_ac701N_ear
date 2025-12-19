@@ -355,10 +355,16 @@ static void find_device_handle(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u1
 }
 #endif // RCSP_ADV_FIND_DEVICE_ENABLE
 
+#define RCSP_DEV_TYPE_WATCH             0  // 运动手表
+#define RCSP_DEV_TYPE_TWS_EARPHONE      1  // TWS耳机
+#define RCSP_DEV_TYPE_SOUNDBOX          2  // 音箱
+#define RCSP_DEV_TYPE_DONGLE            3  // Dongle 设备
+
 static void get_device_config_info(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     struct RcspModel *rcspModel = (struct RcspModel *)priv;
-    u8 resp_buf[3] = {0};
+    u8 resp_buf[64] = {0};
+    u32 resp_len;
     if (rcspModel == NULL) {
         return ;
     }
@@ -367,18 +373,67 @@ static void get_device_config_info(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data
     }
     //产品标识
 #if RCSP_MODE == RCSP_MODE_EARPHONE
-    resp_buf[0] = 1;
+    resp_buf[0] = RCSP_DEV_TYPE_TWS_EARPHONE;
 #elif RCSP_MODE == RCSP_MODE_WATCH
-    resp_buf[0] = 0;
+    resp_buf[0] = RCSP_DEV_TYPE_WATCH;
 #endif
     //版本号
-    resp_buf[1] = 0x01;
+    resp_buf[1] = 0x00;
 #if RCSP_ADV_TRANSLATOR
     resp_buf[2] |= BIT(1);
     if (!JL_rcsp_translator_whether_play_by_ai_rx()) {
         resp_buf[2] |= BIT(2);
     }
 #endif
+
+    resp_buf[2] |= BIT(4);  // support LTV
+    resp_len = 3;
+
+    // aurcast feature LTV
+    resp_buf[resp_len] = 2;        // length
+    resp_buf[resp_len + 1] = 0x01;     // type
+    // value
+    // Bit0: 是否支持Auracast功能
+    // Bit1: 是否支持私有Auracast 接收端功能
+    // Bit2: 是否支持 私有Aurafast 发射端功能
+#if RCSP_ADV_AURCAST_SINK
+    if (RCSP_ADV_AURCAST_SINK) {
+        resp_buf[resp_len + 2] |= BIT(0) | BIT(1);   // value
+    }
+#endif
+#if RCSP_ADV_AURCAST_SOURCE
+    if (RCSP_ADV_AURCAST_SOURCE) {
+        resp_buf[resp_len + 2] |= BIT(0) | BIT(2);   // value
+    }
+#endif
+    resp_len += 3;
+
+    // TWS功能LTV
+    resp_buf[resp_len] = 2;  //length
+    resp_buf[resp_len + 1] = 0x02;  //type
+#if RCSP_MODE == RCSP_MODE_EARPHONE
+    //BIT0: 是否支持TWS设备功能：设备名、弹窗快连、按键设置、灯效设置等
+    //BIT1: 是否支持修改设备名
+    resp_buf[resp_len + 2] |= BIT(0);
+    //resp_buf[resp_len + 2] |= BIT(1);
+#endif
+    resp_len += 3;
+
+    // 翻译功能LTV
+    resp_buf[resp_len] = 2;  //length
+    resp_buf[resp_len + 1] = 0x03;  //type
+#if RCSP_ADV_TRANSLATOR
+    //BIT0: 是否支持翻译功能
+    //BIT1: 是否使用A2DP播报
+    //BIT2: 是否支持通话翻译OPUS立体声编码
+    resp_buf[resp_len + 2] |= BIT(0);
+    if (!JL_rcsp_translator_whether_play_by_ai_rx()) {
+        resp_buf[resp_len + 2] |= BIT(1);
+    }
+    resp_buf[resp_len + 2] |= BIT(2);
+#endif
+    resp_len += 3;
+
     JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, resp_buf, sizeof(resp_buf), ble_con_handle, spp_remote_addr);
     /* #if (TCFG_DEV_MANAGER_ENABLE || RCSP_TONE_FILE_TRANSFER_ENABLE) 传音大文件传输提示音方案 */
     /*     u8 device_info[] = {0x01, 0x00, 0x01}; */

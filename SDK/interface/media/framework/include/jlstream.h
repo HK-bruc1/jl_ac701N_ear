@@ -137,6 +137,7 @@ enum stream_event {
     STREAM_EVENT_GLOBAL_PAUSE,
     STREAM_EVENT_GET_NOISEGATE_CALLBACK,
     STREAM_EVENT_GET_OUTPUT_NODE_DELAY,
+    STREAM_EVENT_GET_A2DP_STATE,
 };
 
 enum stream_scene : u8 {
@@ -704,6 +705,7 @@ int jlstream_get_node_param_s(void *node, void *param, u16 param_len);
 void jlstream_put_node(void *);
 
 int jlstream_set_node_param(u16 node_uuid, const char *name, void *param, u16 param_len);
+int jlstream_set_node_specify_param(u16 node_uuid, const char *name, int cmd, void *param, u16 param_len);
 
 int jlstream_get_node_param(u16 node_uuid, const char *name, void *param, u16 param_len);
 

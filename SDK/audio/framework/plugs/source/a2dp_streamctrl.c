@@ -183,6 +183,10 @@ int a2dp_tws_sync_latency(struct a2dp_stream_control *ctrl, u8 state)
     if (!CONFIG_BTCTLER_TWS_ENABLE) {
         return 0;
     }
+    if (jlstream_event_notify(STREAM_EVENT_GET_A2DP_STATE, (int)ctrl->bt_addr)) {
+        /*获取入仓等链路断开状态，该状态不向TWS同步动态延时信息*/
+        return 0;
+    }
     struct a2dp_tws_letency_data data;
 
     memcpy(data.addr, ctrl->bt_addr, 6);

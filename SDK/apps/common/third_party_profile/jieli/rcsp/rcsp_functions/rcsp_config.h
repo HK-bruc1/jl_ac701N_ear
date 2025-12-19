@@ -20,9 +20,10 @@
 #include "app_music.h"
 #endif
 
-#define RCSP_USE_BLE      0
-#define RCSP_USE_SPP      1
-#define RCSP_CHANNEL_SEL  RCSP_USE_SPP
+#define RCSP_USE_BLE                    0
+#define RCSP_USE_SPP                    1
+#define RCSP_USE_GATT_OVER_EDR          2
+#define RCSP_CHANNEL_SEL                RCSP_USE_SPP
 
 enum func_type {
     BT_FUNCTION      = 0,
