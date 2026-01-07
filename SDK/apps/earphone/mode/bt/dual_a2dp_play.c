@@ -650,7 +650,7 @@ static int a2dp_bt_status_event_handler(int *event)
         a2dp_media_unmute(bt->args);
         break;
     case BT_STATUS_AVRCP_INCOME_OPID:
-        printf("BT_STATUS_AVRCP_INCOME_OPID: %x\n", bt->value);
+        printf("BT_STATUS_AVRCP_INCOME_OPID: 0x%x\n", bt->value);
         put_buf(bt->args, 6);
 #if TCFG_A2DP_PREEMPTED_ENABLE
         if (bt->value == AVC_PLAY) {

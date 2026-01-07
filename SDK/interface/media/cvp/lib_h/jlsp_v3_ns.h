@@ -28,6 +28,7 @@ typedef enum  {
     DUAL_OWS_TYPE = BIT(6),		//双麦OWS
     DUAL_FLEX_TYPE = BIT(7),	//双麦话务
     DUAL_BONE_TYPE = BIT(8),	//双麦骨传
+    DUAL_CLIP_TYPE = BIT(9),	// Dual clip
     TRI_FUSION_TYPE = BIT(16),	//三麦融合
     TRI_TELE_TYPE = BIT(17),	//三麦话务
     TRI_BONE_TYPE = BIT(18),	//三麦骨传
@@ -118,6 +119,8 @@ typedef struct {
     // post directional enhancement enable bit
     int bfPost_en;
 
+    float desiredAngle;
+
 } JLSP_bf_v3_cfg_t;
 
 
@@ -137,6 +140,7 @@ typedef struct {
     int aecProcessMaxFrequency;    //最大频率
     int aecProcessMinFrequency;    //最小频率
     float muf;     //学习速率
+    int aec_type;
 } JLSP_aec_v3_cfg_t;
 
 
@@ -277,6 +281,31 @@ typedef struct {
 
 } JLSP_dual_bf_v3_cfg_t;
 
+
+
+// Dual clip config.
+typedef struct {
+    int enableBit;
+
+    float *dualPhaseCompenVec; //相位补偿
+    float *dualWbEqVec;
+    float *dualNbEqVec;
+
+    int samplerate;
+    float dualPreGainDb;
+    int dualProcessMaxFrequency;
+    int dualProcessMinFrequency;
+    float dualCompenDb; //mic增益补偿
+
+    int spe_att_en;		// SPE_ATT enable/disenable
+    int post_pro_en;		// MCRA enable/disenable
+
+    float aggressFactor;
+    float minSupress;
+
+    int externalEnableBit;
+
+} JLSP_dual_clip_v3_cfg_t;
 
 
 //三麦降噪参数配置
@@ -438,6 +467,8 @@ typedef struct {
     //dual flexible ns module
     JLSP_dual_flex_v3_cfg_t dual_flex_cfg;
 
+    //dual clip ns module
+    JLSP_dual_clip_v3_cfg_t dual_clip_cfg;
 
 
 } JLSP_params_v3_cfg;

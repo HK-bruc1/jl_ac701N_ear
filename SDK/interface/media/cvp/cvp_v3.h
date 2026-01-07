@@ -13,11 +13,14 @@
 #define CVP_ALGO_2MIC_HYBRID   			BIT(5)
 #define CVP_ALGO_2MIC_AWN   			BIT(6)
 #define CVP_ALGO_2MIC_FLEXIBLE   		BIT(7)
+#define CVP_ALGO_2MIC_CLIP  			BIT(9)
 //BIT[16:23]
 #define CVP_ALGO_3MIC   				BIT(16)
 
-#define CVP_TYPE_2MIC					(CVP_ALGO_2MIC_BF | CVP_ALGO_2MIC_HYBRID | CVP_ALGO_2MIC_AWN |CVP_ALGO_2MIC_FLEXIBLE)
+#define CVP_TYPE_2MIC					(CVP_ALGO_2MIC_BF | CVP_ALGO_2MIC_HYBRID | CVP_ALGO_2MIC_AWN | CVP_ALGO_2MIC_FLEXIBLE | CVP_ALGO_2MIC_CLIP)
 
+#define NN_TABLE_DEFAULT_GROUP			(CVP_ALGO_1MIC | CVP_ALGO_1MIC_AECNLP | CVP_ALGO_2MIC_BF | CVP_ALGO_2MIC_FLEXIBLE | CVP_ALGO_3MIC)
+#define	NN_TABLE_2MIC_CLIP_GROUP		CVP_ALGO_2MIC_CLIP
 
 #define CVP_V3_1MIC_MASK  				0x00000F
 #define CVP_V3_2MIC_MASK  				0x00FFF0
@@ -128,6 +131,7 @@ struct cvp_attr {
     u32 algo_type;
     /*流程配置*/
     float CompenDb;					//流程补偿增益
+    float target_signal_degradation;//default:1,range[0:1]
     JLSP_params_v3_cfg cvp_cfg;
     /*data handle*/
     int (*cvp_advanced_options)(void *aec,

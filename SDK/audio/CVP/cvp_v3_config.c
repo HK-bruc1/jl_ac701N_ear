@@ -41,7 +41,8 @@ const JLSP_bf_v3_cfg_t bf_init_cfg = {
     .bfSideLobeMic = 0,
     .supressFactor = 0.6f,
     .type = BF_TYPE_V2,
-    .bfPost_en = 0
+    .bfPost_en = 0,
+    .desiredAngle = 130.f
 };
 
 
@@ -219,6 +220,29 @@ const JLSP_dual_bf_v3_cfg_t dual_bf_init_cfg = {
 
     .aggressFactor = 1.0f,
     .minSupress = 0.001f,
+
+    .externalEnableBit = 0x00,
+};
+
+const JLSP_dual_clip_v3_cfg_t dual_clip_init_cfg = {
+
+    .enableBit = 0x1f,
+
+    .dualPhaseCompenVec = NULL,
+    .dualWbEqVec = NULL,
+    .dualNbEqVec = NULL,
+
+    .dualPreGainDb = 12.0f,//18.0f,
+    .dualProcessMaxFrequency = 8000,
+    .dualProcessMinFrequency = 0,
+    .samplerate = 16000,
+
+    .spe_att_en = 0,	// 1 for enable, else for disable.
+    .post_pro_en = 1,		// 1 for enable, else for disable.
+
+    .aggressFactor = 1.0f,
+    .minSupress = 0.001f,
+    .dualCompenDb = 10.0f, //10.0f,
 
     .externalEnableBit = 0x00,
 };

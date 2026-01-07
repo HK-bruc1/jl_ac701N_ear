@@ -15,6 +15,7 @@
 #include "audio_config_def.h"
 #include "effects/voiceChanger_api.h"
 #include "scene_update.h"
+#include "cvp_v3.h"
 
 /*音频配置在线调试配置*/
 const int config_audio_cfg_debug_online = TCFG_CFG_TOOL_ENABLE;
@@ -212,14 +213,18 @@ const int config_lea_media_stream_dump_enable = 0;	//LE Audio Media Stream Dump
 const int config_audio_cvp_ref_source = 1;/*0:DAC Internal 1:External*/
 
 #if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE == 32000)
-#define LLNS_TABLE_SELECT   BIT(0)
+#define LLNS_TABLE_SELECT  	NN_TABLE_LLNS_SR32K
 #else
-#define LLNS_TABLE_SELECT   BIT(1)
+#define LLNS_TABLE_SELECT  	NN_TABLE_LLNS_SR48K
 #endif
 
-#define CVP_TABLE_SELECT    BIT(9)
+#if (TCFG_CVP_ALGO_TYPE & NN_TABLE_DEFAULT_GROUP)
+#define CVP_TABLE_SELECT    	NN_TABLE_CVP_DEFAULT
+#elif (TCFG_CVP_ALGO_TYPE & NN_TABLE_2MIC_CLIP_GROUP)
+#define CVP_TABLE_SELECT   		NN_TABLE_CVP_2MIC_CLIP
+#endif
 
-#ifdef TCFG_AUDIO_CVP_V3_MODE
+#if TCFG_AUDIO_CVP_V3_MODE
 const u32 NN_TABLE_SELECT = (CVP_TABLE_SELECT | LLNS_TABLE_SELECT);
 #else
 const u32 NN_TABLE_SELECT = (LLNS_TABLE_SELECT);

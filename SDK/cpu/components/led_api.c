@@ -245,6 +245,11 @@ void led_effect_init(led_pdata_t *led_effect, int cbpriv)
         return;
     }
 
+#if TCFG_LED_LAYOUT >= TWO_IO_TWO_LED
+    two_io_ctl_close();
+#endif
+    pwm_led_hw_close();
+
     u32 use_pwm_led;
     if (led_board_cfg->layout <= ONE_IO_TWO_LED) {
         use_pwm_led = 1;

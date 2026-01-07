@@ -206,7 +206,7 @@ __again:
             cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
             audio_aec_output_sel(0, 0);
             break;
-#else
+#elif TCFG_AUDIO_SINGLE_MIC_ENABLE
 //单麦SMS/DNS DUT 事件处理
         case CVP_DUT_DMS_MASTER_MIC:
             audio_dut_log("CMD:SMS/CVP_DUT_DMS_MASTER_MIC\n");
@@ -217,6 +217,27 @@ __again:
             audio_dut_log("CMD:SMS/CVP_DUT_DMS_OPEN_ALGORITHM\n");
             cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
             audio_cvp_toggle_set(1);
+            break;
+#elif TCFG_AUDIO_CVP_V3_MODE
+        case CVP_DUT_3MIC_MASTER_MIC:
+            audio_dut_log("CMD:CVP_DUT_CVP_V3_MASTER_MIC\n");
+            cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
+            audio_cvp_v3_output_sel(1, 0);
+            break;
+        case CVP_DUT_3MIC_SLAVE_MIC:
+            audio_dut_log("CMD:CVP_DUT_CVP_V3_SLAVE_MIC\n");
+            cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
+            audio_cvp_v3_output_sel(2, 0);
+            break;
+        case CVP_DUT_3MIC_FB_MIC:
+            audio_dut_log("CMD:CVP_DUT_CVP_V3_FB_MIC\n");
+            cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
+            audio_cvp_v3_output_sel(3, 0);
+            break;
+        case CVP_DUT_3MIC_OPEN_ALGORITHM:
+            audio_dut_log("CMD:CVP_DUT_3MIC_OPEN_ALGORITHM\n");
+            cvp_dut_mode_set(CVP_DUT_MODE_ALGORITHM);
+            audio_cvp_v3_output_sel(0, 0);
             break;
 #endif/*TCFG_AUDIO_DUAL_MIC_ENABLE*/
 

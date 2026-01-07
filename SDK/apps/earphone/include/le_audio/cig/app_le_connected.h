@@ -277,7 +277,6 @@ void le_audio_unicast_play_remove_by_phone_call();
 /* --------------------------------------------------------------------------*/
 /**
  * @brief   le audio恢复播歌by phone hangup
- * 			LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_PREEMPTEDK的时候使用
  */
 /* ----------------------------------------------------------------------------*/
 void le_audio_unicast_try_resume_play_by_phone_call_remove();
@@ -316,7 +315,7 @@ u8 jl_unicast_edr_mode_get();
 
 /* --------------------------------------------------------------------------*/
 /**
- * @brief 控制dongle模式和手机模式切换，切换后复位生效
+ * @brief 控制dongle模式和手机模式切换
  */
 /* ----------------------------------------------------------------------------*/
 void jl_unicast_edr_mode_switch();

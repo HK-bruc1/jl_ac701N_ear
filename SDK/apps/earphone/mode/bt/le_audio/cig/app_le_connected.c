@@ -259,7 +259,6 @@ void le_audio_unicast_play_remove_by_phone_call()
 /* --------------------------------------------------------------------------*/
 /**
  * @brief   le audio恢复播歌by phone hangup
- * 			LE_AUDIO_JL_DONGLE_UNICAST_WITH_PHONE_CONN_PLAY_PREEMPTEDK的时候使用
  */
 /* ----------------------------------------------------------------------------*/
 void le_audio_unicast_try_resume_play_by_phone_call_remove()
@@ -541,7 +540,7 @@ static int app_connected_conn_status_event_handler(int *msg)
             //这个时候靠近手机没有重新建立CIG的。---主动断开等手机重连
             log_info("CIG disconnect for timeout\n");
             //le_audio_disconn_le_audio_link();
-            ll_hci_disconnect(acl_handle_for_disconnect_cis, 0x13);
+            ll_hci_disconnect(acl_handle_for_disconnect_cis, CONNECTION_TERMINATED_BY_LOCAL_HOST);
         }
 #endif
         //释放互斥量
@@ -580,7 +579,7 @@ static int app_connected_conn_status_event_handler(int *msg)
         if (memcmp(le_com_addr_new, "\0\0\0\0\0\0", 6) != 0) { //防止空地址触发读零异常
             if (memcmp(&acl_info->pri_ch, le_com_addr_new, 6) != 0) { //地址不匹配
                 log_info("Device mismatched, connection denied!!!\n");
-                ll_hci_disconnect(acl_info->acl_hdl, 0x13);
+                ll_hci_disconnect(acl_handle_for_disconnect_cis, CONNECTION_TERMINATED_BY_LOCAL_HOST);
                 break;
             }
             log_info("Bind information error!!!\n");
@@ -2243,7 +2242,7 @@ static void jl_unicast_edr_mode_switch_in_app_core()
 }
 
 /**
- * @brief 控制dongle模式和手机模式切换，切换后复位生效
+ * @brief 控制dongle模式和手机模式切换
  */
 void jl_unicast_edr_mode_switch(void)
 {

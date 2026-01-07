@@ -80,4 +80,17 @@
 #define ANS_V100	0xA1
 #define ANS_V200	0xA2
 
+/*
+ *******************************************************************
+ *						NN Table Bit Definitions
+ *******************************************************************
+ */
+// LLNS bit : 0 ~ 8
+#define NN_TABLE_LLNS_SR32K           BIT(0)
+#define NN_TABLE_LLNS_SR48K           BIT(1)
+
+// CVP V3 table bit : 9 ~ 31
+#define NN_TABLE_CVP_R3				  BIT(9)
+#define NN_TABLE_CVP_2MIC_CLIP    	  BIT(12)
+#define NN_TABLE_CVP_DEFAULT      	  NN_TABLE_CVP_R3
 #endif/*_AUDIO_CVP_DEF_H_*/
