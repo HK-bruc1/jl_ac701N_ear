@@ -14,6 +14,12 @@ c_SRC_FILES += \
       audio/framework/nodes/plc_node.c \
       audio/framework/nodes/volume_node.c \
 
+#if TCFG_AUDIO_DEBUG_NODE_ENABLE
+c_SRC_FILES += \
+	  audio/framework/nodes/audio_debug_node.c
+
+#endif
+
 
 #if TCFG_NS_NODE_ENABLE || TCFG_NS_NODE_LITE_ENABLE
 c_SRC_FILES += \

@@ -201,6 +201,7 @@
 #define NODE_UUID_SPATIAL_ADV              0xA64E//空间音频封装
 #define NODE_UUID_LHDC_X                   0x65C5//LHDC-X空间音效
 #define NODE_UUID_VIRTUAL_BASS_PRO         0x02E6//虚拟低音pro算法内部集成，封装节点换成普通节点
+#define NODE_UUID_AUDIO_DEBUG              0x96DE
 #define NODE_UUID_VIRTUAL_SURROUND_HP      0XDCD4//虚拟环绕音（耳机适用）
 
 

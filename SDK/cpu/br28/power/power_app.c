@@ -14,7 +14,12 @@
 #include "hr_sensor/hrSensor_manage.h"
 #endif
 
-
+void hw_close_dac(void)
+{
+    memset(JL_ADDA, 0x0, sizeof(JL_ADDA_TypeDef));
+    SFR(JL_ADDA->DAA_CON2, 15, 1, 1);
+    SFR(JL_ADDA->DAA_CON2, 5, 1, 1);
+}
 
 //-------------------------------------------------------------------
 /*config

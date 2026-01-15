@@ -197,7 +197,7 @@ int rcsp_make_set_adv_data(void)
 
     // CFG 1
     u8 android_connect_way = RCSP_CHANNEL_SEL;
-    u8 ios_connect_way = (RCSP_CHANNEL_SEL == RCSP_USE_SPP) ? RCSP_USE_GATT_OVER_EDR : RCSP_USE_BLE;
+    u8 ios_connect_way = (RCSP_CHANNEL_SEL == RCSP_USE_GATT_OVER_EDR) ? RCSP_USE_GATT_OVER_EDR : RCSP_USE_BLE;
     buf[offset++] = (android_connect_way << 1) | (ios_connect_way << 4) | BIT(7);
 
     // CFG 2

@@ -370,11 +370,18 @@ const  int noisegate_pro_run_mode        = TCFG_AUDIO_EFX_E955_RUN_MODE;
 const  int noisegate_pro_run_mode        = EFx_BW_16t16 | EFx_BW_32t32;
 #endif
 
-#ifdef TCFG_AUDIO_EFX_B7C4_RUN_MODE
-const  int noisegate_run_mode            = TCFG_AUDIO_EFX_B7C4_RUN_MODE;
-#else
-const  int noisegate_run_mode            = EFx_BW_16t16 | EFx_BW_32t32;
+const  int noisegate_run_mode            = 0
+#if defined(TCFG_AUDIO_EFX_B7C4_RUN_MODE)
+        | TCFG_AUDIO_EFX_B7C4_RUN_MODE
 #endif
+#if defined(TCFG_AUDIO_EFX_B0D5_RUN_MODE)//virtual bass
+        | ((TCFG_AUDIO_EFX_B0D5_RUN_MODE & (EFx_BW_16t32 |  EFx_BW_32t32)) ? EFx_BW_32t32 : 0)
+        | ((TCFG_AUDIO_EFX_B0D5_RUN_MODE &EFx_BW_16t16) ? EFx_BW_16t16 : 0)
+#endif
+#if !defined(TCFG_AUDIO_EFX_B7C4_RUN_MODE) && !defined(TCFG_AUDIO_EFX_B0D5_RUN_MODE)
+        | EFx_BW_16t16 | EFx_BW_32t32
+#endif
+        ;
 
 #ifdef TCFG_AUDIO_EFX_B0D5_RUN_MODE
 const  int virtual_bass_run_mode         = TCFG_AUDIO_EFX_B0D5_RUN_MODE;

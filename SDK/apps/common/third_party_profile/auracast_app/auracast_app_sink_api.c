@@ -174,23 +174,47 @@ static int auracast_app_response_listening_status(u8 opcode, u8 sn, u8 action)
     return auracast_app_packet_response(0x00, opcode, sn, tbuf, tlen);
 }
 
-int auracast_app_recv_scan_control_deal(u8 opcode, u8 sn, u8 *payload, u32 payload_len)
+#define AURACAST_SINK_SCAN_STATUS_SUCCESS                (0)
+#define AURACAST_SINK_SCAN_STATUS_SCANNING               (1)
+#define AURACAST_SINK_SCAN_STATUS_IS_LISTENING           (2)
+#define AURACAST_SINK_SCAN_STATUS_BUSY                   (3)
+int auracast_app_recv_scan_control_deal(u8 opcode, u8 sn, u8 *payload, u32 payload_len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     int wlen = 0;
     u8 action = payload[0];
     printf("auracast_app_recv_scan_control_deal %d\n", payload_len);
     put_buf(payload, payload_len);
-
+    u8 status = JL_PRO_STATUS_FAIL;
+    u8 tbuf[2];
+    tbuf[0] = AURACAST_APP_OPCODE_RECV_SCAN_CONTROL;
+    tbuf[1] = AURACAST_SINK_SCAN_STATUS_BUSY;    // status
     switch (action) {
     case 0x00:      // 停止搜索
         printf("stop scan");
         app_auracast_sink_scan_stop();
-        return auracast_app_packet_response(0x00, opcode, sn, NULL, 0);
+        if (auracast_sink_big_state_get()) {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_IS_LISTENING;    // status
+        } else {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_SUCCESS;    // status
+        }
         break;
     case 0x01:      // 开始搜索
         printf("start scan");
         app_auracast_sink_scan_start();
-        return auracast_app_packet_response(0x00, opcode, sn, NULL, 0);
+        if (auracast_sink_big_state_get()) {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_IS_LISTENING;    // status
+        } else {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_SUCCESS;    // status
+        }
+        break;
+    case 0x02:      // scan status
+        printf("get scan status");
+        status = JL_PRO_STATUS_SUCCESS;
+        if (auracast_sink_big_state_get()) {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_IS_LISTENING;    // status
+        } else {
+            tbuf[1] = AURACAST_SINK_SCAN_STATUS_SUCCESS;    // status
+        }
         break;
     }
     return 0;

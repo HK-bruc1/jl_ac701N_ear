@@ -1465,6 +1465,7 @@
 <Unit filename="audio/framework/include/volume_node.h" />
 <Unit filename="audio/framework/nodes/agc_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/ai_tx_node.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/nodes/audio_debug_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/channle_swap_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_3mic_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_develop_node.c"><Option compilerVer="CC"/></Unit>
@@ -1939,6 +1940,7 @@
 <Unit filename="interface/media/hw_fft.h" />
 <Unit filename="interface/media/includes.h" />
 <Unit filename="interface/media/limiter_noiseGate_api.h" />
+<Unit filename="interface/media/media_analysis.h" />
 <Unit filename="interface/media/media_bank.h" />
 <Unit filename="interface/media/media_config.h" />
 <Unit filename="interface/media/media_memory.h" />

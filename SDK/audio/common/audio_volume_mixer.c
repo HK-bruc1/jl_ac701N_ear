@@ -347,7 +347,7 @@ int audio_digital_vol_update_parm(u8 dvol_idx, s32 param)
     err = audio_digital_vol_node_name_get(dvol_idx, vol_name);
     if (!err) {
         err |= jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, vol_name, (void *)param, sizeof(struct volume_cfg));
-        if (err) {
+        if (err && (err != 1)) {
             printf("[Error]%s:jlstream_set_node_param err:0x%x", __func__, err);
         }
     } else {

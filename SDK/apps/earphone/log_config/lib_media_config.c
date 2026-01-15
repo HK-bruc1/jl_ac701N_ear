@@ -393,18 +393,40 @@ const int const_audio_wma_dec16_fifo_precision = 16;  //  24 或者 16
 //***********************
 //*		OPUS Codec      *
 //***********************
-const int OPUS_SRINDEX = 0; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
 
-#ifndef TCFG_DEC_OGG_OPUS_ENABLE
-#define TCFG_DEC_OGG_OPUS_ENABLE  0
+#define TCFG_DEC_OGG_OPUS_ENABLE  0  //是否使能OGG解码
+
+#if (TCFG_ENC_OPUS_TYPE != OPUS_PACK_HEADER_NULL)
+#undef TCFG_DEC_OGG_OPUS_ENABLE
+#define TCFG_DEC_OGG_OPUS_ENABLE  1  //非无头格式必须开OGG解码才能解
 #endif
 //支持ogg_opus 类解码
-const int CONFIG_OGG_OPUS_DEC_SUPPORT = TCFG_DEC_OGG_OPUS_ENABLE; //这里使能才能进行下面两种解码方式的配置
-//设置OPUS 为raw 数据. 带8字节packet头(4字节大端包长+4字节range校验值)
+const int CONFIG_OGG_OPUS_DEC_SUPPORT = TCFG_DEC_OGG_OPUS_ENABLE; //这里使能是支持ogg封装的文件解码，如果解其他封装数据流，需要同时选择配置下面两种解码方式的其中一种。
+#if !TCFG_DEC_OGG_OPUS_ENABLE
+//设置OPUS 为raw 数据 + CBR_OPUS 包长,配置每次解码读入的包长可能有多帧共用TOC. 返回0设置成功,解码器按照配置的包长信息，每次固定读入这么多数据解码;
 const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 0;
-//设置OPUS 为raw 数据 + CBR_OPUS 包长,配配置每次解码读入的包长置每次解码读入的包长可能有多帧共用TOC. 返回0设置成功;
-//使用CBR_OPUS设置包长，需要将上面的 CONFIG_OGG_OPUS_DEC_SET_RAW_MODE 置零
+//使用CBR_OPUS设置包长，需要将上面的 CONFIG_OGG_OPUS_DEC_SET_RAW_MODE 置零。
 const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = 0;
+#if (TCFG_OPUS_FRAME_LEN == 80)
+const int OPUS_SRINDEX = 1;
+#elif (TCFG_OPUS_FRAME_LEN == 160)
+const int OPUS_SRINDEX = 2;
+#else
+const int OPUS_SRINDEX = 0;
+#endif
+#else   //TCFG_DEC_OGG_OPUS_ENABLE
+#if (TCFG_ENC_OPUS_TYPE == OPUS_PACK_HEADER_OGG)
+const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 0;
+const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = 0;
+#elif (TCFG_ENC_OPUS_TYPE == OPUS_PACK_HEADER_NULL)
+const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 0;
+const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = TCFG_OPUS_FRAME_LEN;
+#else
+const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 1;
+const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = 0;
+#endif
+const int OPUS_SRINDEX = 0; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
+#endif
 
 //***********************
 //*		SPEEX Codec      *

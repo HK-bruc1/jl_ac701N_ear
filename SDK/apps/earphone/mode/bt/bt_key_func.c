@@ -28,8 +28,11 @@ void bt_volume_up(u8 inc)
     u8 call_status = bt_get_call_status();
     u8 cur_state;
     s16 max_volume;
-    u8 data[6];
-    a2dp_player_get_btaddr(data);
+    u8 *data = NULL;
+    u8 bt_mac[6];
+    if (a2dp_player_get_btaddr(bt_mac)) {
+        data = bt_mac;
+    }
 
     if ((tone_player_runing() || ring_player_runing())) {
         if (bt_get_call_status() == BT_CALL_INCOMING) {
@@ -101,8 +104,11 @@ void bt_volume_down(u8 dec)
     u8 test_box_vol_down = 0x42;
     u8 call_status = bt_get_call_status();
     u8 cur_state;
-    u8 data[6];
-    a2dp_player_get_btaddr(data);
+    u8 *data = NULL;
+    u8 bt_mac[6];
+    if (a2dp_player_get_btaddr(bt_mac)) {
+        data = bt_mac;
+    }
 
     if ((tone_player_runing() || ring_player_runing())) {
         if (bt_get_call_status() == BT_CALL_INCOMING) {
