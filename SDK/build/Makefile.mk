@@ -298,7 +298,7 @@ LFLAGS := \
 	cpu/br28/liba/crypto_toolbox_Osize.a \
 	cpu/br28/liba/lib_dns.a \
 	cpu/br28/liba/lib_dns_v3.a \
-	apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a \
+	apps/common/third_party_profile/tuyaos_protocol/TuyaOS/vendor/jl_ble/sdk/lib/tuyaos_ble_sdk_lib_for_PI32V2_r3_large_3.12.4.a \
 	cpu/br28/liba/update.a \
 	cpu/br28/liba/cbuf.a \
 	cpu/br28/liba/lbuf.a \

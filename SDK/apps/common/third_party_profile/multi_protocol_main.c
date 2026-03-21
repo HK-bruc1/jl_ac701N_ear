@@ -33,7 +33,7 @@
 extern void app_ble_ancs_ams_init();
 #endif
 
-#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN| MULTI_CLIENT_EN | JL_SBOX_EN)) || \
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN| MULTI_CLIENT_EN | JL_SBOX_EN | TUYA_DEMO_EN)) || \
 		(TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
 #define ATT_LOCAL_PAYLOAD_SIZE    (517)//(517)              //note: need >= 20
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
@@ -417,10 +417,6 @@ static void multi_protocol_profile_init(void)
     fmy_bt_ble_init();
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
-    extern void tuya_ble_profile_init(void);
-    tuya_ble_profile_init();
-#endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & (MMA_EN | DMA_EN))
     task_create(multi_protocol_loop_process, NULL, "app_proto");
@@ -460,9 +456,10 @@ void multi_protocol_bt_init(void)
     dma_rx_resume_register(multi_protocol_resume);
     dma_protocol_all_init();
 #endif
-#if (BT_AI_SEL_PROTOCOL & TUYA_DEMO_EN)
-    extern void tuya_bt_ble_init(void);
-    tuya_bt_ble_init();
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
+    extern void tuya_all_init(void);
+    tuya_all_init();
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
@@ -526,8 +523,8 @@ void multi_protocol_bt_exit(void)
     dma_protocol_all_exit();
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
-    extern void tuya_bt_ble_exit(void);
-    tuya_bt_ble_exit();
+    extern void tuya_all_exit(void);
+    tuya_all_exit();
 #endif
 #if (THIRD_PARTY_PROTOCOLS_SEL & ONLINE_DEBUG_EN)
     extern void online_spp_exit(void);

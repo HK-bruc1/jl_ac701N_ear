@@ -310,17 +310,24 @@ static void rcsp_bt_tws_event_handler(int *msg)
     case TWS_EVENT_CONNECTED:
         rcsp_printf("rcsp_bt_tws_event_handler rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
         if (role != TWS_ROLE_SLAVE) {
-#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             // 主机需要同步rcsp相关信息给新从耳机
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+            if (bt_rcsp_spp_conn_num()) {
+                rcsp_user_spp_state_specific(SPP_USER_ST_NULL, rcsp_simplified_spp_addr());
+
+            }
+#else
+            rcsp_interface_bt_handle_tws_sync();
+#endif
+
 #if (0 == BT_CONNECTION_VERIFY)
             JL_rcsp_auth_flag_tws_sync();
 #endif
-            rcsp_interface_bt_handle_tws_sync();
             rcsp_protocol_bound_tws_sync();
+
             bt_ble_adv_ioctl(BT_ADV_SET_NOTIFY_EN, 1, 1);
 #if TCFG_RCSP_DUAL_CONN_ENABLE
             rcsp_1t2_setting_tws_sync();
-#endif
 #endif
             log_info("master do icon_open\n");
             if (phone_link_connection) {
@@ -496,6 +503,13 @@ int rcsp_user_spp_state_specific(u8 packet_type, u8 *spp_remote_addr)
     }
 #endif
     switch (packet_type) {
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+    case SPP_USER_ST_NULL:
+        if (TWS_ROLE_MASTER != tws_api_get_role()) {
+            rcsp_simplified_set_spp_conn_addr(spp_remote_addr);
+        }
+        break;
+#endif
     case SPP_USER_ST_CONNECT:
         rcsp_printf("rcsp_user_spp_state_specific SPP_USER_ST_CONNECT\n");
         // spp 连接后会走这里

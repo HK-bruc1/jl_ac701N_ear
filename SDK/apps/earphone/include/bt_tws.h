@@ -16,6 +16,7 @@
 #define TWS_FUNC_ID_EAR_DETECT_SYNC	TWS_FUNC_ID('E', 'D', 'E', 'T')
 #define TWS_FUNC_ID_LL_SYNC_STATE	TWS_FUNC_ID('L', 'L', 'S', 'S')
 #define TWS_FUNC_ID_TUYA_STATE      TWS_FUNC_ID('T', 'U', 'Y', 'A')
+#define TWS_FUNC_ID_AI_SYNC         TWS_FUNC_ID('A', 'I', 'P', 'A')
 
 enum {
     DEBUG_LINK_PAGE_STATE = 0,

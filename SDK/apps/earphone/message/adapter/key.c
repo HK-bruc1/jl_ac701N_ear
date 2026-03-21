@@ -31,6 +31,11 @@ static struct key_hold *get_key_hold(u8 key_value, int _new)
         }
     }
     if (!_new) {
+        for (int i = 0; i < ARRAY_SIZE(key_hold_hdl); i++) {
+            key_hold_hdl[i].value = NO_KEY;
+            key_hold_hdl[i].action = 0;
+            key_hold_hdl[i].start_time = 0;
+        }
         return NULL;
     }
     for (int i = 0; i < ARRAY_SIZE(key_hold_hdl); i++) {

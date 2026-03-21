@@ -1041,9 +1041,9 @@ static void tws_disconn_ble(void *priv)
 void adv_role_switch_handle(u8 role)
 {
 #if TCFG_USER_TWS_ENABLE
-#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     // 当充电入仓的时候，入仓的主机设备role是1但tws_api_get_role()是0；
     printf("adv_role_switch_handle rcsp role change:%d, %d, %d\n", role, tws_api_get_role(), bt_rcsp_device_conn_num());
+#if !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     printf("tws state %x, spp num %x, ble num %x, att num %x\n", tws_api_get_tws_state(), bt_rcsp_spp_conn_num(), bt_rcsp_ble_conn_num(), bt_rcsp_edr_att_conn_num());
     if (tws_api_get_tws_state()) {
         // 设备连接后，主从切换需要spp手机app来请求固件信息
@@ -1077,6 +1077,7 @@ void adv_role_switch_handle(u8 role)
 
 #else // !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
+    printf("tws state %x, spp num %x, ble num %x\n", tws_api_get_tws_state(), bt_rcsp_spp_conn_num(), bt_rcsp_ble_conn_num());
     if (tws_api_get_tws_state()) {
         if (!bt_rcsp_spp_conn_num() && (tws_api_get_role() != TWS_ROLE_SLAVE)) {
             // 新主机开广播
@@ -1087,7 +1088,7 @@ void adv_role_switch_handle(u8 role)
             set_ble_adv_notify(1);
             bt_ble_rcsp_adv_enable();
         }
-        if (rcsp_ble_con_handle_get() && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+        if (rcsp_ble_con_handle_get() && (tws_api_get_role() != TWS_ROLE_SLAVE)) {
             // 旧主机让手机回连同时断开ble
             u8 adv_cmd = 0x3;
             adv_info_device_request(&adv_cmd, sizeof(adv_cmd));

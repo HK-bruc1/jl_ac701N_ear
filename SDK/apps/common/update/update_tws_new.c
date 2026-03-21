@@ -105,7 +105,7 @@ void tws_ota_timeout_reset(void)
     if (tws_ota_timeout_hdl) {
         sys_timeout_del(tws_ota_timeout_hdl);
     }
-    tws_ota_timeout_hdl = sys_timeout_add(NULL, tws_ota_timeout, 8000);
+    tws_ota_timeout_hdl = sys_timeout_add(NULL, tws_ota_timeout, 16000);
 }
 
 void tws_ota_timeout_del(void)
@@ -335,6 +335,37 @@ u16 tws_ota_enter_verify_without_crc(void *priv)
     }
     return 0;
 
+}
+
+u16 tws_ota_enter_verify_without_crc_dont_wait(void *priv)
+{
+    u8 rsp_data = OTA_TWS_VERIFY_WITHOUT_CRC;
+    if (tws_api_get_tws_state() & TWS_STA_SIBLING_DISCONNECTED) {
+        log_info("tws_disconn in verify\n");
+        db_update_notify_fail_to_phone();
+        return -1;
+    }
+    if (tws_ota_trans_to_sibling(&rsp_data, 1)) {
+        return -1;
+    }
+    return 0;
+}
+
+u16 tws_ota_wait_verify_without_crc(void *priv)
+{
+    // u8 rsp_data = OTA_TWS_VERIFY_WITHOUT_CRC;
+    // if (tws_api_get_tws_state() & TWS_STA_SIBLING_DISCONNECTED) {
+    //     log_info("tws_disconn in verify\n");
+    //     db_update_notify_fail_to_phone();
+    //     return -1;
+    // }
+    // if (tws_ota_trans_to_sibling(&rsp_data, 1)) {
+    //     return -1;
+    // }
+    if (os_sem_pend(&tws_ota_sem, 1000) ==  OS_TIMEOUT) {
+        return -1;
+    }
+    return 0;
 }
 
 u16 tws_ota_exit_verify(u8 *res, u8 *up_flg)

@@ -17,6 +17,7 @@
 #include "btstack/le/le_user.h"
 #include "btstack/le/le_common_define.h"
 #include "rcsp_config.h"
+#include "app_main.h"
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
 
@@ -188,7 +189,9 @@ static void rcsp_rcsp_spp_state_cbk(u8 state)
     }
 
     // rcsp_user_spp_state_specific需要上面绑定设备后才能被调用
-    rcsp_user_spp_state_specific(state, rcsp_spp_remote_addr);
+    if (!app_var.goto_poweroff_flag) {
+        rcsp_user_spp_state_specific(state, rcsp_spp_remote_addr);
+    }
     // 需要app_core线程处理的操作放到以下函数
     rcsp_user_event_spp_handler(state, 1);
 
