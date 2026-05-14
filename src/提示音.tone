@@ -1,0 +1,1269 @@
+{
+ "uuid": "1",
+ "enable": true,
+ "current": "tone_en",
+ "group": [
+  {
+   "title": "tone_en",
+   "configName": "TCFG_TONE_EN_ENABLE",
+   "files": [
+    {
+     "name": "数字0",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\0.mp3",
+     "default": true,
+     "enable": true,
+     "outputName": "0",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "3a80fd6b",
+     "size": 1957
+    },
+    {
+     "name": "数字1",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\1.mp3",
+     "default": true,
+     "enable": true,
+     "outputName": "1",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "58443225",
+     "size": 1616
+    },
+    {
+     "name": "数字2",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\2.mp3",
+     "outputName": "2",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "7c3a3063",
+     "size": 1538
+    },
+    {
+     "name": "数字3",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\3.mp3",
+     "outputName": "3",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "faf58341",
+     "size": 1595
+    },
+    {
+     "name": "数字4",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\4.mp3",
+     "outputName": "4",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "9add4e86",
+     "size": 1776
+    },
+    {
+     "name": "数字5",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\5.mp3",
+     "outputName": "5",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "530fe340",
+     "size": 1357
+    },
+    {
+     "name": "数字6",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\6.mp3",
+     "outputName": "6",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "992b7cb7",
+     "size": 2103
+    },
+    {
+     "name": "数字7",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\7.mp3",
+     "outputName": "7",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "9a584715",
+     "size": 2037
+    },
+    {
+     "name": "数字8",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\8.mp3",
+     "outputName": "8",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "6ac0be86",
+     "size": 1468
+    },
+    {
+     "name": "数字9",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\9.mp3",
+     "outputName": "9",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "cf91e52d",
+     "size": 1610
+    },
+    {
+     "name": "开机",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\power_on.mp3",
+     "outputName": "power_on",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "9c94d204",
+     "size": 2046
+    },
+    {
+     "name": "关机",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\power_off.mp3",
+     "outputName": "power_off",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "bf0aaf3f",
+     "size": 2422
+    },
+    {
+     "name": "低电",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\low_power.mp3",
+     "outputName": "low_power",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "eba69b79",
+     "size": 2346
+    },
+    {
+     "name": "最大音量",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\vol_max.mp3",
+     "outputName": "vol_max",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "a35e8fb4",
+     "size": 3309
+    },
+    {
+     "name": "连接成功",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\connect.mp3",
+     "outputName": "bt_conn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "aa59d0c5",
+     "size": 2042
+    },
+    {
+     "name": "连接断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\disconnect.mp3",
+     "outputName": "bt_dconn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "54004302",
+     "size": 2543
+    },
+    {
+     "name": "响铃",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ring.sin",
+     "outputName": "ring",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "4a9a48be",
+     "size": 44
+    },
+    {
+     "name": "进入游戏模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\game_in.sin",
+     "outputName": "game_in",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "94326fde",
+     "size": 44
+    },
+    {
+     "name": "退出游戏模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\game_out.sin",
+     "outputName": "game_out",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "3486057f",
+     "size": 44
+    },
+    {
+     "name": "TWS连接",
+     "path": "%TOOL_PATH%\\resource\\earphone\\tws_conn.sin",
+     "outputName": "tws_conn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "82734999",
+     "size": 44
+    },
+    {
+     "name": "TWS断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\tws_dconn.sin",
+     "outputName": "tws_dconn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "e62cb53f",
+     "size": 64
+    },
+    {
+     "name": "默认",
+     "path": "%TOOL_PATH%\\resource\\earphone\\normal.sin",
+     "outputName": "normal",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "239cf4d7",
+     "size": 44
+    },
+    {
+     "name": "ANC开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\anc_on.wav",
+     "outputName": "anc_on",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "f8266a92",
+     "size": 2910
+    },
+    {
+     "name": "ANC关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\anc_off.wav",
+     "outputName": "anc_off",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "8430ccf0",
+     "size": 2906
+    },
+    {
+     "name": "通透模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\anc_trans.wav",
+     "outputName": "anc_trans",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "9cd8369d",
+     "size": 3251
+    },
+    {
+     "name": "按键音",
+     "path": "%TOOL_PATH%\\resource\\earphone\\key_tone.sin",
+     "outputName": "key_tone",
+     "default": true,
+     "enable": false,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "8c3c6cec",
+     "size": 44
+    },
+    {
+     "name": "bt模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\bt.mp3",
+     "outputName": "bt",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "1cf69b4e",
+     "size": 2835
+    },
+    {
+     "name": "linein模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\linein_en.mp3",
+     "outputName": "linein",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "9b9bb3aa",
+     "size": 2996
+    },
+    {
+     "name": "pc模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\pc.mp3",
+     "outputName": "pc",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "1723f0b7",
+     "size": 2981
+    },
+    {
+     "name": "music模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\music.mp3",
+     "outputName": "music",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "ae5b7d2",
+     "size": 1711
+    },
+    {
+     "name": "耳道自适应",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\adaptive.wav",
+     "outputName": "adaptive",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "dd49046a",
+     "size": 2471
+    },
+    {
+     "name": "智能免摘开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\spkchat_on.mp3",
+     "outputName": "spkchat_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "8b25c35d",
+     "size": 3732
+    },
+    {
+     "name": "智能免摘关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\spkchat_off.mp3",
+     "outputName": "spkchat_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "3e9e2cc",
+     "size": 3629
+    },
+    {
+     "name": "风噪检测开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\winddet_on.mp3",
+     "outputName": "winddet_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "5a311261",
+     "size": 3816
+    },
+    {
+     "name": "风噪检测关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\winddet_off.mp3",
+     "outputName": "winddet_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "6242425f",
+     "size": 3660
+    },
+    {
+     "name": "广域点击开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\wclick_on.mp3",
+     "outputName": "wclick_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "ec627b2f",
+     "size": 3459
+    },
+    {
+     "name": "广域点击关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\wclick_off.mp3",
+     "outputName": "wclick_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "c0a20456",
+     "size": 3331
+    },
+    {
+     "name": "贴合度检测",
+     "path": "%TOOL_PATH%\\resource\\earphone\\fit_dec_on.wav",
+     "outputName": "fit_det_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "a1360fc2",
+     "size": 5058
+    },
+    {
+     "name": "cis模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\cis_mode.mp3",
+     "outputName": "cis_mode",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "59aa727b",
+     "size": 3184,
+     "enable": false
+    },
+    {
+     "name": "cis连接成功",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\cis_connect.mp3",
+     "outputName": "cis_conn",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "6ba163f2",
+     "size": 3480,
+     "enable": false
+    },
+    {
+     "name": "cis连接断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\cis_disconnect.mp3",
+     "outputName": "cis_dconn",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "b6c4a500",
+     "size": 3854,
+     "enable": false
+    },
+    {
+     "name": "edr模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\edr_mode.mp3",
+     "outputName": "edr_mode",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "953b9a37",
+     "size": 2894,
+     "enable": false
+    }
+   ],
+   "enableOutput": 1,
+   "size": 42480,
+   "isOpen": true
+  },
+  {
+   "title": "tone_zh",
+   "configName": "TCFG_TONE_ZH_ENABLE",
+   "files": [
+    {
+     "name": "数字0",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\0.mp3",
+     "default": true,
+     "enable": true,
+     "outputName": "0",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "cf0e3826",
+     "size": 1212
+    },
+    {
+     "name": "数字1",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\1.mp3",
+     "default": true,
+     "enable": true,
+     "outputName": "1",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "f0edb5f0",
+     "size": 877
+    },
+    {
+     "name": "数字2",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\2.mp3",
+     "outputName": "2",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "eb50c491",
+     "size": 1078
+    },
+    {
+     "name": "数字3",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\3.mp3",
+     "outputName": "3",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "397ced39",
+     "size": 1210
+    },
+    {
+     "name": "数字4",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\4.mp3",
+     "outputName": "4",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "967a4c71",
+     "size": 1361
+    },
+    {
+     "name": "数字5",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\5.mp3",
+     "outputName": "5",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "c2ac178b",
+     "size": 1101
+    },
+    {
+     "name": "数字6",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\6.mp3",
+     "outputName": "6",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "a324f9f5",
+     "size": 1151
+    },
+    {
+     "name": "数字7",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\7.mp3",
+     "outputName": "7",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "6f627bb4",
+     "size": 1166
+    },
+    {
+     "name": "数字8",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\8.mp3",
+     "outputName": "8",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "a225b0d5",
+     "size": 1061
+    },
+    {
+     "name": "数字9",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\9.mp3",
+     "outputName": "9",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "8a738f36",
+     "size": 1242
+    },
+    {
+     "name": "开机",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\power_on.mp3",
+     "outputName": "power_on",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "48f84e06",
+     "size": 1777
+    },
+    {
+     "name": "关机",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\power_off.mp3",
+     "outputName": "power_off",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "c5a8dcc4",
+     "size": 1644
+    },
+    {
+     "name": "低电",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\low_power.mp3",
+     "outputName": "low_power",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "34d87ae4",
+     "size": 2975
+    },
+    {
+     "name": "最大音量",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\vol_max.mp3",
+     "outputName": "vol_max",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "df6daddc",
+     "size": 2640
+    },
+    {
+     "name": "连接成功",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\connect.mp3",
+     "outputName": "bt_conn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "7d4e4a99",
+     "size": 3268
+    },
+    {
+     "name": "连接断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\disconnect.mp3",
+     "outputName": "bt_dconn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "2de1a10",
+     "size": 3432
+    },
+    {
+     "name": "响铃",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ring.sin",
+     "outputName": "ring",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "4a9a48be",
+     "size": 44
+    },
+    {
+     "name": "进入游戏模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\game_in.sin",
+     "outputName": "game_in",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "94326fde",
+     "size": 44
+    },
+    {
+     "name": "退出游戏模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\game_out.sin",
+     "outputName": "game_out",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "3486057f",
+     "size": 44
+    },
+    {
+     "name": "TWS连接",
+     "path": "%TOOL_PATH%\\resource\\earphone\\tws_conn.sin",
+     "outputName": "tws_conn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "82734999",
+     "size": 44
+    },
+    {
+     "name": "TWS断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\tws_dconn.sin",
+     "outputName": "tws_dconn",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "e62cb53f",
+     "size": 64
+    },
+    {
+     "name": "默认",
+     "path": "%TOOL_PATH%\\resource\\earphone\\normal.sin",
+     "outputName": "normal",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "239cf4d7",
+     "size": 44
+    },
+    {
+     "name": "ANC开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\anc_on.wav",
+     "outputName": "anc_on",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "51e7604d",
+     "size": 2392
+    },
+    {
+     "name": "ANC关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\anc_off.wav",
+     "outputName": "anc_off",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "ff1955f5",
+     "size": 1868
+    },
+    {
+     "name": "通透模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\anc_trans.wav",
+     "outputName": "anc_trans",
+     "default": true,
+     "enable": true,
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "68540d5f",
+     "size": 2274
+    },
+    {
+     "name": "按键音",
+     "path": "%TOOL_PATH%\\resource\\earphone\\key_tone.sin",
+     "outputName": "key_tone",
+     "default": true,
+     "enable": false,
+     "format": {
+      "value": "sin"
+     },
+     "sizeKey": "8c3c6cec",
+     "size": 44
+    },
+    {
+     "name": "bt模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\bt.mp3",
+     "outputName": "bt",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "f04f2233",
+     "size": 2544
+    },
+    {
+     "name": "linein模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\linein.mp3",
+     "outputName": "linein",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "2ee494e5",
+     "size": 3156
+    },
+    {
+     "name": "pc模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\pc.mp3",
+     "outputName": "pc",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "52242c90",
+     "size": 2715
+    },
+    {
+     "name": "music模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\music.mp3",
+     "outputName": "music",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "enable": false,
+     "sizeKey": "f1b5aebe",
+     "size": 2550
+    },
+    {
+     "name": "耳道自适应",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\adaptive.wav",
+     "outputName": "adaptive",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "7c66752f",
+     "size": 2461
+    },
+    {
+     "name": "智能免摘开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\spkchat_on.mp3",
+     "outputName": "spkchat_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "8b25c35d",
+     "size": 3732
+    },
+    {
+     "name": "智能免摘关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\spkchat_off.mp3",
+     "outputName": "spkchat_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "3e9e2cc",
+     "size": 3629
+    },
+    {
+     "name": "风噪检测开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\winddet_on.mp3",
+     "outputName": "winddet_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "5a311261",
+     "size": 3816
+    },
+    {
+     "name": "风噪检测关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\winddet_off.mp3",
+     "outputName": "winddet_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "6242425f",
+     "size": 3660
+    },
+    {
+     "name": "广域点击开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\wclick_on.mp3",
+     "outputName": "wclick_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "ec627b2f",
+     "size": 3459
+    },
+    {
+     "name": "广域点击关",
+     "path": "%TOOL_PATH%\\resource\\earphone\\ICSD_ADT\\wclick_off.mp3",
+     "outputName": "wclick_off",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "c0a20456",
+     "size": 3331
+    },
+    {
+     "name": "贴合度检测",
+     "path": "%TOOL_PATH%\\resource\\earphone\\fit_dec_on.wav",
+     "outputName": "fit_det_on",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "a1360fc2",
+     "size": 5058
+    },
+    {
+     "name": "cis模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\cis_mode.mp3",
+     "outputName": "cis_mode",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "554a0189",
+     "size": 4073,
+     "enable": false
+    },
+    {
+     "name": "cis连接成功",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\cis_connect.mp3",
+     "outputName": "cis_conn",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "dc15a05c",
+     "size": 4801,
+     "enable": false
+    },
+    {
+     "name": "cis连接断开",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\cis_disconnect.mp3",
+     "outputName": "cis_dconn",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "1c65e357",
+     "size": 4448,
+     "enable": false
+    },
+    {
+     "name": "edr模式",
+     "path": "%TOOL_PATH%\\resource\\earphone\\中文\\edr_mode.mp3",
+     "outputName": "edr_mode",
+     "format": {
+      "value": "wts",
+      "simpleRate": "16000",
+      "bitRate": 16000,
+      "vad": 0,
+      "priority": 1
+     },
+     "sizeKey": "bfb5ce1c",
+     "size": 4600,
+     "enable": false
+    }
+   ],
+   "enableOutput": 0,
+   "size": 35392,
+   "isOpen": true
+  }
+ ],
+ "version": {
+  "code": 1,
+  "tool": "4.4.0"
+ }
+}
