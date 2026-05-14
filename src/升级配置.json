@@ -328,7 +328,7 @@
           "label": "支持双备份升级",
           "tag": "el-switch",
           "tagIcon": "switch",
-          "defaultValue": 0,
+          "defaultValue": 1,
           "span": 6,
           "showLabel": true,
           "labelWidth": 180,

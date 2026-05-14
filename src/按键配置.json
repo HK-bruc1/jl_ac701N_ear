@@ -2771,7 +2771,7 @@
           "eventField": [],
           "saveWay": "code",
           "uuid": "",
-          "structDef": "",
+          "structDef": "const struct touch_key_cfg lp_touch_key_table",
           "structProp": "",
           "showLabelIndex": false
          },

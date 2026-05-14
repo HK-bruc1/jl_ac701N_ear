@@ -42,7 +42,7 @@
         "gpio"
        ],
        "saveWay": "macro",
-       "defaultValue": "IO_PORTA_05",
+       "defaultValue": "IO_PORT_DP",
        "uuid": "TCFG_DEBUG_UART_TX_PIN"
       },
       "__slot__": {
@@ -83,7 +83,7 @@
        "eventField": [],
        "saveWay": "macro",
        "uuid": "TCFG_DEBUG_UART_BAUDRATE",
-       "defaultValue": 2000000
+       "defaultValue": 1000000
       },
       "__slot__": {
        "options": [
@@ -459,7 +459,7 @@
        "eventField": [],
        "saveWay": "macro",
        "uuid": "CONFIG_FLASH_SIZE",
-       "defaultValue": "0x100000",
+       "defaultValue": "0x200000",
        "originValue": "0x100000"
       },
       "__slot__": {
@@ -1040,7 +1040,8 @@
     "saveWay": "",
     "uuid": "",
     "eventField": [],
-    "enableUuid": "TCFG_PWMLED_ENABLE"
+    "enableUuid": "TCFG_PWMLED_ENABLE",
+    "disable": true
    },
    "type": "default",
    "justify": "start",
