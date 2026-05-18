@@ -598,6 +598,7 @@
 // 需要在 board_ac701n_demo_cfg.h 中预定义，供 nandflash_test.h 的 #ifndef 检查
 #define NAND_TEST_RAW                       ENABLE          // 裸驱动：读ID、Page读写校验、Block擦除、内部数据搬运
 #define NAND_TEST_FTL                       ENABLE          // FTL：SPBK信息转储、块信息查询、逻辑扇区读写
+#define NAND_TEST_FORMAT                    DISABLE         // 显式格式化：破坏性测试，按需手动开启
 #define NAND_TEST_FS                        ENABLE          // 文件系统：创建/读取/验证/删除测试文件
 
 //*********************************************************************************//

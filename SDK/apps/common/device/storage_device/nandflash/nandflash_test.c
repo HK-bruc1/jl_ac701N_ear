@@ -13,6 +13,7 @@
 #include "nandflash_ftl.h"
 #include "fs.h"
 #include "system/includes.h"
+#include "asm/wdt.h"
 
 #undef LOG_TAG_CONST
 #define LOG_TAG     "[NAND_TEST]"
@@ -27,7 +28,13 @@ extern int _ftl_read(void *buf, u32 logic_sec_addr, u32 len);
 extern int ftl_get_block_info(u32 location, BLOCK_INFO *dir, int flag);
 
 // ---- helpers ----
+#define TEST_ROOT_PATH  "storage/nandflash_ftl/C/"
 static u8 _test_buf[4096] __attribute__((aligned(4)));
+
+static const char *_result_label(int enabled, int pass)
+{
+    return enabled ? (pass ? "PASS" : "FAIL") : "DISABLED";
+}
 
 static void _print_pass(const char *name)
 {
@@ -42,6 +49,27 @@ static void _print_fail(const char *name, int err)
 static void _print_skip(const char *name, const char *reason)
 {
     printf("  [SKIP] %s — %s\n", name, reason);
+}
+
+static int _read_fs_bpb(char fs_type[9])
+{
+    SPBK_INFO *sp = &ftl_hdl.spbk;
+    u32 fs_sector_0 = sp->spbk_hot_part_addr * sp->spbk_block_size / 512;
+
+    memset(_test_buf, 0, 512);
+    if (_ftl_read(_test_buf, fs_sector_0, 1) != 0) {
+        return -1;
+    }
+    if (_test_buf[510] != 0x55 || _test_buf[511] != 0xAA) {
+        return -1;
+    }
+
+    memcpy(fs_type, _test_buf + 0x36, 8);
+    fs_type[8] = '\0';
+    if (memcmp(fs_type, "FAT", 3) != 0) {
+        return -1;
+    }
+    return 0;
 }
 
 // ==================== RAW Driver Test ====================
@@ -149,7 +177,7 @@ static int _test_ftl(void)
 {
     int res;
     BLOCK_INFO bi;
-    char tmp[64];
+    char fs_type[9];
 
     log_info("--- FTL Test ---");
 
@@ -189,17 +217,12 @@ static int _test_ftl(void)
     /* 3. 逻辑扇区读取（读文件系统扇区 0，验证 FAT BPB 签名）
      * ftl_dev_read 对 _ftl_read 的调用加了 hot_part_addr * block_size/512 偏移，
      * 测试直接调用 _ftl_read 需要手动加上该偏移。 */
-    u32 fs_sector_0 = sp->spbk_hot_part_addr * sp->spbk_block_size / 512;
-    memset(_test_buf, 0, 512);
-    res = _ftl_read(_test_buf, fs_sector_0, 1);
+    res = _read_fs_bpb(fs_type);
     if (res != 0) {
         _print_fail("Sector 0 Read", res);
         return -1;
     }
-    // FAT16/32 BPB 特征：偏移 0x36 处为 "FAT12"/"FAT16"/"FAT32"
-    memcpy(tmp, _test_buf + 0x36, 8);
-    tmp[8] = '\0';
-    printf("  FS type: %s\n", tmp);
+    printf("  FS type: %s\n", fs_type);
     _print_pass("Sector 0 Read (FAT BPB)");
 
     /* 4. 坏块计数 */
@@ -211,13 +234,52 @@ static int _test_ftl(void)
 }
 #endif /* NAND_TEST_FTL */
 
+// ==================== Explicit Format Test ====================
+#if NAND_TEST_FORMAT
+#if !TCFG_FATFS_WRITE_ENABLE
+#error "NAND_TEST_FORMAT requires TCFG_FATFS_WRITE_ENABLE"
+#endif
+
+static int _test_format(void)
+{
+    int res;
+    char fs_type[9];
+
+    log_info("--- Explicit Format Test ---");
+    printf("  [WARN] This test erases filesystem contents on %s\n", TEST_ROOT_PATH);
+
+    /*
+     * Use the public filesystem formatting API here, matching the runtime
+     * device-format path instead of calling the internal FTL formatter.
+     */
+    wdt_disable();
+    res = f_format(TEST_ROOT_PATH, "fat", 0);
+    wdt_enable();
+    if (res != 0) {
+        _print_fail("f_format", res);
+        return -1;
+    }
+    _print_pass("f_format");
+
+    res = _read_fs_bpb(fs_type);
+    if (res != 0) {
+        _print_fail("Formatted FAT BPB Verify", res);
+        return -1;
+    }
+    printf("  FS type after format: %s\n", fs_type);
+    _print_pass("Formatted FAT BPB Verify");
+
+    log_info("--- FORMAT Test: ALL PASS ---");
+    return 0;
+}
+#endif /* NAND_TEST_FORMAT */
+
 // ==================== Filesystem Test ====================
 #if NAND_TEST_FS
 #if !TCFG_FATFS_WRITE_ENABLE
 #error "NAND_TEST_FS requires TCFG_FATFS_WRITE_ENABLE"
 #endif
 
-#define TEST_ROOT_PATH  "storage/nandflash_ftl/C/"
 #define TEST_FILENAME   TEST_ROOT_PATH"NTEST.TMP"
 static const u8 _fs_pattern[] = "NAND_FS_TEST_2026";
 
@@ -324,14 +386,14 @@ void nand_test_run_raw(void)
 #endif
 }
 
-// 入口 2：FTL + FS 测试（mount 之后调用）
+// 入口 2：FTL + FORMAT + FS 测试（mount 之后调用）
 void nand_test_run_all(void)
 {
-    int ftl_pass = 1, fs_pass = 1;
+    int ftl_pass = 1, format_pass = 1, fs_pass = 1;
 
     printf("\n");
     printf("========================================\n");
-    printf("  NAND Flash FTL + FS Test Suite\n");
+    printf("  NAND Flash FTL + FORMAT + FS Test Suite\n");
     printf("========================================\n\n");
 
 #if NAND_TEST_FTL
@@ -341,22 +403,38 @@ void nand_test_run_all(void)
     printf("  [DISABLED] FTL Test\n\n");
 #endif
 
-#if NAND_TEST_FS
+#if NAND_TEST_FORMAT
     if (ftl_pass) {
-        fs_pass = (_test_filesystem() == 0);
+        format_pass = (_test_format() == 0);
         printf("\n");
     } else {
+        _print_skip("FORMAT Test", "FTL not ready");
+        format_pass = 0;
+    }
+#else
+    printf("  [DISABLED] FORMAT Test\n\n");
+#endif
+
+#if NAND_TEST_FS
+    if (!ftl_pass) {
         _print_skip("FS Test", "FTL not ready");
         fs_pass = 0;
+    } else if (!format_pass) {
+        _print_skip("FS Test", "FORMAT not ready");
+        fs_pass = 0;
+    } else {
+        fs_pass = (_test_filesystem() == 0);
+        printf("\n");
     }
 #else
     printf("  [DISABLED] FS Test\n\n");
 #endif
 
     printf("========================================\n");
-    printf("  Summary: FTL=%s  FS=%s\n",
-           ftl_pass ? "PASS" : "FAIL",
-           fs_pass ? "PASS" : "FAIL");
+    printf("  Summary: FTL=%s  FORMAT=%s  FS=%s\n",
+           _result_label(NAND_TEST_FTL, ftl_pass),
+           _result_label(NAND_TEST_FORMAT, format_pass),
+           _result_label(NAND_TEST_FS, fs_pass));
     printf("========================================\n\n");
 }
 
