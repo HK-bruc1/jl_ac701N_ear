@@ -5,6 +5,7 @@
 #pragma code_seg(".dev_manager.text")
 #endif
 #include "dev_manager.h"
+#include "nandflash_test.h"
 #include "app_config.h"
 #include "app_main.h"
 #if TCFG_USB_DM_MULTIPLEX_WITH_SD_DAT0
@@ -1081,6 +1082,10 @@ static void dev_manager_task(void *p)
     //格式化demo
     //f_format("nandflash_ftl", "fat", 4096)
     dev_manager_add("nandflash_ftl");
+
+#if TCFG_NAND_TEST_ENABLE
+    nand_test_run_all();  // FTL + FS 测试（RAW 已在 nandflash_dev_init 中完成）
+#endif
 #endif
 
 	os_sem_post(&__this->sem);
@@ -1134,4 +1139,3 @@ void dev_manager_init(void)
 	devices_init();
 #endif
 }
-

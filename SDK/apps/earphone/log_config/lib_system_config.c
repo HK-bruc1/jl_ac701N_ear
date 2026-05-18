@@ -99,11 +99,7 @@ const u32 CONFIG_HEAP_MEMORY_TRACE = 0;
 //================================================//
 //                  FS功能控制 					  //
 //================================================//
-#if TCFG_MIX_RECORD_ENABLE
-const int FATFS_WRITE = 1; // 控制fatfs写功能开关。
-#else
-const int FATFS_WRITE = 0; // 控制fatfs写功能开关。
-#endif
+const int FATFS_WRITE = TCFG_FATFS_WRITE_ENABLE; // 控制fatfs写功能开关。
 const int FILT_0SIZE_ENABLE = 1; //是否过滤0大小文件
 const int FATFS_LONG_NAME_ENABLE = 1; //是否支持长文件名
 const int FATFS_RENAME_ENABLE = 1; //是否支持重命名
@@ -253,4 +249,3 @@ const char log_tag_const_i_DLOG  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_d_DLOG  = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_w_DLOG  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_e_DLOG  = CONFIG_DEBUG_LIB(1);
-

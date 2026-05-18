@@ -84,7 +84,22 @@ struct nandflash_dev_platform_data {
 #define NANDFLASH_DEV_PLATFORM_DATA_END()  \
 };
 
-void nandflash_test_demo(void);
+struct nandflash_data {
+    u8 ecc_mask;
+    u8 ecc_err;
+    u8 plane_select;
+    u8 write_enable_position;
+    u8 quad_mode_dummy_num: 4;
+    u8 quad_mode_qe: 1;
+    u16 block_number;
+    u32 capacity;
+    u16 page_size;
+    u32 block_size;
+};
+
+extern struct nandflash_data nand_flash;
+
+int nand_page_internal_data_move(u32 page_src_addr, u32 page_dest_addr, u16 offset, u16 len, u8 *buf);
 extern const struct device_operations nandflash_dev_ops;
 extern const struct device_operations ftl_dev_ops;
 

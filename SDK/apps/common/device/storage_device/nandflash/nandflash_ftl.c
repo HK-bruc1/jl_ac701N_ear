@@ -39,7 +39,7 @@ static int ftl_init_flag = 1;
 #endif
 
 
-static const char ftl_bpb_data[512] = {
+static const u8 ftl_bpb_data[512] = {
     0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x00, 0x02, 0x10, 0x08, 0x00,
     0x01, 0x00, 0x02, 0x00, 0x00, 0xF8, 0x80, 0x00, 0x3F, 0x00, 0xFF, 0x00, 0x00, 0x08, 0x00, 0x00,
     0x00, 0x00, 0x08, 0x00, 0x80, 0x00, 0x29, 0xB0, 0xB2, 0xD8, 0x98, 0x4E, 0x4F, 0x20, 0x4E, 0x41,
@@ -130,12 +130,12 @@ static void ftl_fat_copy(void *pDest, void *pSrc, u32 copyLen)
     }
 }
 
-static u16 ftl_ld_word(u8 *p)
+static u16 ftl_ld_word(const u8 *p)
 {
     return (u16)p[1] << 8 | p[0];
 }
 
-static u32 ftl_ld_dword(u8 *p)
+static u32 ftl_ld_dword(const u8 *p)
 {
     return (u32)p[3] << 24 | p[2] << 16 | p[1] << 8 | p[0];
 }
@@ -151,7 +151,7 @@ static void ftl_inc_erase_count(void)
     ftl_hdl.block_info.block_erase_num[2] = (cnt >> 16) & 0xFF;
 }
 
-static int ftl_check_ff(char *buf, int len)
+static int ftl_check_ff(u8 *buf, int len)
 {
     while (len--) {
         if ((u8)buf[len] != 0xff) {
@@ -169,7 +169,7 @@ static void ftl_block_info_exchange(void)
     int a = ftl_hdl.spbk.spbk_block_info_addr * block_sec;
     int b = ftl_hdl.spbk.spbk_block_info_logaddr * block_sec;
     int c = ftl_hdl.spbk.spbk_block_info_len * block_sec;
-    char *buf = zalloc(ftl_hdl.spbk.spbk_page_size);
+    u8 *buf = zalloc(ftl_hdl.spbk.spbk_page_size);
     res = __ftl_read(ftl_hdl.hdev, buf, a, page_sec);
     if (res) {
         goto __exit;
@@ -235,7 +235,7 @@ int ftl_get_block_info(u32 location, BLOCK_INFO *dir, int flag)
     int a = 512 / sizeof(BLOCK_INFO); // 每个扇区可表示多少个block
     int i = location / a;
     int b = location % a; // 在第几个 sizeof(BLOCK_INFO) .
-    char *rbuf = zalloc(512);
+    u8 *rbuf = zalloc(512);
     int res;
     //TODO : 测试实际读256M的nandflash i不会超过31，可以做优化，不用一直找到尾部。
     int length = ftl_hdl.spbk.spbk_flash_size * sizeof(BLOCK_INFO) / 512 + 1;
@@ -345,7 +345,7 @@ static int _ftl_get_plane_block(int org, u8 ex_flag)
     return rand_block;
 }
 
-int _ftl_fcopy_block(int org, int dst, int addr, char *wbuf, int buflen)
+int _ftl_fcopy_block(int org, int dst, int addr, u8 *wbuf, int buflen)
 {
     int res;
     int page_sec = ftl_hdl.spbk.spbk_page_size / 512;
@@ -393,7 +393,7 @@ static int ftl_find_block(int block)
             /* ASSERT(); //读block_info失败 */
             return -1;
         }
-        put_buf(&tmp_dir, 8);
+        put_buf((const u8 *)&tmp_dir, 8);
         if ((tmp_dir.logic_map_addr == FTL_EX_FREE) && ((u8)tmp_dir.page_status == FTL_FREE)) {
             new_block = i;
             break;
@@ -419,7 +419,7 @@ static int ftl_find_block(int block)
     return new_block;
 }
 
-static int ftl_move_data(int dst_block, int addr_in_block, char *wbuf, int len, int flag)
+static int ftl_move_data(int dst_block, int addr_in_block, u8 *wbuf, int len, int flag)
 {
     int res;
     int a = dst_block;
@@ -474,7 +474,7 @@ static int ftl_update_spbk_info()
 {
     // TODO ：更新超级块信息
     int res;
-    char *spbk = zalloc(512);
+    u8 *spbk = zalloc(512);
     res =  __ftl_read(ftl_hdl.hdev, spbk, 0, 1);
     if (res) {
         res = FTL_DISK_ERR;
@@ -515,8 +515,8 @@ static int ftl_update_block_info(int block, BLOCK_INFO *dir)
     int a = ftl_hdl.spbk.spbk_block_info_addr;
     int b = block / x;
     int c = block % x;
-    char *tmp_buf = NULL;
-    char *info = zalloc(512);
+    u8 *tmp_buf = NULL;
+    u8 *info = zalloc(512);
     res =  __ftl_read(ftl_hdl.hdev, info, a * block_sec + b, 1);
     if (res) {
         res = FTL_DISK_ERR;
@@ -648,6 +648,7 @@ static int ftl_erase_all(int cap, int block_num)
     int block_erase_num = 1;
     int block_num_cnt = 0;
     int block_i = block_num - 1;
+    u8 *info = NULL;
 
     /* ftl_test_write_demo(300); */
 
@@ -673,7 +674,7 @@ static int ftl_erase_all(int cap, int block_num)
             break;
         }
     }
-    char *info = zalloc(512);
+    info = zalloc(512);
     char err_block_flag = 0;
     char hot_part_first = 1;
     int logic_cnt = 0;
@@ -780,8 +781,8 @@ static int ftl_create_part_info(int cap, int block_num)
 static int ftl_format(int clust_size)
 {
     int res;
-    char *ftl_buf = NULL;
-    char *page_buf = NULL;
+    u8 *ftl_buf = NULL;
+    u8 *page_buf = NULL;
     int mount_cap = ftl_hdl.spbk.spbk_mount_size * ftl_hdl.spbk.spbk_block_size / 512;
     if (mount_cap < 32 * 1024 * 1024 / 512) {
         res = FTL_DISK_ERR;
@@ -858,7 +859,7 @@ static int ftl_format(int clust_size)
     // 加速处理初始化可快至2.4s.
     //
     //更新写入FAT表信息.默认fat16
-    char DBR[512];
+    u8 DBR[512];
     memcpy(DBR, ftl_buf, 512); // 提前保存DBR数据。
     memset(ftl_buf, 0, 512);
     u8 *p = ftl_buf;
@@ -1015,7 +1016,7 @@ int _ftl_init(void)
     return res;
 }
 
-int _ftl_fcopy_block_bak(int org, int dst, char *tmp_buf, int sec_addr, char *wbuf, int buflen)
+int _ftl_fcopy_block_bak(int org, int dst, u8 *tmp_buf, int sec_addr, u8 *wbuf, int buflen)
 {
     int res;
     int block_sec = ftl_hdl.spbk.spbk_block_size / 512; // 一个block占的扇区。
@@ -1104,7 +1105,7 @@ int ftl_init(void)
     /* __ftl_erase(1); */
 
     if (ftl_init_flag) {
-        char *fbuf = zalloc(512);
+        u8 *fbuf = zalloc(512);
         res =  __ftl_read(ftl_hdl.hdev, fbuf, 0, 1);
         if (res) {
             res = FTL_DISK_ERR;
@@ -1236,6 +1237,9 @@ static int ftl_dev_ioctrl(struct device *device, u32 cmd, u32 arg)
         break;
     case IOCTL_SET_ASYNC_MODE:
         break;
+    case IOCTL_CHECK_WRITE_PROTECT:
+        *(u32 *)arg = 0;
+        break;
     default:
         res = -1;
         break;
@@ -1253,4 +1257,3 @@ const struct device_operations ftl_dev_ops = {
     .ioctl = ftl_dev_ioctrl,
     .close = ftl_dev_close,
 };
-

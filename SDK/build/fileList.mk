@@ -43,6 +43,7 @@ c_SRC_FILES += audio/framework/plugs/source/linein_file.c
 c_SRC_FILES += audio/cpu/common.c
 c_SRC_FILES += apps/common/config/bt_profile_config.c
 c_SRC_FILES += apps/common/update/update.c apps/common/update/testbox_update.c apps/common/update/testbox_uart_update.c
+c_SRC_FILES += apps/common/device/storage_device/nandflash/nandflash.c apps/common/device/storage_device/nandflash/nandflash_ftl.c
 c_SRC_FILES += apps/common/device/key/key_driver.c
 
 
@@ -72,3 +73,4 @@ c_SRC_FILES += cpu/br28/power/key_wakeup.c
 
 
 c_SRC_FILES += cpu/br28/power/power_app.c cpu/br28/power/power_config.c cpu/br28/power/power_port.c
+c_SRC_FILES += apps/common/dev_manager/dev_reg.c apps/common/dev_manager/dev_update.c apps/earphone/mode/common/dev_status.c

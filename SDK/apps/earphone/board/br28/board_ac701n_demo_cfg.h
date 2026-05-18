@@ -89,6 +89,9 @@
 // TWS 耳机项目默认不使能 MUSIC/PC/LINEIN，app_config.h 会将其置 0
 #define TCFG_DEV_MANAGER_ENABLE             1
 
+// NAND FTL FAT 需要创建/写入文件时显式打开；若产品只需只读挂载，可关闭该开关
+#define TCFG_FATFS_WRITE_ENABLE             ENABLE_THIS_MOUDLE
+
 //*********************************************************************************//
 //                                  SD 配置                                        //
 //*********************************************************************************//
@@ -584,6 +587,18 @@
 //#define TCFG_AUTO_SHUT_DOWN_TIME		          0     //没有蓝牙连接自动关机时间
 //#define TCFG_SYS_LVD_EN						      1     //电量检测使能
 #define TCFG_POWER_ON_NEED_KEY				      0	    //是否需要按按键开机配置
+
+//*********************************************************************************//
+//                            NAND Flash 测试接口                                   //
+//*********************************************************************************//
+// 总开关：量产/日常固件默认关闭；bring-up 时按需开启，关闭后测试模块不参与编译，零体积开销
+#define TCFG_NAND_TEST_ENABLE               DISABLE_THIS_MOUDLE
+
+// 分层开关：关闭某一层则该层测试不执行（但模块仍编译）
+// 需要在 board_ac701n_demo_cfg.h 中预定义，供 nandflash_test.h 的 #ifndef 检查
+#define NAND_TEST_RAW                       ENABLE          // 裸驱动：读ID、Page读写校验、Block擦除、内部数据搬运
+#define NAND_TEST_FTL                       ENABLE          // FTL：SPBK信息转储、块信息查询、逻辑扇区读写
+#define NAND_TEST_FS                        ENABLE          // 文件系统：创建/读取/验证/删除测试文件
 
 //*********************************************************************************//
 //                                 配置结束                                        //

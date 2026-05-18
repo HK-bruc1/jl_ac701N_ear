@@ -5,6 +5,7 @@
 #pragma code_seg(".nandflash.text")
 #endif
 #include "nandflash.h"
+#include "nandflash_test.h"
 #include "app_config.h"
 #include "clock.h"
 #include "asm/wdt.h"
@@ -30,18 +31,6 @@
 #define GD5F4GM7UE                  0xc894
 
 
-struct nandflash_data {
-    u8 ecc_mask;
-    u8 ecc_err;
-    u8 plane_select;
-    u8 write_enable_position;
-    u8 quad_mode_dummy_num: 4;
-    u8 quad_mode_qe: 1;
-    u16 block_number;
-    u32 capacity;
-    u16 page_size;
-    u32 block_size;
-};
 struct nandflash_data nand_flash = {0};
 static u8 spi_data_width = SPI_MODE_BIDIR_1BIT;
 
@@ -1169,7 +1158,11 @@ int _nandflash_ioctl(u32 cmd, u32 arg, u32 unit, void *_part)
 static int nandflash_dev_init(const struct dev_node *node, void *arg)
 {
     struct nandflash_dev_platform_data *pdata = arg;
-    return _nandflash_init(node->name, pdata);
+    int ret = _nandflash_init(node->name, pdata);
+#if TCFG_NAND_TEST_ENABLE
+    nand_test_run_raw();
+#endif
+    return ret;
 }
 
 static int nandflash_dev_open(const char *name, struct device **device, void *arg)
@@ -1267,29 +1260,6 @@ const struct device_operations nandflash_dev_ops = {
     .close  = nandflash_dev_close,
 };
 
-void nandflash_test_demo(void)
-{
-    u8 test_read_buf[10] = {0};
-    u8 test_write_buf[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00};
-    u8 test_move_buf[5] = {0x10, 0x20, 0x30, 0x40, 0x50};
-    _nandflash_open(NULL);
-    nand_flash_erase(0x00);
-    nand_write(0x00, 10, test_write_buf);
-    nand_read(0x00, 10, test_read_buf);
-    if (!memcmp(test_read_buf, test_write_buf, 10)) {
-        printf("write flash successs!!");
-        printf("data is :");
-        printf_buf(test_read_buf, 10);
-    } else {
-        printf("write flash failed!!");
-        printf_buf(test_read_buf, 10);
-    }
-    nand_page_internal_data_move(0x00, 0x800, 0x00, 5, test_move_buf);
-    nand_read(0x800, 10, test_read_buf);
-    printf("test move buf is :");
-    printf_buf(test_read_buf, 10);
-}
 
 #endif
-
 

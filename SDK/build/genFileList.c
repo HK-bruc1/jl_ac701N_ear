@@ -1449,6 +1449,11 @@ c_SRC_FILES += \
 	apps/common/device/storage_device/nandflash/nandflash_ftl.c
 #endif
 
+#if TCFG_NANDFLASH_DEV_ENABLE && TCFG_NAND_TEST_ENABLE
+c_SRC_FILES += \
+	apps/common/device/storage_device/nandflash/nandflash_test.c
+#endif
+
 
 #ifdef CONFIG_SOUNDBOX_CASE
 #if TCFG_APP_FM_EN

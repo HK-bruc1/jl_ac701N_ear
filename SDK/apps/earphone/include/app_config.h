@@ -198,6 +198,15 @@
 #define TCFG_MIX_RECORD_ENABLE     0
 #endif
 
+/*
+ * FAT write support is a filesystem capability, not a recording feature.
+ * Keep legacy behavior by default, while allowing products to opt in
+ * explicitly when they need writable FAT without mixed recording.
+ */
+#ifndef TCFG_FATFS_WRITE_ENABLE
+#define TCFG_FATFS_WRITE_ENABLE    TCFG_MIX_RECORD_ENABLE
+#endif
+
 #ifndef TCFG_DEV_MANAGER_ENABLE
 #if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
 #define TCFG_DEV_MANAGER_ENABLE					  			1
@@ -1200,4 +1209,3 @@
 #endif
 
 #endif
-
