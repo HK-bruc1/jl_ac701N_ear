@@ -29,8 +29,8 @@
 //                                  NTC配置                                       //
 //*********************************************************************************//
 #define NTC_DET_EN      0
-#define NTC_POWER_IO    IO_PORTC_03
-#define NTC_DETECT_IO   IO_PORTC_04
+#define NTC_POWER_IO    NO_CONFIG_PORT      // PC03 已被 SPI1 DATA 占用
+#define NTC_DETECT_IO   NO_CONFIG_PORT      // PC04 已被 SPI1 CLK 占用
 #define NTC_DET_AD_CH   (0x4)   //根据adc_api.h修改通道号
 
 #define NTC_DET_UPPER        235  //正常范围AD值上限，0度时
@@ -44,19 +44,19 @@
 #define TCFG_SW_I2C0_DAT_PORT               IO_PORTG_08                             //软件IIC  DAT脚选择
 #define TCFG_SW_I2C0_DELAY_CNT              50                                      //IIC延时参数，影响通讯时钟频率
 /*硬件IIC设置*/
-#define TCFG_HW_I2C0_CLK_PORT               IO_PORTC_04                             //硬件IIC  CLK脚选择
-#define TCFG_HW_I2C0_DAT_PORT               IO_PORTC_05                             //硬件IIC  DAT脚选择
+#define TCFG_HW_I2C0_CLK_PORT               NO_CONFIG_PORT      // 避免与 PC04 (SPI1 CLK) 配置层冲突
+#define TCFG_HW_I2C0_DAT_PORT               NO_CONFIG_PORT      // 避免与 PC05 (NAND CS) 配置层冲突
 #define TCFG_HW_I2C0_CLK                    100000                                  //硬件IIC波特率
 
 //*********************************************************************************//
 //                                 硬件SPI 配置                                    //
 //*********************************************************************************//
 #define TCFG_HW_SPI1_ENABLE                 ENABLE_THIS_MOUDLE
-#define TCFG_HW_SPI1_PORT_CLK               NO_CONFIG_PORT//IO_PORTA_00
-#define TCFG_HW_SPI1_PORT_DO                NO_CONFIG_PORT//IO_PORTA_01
-#define TCFG_HW_SPI1_PORT_DI                NO_CONFIG_PORT//IO_PORTA_02
+#define TCFG_HW_SPI1_PORT_CLK               IO_PORTC_04
+#define TCFG_HW_SPI1_PORT_DO                IO_PORTC_03
+#define TCFG_HW_SPI1_PORT_DI                NO_CONFIG_PORT
 #define TCFG_HW_SPI1_BAUD                   2000000L
-#define TCFG_HW_SPI1_MODE                   SPI_MODE_BIDIR_1BIT
+#define TCFG_HW_SPI1_MODE                   SPI_MODE_UNIDIR_1BIT
 #define TCFG_HW_SPI1_ROLE                   SPI_ROLE_MASTER
 
 #define TCFG_HW_SPI2_ENABLE                 ENABLE_THIS_MOUDLE
@@ -66,6 +66,28 @@
 #define TCFG_HW_SPI2_BAUD                   2000000L
 #define TCFG_HW_SPI2_MODE                   SPI_MODE_BIDIR_1BIT
 #define TCFG_HW_SPI2_ROLE                   SPI_ROLE_MASTER
+
+//*********************************************************************************//
+//                                 FLASH 配置                                      //
+//*********************************************************************************//
+// NAND Flash 使能（GD5F4GM7UE, SPI1 单线半双工）
+// ECC_EN=1 (0xB0 bit4), 内部 8-bit ECC 开启
+#define TCFG_NANDFLASH_DEV_ENABLE           1
+#define TCFG_FLASH_DEV_SPI_HW_NUM           1
+#define TCFG_FLASH_DEV_SPI_CS_PORT          IO_PORTC_05
+#define TCFG_FLASH_DEV_FLASH_READ_WIDTH     1
+
+// 当前项目不使用 NOR Flash / 内置录音。显式关闭以消除歧义。
+// 注意：若后续开启离线 dlog，app_config.h 可能重新使能 TCFG_NORFLASH_DEV_ENABLE，
+// 届时需重新检查 NAND 与 NOR 的引脚/资源规划。
+#define TCFG_NORFLASH_SFC_DEV_ENABLE        DISABLE_THIS_MOUDLE
+#define TCFG_NORFLASH_DEV_ENABLE            DISABLE_THIS_MOUDLE
+#define TCFG_VIRFAT_FLASH_ENABLE            DISABLE_THIS_MOUDLE
+#define FLASH_INSIDE_REC_ENABLE             DISABLE_THIS_MOUDLE
+
+// NAND FTL + FAT 挂载依赖 dev_manager 框架创建任务
+// TWS 耳机项目默认不使能 MUSIC/PC/LINEIN，app_config.h 会将其置 0
+#define TCFG_DEV_MANAGER_ENABLE             1
 
 //*********************************************************************************//
 //                                  SD 配置                                        //

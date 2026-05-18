@@ -376,9 +376,9 @@ ZB35Q01C (第 1040 行之后):
 // --- new_string ---
 //power-up:need set featurea[A0]=00h
         if (_nandflash.flash_id == GD5F4GM7UE) {
-            // GD5F4GM7UE: ECC_EN=1 (0xB0 bit4), protect all blocks
-            // 0xA0: BP3=0,BP2=0,BP1=1,BP0=1 → 0x1C
-            // 0xB0: HSE=1,QE=0,ECC_EN=1 (bit4) → 0x11
+            // GD5F4GM7UE: protect all blocks + ECC enable
+            // 0xA0=0x1C: BP2=1,BP1=1,BP0=1 (bits[4:2]=111) → protect all
+            // 0xB0=0x11: ECC_EN=1 (bit4), QE=1 (bit0)
             nand_set_features(0xA0, 0x1C);
             nand_set_features(0xB0, 0x11);
         } else {

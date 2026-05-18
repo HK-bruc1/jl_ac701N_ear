@@ -198,12 +198,14 @@
 #define TCFG_MIX_RECORD_ENABLE     0
 #endif
 
+#ifndef TCFG_DEV_MANAGER_ENABLE
 #if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
 #define TCFG_DEV_MANAGER_ENABLE					  			1
 #elif TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
 #define TCFG_DEV_MANAGER_ENABLE					  			0
 #else
 #define TCFG_DEV_MANAGER_ENABLE					  			0
+#endif
 #endif
 
 #if TCFG_APP_MUSIC_EN

@@ -67,7 +67,7 @@
 
 #define CONFIG_SPI_DATA_WIDTH                     2                // flash通信
 #define CONFIG_FLASH_SIZE                         0x200000         // flash容量
-#define TCFG_VM_SIZE                              40               // VM大小(K)
+#define TCFG_VM_SIZE                              80               // VM大小(K) — bump from 40K for NAND FAT; may work at 60K
 #define TCFG_JLSTREAM_EFFICIENT_MODE              0                // 音频流高效模式
 
 #define TCFG_PWMLED_ENABLE                        0                // LED配置

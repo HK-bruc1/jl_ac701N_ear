@@ -1443,12 +1443,10 @@ c_SRC_FILES += \
 #endif
 
 
-#ifdef CONFIG_SOUNDBOX_CASE
 #if TCFG_NANDFLASH_DEV_ENABLE
 c_SRC_FILES += \
 	apps/common/device/storage_device/nandflash/nandflash.c \
-	apps/common/device/storage_device/nandflash/ftl_device.c
-#endif
+	apps/common/device/storage_device/nandflash/nandflash_ftl.c
 #endif
 
 
@@ -1914,7 +1912,7 @@ c_SRC_FILES += \
 
 // *INDENT-OFF*
 
-#if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE
+#if TCFG_APP_MUSIC_EN || TCFG_MIX_RECORD_ENABLE || TCFG_NANDFLASH_DEV_ENABLE
 c_SRC_FILES += \
 	apps/common/dev_manager/dev_reg.c \
 	apps/common/dev_manager/dev_update.c \

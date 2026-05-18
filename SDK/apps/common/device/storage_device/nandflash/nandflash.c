@@ -19,9 +19,6 @@
 
 #define NAND_FLASH_TIMEOUT			1000000
 #define MAX_NANDFLASH_PART_NUM      4
-#define NAND_PAGE_SIZE 				2048
-/* #define NAND_PAGE_SIZE 					2048+128 */
-#define NAND_BLOCK_SIZE    			0x20000
 
 #define XT26G01C                    0x0b11
 #define XT26G02C                    0x2c24
@@ -29,20 +26,23 @@
 #define F35SQA002G                  0xcd72
 #define F35SQA001G                  0xcd71
 #define F35SQA512M                  0xcd70
-#define ZB35Q01C                  0x5e41
+#define ZB35Q01C                    0x5e41
+#define GD5F4GM7UE                  0xc894
 
 
 struct nandflash_data {
     u8 ecc_mask;
     u8 ecc_err;
     u8 plane_select;
-    u8 write_enable_position;//写使能的位置，1表示在写入缓存区指令前进行写使能，0表示在写入缓存区指令后写使能
-    u8 quad_mode_dummy_num: 4; //0XEB指令dummy数量
-    u8 quad_mode_qe: 1; //featrue(0xb0):bit0:QE
+    u8 write_enable_position;
+    u8 quad_mode_dummy_num: 4;
+    u8 quad_mode_qe: 1;
     u16 block_number;
     u32 capacity;
+    u16 page_size;
+    u32 block_size;
 };
-struct nandflash_data nand_flash = {0, 0, 0, 0, 0, 0, 0, 0};
+struct nandflash_data nand_flash = {0};
 static u8 spi_data_width = SPI_MODE_BIDIR_1BIT;
 
 struct nandflash_partition {
@@ -303,11 +303,11 @@ static u32 block_page_get(u32 addr, u32 *cache_addr)
     u32 block = 0, bp_mix = 0;
 
     //<地址超1页范围
-    if (addr >= NAND_PAGE_SIZE) {
-        if (addr >= NAND_BLOCK_SIZE) {
-            while (addr >= NAND_BLOCK_SIZE) {
+    if (addr >= nand_flash.page_size) {
+        if (addr >= nand_flash.block_size) {
+            while (addr >= nand_flash.block_size) {
                 block++;
-                addr -= NAND_BLOCK_SIZE;
+                addr -= nand_flash.block_size;
             }
             goto _page_count;
         } else {
@@ -320,9 +320,9 @@ static u32 block_page_get(u32 addr, u32 *cache_addr)
     }
 
 _page_count:
-    while (addr >= NAND_PAGE_SIZE) {
+    while (addr >= nand_flash.page_size) {
         page++;
-        addr -= NAND_PAGE_SIZE;
+        addr -= nand_flash.page_size;
     }
 
 _end_count:
@@ -357,14 +357,13 @@ int nand_flash_erase(u32 address)
 
 static void nand_flash_erase_all()
 {
-    u16 block_num = 1024; //XT26G01C(1Gb)
     nand_set_features(0xA0, 0x00);
-    block_num = nand_flash.block_number;
+    u16 block_num = nand_flash.block_number;
     for (int i = 0; i < block_num; i++) {
-        nand_flash_erase(NAND_BLOCK_SIZE * i);
+        nand_flash_erase(nand_flash.block_size * i);
         wdt_clear();
     }
-    r_printf("nandflash erase all!!!");
+    log_info("nandflash erase all!!!");
 }
 
 //return:0:ok, >0:err, <0:bad block(-1表示0,-2:1,,,)
@@ -403,7 +402,6 @@ static void nand_read_from_cache(u8 *buf, u32 cache_addr, u32 len) //ReadCache
     spi_write_byte(0xFF);  //send 1byte dummy clk
     spi_dma_read(buf, len);
     spi_cs_h();//SPI_CS(1);
-    /* printf("%s\n",__func__); */
 }
 //3bh/6bh/bbh/ebh:addr_bit12:sel plane
 static void nand_read_from_cache_x2(u8 *buf, u32 cache_addr, u32 len) //ReadCache
@@ -418,7 +416,6 @@ static void nand_read_from_cache_x2(u8 *buf, u32 cache_addr, u32 len) //ReadCach
     spi_dma_read(buf, len);
     spi_set_width(spi_data_width);
     spi_cs_h();//SPI_CS(1);
-    /* printf("%s\n",__func__); */
 }
 //03h/0bh/3bh/6bh/bbh/ebh:addr_bit12:sel plane
 static void nand_read_from_cache_dual_io(u8 *buf, u32 cache_addr, u32 len) //ReadCache
@@ -482,7 +479,6 @@ static void nand_read_from_cache_quad_io(u8 *buf, u32 cache_addr, u32 len) //Rea
     if (nand_flash.quad_mode_qe) {
         nand_flash_set_quad(0);
     }
-    /* printf("%s\n",__func__); */
 }
 //return:0:ok, >0:err, <0:bad block(-1表示0,-2:1,,,)
 static int nand_read(u32 addr, u32 len, u8 *buf)
@@ -522,7 +518,6 @@ int nand_flash_read_page(u16 block, u8 page, u16 offset, u8 *buf, u16 len)
     int reg = 0;
     u32 bp_mix = 0;
     u32 cache_addr = offset;
-    /*bp_mix = block_page_get(addr, &cache_addr); */
     bp_mix = (block << 6) | page;
 
     cache_addr &= 0x0fff;
@@ -554,13 +549,11 @@ int nand_flash_read_page(u16 block, u8 page, u16 offset, u8 *buf, u16 len)
 //return:0:ok, >0:err, <0:bad block(-1表示0,-2:1,,,)
 int nand_flash_read(u32 offset, u8 *buf,  u32 len)
 {
-    /* printf("%s() %x l: %x @:%x \n", __func__, (u32)buf, len, offset); */
     int reg = 0;
     int _len = len;
     u8 *_buf = (u8 *)buf;
     os_mutex_pend(&_nandflash.mutex, 0);
-    u32 first_page_len = NAND_PAGE_SIZE - (offset % NAND_PAGE_SIZE);
-    /* printf("first_page_len %x %x \n", first_page_len, offset % NAND_PAGE_SIZE); */
+    u32 first_page_len = nand_flash.page_size - (offset % nand_flash.page_size);
     first_page_len = _len > first_page_len ? first_page_len : _len;
     reg = nand_read(offset, first_page_len, _buf);
     if (reg) {
@@ -571,7 +564,7 @@ int nand_flash_read(u32 offset, u8 *buf,  u32 len)
     _buf += first_page_len;
     offset += first_page_len;
     while (_len) {
-        u32 cnt = _len > NAND_PAGE_SIZE ? NAND_PAGE_SIZE : _len;
+        u32 cnt = _len > nand_flash.page_size ? nand_flash.page_size : _len;
         reg = nand_read(offset, cnt, _buf);
         if (reg) {
             log_error("read nandflash addr:%d fail!", offset);
@@ -588,7 +581,6 @@ __read_exit:
 
 
 //write:
-#if 1
 static void nand_program_load(u8 *buf, u32 cache_addr, u16 len)
 {
     spi_cs_l();//SPI_CS(0);
@@ -597,7 +589,6 @@ static void nand_program_load(u8 *buf, u32 cache_addr, u16 len)
     spi_write_byte((u8)cache_addr);
     spi_dma_write(buf, len); //将数据放到总线上
     spi_cs_h();//SPI_CS(1);
-    /* printf("%s\n",__func__); */
 }
 //02h/32h/84h/34h:addr_bit12:sel plane
 static void nand_program_load_x4(u8 *buf, u32 cache_addr, u16 len)
@@ -618,7 +609,6 @@ static void nand_program_load_x4(u8 *buf, u32 cache_addr, u16 len)
     if (nand_flash.quad_mode_qe) {
         nand_flash_set_quad(0);
     }
-    /* printf("%s\n",__func__); */
 }
 
 static int nand_program_excute(u32 block_page_addr)
@@ -645,7 +635,6 @@ static int nand_write(u32 addr, u16 len, u8 *buf)
     u32 cache_addr;
 
     bp_mix = block_page_get(addr, &cache_addr);
-    //printf_u16(cache_addr);
     cache_addr &= 0x0fff;
     if (nand_flash.plane_select == 1) { //XT26G02C(2Gb)
         if (bp_mix & BIT(6)) {
@@ -675,9 +664,7 @@ int nand_flash_write_page(u16 block, u8 page, u8 *buf, u16 len)
     u32 bp_mix = 0;
     u32 cache_addr;
 
-    /*bp_mix = block_page_get(addr, &cache_addr); */
     bp_mix = (block << 6) | page;
-    //printf_u16(cache_addr);
     cache_addr = 0;
     if (nand_flash.plane_select == 1) { //XT26G02C(2Gb)
         if (bp_mix & BIT(6)) {
@@ -705,13 +692,11 @@ int nand_flash_write_page(u16 block, u8 page, u8 *buf, u16 len)
 //写前需确保该block(128k)已擦除
 int nand_flash_write(u32 offset, u8 *buf,  u32 len)
 {
-    /* printf("%s() %x l: %x @:%x \n", __func__, (u32)buf, len, offset); */
     int reg;
     int _len = len;
     u8 *_buf = (u8 *)buf;
     os_mutex_pend(&_nandflash.mutex, 0);
-    u32 first_page_len = NAND_PAGE_SIZE - (offset % NAND_PAGE_SIZE);
-    /* printf("first_page_len %x %x \n", first_page_len, offset % NAND_PAGE_SIZE); */
+    u32 first_page_len = nand_flash.page_size - (offset % nand_flash.page_size);
     first_page_len = _len > first_page_len ? first_page_len : _len;
     reg = nand_write(offset, first_page_len, _buf);
     if (reg) {
@@ -721,7 +706,7 @@ int nand_flash_write(u32 offset, u8 *buf,  u32 len)
     _buf += first_page_len;
     offset += first_page_len;
     while (_len) {
-        u32 cnt = _len > NAND_PAGE_SIZE ? NAND_PAGE_SIZE : _len;
+        u32 cnt = _len > nand_flash.page_size ? nand_flash.page_size : _len;
         reg = nand_write(offset, cnt, _buf);
         if (reg) {
             goto __exit;
@@ -745,12 +730,10 @@ static void nand_program_load_random_data(u8 *buf, u16 cache_addr, u16 len)
     spi_write_byte((u8)((cache_addr) >> 8));
     spi_write_byte((u8)cache_addr);
     if (buf && (len > 0)) {
-        /* printf("\n >>>[test]:func = %s,line= %d, addr = %d\n",__FUNCTION__, __LINE__,  cache_addr); */
-        /* put_buf(buf, len); */
+
         spi_dma_write(buf, len); //将数据放到总线上
     }
     spi_cs_h();//SPI_CS(1);
-    /* printf("%s\n",__func__); */
 }
 //02h/32h/84h/34h:addr_bit12:sel plane
 static void nand_program_load_random_data_x4(u8 *buf, u16 cache_addr, u16 len)
@@ -771,14 +754,13 @@ static void nand_program_load_random_data_x4(u8 *buf, u16 cache_addr, u16 len)
     if (nand_flash.quad_mode_qe) {
         nand_flash_set_quad(0);
     }
-    /* printf("%s\n",__func__); */
 }
 
 /*
  * 块间或块内页数据移动, 可替换offset位置len长的数据
  * page_src_addr :要移动的页
  * page_dest_addr:移动目标页(需已擦除)
- * offset :需要替换的数据起始地址(<NAND_PAGE_SIZE)
+ * offset :需要替换的数据起始地址(<nand_flash.page_size)
  * len    :需替换数据长度. 无则=0
  * buf    :存储的替换的数据.无则NULL
  * return :nandflash status reg(0:ok, >0:err) ;or bad block(<0:bad block num(-1表示0块,-2:1,,,))
@@ -829,14 +811,14 @@ int nand_page_internal_data_move(u32 page_src_addr, u32 page_dest_addr, u16 offs
  * block_src_addr :要移动的块
  * block_dest_addr:移动目标块(需已擦除)
  * page_num:需修改数据的页号(<=63)
- * offset :需要替换的数据起始地址(<NAND_PAGE_SIZE)
+ * offset :需要替换的数据起始地址(<nand_flash.page_size)
  * len    :需替换数据长度. 无则=0
  * buf    :存储的替换的数据.无则NULL
  * return :nandflash status reg(0:ok, >0:err) ;or bad block(<0:bad block num(-1表示0块,-2:1,,,))
  * */
 int nand_block_internal_data_move(u32 block_src_addr, u32 block_dest_addr, u8 page_num, u16 offset, u16 len, u8 *buf)
 {
-    /* y_printf(">>>[test]:move, src_addr=0x%x(b:%d), dest_addr=0x%x(b:%d),page_num:%d write len=%d\n", block_src_addr,block_src_addr/NAND_BLOCK_SIZE,  block_dest_addr,block_dest_addr/NAND_BLOCK_SIZE, page_num, len ); */
+
     u32 bp_mix_src = 0, bp_mix_dst = 0;
     u32 cache_addr_src, cache_addr_dst;
     u8 page_cnt = 0;
@@ -852,9 +834,9 @@ int nand_block_internal_data_move(u32 block_src_addr, u32 block_dest_addr, u8 pa
             cache_addr_dst |= BIT(12);
         }
     }
-    u32 wnum = (len + offset) / NAND_PAGE_SIZE;
+    u32 wnum = (len + offset) / nand_flash.page_size;
     u32 wlen;
-    if (((len + offset) % NAND_PAGE_SIZE) || (0 == (len + offset))) {
+    if (((len + offset) % nand_flash.page_size) || (0 == (len + offset))) {
         wnum += 1;
     }
 
@@ -870,11 +852,11 @@ int nand_block_internal_data_move(u32 block_src_addr, u32 block_dest_addr, u8 pa
         }
         if ((page_cnt >= page_num) && (page_cnt < (page_num + wnum))) {
             wlen = len;
-            if ((wlen + offset) > NAND_PAGE_SIZE) {
-                len -= (NAND_PAGE_SIZE - offset);
-                wlen = (NAND_PAGE_SIZE - offset);
+            if ((wlen + offset) > nand_flash.page_size) {
+                len -= (nand_flash.page_size - offset);
+                wlen = (nand_flash.page_size - offset);
             }
-            /* r_printf(">>>[test]:dst-ofset:0x%x, buf-addr:0x%x, len:%d, page_cnt:%d-w", cache_addr_dst + offset, buf, wlen, page_cnt); */
+
             if (_nandflash.spi_r_width == SPI_MODE_UNIDIR_4BIT) {
                 nand_program_load_random_data_x4(buf, cache_addr_dst + offset, wlen);
             } else {
@@ -904,8 +886,8 @@ int nand_block_internal_data_move(u32 block_src_addr, u32 block_dest_addr, u8 pa
     return nand_get_features(GD_GET_STATUS);
 
 }
-#endif
 
+static int _nandflash_open(void *arg);
 
 int _nandflash_init(const char *name, struct nandflash_dev_platform_data *pdata)
 {
@@ -932,8 +914,13 @@ int _nandflash_init(const char *name, struct nandflash_dev_platform_data *pdata)
         ASSERT(nandflash_verify_part(part) == 0, "nandflash partition %s overlaps\n", name);
         log_info("nandflash new partition %s\n", part->name);
     } else {
-        ASSERT(0, "nandflash partition name already exists\n");
+        return -1;
     }
+    // Open HW early so SPI init, chip ID probe, and geometry detection
+    // happen at partition-registration time. Without this, the FTL layer's
+    // first dev_open would fail because nand_flash.page_size/block_size
+    // are still zero and IOCTL_GET_PAGE_SIZE returns invalid geometry.
+    _nandflash_open(NULL);
     return 0;
 }
 
@@ -957,15 +944,23 @@ int _nandflash_open(void *arg)
     log_info("nandflash open\n");
     if (!_nandflash.open_cnt) {
         spi_cs_init();
-        spi_set_width(_nandflash.spi_r_width);//readX2X4
         spi_open(_nandflash.spi_num, get_hw_spi_config(_nandflash.spi_num));
-// nand flash power-up need wait 1.25ms
-// wait oip ok
-        if (nand_flash_wait_ok(NAND_FLASH_TIMEOUT)) {
-            log_error("nand flash power-up error");
-            reg = -ENODEV;
-            goto __exit;
+        spi_set_width(_nandflash.spi_r_width);
+        {
+            struct spi_platform_data *spi_pdata = get_hw_spi_config(_nandflash.spi_num);
+            for (int i = 0; i < 6; i++) {
+                if (spi_pdata->port[i] != (u8)-1) {
+                    gpio_hw_set_drive_strength(IO_PORT_SPILT(spi_pdata->port[i]), PORT_DRIVE_STRENGT_64p0mA);
+                }
+            }
+            if (spi_pdata->port[4] != (u8)-1) {
+                gpio_set_mode(IO_PORT_SPILT(spi_pdata->port[4]), PORT_INPUT_PULLUP_10K);
+            }
+            if (spi_pdata->port[5] != (u8)-1) {
+                gpio_set_mode(IO_PORT_SPILT(spi_pdata->port[5]), PORT_INPUT_PULLUP_10K);
+            }
         }
+        nand_flash_reset();
         _nandflash.flash_id = nand_flash_read_id();
         log_info("nandflash_read_id: 0x%x\n", _nandflash.flash_id);
         switch (_nandflash.flash_id) {
@@ -978,6 +973,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 1024;
             nand_flash.capacity = 128 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case XT26G02C :
             nand_flash.ecc_mask = 0x70;
@@ -988,6 +985,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 0;
             nand_flash.block_number = 2048;
             nand_flash.capacity = 256 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case XCSP4AAWH :
             nand_flash.ecc_mask = 0x70;
@@ -998,6 +997,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 4096;
             nand_flash.capacity = 512 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case F35SQA512M :
             nand_flash.ecc_mask = 0x30;
@@ -1008,6 +1009,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 512;
             nand_flash.capacity = 64 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case F35SQA001G :
             nand_flash.ecc_mask = 0x30;
@@ -1018,6 +1021,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 1024;
             nand_flash.capacity = 128 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case F35SQA002G :
             nand_flash.ecc_mask = 0x30;
@@ -1028,6 +1033,8 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 2048;
             nand_flash.capacity = 256 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
             break;
         case ZB35Q01C:
             nand_flash.ecc_mask = 0x30;
@@ -1038,11 +1045,40 @@ int _nandflash_open(void *arg)
             nand_flash.quad_mode_qe = 1;
             nand_flash.block_number = 1024;
             nand_flash.capacity = 128 * 1024 * 1024;
+            nand_flash.page_size = 2048;
+            nand_flash.block_size = 128 * 1024;
+            break;
+        case GD5F4GM7UE:
+            // GD5F4GM7UE: 4Gb SPI NAND, 4KB page, 256KB block, 2048 blocks
+            // ECC: 8-bit / 512-byte segment, status bits ECCS1=0b001100 ECCS0=0b000110
+            nand_flash.ecc_mask = 0x30;
+            nand_flash.ecc_err = 0x0C;
+            nand_flash.plane_select = 0;
+            nand_flash.write_enable_position = 0;
+            nand_flash.quad_mode_dummy_num = 8;
+            nand_flash.quad_mode_qe = 0;
+            nand_flash.block_number = 2048;
+            nand_flash.capacity = 512 * 1024 * 1024;
+            nand_flash.page_size = 4096;
+            nand_flash.block_size = 256 * 1024;
             break;
         }
 
 //power-up:need set featurea[A0]=00h
-        nand_set_features(0xA0, 0x00);
+        if (_nandflash.flash_id == GD5F4GM7UE) {
+            // GD5F4GM7UE: ECC enable only, no write protect
+            // A0=0x00: BP2=0,BP1=0,BP0=0 → no block protection
+            // B0=0x11: ECC_EN=1 (bit4), QE=1 (bit0)
+            // Set Features needs WEL=1 before modifying protection register
+            nand_write_enable();
+            nand_set_features(0xA0, 0x00);
+            nand_flash_wait_ok(NAND_FLASH_TIMEOUT);
+            nand_write_enable();
+            nand_set_features(0xB0, 0x11);
+            nand_flash_wait_ok(NAND_FLASH_TIMEOUT);
+        } else {
+            nand_set_features(0xA0, 0x00);
+        }
         if ((_nandflash.flash_id == 0) || (_nandflash.flash_id == 0xffff)) {
             log_error("read nandflash id error !\n");
             reg = -ENODEV;
@@ -1070,7 +1106,7 @@ int _nandflash_close(void)
         _nandflash.open_cnt--;
     }
     if (!_nandflash.open_cnt) {
-        spi_close(_nandflash.spi_num);
+        spi_deinit(_nandflash.spi_num);
         spi_cs_uninit();
 
         log_info("nandflash close done\n");
@@ -1095,15 +1131,18 @@ int _nandflash_ioctl(u32 cmd, u32 arg, u32 unit, void *_part)
         break;
     case IOCTL_GET_BLOCK_SIZE:
         *(u32 *)arg = 512;//usb fat
-        /* *(u32 *)arg = NAND_BLOCK_SIZE; */
+        /* *(u32 *)arg = nand_flash.block_size; */
         break;
     case IOCTL_ERASE_BLOCK:
-        if ((arg  + part->start_addr) % NAND_BLOCK_SIZE == 0) {
+        if ((arg  + part->start_addr) % nand_flash.block_size == 0) {
             reg = nand_flash_erase(arg  + part->start_addr);
         }
         break;
     case IOCTL_GET_CAPACITY:
         *(u32 *)arg = nand_flash.capacity;
+        break;
+    case IOCTL_GET_PAGE_SIZE:
+        *(u32 *)arg = nand_flash.page_size;
         break;
     case IOCTL_FLUSH:
         break;
@@ -1159,7 +1198,7 @@ static int nandflash_dev_read(struct device *device, void *buf, u32 len, u32 off
     int reg;
     offset = offset * 512;
     len = len * 512;
-    /* r_printf("flash read sector = %d, num = %d\n", offset, len); */
+
     struct nandflash_partition *part;
     part = (struct nandflash_partition *)device->private_data;
     if (!part) {
@@ -1169,7 +1208,7 @@ static int nandflash_dev_read(struct device *device, void *buf, u32 len, u32 off
     offset += part->start_addr;
     reg = nand_flash_read(offset, buf, len);
     if (reg) {
-        r_printf(">>>[r error]:\n");
+        log_error("nandflash read error, reg=%d", reg);
         len = 0;
         if (reg < 0) {
             return reg;
@@ -1181,7 +1220,7 @@ static int nandflash_dev_read(struct device *device, void *buf, u32 len, u32 off
 //写前需确保该block(128k)已擦除
 static int nandflash_dev_write(struct device *device, void *buf, u32 len, u32 offset)
 {
-    /* r_printf("flash write sector = %d, num = %d\n", offset, len); */
+
     int reg = 0;
     offset = offset * 512;
     len = len * 512;
@@ -1193,7 +1232,7 @@ static int nandflash_dev_write(struct device *device, void *buf, u32 len, u32 of
     offset += part->start_addr;
     reg = nand_flash_write(offset, buf, len);
     if (reg) {
-        r_printf(">>>[w error]:\n");
+        log_error("nandflash write error, reg=%d", reg);
         len = 0;
     }
     len = len / 512;
@@ -1212,6 +1251,12 @@ static int nandflash_dev_ioctl(struct device *device, u32 cmd, u32 arg)
     }
     return _nandflash_ioctl(cmd, arg, 512,  part);
 }
+
+u16 nandflash_get_flash_id(void)
+{
+    return _nandflash.flash_id;
+}
+
 const struct device_operations nandflash_dev_ops = {
     .init   = nandflash_dev_init,
     .online = nandflash_dev_online,

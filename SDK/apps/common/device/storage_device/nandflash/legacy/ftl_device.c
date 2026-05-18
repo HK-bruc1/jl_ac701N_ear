@@ -1,3 +1,11 @@
+// ⚠️ 此文件仅用于 2KB page NAND + 闭源 ftl.a 的适配场景。
+// 当前工程使用 nandflash_ftl.c（开源 FTL，支持 4KB page）替代此文件。
+// 此文件已从 genFileList.c 中移除编译，不再参与构建。
+// 如需切换回闭源 FTL：
+//   1. 在 genFileList.c 中编译此文件
+//   2. 在 Makefile.mk 中链接 ftl.a
+//   3. 从 git 历史恢复 nandflash_get_ftl_info() 到 nandflash.c（已从此分支移除）
+// 若确认不再需要，可直接删除此文件和本 legacy/ 目录。
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma bss_seg(".ftl_device.data.bss")
 #pragma data_seg(".ftl_device.data")
@@ -9,8 +17,15 @@
 #include "nandflash.h"
 #include "ftl_api.h"
 #include "app_config.h"
+#include "asm/wdt.h"
 
 #if TCFG_NANDFLASH_DEV_ENABLE
+
+#undef LOG_TAG_CONST
+#define LOG_TAG     "[FTL_DEV]"
+#define LOG_ERROR_ENABLE
+#define LOG_INFO_ENABLE
+#include "debug.h"
 
 static u32 g_capacity = 0;
 static struct device ftl_device;
@@ -66,17 +81,11 @@ static int ftl_dev_init(const struct dev_node *node, void *arg)
 
 static int ftl_dev_open(const char *name, struct device **device, void *arg)
 {
+    int ret = 0;
     dev_open("nand_flash", NULL);
 
     struct ftl_nand_flash flash;
-    flash.block_begin = 0;
-    flash.block_end = 1024;
-    flash.logic_block_num = 1000;
-    flash.page_num = 64;
-    flash.page_size = 2 * 1024;
-    flash.oob_offset = 0;
-    flash.oob_size = 64;
-    flash.max_erase_cnt = 10 * 10000;
+    nandflash_get_ftl_info(&flash);
     flash.page_size_shift = get_first_one(flash.page_size);
     flash.block_size_shift = get_first_one(flash.page_size * flash.page_num);
     flash.page_read = ftl_port_page_read;
@@ -86,12 +95,43 @@ static int ftl_dev_open(const char *name, struct device **device, void *arg)
     g_capacity = flash.logic_block_num << (flash.block_size_shift - 9);
 
     struct ftl_config config = {
-        .page_buf_num = 4,
-        .delayed_write_msec = 100,
+        .page_buf_num = 1,
+        .delayed_write_msec = 0,
     };
-    ftl_init(&flash, &config);
+    ret = ftl_init(&flash, &config);
+    if (ret) {
+        log_error("ftl_init failed: %d", ret);
+        return ret;
+    }
+
+    // check if FTL needs first-time format
+    {
+        u8 marker[4];
+        u32 marker_addr = (g_capacity - 1) * 512;
+        enum ftl_error_t err;
+        if (ftl_read_bytes(marker_addr, marker, 4, &err) < 0
+            || marker[0] != 'F' || marker[1] != 'T'
+            || marker[2] != 'L' || marker[3] != '!') {
+            log_info("ftl first format start");
+            wdt_disable();
+            ret = ftl_format();
+            if (ret) {
+                log_error("ftl_format failed: %d", ret);
+            } else {
+                ftl_uninit();
+                ret = ftl_init(&flash, &config);
+                if (ret == 0) {
+                    u8 magic[4] = {'F', 'T', 'L', '!'};
+                    ftl_write_bytes(marker_addr, magic, 4, &err);
+                }
+            }
+            wdt_enable();
+            log_info("ftl first format ret: %d", ret);
+        }
+    }
+
     *device = &ftl_device;
-    return 0;
+    return ret;
 }
 
 static int ftl_dev_close(struct device *device)
@@ -134,7 +174,7 @@ static int ftl_dev_ioctl(struct device *device, u32 cmd, u32 arg)
         *(u32 *)arg = 1;
         break;
     case IOCTL_GET_ID:
-        *((u32 *)arg) = 0xcd71;
+        *((u32 *)arg) = nandflash_get_flash_id();
         break;
     case IOCTL_GET_BLOCK_SIZE:
         *(u32 *)arg = 512;//usb fat

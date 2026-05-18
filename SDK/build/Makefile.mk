@@ -308,7 +308,6 @@ LFLAGS := \
 	cpu/br28/liba/ascii.a \
 	cpu/br28/liba/cfg_tool.a \
 	cpu/br28/liba/vm.a \
-	cpu/br28/liba/ftl.a \
 	cpu/br28/liba/debug_record.a \
 	cpu/br28/liba/lzma_dec.a \
 	cpu/br28/liba/chargestore.a \

@@ -60,6 +60,7 @@
 #define IOCTL_SET_CUR_LUN               112
 #define IOCTL_SET_FORCE_RESET           113
 #define IOCTL_SET_CAPACITY 				114
+#define IOCTL_GET_PAGE_SIZE             115
 
 
 #define IOCTL_ERASE_SECTOR 				200

@@ -1045,8 +1045,7 @@ static void dev_manager_task(void *p)
     }
 #endif
 
-#if 1//SDFILE_STORAGE && TCFG_CODE_FLASH_ENABLE
-
+#if SDFILE_STORAGE && TCFG_CODE_FLASH_ENABLE
 	dev_manager_add(SDFILE_DEV);
 #endif
 

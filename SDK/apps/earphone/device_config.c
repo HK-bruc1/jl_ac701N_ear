@@ -168,7 +168,7 @@ NANDFLASH_DEV_PLATFORM_DATA_BEGIN(nandflash_dev_data) = {
     .spi_cs_port    = TCFG_FLASH_DEV_SPI_CS_PORT,
     .spi_read_width = TCFG_FLASH_DEV_FLASH_READ_WIDTH,//flash读数据的线宽
     .start_addr     = 0,
-    .size           = 128 * 1024 * 1024,
+    .size           = 512 * 1024 * 1024,
 #if (TCFG_FLASH_DEV_SPI_HW_NUM == 1)
     .spi_pdata      = &spix_p_data[1],
 #elif (TCFG_FLASH_DEV_SPI_HW_NUM == 2)
@@ -197,7 +197,7 @@ REGISTER_DEVICES(device_table) = {
 
 #if TCFG_NANDFLASH_DEV_ENABLE
     {"nand_flash",   &nandflash_dev_ops, (void *) &nandflash_dev_data},
-    {"nandflash_ftl",   &ftl_dev_ops, NULL },
+    {"nandflash_ftl",   &ftl_dev_ops, (void *)"nand_flash"},
 #endif
 
 };
