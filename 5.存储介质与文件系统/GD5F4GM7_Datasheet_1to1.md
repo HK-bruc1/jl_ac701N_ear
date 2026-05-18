@@ -1063,6 +1063,38 @@ Command sequence:
 | F0h | Feature Status Register | RO | Extended ECC status |
 | 60h | Block Protection Lock | R/W | Power lock down protection |
 
+**Note:**
+1. If BRWD is enabled and WP# is LOW, then the block lock register cannot be changed.
+2. If QE is enabled, the quad IO operations can be executed.
+3. All the reserved bits must be held low when the feature is set.
+4. Registers A0h/B0h/D0h/60h are write/read type, and Registers C0h/F0h are read only.
+5. The OTP_PRT is non-volatile, other bits are volatile.
+6. The Register Bit default value after power-up refers to Table 15-2.
+7. Please keep the 60h bit0 always set to 0.
+
+**Figure 15-1. Get Features Sequence Diagram (0Fh)**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+       Command  1 Byte Address  Data Byte Out
+SI     0Fh      A7-A0
+SO     ─────────────────────────┐  ┌──────┐
+                                └─┘ D7-D0└─
+CS#    
+```
+
+**Figure 15-2. Set Features Sequence Diagram (1Fh)**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+       Command  1 Byte Address  Data Byte In
+SI     1Fh      A7-A0           D7-D0
+SO     ──────────────────────────────────────────────────────────────────────────────────────
+CS#    
+```
+
 ### 15.2 Status Register and Driver Register
 
 **Table 15-2. Status Register (C0h)**
@@ -1182,10 +1214,17 @@ The OTP region can be permanently locked by setting OTP_PRT=1 in the Feature Reg
    - 1Fh + B0h: Clear OTP_EN=0
 
 3. **OTP Lock (Permanent):**
-   - 1Fh + B0h: Set OTP_EN=1 and OTP_PRT=1
-   - 06h: Write Enable
-   - 10h + any OTP page address: Program Execute (this locks OTP)
-   - OTP_PRT will remain 1 permanently
+
+   **Protect OTP region:**
+
+   Only when the following steps are completed, the OTP_PRT will be set and users can get this feature with 0Fh command.
+
+   1. Issue the SET FEATURES command (1Fh)
+   2. Set feature bit OTP_EN and OTP_PRT (B0h: OTP_PRT=1, OTP_EN=1)
+   3. Issue Write Enable command (06h)
+   4. Issue the PROGRAM EXECUTE (10h) command
+
+   **Note:** The OTP space cannot be erased and after it has been protected, it cannot be programmed again. Please use this function carefully.
 
 **OTP Region Layout:**
 
@@ -1239,10 +1278,26 @@ The protection region is defined by the BP[2:0] bits in combination with the INV
 | 1 | 1 | 0 | 1 | 0 | 01000h~1FFFFh | 2046 | All except lower 1/32 |
 | 1 | 1 | 1 | 0 | 0 | 04000h~1FFFFh | 2040 | All except lower 1/8 |
 | 1 | 1 | 1 | 0 | 1 | 08000h~1FFFFh | 2016 | All except lower 1/4 |
+| 1 | 0 | 0 | 0 | 1 | 00000h~1F7FFh | 2047 | Lower 63/64 locked |
+| 1 | 0 | 0 | 1 | 0 | 00000h~1EFFFh | 2046 | Lower 31/32 locked |
+| 1 | 0 | 0 | 1 | 1 | 00000h~1DFFFh | 2044 | Lower 15/16 locked |
+| 1 | 0 | 1 | 0 | 0 | 00000h~1BFFFh | 2040 | Lower 7/8 locked |
+| 1 | 0 | 1 | 0 | 1 | 00000h~17FFFh | 2016 | Lower 3/4 locked |
+| 1 | 0 | 1 | 1 | 0 | 00000h~0003Fh | 1 | Block 0 locked |
+| 1 | 1 | 0 | 0 | 1 | 00800h~1FFFFh | 2047 | Upper 63/64 locked |
+| 1 | 1 | 0 | 1 | 0 | 01000h~1FFFFh | 2046 | Upper 31/32 locked |
+| 1 | 1 | 0 | 1 | 1 | 02000h~1FFFFh | 2044 | Upper 15/16 locked |
+| 1 | 1 | 1 | 0 | 0 | 04000h~1FFFFh | 2040 | Upper 7/8 locked |
+| 1 | 1 | 1 | 0 | 1 | 08000h~1FFFFh | 2016 | Upper 3/4 locked |
+| 1 | 1 | 1 | 1 | 0 | 00000h~0003Fh | 1 | Block 0 locked |
+
+When WP# is not LOW, the user can issue below commands to alter the protection states as desired.
 
 **Note:** The Block Protection Status (BPS) bit in the Feature Status Register (F0h) indicates whether the currently selected block is protected (BPS=1) or not (BPS=0).
 
 ### 15.5 Power Lock Down Protection
+
+When the Hardware Protection is disabled during quad or x4 mode, Power Lock Down Protection can be used to prevent a block protection state change.
 
 The Power Lock Down Protection feature prevents software from modifying the Block Protection settings. When enabled, the block protection bits (BP[2:0], INV, CMP) and the Block Register Write Disable bit (BRWD) are locked and can only be unlocked by a power cycle.
 
@@ -1305,61 +1360,60 @@ During Read operation:
 5. ECCS/ECCSE are set to 00h after power-up or reset, and are updated after each read operation.
 6. When ECC is disabled (ECC_EN=0), the ECC status bits are invalid.
 
+**Note:**
+1. 1000h is reserved for initial bad block mark.
+2. When ECC is on, the ECC for main/spare area (1080h-10FFh) is prohibited for user, but user can read the Address 1080h~10FFh.
+3. When ECC is off, the whole page area is open for user.
+
 ---
 
 ## 16. Power On/Off Timing
 
-**Figure 16-1. Power On/Off Timing**
+**Figure 16. Power On/Off Timing Sequence**
 
 ```
-Power On:
 VCC
- |
- |     _______________
- |    /               |_________
- |___/
-    |<-- tVSL -->|
-                Device operational
-
-Power Off:
-VCC
-_________
- |       |\
- |       | \
- |_______|  \_____
-          |<->|
-          VWI (Write Inhibit Voltage)
-
-Power-On Reset:
-VCC _____|          |_________________
-         |< tVSL >|
-CS# _____|__________|        |________
-         |<-- tRST -->|
-
-Power-Down:
-VCC ________________|
-                    |\
-                    | \
-                    |  \___
-                       |<->|
-                       tPWD (min 50us)
+ │
+ │    VCC(min)                    VCC(max)
+ │      ┌──────────────────────────────┐
+ │     /                                \
+ │    /                                  \
+ │   /                                    \
+ ──/──────────────────────────────────────\────── t
+   tVSL                                   tPWD
+   │                                      │
+   ▼                                      ▼
+ Device ready                          Power-off
 ```
 
-**Table 16-1. Power-On/Off Timing and Write Inhibit Threshold for 1.8V/3.3V**
+**Table 16. Power-On/Off Timing and Write Inhibit Threshold**
 
-| Symbol | Parameter | Min | Max | Unit |
-| :--- | :--- | :--- | :--- | :--- |
-| tVSL | VCC(min) to device operational | 3 | - | ms |
-| tRST | Reset time after power-on | 5 | 10 | us |
-| VWI | Write inhibit voltage | - | 1.5 (1.8V) / 2.5 (3.3V) | V |
-| VPWD | Power-down voltage for initialization | - | 0.7 | V |
-| tPWD | Power-down duration for initialization | 50 | - | us |
+| Symbol | Parameter | Min. | Max. | Unit |
+|--------|-----------|------|------|------|
+| tVSL | VCC(min.) to device operation | 3 | — | ms |
+| VWI | Write Inhibit Voltage (1.8V) | — | 1.5 | V |
+| VWI | Write Inhibit Voltage (3.3V) | — | 2.5 | V |
+| VPWD | VCC voltage needed to below VPWD for ensuring initialization will occur | — | 0.7 | V |
+| tPWD | The minimum duration for ensuring initialization will occur | 50 | — | μs |
 
 **Note:** Do not send any command before VCC reaches the minimum operating voltage. Do not power down during write/erase operations.
 
 ---
 
 ## 17. Absolute Maximum Ratings
+
+**Figure 17. Overshoot Waveform**
+
+```
+Maximum Negative Overshoot          Maximum Positive Overshoot
+
+    20ns     20ns                       20ns     20ns
+   ┌──┐    ┌──┐                        ┌──┐    ┌──┐
+   │  │    │  │                        │  │    │  │
+───┘  └────┘  └─── VCC            VCC ───┘  └────┘  └───
+                                                VCC+2.0V
+   VSS-2.0V
+```
 
 **Table 17-1. Absolute Maximum Ratings**
 
@@ -1368,7 +1422,8 @@ VCC ________________|
 | Storage temperature | TSTG | -65 to +150 | degrees C |
 | Ambient temperature with power applied | TA | -40 to +105 | degrees C |
 | Input voltage with respect to ground (1) | VIN | -0.6 to VCC+0.4 | V |
-| VCC supply voltage (1) | VCC | -0.6 to +4.6 | V |
+| VCC supply voltage (3.3V) (1) | VCC | -0.6 to 4.0 | V |
+| VCC supply voltage (1.8V) (1) | VCC | -0.6 to 2.5 | V |
 | Output short circuit current (2) | IOS | 5 | mA |
 | Electrostatic discharge voltage (Human Body Model) (3) | VESD | +/-4000 | V |
 
@@ -1388,6 +1443,27 @@ VCC ________________|
 | Input capacitance | CIN | VIN = 0V, f = 1MHz | - | 6 | pF |
 | Output capacitance | COUT | VOUT = 0V, f = 1MHz | - | 8 | pF |
 | Input/Output capacitance | CI/O | VI/O = 0V, f = 1MHz | - | 8 | pF |
+| Load Capacitance | CL | - | 30 | — | pF |
+| Input Rise And Fall Time | — | - | — | 5 | ns |
+| Input Pulse Voltage | — | - | 0.1VCC to 0.9VCC | — | V |
+| Input Timing Reference Voltage | — | - | 0.2VCC to 0.8VCC | — | V |
+| Output Timing Reference Voltage | — | - | 0.5VCC | — | V |
+
+**Figure 18. Input Test Waveform and Measurement Level**
+
+```
+Input timing reference level     Output timing reference level
+
+  0.9VCC ─┐                       ┌─ 0.5VCC
+          │                       │
+  0.8VCC ─┤ AC Measurement Level  │
+          │                       │
+  0.2VCC ─┤                       │
+          │                       │
+  0.1VCC ─┘                       └─
+
+Note: Input pulse rise and fall time are < 5ns.
+```
 
 **Note:** These parameters are characterized and not 100% tested.
 
@@ -1400,8 +1476,8 @@ VCC ________________|
 | Symbol | Parameter | Test Condition | Min | Typ | Max | Unit |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | VCC | Supply voltage | | 2.7 | 3.3 | 3.6 | V |
-| ILI | Input leakage current | VIN = VCC or VSS | - | - | +/-2 | uA |
-| ILO | Output leakage current | VOUT = VCC or VSS | - | - | +/-2 | uA |
+| ILI | Input leakage current | VIN = VCC or VSS | - | - | +/-10 | uA |
+| ILO | Output leakage current | VOUT = VCC or VSS | - | - | +/-10 | uA |
 | ICC1 | Standby current (CMOS) | CS# = VCC, f = 0 | - | 10 | 35 | uA |
 | ICC2 | Operating current (Read) | f = 133MHz | - | 15 | 30 | mA |
 | ICC3 | Operating current (Program) | | - | 15 | 30 | mA |
@@ -1417,8 +1493,8 @@ VCC ________________|
 | Symbol | Parameter | Test Condition | Min | Typ | Max | Unit |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | VCC | Supply voltage | | 1.7 | 1.8 | 2.0 | V |
-| ILI | Input leakage current | VIN = VCC or VSS | - | - | +/-2 | uA |
-| ILO | Output leakage current | VOUT = VCC or VSS | - | - | +/-2 | uA |
+| ILI | Input leakage current | VIN = VCC or VSS | - | - | +/-10 | uA |
+| ILO | Output leakage current | VOUT = VCC or VSS | - | - | +/-10 | uA |
 | ICC1 | Standby current (CMOS) | CS# = VCC, f = 0 | - | 5 | 30 | uA |
 | ICC1-DPD | Deep power-down current | CS# = VCC, f = 0 | - | 1 | - | uA |
 | ICC2 | Operating current (Read) | f = 104MHz | - | 10 | 20 | mA |
@@ -1427,7 +1503,7 @@ VCC ________________|
 | ICC5 | Operating current (DTR Read) | f = 80MHz, Quad | - | 15 | 30 | mA |
 | VIL | Input low voltage | | -0.5 | - | 0.2VCC | V |
 | VIH | Input high voltage | | 0.8VCC | - | VCC+0.4 | V |
-| VOL | Output low voltage | IOL = 100uA | - | - | 0.2VCC | V |
+| VOL | Output low voltage | IOL = 1.6mA | - | - | 0.4 | V |
 | VOH | Output high voltage | IOH = -100uA | 0.8VCC | - | - | V |
 
 **Notes:**
@@ -1455,6 +1531,24 @@ VCC ________________|
 | tCLQV | Clock low to output valid | - | - | 6.5 | ns |
 | tCLQX | Output hold time | 1.5 | - | - | ns |
 | tSHQZ | Output disable time | - | - | 20 | ns |
+| tCLCH | Serial Clock Rise Time (Slew Rate) | - | 0.2 | - | V/ns |
+| tCHCL | Serial Clock Fall Time (Slew Rate) | - | 0.2 | - | V/ns |
+| tCHSH | CS# Active Hold Time | 5 | - | - | ns |
+| tSHCH | CS# Not Active Setup Time | 5 | - | - | ns |
+| tDVCL | Data In Setup Time (DTR Only) | 2 | - | - | ns |
+| tCLDX | Data In Hold Time (DTR Only) | 2 | - | - | ns |
+| tCHQX | Output Hold Time (DTR Only) | 1.5 | - | - | ns |
+| tHLCH | Hold# Low Setup Time (relative to Clock) | 5 | - | - | ns |
+| tHHCH | Hold# High Setup Time (relative to Clock) | 5 | - | - | ns |
+| tCHHL | Hold# High Hold Time (relative to Clock) | 5 | - | - | ns |
+| tCHHH | Hold# Low Hold Time (relative to Clock) | 5 | - | - | ns |
+| tHLQZ | Hold# Low to High-Z Output | - | - | 15 | ns |
+| tHHQX | Hold# High to Low-Z Output | - | - | 15 | ns |
+| tCHQV | Clock High to Output Valid (DTR Only) | - | - | 6.5 | ns |
+| tWHSL | WP# Setup Time Before CS# Low | 20 | - | - | ns |
+| tSHWL | WP# Hold Time After CS# High | 100 | - | - | ns |
+| tDP | CS# High to Deep Power-Down Mode | - | - | 3 | us |
+| tRES1 | CS# High to Standby Mode | - | - | 50 | us |
 
 **Table 20-2. AC Characteristics for 1.8V (1.7V~2.0V)**
 
@@ -1472,17 +1566,30 @@ VCC ________________|
 | tCLQV | Clock low to output valid | - | - | 9 | ns |
 | tCLQX | Output hold time | 2 | - | - | ns |
 | tSHQZ | Output disable time | - | - | 20 | ns |
-
-**Table 20-3. Deep Power-Down AC Characteristics for 1.8V**
-
-| Symbol | Parameter | Min | Typ | Max | Unit |
-| :--- | :--- | :--- | :--- |
-| tDP | CS# high to Deep Power-Down | - | - | 3 | us |
-| tRES1 | CS# high to Standby mode without Electronic Signature read | - | - | 50 | us |
+| tCLCH | Serial Clock Rise Time (Slew Rate) | - | 0.2 | - | V/ns |
+| tCHCL | Serial Clock Fall Time (Slew Rate) | - | 0.2 | - | V/ns |
+| tCHSH | CS# Active Hold Time | 5 | - | - | ns |
+| tSHCH | CS# Not Active Setup Time | 5 | - | - | ns |
+| tDVCL | Data In Setup Time (DTR Only) | 2 | - | - | ns |
+| tCLDX | Data In Hold Time (DTR Only) | 2 | - | - | ns |
+| tCHQX | Output Hold Time (DTR Only) | 2 | - | - | ns |
+| tHLCH | Hold# Low Setup Time (relative to Clock) | 5 | - | - | ns |
+| tHHCH | Hold# High Setup Time (relative to Clock) | 5 | - | - | ns |
+| tCHHL | Hold# High Hold Time (relative to Clock) | 5 | - | - | ns |
+| tCHHH | Hold# Low Hold Time (relative to Clock) | 5 | - | - | ns |
+| tHLQZ | Hold# Low to High-Z Output | - | - | 15 | ns |
+| tHHQX | Hold# High to Low-Z Output | - | - | 15 | ns |
+| tCHQV | Clock High to Output Valid (DTR Only) | - | - | 9 | ns |
+| tWHSL | WP# Setup Time Before CS# Low | 20 | - | - | ns |
+| tSHWL | WP# Hold Time After CS# High | 100 | - | - | ns |
+| tDP | CS# High to Deep Power-Down Mode | - | - | 3 | us |
+| tRES1 | CS# High to Standby Mode | - | - | 50 | us |
 
 **Notes:**
 1. All AC parameters are measured with CL = 30pF.
 2. Timing measurement reference level: Input = 0.5VCC, Output = 0.5VCC.
+3. Value guaranteed by design and/or characterization, not 100% tested in production.
+4. Please contact GigaDevice when there is a need to use the EEh command for DTR.
 
 ---
 
@@ -1500,6 +1607,70 @@ VCC ________________|
 | tRST | Reset time (standby/read) | 5 | 10 | us |
 | tRST_PGM | Reset time (program) | - | 10 | us |
 | tRST_ERS | Reset time (erase) | - | 500 | us |
+
+**Figure 21-1. Serial Input Timing**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+
+       ┌──┐                    ┌──┐
+CS#    └──┘                    └──┘
+       tCHSH  tSHCH  tCH  tSH  tDVCH  tCHDX
+SI     MSB                        LSB
+SO     High-Z
+```
+
+**Figure 21-2. Serial Output Timing**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+
+       ┌──┐                    ┌──┐
+CS#    └──┘                    └──┘
+
+SO     High-Z              D7   D0
+       tCLQV  tSHQZ  tCLQX
+```
+
+**Figure 21-3. Hold Timing**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+
+HOLD#  ────────────────┐      ┌────────────────
+                       └──────┘
+SO     ────────────────┐      ┌────────────────
+      Data Out    High-Z      Data Out
+       tHLCH  tHHCH  tHLQZ  tHHQX
+
+SI     (don't care during HOLD)
+```
+
+**Figure 21-4. Serial Input Timing (DTR)**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+
+       ┌──┐                    ┌──┐
+CS#    └──┘                    └──┘
+
+SI     MSB                        LSB
+       tDVCH  tCHDX  tDVCL  tCLDX
+```
+
+**Figure 21-5. Serial Output Timing (DTR)**
+
+```
+       ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
+SCLK   ─┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘
+
+SO     MSB                        LSB
+       tCLQV  tCHQV  tCLQX  tCHQX  tSHQZ
+```
 
 ---
 
@@ -1546,6 +1717,10 @@ GD 5 F 4 G M 7 [V] E [Pkg] [Temp] [Green]
 | GD5F4GM7UEYJG | 2.7V~3.6V | WSON8 (8x6mm) | -40 degrees C ~ 105 degrees C |
 | GD5F4GM7REYJG | 1.7V~2.0V | WSON8 (8x6mm) | -40 degrees C ~ 105 degrees C |
 
+**Packing Type:**
+- R: Tape & Reel
+- Y: Tray
+
 ---
 
 ## 23. Package Information
@@ -1566,16 +1741,16 @@ Top View:
   |  5           4    |  Pin 7: HOLD#/SIO3
   +-------------------+  Pin 8: VCC
 
-Dimensions (mm):
-  A: 0.70 - 0.80 (total thickness)
-  A1: 0.00 - 0.05 (stand-off)
-  b: 0.35 - 0.45 (lead width)
-  D: 8.00 BSC (body length)
-  D2: 3.30 - 3.80 (exposed pad length)
-  E: 6.00 BSC (body width)
-  E2: 4.20 - 4.70 (exposed pad width)
-  e: 1.27 BSC (pitch)
-  L: 0.50 - 0.60 (lead length)
+**Table 23-1. WSON8 (8x6mm) Dimensions**
+
+| Unit | A | A1 | b | c | D | D2 | E | E2 | e | L |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| mm | Min | 0.70 | 0.00 | 0.35 | 0.180 | 8.00 BSC | 3.30 | 6.00 BSC | 4.20 | 1.27 BSC | 0.45 |
+| | Nom | 0.75 | 0.02 | 0.40 | 0.203 | 8.00 BSC | 3.40 | 6.00 BSC | 4.30 | 1.27 BSC | 0.50 |
+| | Max | 0.80 | 0.05 | 0.45 | 0.250 | 8.00 BSC | 3.50 | 6.00 BSC | 4.40 | 1.27 BSC | 0.55 |
+| Inch | Min | 0.028 | 0 | 0.014 | 0.007 | 0.315 | 0.130 | 0.236 | 0.165 | 0.050 | 0.018 |
+| | Nom | 0.030 | 0.001 | 0.016 | 0.008 | 0.315 | 0.134 | 0.236 | 0.169 | 0.050 | 0.020 |
+| | Max | 0.032 | 0.002 | 0.018 | 0.010 | 0.315 | 0.138 | 0.236 | 0.173 | 0.050 | 0.022 |
 ```
 
 ### 23.2 WSON8 (6x5mm)
@@ -1594,16 +1769,16 @@ Top View:
   |  5        4    |  Pin 7: HOLD#/SIO3
   +----------------+  Pin 8: VCC
 
-Dimensions (mm):
-  A: 0.70 - 0.80
-  A1: 0.00 - 0.05
-  b: 0.30 - 0.40
-  D: 6.00 BSC
-  D2: 2.80 - 3.30
-  E: 5.00 BSC
-  E2: 3.30 - 3.80
-  e: 1.27 BSC
-  L: 0.40 - 0.50
+**Table 23-2. WSON8 (6x5mm) Dimensions**
+
+| Unit | A | A1 | b | D | D2 | E | E2 | e | L |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| mm | Min | 0.70 | 0.00 | 0.35 | 6.00 BSC | 3.30 | 5.00 BSC | 3.90 | 1.27 BSC | 0.50 |
+| | Nom | 0.75 | 0.02 | 0.40 | 6.00 BSC | 3.40 | 5.00 BSC | 4.00 | 1.27 BSC | 0.60 |
+| | Max | 0.80 | 0.05 | 0.50 | 6.00 BSC | 3.50 | 5.00 BSC | 4.10 | 1.27 BSC | 0.75 |
+| Inch | Min | 0.028 | 0 | 0.007 | 0.014 | 0.232 | 0.130 | 0.193 | 0.154 | 0.020 |
+| | Nom | 0.030 | 0.001 | 0.008 | 0.016 | 0.236 | 0.134 | 0.197 | 0.157 | 0.024 |
+| | Max | 0.032 | 0.002 | 0.010 | 0.020 | 0.240 | 0.138 | 0.201 | 0.161 | 0.030 |
 ```
 
 ### 23.3 TFBGA24 (5x5 Ball Array)
@@ -1626,28 +1801,43 @@ Ball Assignment:
   D1: NC, D2: SI/SIO0, D3: HOLD#/SIO3, D4: NC, D5: NC
   E1: NC, E2: NC, E3: SO/SIO1, E4: NC, E5: NC
 
-Dimensions (mm):
-  A: 0.80 - 1.00
-  A1: 0.15 - 0.25
-  A2: 0.55 - 0.65
-  b: 0.40 - 0.50 (ball diameter)
-  D: 5.00 BSC
-  E: 5.00 BSC
-  e: 1.00 BSC (ball pitch)
+**Table 23-3. TFBGA24 (5x5 Ball Array) Dimensions**
+
+| Unit |  | A | A1 | A2 | b | D | D1 | E | E1 | e | SE | SD |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| mm | Min | — | 0.25 | — | 0.35 | 5.90 | — | 7.90 | — | — | 1.00 | 1.00 |
+| | Nom | — | 0.30 | 0.80 | 0.40 | 6.00 | 4.00 BSC | 8.00 | 4.00 BSC | 1.00 BSC | — | — |
+| | Max | 1.20 | 0.35 | — | 0.45 | 6.10 | — | 8.10 | — | — | — | — |
+| Inch | Min | — | 0.010 | — | 0.014 | 0.232 | — | 0.311 | — | — | — | — |
+| | | | | | | | 0.157 | | 0.157 | 0.039 | 0.039 | 0.039 |
+| | Nom | — | 0.012 | 0.031 | 0.016 | 0.236 | — | 0.315 | — | — | — | — |
+| | Max | 0.047 | 0.014 | — | 0.018 | 0.240 | — | 0.319 | — | — | — | — |
+
+**Note:** Both package length and width do not include mold flash.
 ```
 
 ---
 
 ## 24. Revision History
 
-**Table 24-1. Revision History**
-
-| Revision | Date | Description |
-| :--- | :--- | :--- |
-| Rev 1.0 | September 2025 | Initial release |
+| Version No. | Description | Page | Date |
+|-------------|-------------|------|------|
+| 0.1 | Initial Release | — | 2025-06-19 |
+| 0.9 | 1. Modify the Internal ECC Description. | P66 | 2025-08-10 |
+|     | 2. Modify the tRD_ECC Value | P74 | |
+|     | 3. Modify the Max ICC5 Value of the 1.8V Product | P72 | |
+| 1.0 | Initial Release | — | 2025-09-22 |
 
 ---
 
-*Document: DS-GD5F4GM7-Rev1.0*
-*Date: September 2025*
-*GigaDevice Semiconductor Inc.*
+## Important Notice
+
+This document is the property of GigaDevice Semiconductor (Beijing) Inc. and its subsidiaries (the "Company"). This document, including any product of the Company described in this document (the "Product"), is owned by the Company under the intellectual property laws and treaties of the People's Republic of China and other jurisdictions worldwide. The Company reserves all rights under such laws and treaties and does not grant any license under its patents, copyrights, trademarks, or other intellectual property rights. The names and brands of third party referred thereto (if any) are the property of their respective owner and referred to for identification purposes only.
+
+The Company makes no warranty of any kind, express or implied, with regard to this document or any Product, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. The Company does not assume any liability arising out of the application or use of any Product described in this document. Any information provided in this document is provided only for reference purposes. It is the responsibility of the user of this document to properly design, program, and test the functionality and safety of any application made of this information and any resulting product. Except for customized products which has been expressly identified in the applicable agreement, the Products are designed, developed, and/or manufactured for ordinary business, industrial, personal, and/or household applications only. The Products are not designed, intended, or authorized for use as components in systems designed or intended for the operation of weapons, weapons systems, nuclear installations, atomic energy control instruments, combustion control instruments, airplane or spaceship instruments, traffic signal instruments, life-support devices or systems, other medical devices or systems (including resuscitation equipment and surgical implants), pollution control or hazardous substances management, or other uses where the failure of the device or Product could cause personal injury, death, property or environmental damage ("Unintended Uses"). Customers shall take any and all actions to ensure using and selling the Products in accordance with the applicable laws and regulations. The Company is not liable, in whole or in part, and customers shall and hereby do release the Company as well as it's suppliers and/or distributors from any claim, damage, or other liability arising from or related to all Unintended Uses of the Products. Customers shall indemnify and hold the Company as well as it's suppliers and/or distributors harmless from and against all claims, costs, damages, and other liabilities, including claims for personal injury or death, arising from or related to any Unintended Uses of the Products.
+
+Customers shall discard the device according to the local environmental law.
+
+Information in this document is provided solely in connection with the Products. The Company reserves the right to make changes, corrections, modifications or improvements to this document and the Products and services described herein at any time, without notice.
+
+© GigaDevice Semiconductor (Beijing) Inc. All rights reserved.
